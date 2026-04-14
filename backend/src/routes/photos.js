@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { v4: uuidv4 } = require('uuid');
 const { query, withTransaction } = require('../utils/db');
 const { authenticate } = require('../middleware/auth');
@@ -10,12 +8,19 @@ const { triggerAIReview } = require('../services/aiService');
 const { emitNotification } = require('../services/notificationService');
 const { assertAllowedFile, multerFileFilter } = require('../utils/fileSecurity');
 
+// Only load AWS SDK if S3 is properly configured
+let S3Client, PutObjectCommand, GetObjectCommand, getSignedUrl;
 let s3 = null;
-try {
-  if (process.env.S3_BUCKET && process.env.AWS_REGION) {
+
+if (process.env.S3_BUCKET && process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID) {
+  try {
+    ({ S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3'));
+    ({ getSignedUrl } = require('@aws-sdk/s3-request-presigner'));
     s3 = new S3Client({ region: process.env.AWS_REGION });
+  } catch (e) {
+    console.warn('S3 not available:', e.message);
   }
-} catch { /* demo */ }
+}
 
 const skipS3 = () => process.env.DEMO_MODE === 'true' || !process.env.S3_BUCKET || !s3;
 
