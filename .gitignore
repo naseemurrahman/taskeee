@@ -14,7 +14,6 @@ logs/
 .env.production
 backend/.env
 frontend/.env
-frontend/.env.*
 */config/local.json
 
 # Node
