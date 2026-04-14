@@ -7,13 +7,15 @@ Thumbs.db
 *.tmp
 logs/
 
-# Secrets
+# Secrets - NEVER commit these!
 .env
 .env.local
 .env.*.local
+.env.production
 backend/.env
 frontend/.env
 frontend/.env.*
+*/config/local.json
 
 # Node
 node_modules/
@@ -42,4 +44,11 @@ coverage/
 *.tgz
 *.zip
 *.tar.gz
+
+# Debug screenshots
+*-shot.png
+edge-*.png
+login-debug.png
+light-*.png
+dark-*.png
 

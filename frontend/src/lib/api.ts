@@ -1,10 +1,12 @@
 import { getAccessToken, clearAuth } from '../state/auth'
 
-const getApiBase = () => {
+const getApiBase = (): string => {
+  // If explicitly set via environment variable (Vite build --mode)
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL
-  // In production (no VITE_ prefix accessible), use relative URL
-  if (import.meta.env.PROD) return ''
-  return 'http://localhost:3001'
+  // In development, use localhost
+  if (import.meta.env.DEV) return 'http://localhost:3001'
+  // In production (including Docker/Fly.io), use relative path (proxied via nginx)
+  return ''
 }
 const API_BASE = getApiBase()
 

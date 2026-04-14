@@ -1,13 +1,12 @@
-app = "taskee"
-primary_region = "iad"
-
 [build]
-
-[deploy]
-  release_command = "cd backend && npm run migrate"
+  builder = "heroku/buildpacks:20"
 
 [env]
+  NODE_ENV = "production"
   PORT = "8080"
+
+[deploy]
+  release_command = "npm run migrate"
 
 [http_service]
   internal_port = 8080
@@ -15,7 +14,6 @@ primary_region = "iad"
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
 
 [[services]]
   internal_port = 8080
@@ -33,7 +31,3 @@ primary_region = "iad"
     path = "/"
     interval = "10s"
     timeout = "2s"
-
-[statics]
-  guest_path = "/app/frontend/dist"
-  url_prefix = "/"
