@@ -1,0 +1,10 @@
+{
+  "name": "taskflow-pro",
+  "private": true,
+  "description": "Local infrastructure helpers (Postgres + Redis via Docker)",
+  "scripts": {
+    "deps:up": "docker compose up -d postgres redis",
+    "deps:down": "docker compose stop postgres redis",
+    "deps:logs": "docker compose logs -f postgres redis"
+  }
+}

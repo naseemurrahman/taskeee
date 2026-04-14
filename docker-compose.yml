@@ -1,0 +1,146 @@
+services:
+  # ─── Database ─────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: taskflow_dev
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: devpassword123
+    ports:
+      # Use 5433 on the host if another Postgres already uses 5432 (common on Windows).
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Migrations are applied with: cd backend && npm run migrate
+      # (Do not mount migrations here — init order and seed data can break first boot.)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Cache / Queue ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  # ─── S3-compatible storage (local dev) ────────────────────────────────
+  minio:
+    profiles: ["ai"]
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio_access
+      MINIO_ROOT_PASSWORD: minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  # ─── Backend API ──────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgres://taskflow:devpassword123@postgres:5432/taskflow_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_production
+      JWT_EXPIRES_IN: 15m
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: minio_access
+      AWS_SECRET_ACCESS_KEY: minio_secret
+      S3_BUCKET: taskflow-photos
+      S3_ENDPOINT: http://minio:9000
+      AI_SERVICE_URL: http://ai-service:8000
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: noreply@taskflow.local
+      CLIENT_ORIGIN: http://localhost:5173
+      MFA_ENCRYPTION_KEY: dev_mfa_encrypt_32_bytes_minimum______________
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      STRIPE_PRICE_BASIC: ""
+      STRIPE_PRICE_PRO: ""
+      STRIPE_PRICE_ENTERPRISE: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src  # hot reload in dev
+    restart: unless-stopped
+
+  # ─── Frontend SPA ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ─── AI Inference Service ─────────────────────────────────────────────
+  ai-service:
+    profiles: ["ai"]
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: minio_access
+      AWS_SECRET_ACCESS_KEY: minio_secret
+      S3_BUCKET: taskflow-photos
+      AWS_ENDPOINT_URL: http://minio:9000
+      MODELS_DIR: /app/models
+      MODEL_VERSION: v1.0.0
+    volumes:
+      - ./ai-service/models:/app/models  # mount trained models
+    depends_on:
+      - minio
+    restart: unless-stopped
+
+  # ─── Email catcher (dev only) ─────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025"  # Web UI: http://localhost:8025
+      - "1025:1025"  # SMTP
+
+  # ─── Local S3 bucket creation ─────────────────────────────────────────
+  minio-init:
+    profiles: ["ai"]
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 minio_access minio_secret;
+      mc mb local/taskflow-photos --ignore-existing;
+      mc anonymous set download local/taskflow-photos;
+      echo 'MinIO bucket created';
+      "
+    restart: on-failure
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

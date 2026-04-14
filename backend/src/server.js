@@ -1,0 +1,270 @@
+'use strict';
+const path = require('path');
+require('dotenv').config({
+  path: path.join(__dirname, '..', '.env'),
+  override: true,
+});
+
+const express     = require('express');
+const http        = require('http');
+const { Server }  = require('socket.io');
+const helmet      = require('helmet');
+const cors        = require('cors');
+const morgan      = require('morgan');
+const compression = require('compression');
+const rateLimit   = require('express-rate-limit');
+const jwt         = require('jsonwebtoken');
+
+const logger           = require('./utils/logger');
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.stack || reason.message : String(reason);
+  logger.error('Unhandled promise rejection: ' + msg);
+});
+
+const { connectDB }    = require('./utils/db');
+const { connectRedis } = require('./utils/redis');
+const errorHandler     = require('./middleware/errorHandler');
+const {
+  securityHeaders, sensitiveOpLogger
+} = require('./middleware/security');
+
+// ── OWASP A05: crash immediately if required env vars missing ─────────────
+const REQUIRED = ['DATABASE_URL','REDIS_URL','JWT_SECRET','JWT_REFRESH_SECRET'];
+for (const v of REQUIRED) {
+  if (!process.env[v]) {
+    console.error(`\nFATAL: Missing env var: ${v}`);
+    console.error('Create backend\\.env  (copy from .env.example)\n');
+    process.exit(1);
+  }
+}
+
+
+// Routes — all required, no optional logic
+const authRoutes  = require('./routes/auth');
+const userRoutes  = require('./routes/users');
+const taskRoutes  = require('./routes/tasks');
+const photoRoutes = require('./routes/photos');
+const reportRoutes= require('./routes/reports');
+const notifRoutes = require('./routes/notifications');
+const orgRoutes   = require('./routes/organizations');
+const performanceRoutes = require('./routes/performance');
+const taskMessagesRoutes = require('./routes/taskMessages');
+const insightsRoutes = require('./routes/insights');
+const integrationsRoutes = require('./routes/integrations');
+const searchRoutes = require('./routes/search');
+const activityRoutes = require('./routes/activity');
+const auditRoutes = require('./routes/audit');
+const backupRoutes = require('./routes/backup');
+const paymentRoutes = require('./routes/payment');
+const projectsRoutes = require('./routes/projects');
+const hrisRoutes = require('./routes/hris');
+const crmRoutes = require('./routes/crm');
+const billingRoutes = require('./routes/billing');
+const contractorsRoutes = require('./routes/contractors');
+
+const app    = express();
+const server = http.createServer(app);
+
+// ── WebSocket: OWASP A01 — JWT verified, user joins own room only ─────────
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+];
+const allowedOrigins = (
+  process.env.CLIENT_ORIGIN ||
+  defaultOrigins.join(',')
+).split(',').map(o => o.trim()).filter(Boolean);
+
+const io = new Server(server, {
+  cors: { 
+    origin: allowedOrigins, 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma']
+  }
+});
+
+// Production WebSocket configuration
+if (!process.env.CLIENT_ORIGIN) {
+  console.warn('⚠️ CLIENT_ORIGIN not set, WebSocket may not work properly in production');
+}
+
+// Real-time features for production
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  
+  if (!token) {
+    return next(new Error('Authentication token required'));
+  }
+  
+  // Verify JWT token
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId;
+    socket.orgId = decoded.orgId;
+    
+    // Join user to their organization room
+    socket.join(`org_${socket.orgId}`);
+    
+    console.log(`🔗 User ${socket.userId} connected to organization ${socket.orgId}`);
+    next();
+  } catch (error) {
+    console.error('WebSocket authentication error:', error);
+    next(new Error('Invalid authentication token'));
+  }
+});
+
+// Handle real-time events
+io.on('connection', (socket) => {
+  console.log('📡 New WebSocket connection established');
+  
+  socket.on('task:update', (data) => {
+    // Broadcast task updates to organization members
+    socket.to(`org_${data.orgId}`).emit('task:updated', data);
+  });
+  
+  socket.on('task:comment', (data) => {
+    // Broadcast new comments to organization members
+    socket.to(`org_${data.orgId}`).emit('task:commented', data);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log(`📡 User ${socket.userId} disconnected`);
+  });
+});
+
+app.set('io', io);
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const d = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = d.userId;
+    next();
+  } catch { next(new Error('Invalid token')); }
+});
+io.on('connection', socket => {
+  socket.join(`user:${socket.userId}`);
+  socket.on('join_task', ({ taskId }) => {
+    if (taskId) socket.join(`task:${taskId}`);
+  });
+});
+
+// ── OWASP A05: strict Helmet config ───────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"], scriptSrc: ["'self'"], styleSrc: ["'self'"],
+      imgSrc: ["'self'",'data:','blob:'], connectSrc: ["'self'"],
+      frameSrc: ["'none'"], objectSrc: ["'none'"],
+    }
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+}));
+app.use(securityHeaders);
+app.use(compression());
+
+// ── OWASP A05: strict CORS allowlist ──────────────────────────────────────
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow non-browser clients and local development origins.
+    if (!origin || origin === 'null') return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return cb(null, true);
+    return cb(Object.assign(new Error('CORS origin not allowed'), { status: 403 }));
+  },
+  credentials: true,
+  methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma'],
+}));
+
+// ── OWASP A03: body size limits ────────────────────────────────────────────
+// Stripe webhooks require the raw body for signature verification.
+app.use('/api/v1/payment/webhook', express.raw({ type: 'application/json' }));
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+app.use(morgan('combined', { stream: { write: m => logger.info(m.trim()) } }));
+app.use(sensitiveOpLogger);
+
+// ── OWASP A07: global rate limiter ────────────────────────────────────────
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, max: 300,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests — try again later.' }
+}));
+
+// ── Routes ────────────────────────────────────────────────────────────────
+app.use('/api/v1/auth',          authRoutes);
+app.use('/api/v1/users',         userRoutes);
+// Task-scoped chat must register before /api/v1/tasks so /tasks/:taskId/messages is not swallowed by /tasks/:id
+app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
+app.use('/api/v1/tasks',         taskRoutes);
+app.use('/api/v1/photos',        photoRoutes);
+app.use('/api/v1/reports',       reportRoutes);
+app.use('/api/v1/notifications', notifRoutes);
+app.use('/api/v1/organizations', orgRoutes);
+app.use('/api/v1/performance', performanceRoutes);
+app.use('/api/v1/insights',      insightsRoutes);
+app.use('/api/v1/integrations',  integrationsRoutes);
+app.use('/api/v1/search',        searchRoutes);
+app.use('/api/v1/activity',      activityRoutes);
+app.use('/api/v1/audit',         auditRoutes);
+app.use('/api/v1/backup',        backupRoutes);
+app.use('/api/v1/payment',       paymentRoutes);
+app.use('/api/v1/projects',      projectsRoutes);
+app.use('/api/v1/hris',          hrisRoutes);
+app.use('/api/v1/crm',           crmRoutes);
+app.use('/api/v1/billing',       billingRoutes);
+app.use('/api/v1/contractors',   contractorsRoutes);
+
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    name: 'TaskFlow Pro API',
+    status: 'ok',
+    health: '/health',
+  });
+});
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+app.use(errorHandler);
+
+// ── Start ─────────────────────────────────────────────────────────────────
+const PORT = parseInt(process.env.PORT || '3001', 10);
+
+async function start() {
+  await connectDB();
+  await connectRedis();
+  require('./services/schedulerService').start();
+  server.listen(PORT);
+}
+
+server.on('listening', () => {
+  logger.info('TaskFlow Pro API started');
+  logger.info(`  Health : http://localhost:${PORT}/health`);
+  logger.info(`  Login  : POST http://localhost:${PORT}/api/v1/auth/login`);
+});
+
+// ── OWASP A05: graceful EADDRINUSE message ────────────────────────────────
+server.on('error', err => {
+  if (err.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} already in use.`);
+    logger.error(`Windows: netstat -ano | findstr :${PORT}  then  taskkill /PID <PID> /F`);
+    logger.error(`Or add  PORT=3001  to your .env file`);
+  } else {
+    logger.error('Server error: ' + err.message);
+  }
+  process.exit(1);
+});
+
+start().catch(err => {
+  logger.error('Startup failed: ' + err.message);
+  process.exit(1);
+});
+
+module.exports = { app, server, io };
