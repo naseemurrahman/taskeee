@@ -1,6 +1,12 @@
 import { getAccessToken, clearAuth } from '../state/auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL
+  // In production (no VITE_ prefix accessible), use relative URL
+  if (import.meta.env.PROD) return ''
+  return 'http://localhost:3001'
+}
+const API_BASE = getApiBase()
 
 export class ApiError extends Error {
   status: number
