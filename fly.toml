@@ -1,12 +1,15 @@
-[build]
-  builder = "heroku/buildpacks:20"
+app = 'taskflow-pro'
+primary_region = 'iad'
 
-[env]
-  NODE_ENV = "production"
-  PORT = "8080"
+[build]
+  dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "npm run migrate"
+  release_command = "cd backend && node scripts/migrate.js"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
 
 [http_service]
   internal_port = 8080
