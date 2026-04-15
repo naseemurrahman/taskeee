@@ -22,7 +22,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Install nginx
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx bash
 
 # Copy backend
 COPY --from=backend /app/node_modules ./node_modules
@@ -39,5 +39,5 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-# Start node server
-CMD ["node", "src/server.js"]
+# Run migrations then start server
+CMD sh -c "node scripts/migrate.js && node src/server.js"
