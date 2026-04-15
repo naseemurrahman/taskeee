@@ -1,0 +1,12 @@
+{
+  "name": "taskflow-backend",
+  "version": 2,
+  "build": {
+    "command": "npm ci --only=production"
+  },
+  "deploy": {
+    "command": "node scripts/migrate.js && node src/server.js",
+    "healthPath": "/",
+    "healthPort": 3001
+  }
+}
