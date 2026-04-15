@@ -1,12 +1,13 @@
 {
-  "name": "taskflow-backend",
-  "version": 2,
   "build": {
-    "command": "npm ci --only=production"
+    "builder": "nixpacks",
+    "nixpacks": {
+      "aptPackages": []
+    }
   },
   "deploy": {
-    "command": "node scripts/migrate.js && node src/server.js",
-    "healthPath": "/",
-    "healthPort": 3001
+    "command": "npm run migrate && npm start",
+    "restartPolicyType": "Always",
+    "restartPolicyMaxRetries": 10
   }
 }

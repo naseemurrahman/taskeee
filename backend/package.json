@@ -17,6 +17,9 @@
     "dev:set-password": "node scripts/dev-set-password.js",
     "test:coverage": "jest --coverage"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.478.0",
     "@aws-sdk/s3-request-presigner": "^3.478.0",
