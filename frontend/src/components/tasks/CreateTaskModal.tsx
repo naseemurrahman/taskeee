@@ -97,7 +97,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
 
   // Derive departments from employees data
   const departments = assignees.length > 0 
-    ? [...new Set(assignees.filter(u => u.department && u.department.trim() !== '').map(u => u.department))]
+    ? [...new Set(assignees.filter(u => u.department && u.department.trim() !== '').map(u => u.department as string))]
     : []
 
   // Debug: Check assignees data
@@ -146,7 +146,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
     m.mutate({
       title,
       description: description || undefined,
-      assignedTo: assignedTo || null,
+      assignedTo: assignedTo || '',
       categoryId: categoryId || undefined,
       priority,
       dueDate: dueDate || undefined,

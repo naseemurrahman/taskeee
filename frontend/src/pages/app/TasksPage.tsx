@@ -170,34 +170,34 @@ export function TasksPage() {
 
         <div style={{ marginTop: 12 }} />
         <div className="taskListBody">
-          {tasks.map((t) => (
-            <div key={t.id} className="taskRow">
+          {tasks.map((task) => (
+            <div key={task.id} className="taskRow">
               <div className="taskRowMain">
-                <div className="taskTitle">{t.title}</div>
-                {t.category_name || t.due_date || t.assigned_to_name ? (
+                <div className="taskTitle">{task.title}</div>
+                {task.category_name || task.due_date || task.assigned_to_name ? (
                   <div className="taskSubline">
-                    {t.category_name ? <span>{t.category_name}</span> : null}
-                    {t.assigned_to_name ? <span>{t.assigned_to_name}</span> : null}
-                    {t.due_date ? <span>Due {formatDue(t.due_date)}</span> : null}
+                    {task.category_name ? <span>{task.category_name}</span> : null}
+                    {task.assigned_to_name ? <span>{task.assigned_to_name}</span> : null}
+                    {task.due_date ? <span>Due {formatDue(task.due_date)}</span> : null}
                   </div>
                 ) : null}
               </div>
               <div className="taskRowActions">
-                {me?.id && t.status === 'submitted' && (t.assigned_to ? t.assigned_to === me.id : true) ? (
+                {me?.id && task.status === 'submitted' && (task.assigned_to ? task.assigned_to === me.id : true) ? (
                   <button
                     type="button"
                     className="btn btnPrimary"
                     style={{ height: 32, padding: '0 10px', fontSize: 12 }}
                     disabled={aiM.isPending}
-                    onClick={() => aiM.mutate(t.id)}
+                    onClick={() => aiM.mutate(task.id)}
                   >
                     {aiM.isPending ? t('common.sending') : t('common.aiReview')}
                   </button>
                 ) : null}
               </div>
               <div className="taskMeta">
-                <span className="pill">{t.status}</span>
-                {t.priority ? <span className="pill pillMuted">{t.priority}</span> : null}
+                <span className="pill">{task.status}</span>
+                {task.priority ? <span className="pill pillMuted">{task.priority}</span> : null}
               </div>
             </div>
           ))}

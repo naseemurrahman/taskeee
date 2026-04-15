@@ -168,7 +168,7 @@ export function WorkloadBalanceChart(props: {
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      <ChartShell fillHeight={props.fillHeight}>
+      <ChartShell height={H}>
         <BarChart data={data} margin={{ bottom: 8, left: 4, right: 8 }}>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis dataKey="name" tick={{ fill: 'var(--chart-tick)', fontSize: 12 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />

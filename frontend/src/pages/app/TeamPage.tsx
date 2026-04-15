@@ -56,7 +56,8 @@ export function TeamPage() {
       successMsg.className = 'alert alertSuccess'
       successMsg.textContent = 'User created successfully! Employee record created automatically.'
       successMsg.style.marginBottom = '12px'
-      document.querySelector('.card')?.insertBefore(successMsg, document.querySelector('.card')?.firstChild)
+      const card = document.querySelector('.card')
+      if (card) card.insertBefore(successMsg, card.firstChild)
       setTimeout(() => successMsg.remove(), 5000)
     },
     onError: (err) => {
