@@ -599,7 +599,7 @@ router.post('/signup', async (req, res, next) => {
 
       const { rows: userRows } = await client.query(
         `INSERT INTO users (org_id, email, password_hash, full_name, role, is_active, email_verified)
-         VALUES ($1, $2, $3, $4, 'admin', true, false)
+         VALUES ($1, $2, $3, $4, 'admin', true, true)
          RETURNING id, org_id, email, full_name, role, email_verified`,
         [organization.id, normalizedEmail, passwordHash, String(fullName).trim()]
       );
@@ -641,19 +641,23 @@ router.post('/signup', async (req, res, next) => {
       }
     });
 
-    // Generate + store email verification token (24h)
-    const verificationToken = randomToken(32);
-    const verificationTokenHash = sha256Hex(verificationToken);
-    await query(
-      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
-      [signupResult.user.id, verificationTokenHash]
-    );
+    // Generate + store email verification token (24h) - optional, don't fail signup
+    try {
+      const verificationToken = randomToken(32);
+      const verificationTokenHash = sha256Hex(verificationToken);
+      await query(
+        `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
+        [signupResult.user.id, verificationTokenHash]
+      );
+    } catch (tokenErr) {
+      console.error('Could not store verification token (table may not exist):', tokenErr.message);
+    }
 
     const origin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
     const verificationLink = `${origin.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
-    // Send verification email
+    // Send verification email - don't fail signup if email fails
     try {
       const verificationEmailHtml = emailService.getVerificationEmailTemplate(
         signupResult.user.full_name,
@@ -668,17 +672,16 @@ router.post('/signup', async (req, res, next) => {
       
       console.log('Verification email sent to:', signupResult.user.email);
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      // Don't block signup if email fails
+      console.error('Failed to send verification email (SMTP may not be configured):', emailError.message);
     }
 
     res.status(201).json({
-      message: 'Account created successfully! Please check your email to verify your account.',
+      message: 'Account created successfully! You can now login.',
       user: {
         id: signupResult.user.id,
         email: signupResult.user.email,
         fullName: signupResult.user.full_name,
-        emailVerified: false
+        emailVerified: true
       }
     });
   } catch (err) {

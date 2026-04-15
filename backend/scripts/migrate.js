@@ -67,7 +67,53 @@ async function runMigrations() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
+      // Create organization_members table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organization_members (
+          org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          role VARCHAR(50) DEFAULT 'member',
+          is_active BOOLEAN DEFAULT true,
+          joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          invited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          PRIMARY KEY (org_id, user_id)
+        )
+      `);
+
+      // Create refresh_tokens table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash VARCHAR(64) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create email_verification_tokens table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS email_verification_tokens (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash VARCHAR(64) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create password_reset_tokens table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash VARCHAR(64) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Insert default subscription plans
       await pool.query(`
         INSERT INTO subscription_plans (id, name, features) VALUES
