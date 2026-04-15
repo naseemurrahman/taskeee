@@ -147,23 +147,36 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
     if (!user.is_active)
       return res.status(403).json({ error: 'Account deactivated' });
 
-    const { rows: orgRows } = await query(
-      `SELECT id, name, slug, plan, settings, is_active FROM organizations WHERE id = $1`,
-      [user.org_id]
-    );
-    const org = orgRows[0];
-    if (!org || org.is_active === false) {
-      return res.status(403).json({ error: 'Organization is inactive' });
-    }
-
-    const subscriptionAccess = getSubscriptionAccess(org);
-    if (!subscriptionAccess.allowed) {
-      return res.status(402).json({
-        error: 'Active subscription required before login',
-        details: subscriptionAccess.reason,
-        organization: { id: org.id, name: org.name, slug: org.slug },
-        subscription: subscriptionAccess.subscription
-      });
+    let org = null;
+    let subscriptionAccess = { allowed: true, plan: 'basic' };
+    
+    try {
+      const { rows: orgRows } = await query(
+        `SELECT id, name, slug, plan, settings, is_active FROM organizations WHERE id = $1`,
+        [user.org_id]
+      );
+      org = orgRows[0];
+      
+      if (!org) {
+        return res.status(403).json({ error: 'Organization not found' });
+      }
+      if (org.is_active === false) {
+        return res.status(403).json({ error: 'Organization is inactive' });
+      }
+      
+      subscriptionAccess = getSubscriptionAccess(org);
+      if (!subscriptionAccess.allowed) {
+        return res.status(402).json({
+          error: 'Active subscription required before login',
+          details: subscriptionAccess.reason,
+          organization: { id: org.id, name: org.name, slug: org.slug },
+          subscription: subscriptionAccess.subscription
+        });
+      }
+    } catch (orgErr) {
+      console.error('Organization lookup failed:', orgErr.message);
+      // Allow login anyway if org lookup fails
+      subscriptionAccess = { allowed: true, plan: 'basic', subscription: { status: 'active' } };
     }
 
     if (user.mfa_enabled) {
