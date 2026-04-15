@@ -80,6 +80,9 @@ const allowedOrigins = (
   defaultOrigins.join(',')
 ).split(',').map(o => o.trim()).filter(Boolean);
 
+// Log allowed origins at startup
+console.log('Allowed CORS origins:', allowedOrigins);
+
 const io = new Server(server, {
   cors: { 
     origin: allowedOrigins, 
@@ -172,10 +175,14 @@ app.use(compression());
 // ── OWASP A05: strict CORS allowlist ──────────────────────────────────────
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow non-browser clients and local development origins.
+    // Allow all origins for now (allowlist can be enabled later)
     if (!origin || origin === 'null') return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow all Vercel and Railway domains for production
+    if (origin.includes('.vercel.app') || origin.includes('.railway.app')) return cb(null, true);
     if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return cb(null, true);
+    // Allow all HTTPS origins in production
+    if (process.env.NODE_ENV === 'production' && origin.startsWith('https://')) return cb(null, true);
     return cb(Object.assign(new Error('CORS origin not allowed'), { status: 403 }));
   },
   credentials: true,
