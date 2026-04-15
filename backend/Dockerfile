@@ -1,3 +1,7 @@
+# ===========================================
+# TaskFlow Pro - Backend Dockerfile for Railway
+# ===========================================
+
 FROM node:20-alpine
 
 WORKDIR /app
@@ -5,12 +9,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-COPY src/ ./src/
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+COPY . ./
 
 ENV NODE_ENV=production
+ENV PORT=3001
+
 EXPOSE 3001
 
-CMD ["node", "src/server.js"]
+# Run migrations then start server
+CMD sh -c "node scripts/migrate.js && node src/server.js"
