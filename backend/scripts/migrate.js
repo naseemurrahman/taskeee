@@ -92,6 +92,31 @@ async function runMigrations() {
         )
       `);
 
+      // Create mfa_challenges table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS mfa_challenges (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          challenge_hash VARCHAR(64) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          consumed_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create user_activity_logs table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_activity_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          task_id UUID,
+          activity_type VARCHAR(100) NOT NULL,
+          metadata JSONB DEFAULT '{}',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Create email_verification_tokens table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS email_verification_tokens (

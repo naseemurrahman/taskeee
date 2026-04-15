@@ -186,13 +186,23 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
     const tokenHash = require('crypto')
       .createHash('sha256').update(refreshToken).digest('hex');
 
-    await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
-      [user.id, tokenHash]
-    );
+    // Store refresh token - don't fail login if this fails
+    try {
+      await query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
+        [user.id, tokenHash]
+      );
+    } catch (tokenErr) {
+      console.warn('Could not store refresh token (table may not exist):', tokenErr.message);
+    }
 
-    await query(`UPDATE users SET last_login_at = NOW() WHERE id = $1`, [user.id]);
+    // Update last login
+    try {
+      await query(`UPDATE users SET last_login_at = NOW() WHERE id = $1`, [user.id]);
+    } catch (updateErr) {
+      console.warn('Could not update last_login_at:', updateErr.message);
+    }
     await logUserActivity({
       orgId: user.org_id,
       userId: user.id,
