@@ -85,7 +85,7 @@ console.log('Allowed CORS origins:', allowedOrigins);
 
 const io = new Server(server, {
   cors: { 
-    origin: allowedOrigins, 
+    origin: '*', 
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma']
@@ -172,22 +172,12 @@ app.use(helmet({
 app.use(securityHeaders);
 app.use(compression());
 
-// ── OWASP A05: strict CORS allowlist ──────────────────────────────────────
+// ── CORS: Allow all origins for development ─────────────────────────────────
 app.use(cors({
-  origin: (origin, cb) => {
-    // Allow all origins for now (allowlist can be enabled later)
-    if (!origin || origin === 'null') return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    // Allow all Vercel and Railway domains for production
-    if (origin.includes('.vercel.app') || origin.includes('.railway.app')) return cb(null, true);
-    if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return cb(null, true);
-    // Allow all HTTPS origins in production
-    if (process.env.NODE_ENV === 'production' && origin.startsWith('https://')) return cb(null, true);
-    return cb(Object.assign(new Error('CORS origin not allowed'), { status: 403 }));
-  },
+  origin: true,
   credentials: true,
   methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma'],
+  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','X-Requested-With'],
 }));
 
 // ── OWASP A03: body size limits ────────────────────────────────────────────
