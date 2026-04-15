@@ -73,7 +73,7 @@ async function runMigrations() {
         INSERT INTO subscription_plans (id, name, features) VALUES
         ('basic', 'Basic Plan', '["tasks", "reports"]'),
         ('pro', 'Pro Plan', '["tasks", "reports", "team_management", "api_access"]'),
-        ('enterprise', 'Enterprise Plan', '["tasks", "reports", "team_management", "api_access", "advanced_analytics", "priority_support"])
+        ('enterprise', 'Enterprise Plan', '["tasks", "reports", "team_management", "api_access", "advanced_analytics", "priority_support"]')
         ON CONFLICT (id) DO NOTHING
       `);
       
