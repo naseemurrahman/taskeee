@@ -22,7 +22,7 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled promise rejection: ' + msg);
 });
 
-const { connectDB }    = require('./utils/db');
+const { connectDB, query } = require('./utils/db');
 const { connectRedis } = require('./utils/redis');
 const errorHandler     = require('./middleware/errorHandler');
 const {
@@ -62,6 +62,7 @@ const hrisRoutes = require('./routes/hris');
 const crmRoutes = require('./routes/crm');
 const billingRoutes = require('./routes/billing');
 const contractorsRoutes = require('./routes/contractors');
+const statsRoutes       = require('./routes/stats');
 
 const app    = express();
 const server = http.createServer(app);
@@ -219,15 +220,44 @@ app.use('/api/v1/hris',          hrisRoutes);
 app.use('/api/v1/crm',           crmRoutes);
 app.use('/api/v1/billing',       billingRoutes);
 app.use('/api/v1/contractors',   contractorsRoutes);
+app.use('/api/v1/stats',         statsRoutes);
 
 app.get('/', (_req, res) => {
   res.status(200).json({
     name: 'TaskFlow Pro API',
+    version: '2.0.0',
     status: 'ok',
-    health: '/health',
+    docs: '/api/v1/health',
+    timestamp: new Date().toISOString(),
   });
 });
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Rich health check — db + redis ping
+app.get('/health', async (_req, res) => {
+  const start = Date.now();
+  const checks = { db: 'unknown', redis: 'unknown' };
+  try {
+    await query('SELECT 1');
+    checks.db = 'ok';
+  } catch { checks.db = 'error'; }
+  try {
+    const { getRedis } = require('./utils/redis');
+    const rc = getRedis();
+    if (rc) { await rc.ping(); checks.redis = 'ok'; } else { checks.redis = 'unconfigured'; }
+  } catch { checks.redis = 'error'; }
+  const allOk = checks.db === 'ok';
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'ok' : 'degraded',
+    uptime: Math.floor(process.uptime()),
+    latencyMs: Date.now() - start,
+    checks,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/v1/health', async (_req, res) => {
+  res.redirect('/health');
+});
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 

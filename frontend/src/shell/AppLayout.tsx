@@ -374,11 +374,24 @@ export function AppLayout() {
             to="/"
             className={({ isActive }) => `brandNameLink ${isActive ? 'brandNameLinkActive' : ''}`}
             title="TaskFlow Pro"
+            style={{ display: 'flex', alignItems: 'center', gap: 10 }}
           >
-            <span className="brandNameFull">TaskFlow Pro</span>
-            <span className="brandNameShort" aria-hidden>
-              TF
-            </span>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+              background: 'linear-gradient(135deg, #f4ca57, #d4a030)',
+              display: 'grid', placeItems: 'center', color: '#0b0d12',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div>
+              <span className="brandNameFull" style={{ display: 'block', fontWeight: 950, letterSpacing: '-0.3px' }}>TaskFlow Pro</span>
+              <span className="brandNameFull" style={{ display: 'block', fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>HR + Workflows + AI</span>
+            </div>
+            <span className="brandNameShort" aria-hidden>TF</span>
           </NavLink>
         </div>
 
@@ -390,10 +403,8 @@ export function AppLayout() {
             if (el.closest('a.navItem')) setSidebarOpenMobile(false)
           }}
         >
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {t('nav.general')}
-            </div>
+          <div style={{ display: 'grid', gap: 4 }}>
+            <div className="sidebarSectionLabel">{t('nav.general')}</div>
             {canSeeItem(role, 'Dashboard') ? <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={false} /> : null}
             {canSeeItem(role, 'Tasks') ? <NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={false} /> : null}
             {canSeeMyTasksPage(role) ? <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={false} /> : null}
@@ -407,9 +418,7 @@ export function AppLayout() {
 
             {canSee(role, 'manager') ? (
               <>
-                <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {t('nav.team')}
-                </div>
+                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.team')}</div>
                 {canSeeItem(role, 'Directory') ? <NavItem to="/app/team" label="Directory" display={t(labelKey('Directory'))} collapsed={false} /> : null}
                 {canSeeItem(role, 'Reports') ? <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={false} /> : null}
                 {canSeeItem(role, 'Audit') ? <NavItem to="/app/audit" label="Audit" display={t(labelKey('Audit'))} collapsed={false} /> : null}
@@ -418,9 +427,7 @@ export function AppLayout() {
 
             {canSee(role, 'hr') ? (
               <>
-                <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {t('nav.peopleOps')}
-                </div>
+                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.peopleOps')}</div>
                 {canSeeItem(role, 'Employees') ? <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={false} /> : null}
                 {canSeeItem(role, 'Time off') ? <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={false} /> : null}
               </>
@@ -428,9 +435,7 @@ export function AppLayout() {
 
             {canSee(role, 'manager') ? (
               <>
-                <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {t('nav.sales')}
-                </div>
+                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.sales')}</div>
                 {canSeeItem(role, 'Pipeline') ? <NavItem to="/app/crm/pipeline" label="Pipeline" display={t(labelKey('Pipeline'))} collapsed={false} /> : null}
                 {canSeeItem(role, 'Leads') ? <NavItem to="/app/crm/leads" label="Leads" display={t(labelKey('Leads'))} collapsed={false} /> : null}
               </>
@@ -438,9 +443,7 @@ export function AppLayout() {
 
             {canSee(role, 'hr') ? (
               <>
-                <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {t('nav.integrations')}
-                </div>
+                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.integrations')}</div>
                 {canSeeItem(role, 'Connections') ? <NavItem to="/app/integrations" label="Connections" display={t(labelKey('Connections'))} collapsed={false} /> : null}
                 {canSeeItem(role, 'Insights') ? <NavItem to="/app/insights" label="Insights" display={t(labelKey('Insights'))} collapsed={false} /> : null}
               </>
@@ -448,35 +451,50 @@ export function AppLayout() {
 
             {canSee(role, 'admin') ? (
               <>
-                <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {t('nav.admin')}
-                </div>
+                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.admin')}</div>
                 <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} collapsed={false} />
-                <div style={{ color: 'var(--text2)', fontSize: 12, fontWeight: 800, padding: '6px 2px' }}>
-                  Admin tools (coming soon)
+                <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 700, padding: '4px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(244,202,87,0.10)', border: '1px solid rgba(244,202,87,0.18)', color: '#f4ca57', fontSize: 10, fontWeight: 800 }}>Soon</span>
+                  Admin tools
                 </div>
               </>
             ) : null}
 
-            <div className="sidebarLangBlock">
-              <label className="label sidebarLangLabel">
-                <div className="sidebarLangHeading">{t('nav.language')}</div>
-                <select
-                  className="input sidebarLangSelect"
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value as Lang)}
-                  aria-label={t('nav.language')}
-                >
-                  <option value="en">{t('lang.en')}</option>
-                  <option value="ar">{t('lang.ar')}</option>
-                </select>
-              </label>
-            </div>
-            <div className="sidebarLangBlock">
-              <div className="sidebarLangHeading">{t('nav.theme')}</div>
+            {/* User chip */}
+            <NavLink
+              to="/app/profile"
+              className="sidebarUserChip"
+              style={{ marginTop: 14 }}
+            >
+              <div className="sidebarUserAvatar">
+                {displayName ? displayName.charAt(0).toUpperCase() : '?'}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="sidebarUserName" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {displayName || me?.email || 'Profile'}
+                </div>
+                <div className="sidebarUserRole">{role || 'user'}</div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--muted)', flexShrink: 0, marginLeft: 'auto' }}>
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </NavLink>
+
+            <div className="sidebarLangBlock" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select
+                className="input sidebarLangSelect"
+                style={{ flex: 1 }}
+                value={lang}
+                onChange={(e) => setLang(e.target.value as Lang)}
+                aria-label={t('nav.language')}
+              >
+                <option value="en">{t('lang.en')}</option>
+                <option value="ar">{t('lang.ar')}</option>
+              </select>
               <button
                 type="button"
                 className="btn btnGhost btnIcon"
+                style={{ flexShrink: 0 }}
                 aria-label={theme === 'light' ? t('theme.dark') : t('theme.light')}
                 title={theme === 'light' ? t('theme.dark') : t('theme.light')}
                 onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
