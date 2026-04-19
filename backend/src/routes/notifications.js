@@ -8,12 +8,16 @@ let notificationsColumnSet = null;
 
 async function getNotificationsColumns() {
   if (notificationsColumnSet) return notificationsColumnSet;
-  const { rows } = await query(
-    `SELECT column_name
-       FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'notifications'`
-  );
-  notificationsColumnSet = new Set(rows.map((r) => String(r.column_name)));
+  try {
+    const { rows } = await query(
+      `SELECT column_name
+         FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'notifications'`
+    );
+    notificationsColumnSet = new Set(rows.map((r) => String(r.column_name)));
+  } catch (_err) {
+    notificationsColumnSet = new Set(['id', 'user_id', 'type', 'title', 'body', 'data', 'created_at']);
+  }
   return notificationsColumnSet;
 }
 
