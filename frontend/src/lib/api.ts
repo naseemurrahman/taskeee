@@ -43,7 +43,7 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit & {
     body = JSON.stringify(init.json)
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, body })
+  const url = `${API_BASE.replace(/\/$/, '')}${path.startsWith('/') ? path : '/' + path}`
 
   const contentType = res.headers.get('content-type') || ''
   const data = contentType.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => null)
@@ -67,7 +67,7 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
   const token = getAccessToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, method: init?.method || 'POST', headers, body: formData })
+  const res = await fetch(url, { ...init, method: init?.method || 'POST', headers, body: formData })
 
   const contentType = res.headers.get('content-type') || ''
   const data = contentType.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => null)
