@@ -282,6 +282,24 @@ async function runMigrations() {
         ON CONFLICT (id) DO NOTHING
       `);
       
+      // Safety: ensure columns that may have been added in patches exist
+      await pool.query(`
+        ALTER TABLE users
+          ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS mfa_secret_enc TEXT,
+          ADD COLUMN IF NOT EXISTS department VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS avatar_url TEXT
+      `).catch(() => {});
+
+      await pool.query(`
+        ALTER TABLE organizations
+          ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}',
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+          ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `).catch(() => {});
+
       logger.info('Database migrations completed successfully');
     } catch (error) {
       logger.error('Migration failed:', error);
