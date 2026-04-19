@@ -3894,3 +3894,369 @@ button.projectCard {
   outline-offset: 2px;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   CHART CARD V2 — Inspired by OrcaHR / Workup / Werker
+   ═══════════════════════════════════════════════════════════════ */
+
+.chartCardV2 {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.chartCardV2:hover {
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.28);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .chartCardV2 { backdrop-filter: blur(var(--glass-blur)); }
+}
+.chartCardV2Head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px 12px;
+  gap: 12px;
+}
+.chartCardV2Icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.22);
+  color: #818cf8;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.chartCardV2Title {
+  font-size: 15px; font-weight: 900; letter-spacing: -0.3px;
+}
+.chartCardV2Sub {
+  font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 600;
+}
+.chartCardV2Body { padding: 4px 16px 18px; }
+
+/* ── Trend badges ─────────────────────────────────────────────── */
+.trendBadge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 800;
+}
+.trendPos { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
+.trendNeg { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
+.trendNeutral { background: rgba(244,202,87,0.12); color: #f4ca57; border: 1px solid rgba(244,202,87,0.22); }
+
+/* ── Light theme overrides for chart card ─────────────────────── */
+.appShellLight .chartCardV2 {
+  background: #fff;
+  border-color: #e5e7eb;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+}
+.appShellLight .chartCardV2:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.10);
+  border-color: #d1d5db;
+}
+.appShellLight .chartCardV2Icon {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.16);
+}
+.appShellLight .trendPos { background: rgba(34,197,94,0.10); }
+.appShellLight .trendNeg { background: rgba(239,68,68,0.10); }
+.appShellLight .trendNeutral { background: rgba(234,179,8,0.10); color: #b45309; border-color: rgba(234,179,8,0.25); }
+
+/* ── Tooltip CSS vars per theme ───────────────────────────────── */
+:root {
+  --tooltip-bg: rgba(15,17,22,0.96);
+  --tooltip-border: rgba(255,255,255,0.12);
+}
+[data-theme="light"] {
+  --tooltip-bg: #fff;
+  --tooltip-border: #e5e7eb;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KPI CARD V2 — Large stat cards with icon + trend
+   ═══════════════════════════════════════════════════════════════ */
+
+.kpiCard {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+.kpiCard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+.kpiCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+  border-color: rgba(255,255,255,0.18);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .kpiCard { backdrop-filter: blur(var(--glass-blur)); }
+}
+
+.kpiCardTop {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;
+}
+.kpiCardIcon {
+  width: 44px; height: 44px; border-radius: 14px;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.kpiCardVal {
+  font-size: 32px; font-weight: 950; letter-spacing: -1px; line-height: 1;
+  margin-bottom: 4px;
+}
+.kpiCardLabel {
+  font-size: 13px; font-weight: 700; color: var(--text2);
+}
+.kpiCardSub {
+  font-size: 11px; color: var(--muted); margin-top: 6px;
+}
+.kpiCardBar {
+  height: 4px; border-radius: 2px; background: rgba(255,255,255,0.07);
+  margin-top: 14px; overflow: hidden;
+}
+.kpiCardBarFill {
+  height: 100%; border-radius: 2px; transition: width 0.8s ease;
+}
+
+/* Light theme KPI */
+.appShellLight .kpiCard {
+  background: #fff;
+  border-color: #e5e7eb;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.appShellLight .kpiCard:hover {
+  box-shadow: 0 10px 32px rgba(0,0,0,0.12);
+  border-color: #d1d5db;
+}
+.appShellLight .kpiCardBar { background: rgba(0,0,0,0.07); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL V2 — Polished popup windows
+   ═══════════════════════════════════════════════════════════════ */
+
+.modalOverlayV2 {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  display: grid; place-items: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+.modalCardV2 {
+  width: 100%; max-width: 560px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  overflow: hidden;
+  max-height: calc(100vh - 40px);
+  display: flex; flex-direction: column;
+}
+@supports (backdrop-filter: blur(1px)) {
+  .modalCardV2 { backdrop-filter: blur(24px); }
+}
+.modalCardV2Wide { max-width: 800px; }
+.modalV2Head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  gap: 12px; flex-shrink: 0;
+}
+.modalV2Icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.22);
+  color: #818cf8; display: grid; place-items: center; flex-shrink: 0;
+}
+.modalV2Title {
+  font-size: 18px; font-weight: 950; letter-spacing: -0.5px;
+}
+.modalV2Sub {
+  font-size: 13px; color: var(--text2); margin-top: 2px;
+}
+.modalV2Close {
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: var(--text2); cursor: pointer;
+  display: grid; place-items: center; flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.modalV2Close:hover {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.25);
+  color: #ef4444;
+}
+.modalV2Body {
+  padding: 20px 24px; overflow-y: auto; flex: 1;
+  overscroll-behavior: contain;
+}
+.modalV2Foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--glass-border);
+  display: flex; justify-content: flex-end; gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Light theme Modal */
+.appShellLight .modalOverlayV2 { background: rgba(0,0,0,0.45); }
+.appShellLight .modalCardV2 {
+  background: #fff; border-color: #e5e7eb;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+}
+.appShellLight .modalV2Head,
+.appShellLight .modalV2Foot { border-color: #f0f0f0; }
+.appShellLight .modalV2Close {
+  border-color: #e5e7eb; background: #f9fafb; color: #6b7280;
+}
+.appShellLight .modalV2Close:hover {
+  background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #ef4444;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLE V2 — Clean data tables
+   ═══════════════════════════════════════════════════════════════ */
+
+.tableV2 {
+  width: 100%; border-collapse: collapse;
+}
+.tableV2 thead tr {
+  border-bottom: 1px solid var(--glass-border);
+}
+.tableV2 th {
+  padding: 10px 14px; text-align: left;
+  font-size: 11px; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.tableV2 td {
+  padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 13px; vertical-align: middle;
+}
+.tableV2 tbody tr:last-child td { border-bottom: none; }
+.tableV2 tbody tr {
+  transition: background 0.12s;
+}
+.tableV2 tbody tr:hover td { background: rgba(255,255,255,0.025); }
+
+.appShellLight .tableV2 thead tr { border-color: #f0f0f0; }
+.appShellLight .tableV2 td { border-color: #f5f5f5; }
+.appShellLight .tableV2 tbody tr:hover td { background: rgba(99,102,241,0.03); }
+
+/* ── Status badge pills ──────────────────────────────────────── */
+.statusBadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+}
+.statusBadge::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: currentColor; flex-shrink: 0;
+}
+.statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
+.statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
+.statusPending { background: rgba(244,202,87,0.12); color: #f4ca57; border: 1px solid rgba(244,202,87,0.22); }
+.statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
+.statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOPBAR V2 — Elevated with search
+   ═══════════════════════════════════════════════════════════════ */
+
+.topbarV2Search {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px; padding: 0 14px;
+  height: 40px; flex: 1; max-width: 360px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.topbarV2Search:focus-within {
+  border-color: rgba(244,202,87,0.4);
+  background: rgba(255,255,255,0.07);
+}
+.topbarV2Search input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-size: 13px; flex: 1; min-width: 0;
+}
+.topbarV2Search input::placeholder { color: var(--muted); }
+
+.appShellLight .topbarV2Search {
+  background: #f9fafb; border-color: #e5e7eb;
+}
+.appShellLight .topbarV2Search:focus-within {
+  border-color: rgba(99,102,241,0.4); background: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR V2 — User chip & section polish
+   ═══════════════════════════════════════════════════════════════ */
+
+.navItemV2 {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 12px;
+  text-decoration: none; color: var(--text2);
+  font-size: 13px; font-weight: 700;
+  transition: all 0.15s ease; cursor: pointer;
+  border: 1px solid transparent;
+  position: relative;
+}
+.navItemV2:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.08);
+}
+.navItemV2Active {
+  background: rgba(244,202,87,0.10) !important;
+  color: var(--primary) !important;
+  border-color: rgba(244,202,87,0.20) !important;
+}
+.navItemV2Active .navItemV2Dot {
+  background: var(--primary);
+}
+.navItemV2Dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: transparent; transition: background 0.2s;
+  flex-shrink: 0; margin-left: auto;
+}
+
+.appShellLight .navItemV2:hover {
+  background: rgba(99,102,241,0.06); color: #1a1d2e;
+}
+.appShellLight .navItemV2Active {
+  background: rgba(99,102,241,0.10) !important;
+  color: #4f46e5 !important;
+  border-color: rgba(99,102,241,0.20) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — Dashboard grid
+   ═══════════════════════════════════════════════════════════════ */
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1200px) { .kpiGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .kpiGrid { grid-template-columns: 1fr; } }
+
+.dashChartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) { .dashChartsGrid { grid-template-columns: 1fr; } }
+

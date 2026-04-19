@@ -4,43 +4,38 @@ export function ChartCard(props: {
   title: string
   subtitle?: string
   right?: ReactNode
+  badge?: { value: string | number; positive?: boolean; neutral?: boolean }
+  icon?: ReactNode
   children: ReactNode
-  /** Stretch chart area to fill grid row height (dashboard). */
   fillHeight?: boolean
+  noPad?: boolean
 }) {
-  const head = (
-    <div
-      className={props.fillHeight ? 'chartCardHead' : undefined}
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: 12,
-        alignItems: 'baseline',
-        marginBottom: props.fillHeight ? undefined : 12,
-        flexWrap: 'wrap',
-      }}
-    >
-      <div>
-        <h3 style={{ margin: 0 }}>{props.title}</h3>
-        {props.subtitle ? <div style={{ color: 'var(--text2)', marginTop: 4 }}>{props.subtitle}</div> : null}
+  return (
+    <div className="chartCardV2">
+      <div className="chartCardV2Head">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {props.icon && (
+            <div className="chartCardV2Icon">{props.icon}</div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div className="chartCardV2Title">{props.title}</div>
+            {props.subtitle && (
+              <div className="chartCardV2Sub">{props.subtitle}</div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {props.badge && (
+            <span className={`trendBadge ${props.badge.positive ? 'trendPos' : props.badge.neutral ? 'trendNeutral' : 'trendNeg'}`}>
+              {props.badge.positive ? '↑' : props.badge.neutral ? '→' : '↓'} {props.badge.value}
+            </span>
+          )}
+          {props.right}
+        </div>
       </div>
-      {props.right ? <div>{props.right}</div> : null}
-    </div>
-  )
-
-  if (!props.fillHeight) {
-    return (
-      <div className="card">
-        {head}
+      <div className={props.noPad ? '' : 'chartCardV2Body'}>
         {props.children}
       </div>
-    )
-  }
-
-  return (
-    <div className="card chartCardFill">
-      {head}
-      <div className="chartCardBody">{props.children}</div>
     </div>
   )
 }

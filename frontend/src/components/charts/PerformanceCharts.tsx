@@ -1,189 +1,242 @@
 import type { ReactNode } from 'react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
-import { chartTooltipProps } from './chartTooltipProps'
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, PieChart, Pie, Cell, AreaChart, Area
+} from 'recharts'
 
-const STATUS_BAR_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#a855f7']
+const H = 260
+const H_TALL = 300
 
-const H = 280
-const H_TALL = 320
-/** Fixed height when fillHeight — avoids Recharts width/height -1 in flex parents */
-const H_FILL = 300
+// ── Custom Tooltip ──────────────────────────────────────────────────────────
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: 'var(--tooltip-bg, rgba(15,17,22,0.95))',
+      border: '1px solid var(--tooltip-border, rgba(255,255,255,0.12))',
+      borderRadius: 12,
+      padding: '10px 14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      fontSize: 12,
+      minWidth: 120,
+    }}>
+      {label && <div style={{ fontWeight: 800, color: 'var(--chart-tick)', marginBottom: 6, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>}
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: i > 0 ? 4 : 0 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+          <span style={{ color: 'var(--chart-tick2)' }}>{p.name}:</span>
+          <span style={{ fontWeight: 900, color: 'var(--chart-tick)' }}>{typeof p.value === 'number' ? p.value.toLocaleString() : p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-function ChartShell(props: { height: number | 'fill'; children: ReactNode }) {
-  if (props.height === 'fill') {
-    return (
-      <div className="chartScroll">
-        <ResponsiveContainer className="rechartsFrame" width="100%" height={H_FILL} minWidth={0} debounce={56}>
-          {props.children}
-        </ResponsiveContainer>
-      </div>
-    )
-  }
+function Shell({ children, height = H }: { children: ReactNode; height?: number }) {
   return (
     <div className="chartScroll">
-      <ResponsiveContainer className="rechartsFrame" width="100%" height={props.height} minWidth={0} debounce={48}>
-        {props.children}
+      <ResponsiveContainer width="100%" height={height} minWidth={0} debounce={48}>
+        {children as any}
       </ResponsiveContainer>
     </div>
   )
 }
 
+const axisStyle = { fill: 'var(--chart-tick2)', fontSize: 11, fontWeight: 600 }
+const gridProps = { stroke: 'var(--chart-grid)', strokeDasharray: '3 3', vertical: false }
+
+// ── Status Bar Chart ────────────────────────────────────────────────────────
 export function StatusBarChart(props: { byStatus: Record<string, number>; fillHeight?: boolean }) {
+  const COLORS: Record<string, string> = {
+    pending: '#f4ca57',
+    in_progress: '#6366f1',
+    submitted: '#8b5cf6',
+    manager_approved: '#10b981',
+    completed: '#22c55e',
+    overdue: '#ef4444',
+  }
   const order = ['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue']
   const data = order
-    .filter((k) => props.byStatus[k] != null)
-    .map((k) => ({ status: k.replaceAll('_', ' '), value: props.byStatus[k] || 0 }))
+    .filter(k => (props.byStatus[k] ?? 0) > 0)
+    .map(k => ({
+      name: k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: props.byStatus[k] || 0,
+      fill: COLORS[k] || '#6366f1',
+    }))
+
+  if (!data.length) return <EmptyChart />
 
   return (
-    <ChartShell height={props.fillHeight ? 'fill' : H}>
-      <BarChart data={data}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="status" tick={{ fill: 'var(--chart-tick)', fontSize: 12 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-        <YAxis tick={{ fill: 'var(--chart-tick2)', fontSize: 12 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-        <Tooltip {...chartTooltipProps} cursor={false} />
-        <Bar dataKey="value" name="Tasks" radius={[10, 10, 0, 0]} activeBar={false}>
-          {data.map((_, i) => (
-            <Cell key={`cell-${i}`} fill={STATUS_BAR_COLORS[i % STATUS_BAR_COLORS.length]} />
+    <Shell height={props.fillHeight ? H_TALL : H}>
+      <BarChart data={data} barSize={32}>
+        <CartesianGrid {...gridProps} />
+        <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+        <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={32} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+        <Bar dataKey="value" name="Tasks" radius={[8, 8, 0, 0]}>
+          {data.map((entry, i) => (
+            <Cell key={i} fill={entry.fill} />
           ))}
         </Bar>
       </BarChart>
-    </ChartShell>
+    </Shell>
   )
 }
 
+// ── Priority Pie Chart ──────────────────────────────────────────────────────
+export function PriorityPieChart(props: { byPriority: Record<string, number>; fillHeight?: boolean }) {
+  const COLORS: Record<string, string> = {
+    low: '#6366f1',
+    medium: '#f4ca57',
+    high: '#f97316',
+    urgent: '#ef4444',
+    critical: '#ef4444',
+  }
+  const data = Object.entries(props.byPriority)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v, fill: COLORS[k] || '#6366f1' }))
+
+  if (!data.length) return <EmptyChart />
+  const total = data.reduce((s, d) => s + d.value, 0)
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
+      <Shell height={220}>
+        <PieChart>
+          <Tooltip content={<CustomTooltip />} />
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%"
+            innerRadius={60} outerRadius={90} paddingAngle={3} strokeWidth={0}>
+            {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+          </Pie>
+        </PieChart>
+      </Shell>
+      <div style={{ display: 'grid', gap: 8, minWidth: 100 }}>
+        {data.map(d => (
+          <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: d.fill, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800 }}>{d.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{Math.round(d.value / total * 100)}% · {d.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Deadlines Trend — Area Chart ───────────────────────────────────────────
+export function DeadlinesTrendChart(props: { points: Array<{ day: string; due: number; overdue: number }>; fillHeight?: boolean }) {
+  if (!props.points?.length) return <EmptyChart />
+  return (
+    <Shell height={props.fillHeight ? H_TALL : H}>
+      <AreaChart data={props.points}>
+        <defs>
+          <linearGradient id="gradDue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="gradOverdue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid {...gridProps} />
+        <XAxis dataKey="day" tick={axisStyle} axisLine={false} tickLine={false} />
+        <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={32} />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 8 }} />
+        <Area type="monotone" dataKey="due" name="Due" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradDue)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+        <Area type="monotone" dataKey="overdue" name="Overdue" stroke="#ef4444" strokeWidth={2.5} fill="url(#gradOverdue)" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+      </AreaChart>
+    </Shell>
+  )
+}
+
+// ── Workload Balance ─────────────────────────────────────────────────────────
+export function WorkloadBalanceChart(props: {
+  workload: { averageOpenTasks: number; overloaded: any[]; underutilized: any[] }
+  userCount: number
+  fillHeight?: boolean
+}) {
+  const ol = props.workload?.overloaded?.length ?? 0
+  const ul = props.workload?.underutilized?.length ?? 0
+  const bal = Math.max(0, (props.userCount || 0) - ol - ul)
+  const data = [
+    { name: 'Balanced', value: bal, fill: '#22c55e' },
+    { name: 'Overloaded', value: ol, fill: '#f97316' },
+    { name: 'Underutilized', value: ul, fill: '#38bdf8' },
+  ].filter(d => d.value > 0)
+
+  if (!data.length) return <EmptyChart />
+  const total = data.reduce((s, d) => s + d.value, 0)
+
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <Shell height={200}>
+        <BarChart data={data} barSize={44}>
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+          <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={28} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+          <Bar dataKey="value" name="Users" radius={[8, 8, 0, 0]}>
+            {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
+          </Bar>
+        </BarChart>
+      </Shell>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        {data.map(d => (
+          <div key={d.name} style={{ textAlign: 'center', padding: '8px', borderRadius: 10, background: `${d.fill}12`, border: `1px solid ${d.fill}25` }}>
+            <div style={{ fontSize: 18, fontWeight: 950, color: d.fill }}>{d.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{d.name}</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)' }}>{total ? Math.round(d.value / total * 100) : 0}%</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text2)', textAlign: 'center' }}>
+        Avg {props.workload?.averageOpenTasks?.toFixed(1) ?? '0'} open tasks / person
+      </div>
+    </div>
+  )
+}
+
+// ── Assignee Score Chart ─────────────────────────────────────────────────────
 export function AssigneeScoreChart(props: {
   rows: Array<{ name: string; active: number; completed: number; performanceScore: number }>
   fillHeight?: boolean
 }) {
-  const data = props.rows.slice(0, 10).map((r) => ({
-    name: r.name,
-    score: r.performanceScore,
+  const data = (props.rows || []).slice(0, 8).map(r => ({
+    name: r.name.split(' ')[0],
+    score: Math.round(r.performanceScore),
     active: r.active,
     done: r.completed,
   }))
 
+  if (!data.length) return <EmptyChart />
+
   return (
-    <ChartShell height={props.fillHeight ? 'fill' : H_TALL}>
-      <BarChart data={data} layout="vertical" margin={{ left: 4, right: 8 }}>
-        <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
-        <XAxis type="number" tick={{ fill: 'var(--chart-tick2)', fontSize: 11 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-        <YAxis
-          type="category"
-          dataKey="name"
-          tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
-          width={96}
-          axisLine={{ stroke: 'var(--chart-axis)' }}
-          tickLine={false}
-        />
-        <Tooltip {...chartTooltipProps} cursor={false} />
-        <Legend wrapperStyle={{ color: 'var(--text2)' }} />
-        <Bar dataKey="score" name="Score" fill="#a855f7" radius={[0, 10, 10, 0]} activeBar={false} />
-        <Bar dataKey="active" name="Active" fill="#38bdf8" radius={[0, 10, 10, 0]} activeBar={false} />
-        <Bar dataKey="done" name="Done" fill="#22c55e" radius={[0, 10, 10, 0]} activeBar={false} />
+    <Shell height={props.fillHeight ? H_TALL : H}>
+      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 12 }}>
+        <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} />
+        <YAxis type="category" dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} width={72} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+        <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)' }} />
+        <Bar dataKey="score" name="Score" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={12} />
+        <Bar dataKey="done" name="Done" fill="#22c55e" radius={[0, 6, 6, 0]} barSize={12} />
+        <Bar dataKey="active" name="Active" fill="#f4ca57" radius={[0, 6, 6, 0]} barSize={12} />
       </BarChart>
-    </ChartShell>
+    </Shell>
   )
 }
 
-export function DeadlinesTrendChart(props: { points: Array<{ day: string; due: number; overdue: number }>; fillHeight?: boolean }) {
+// ── Empty state ──────────────────────────────────────────────────────────────
+function EmptyChart() {
   return (
-    <ChartShell height={props.fillHeight ? 'fill' : H}>
-      <LineChart data={props.points}>
-        <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-        <XAxis dataKey="day" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-        <YAxis tick={{ fill: 'var(--chart-tick2)', fontSize: 11 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-        <Tooltip {...chartTooltipProps} cursor={false} />
-        <Legend wrapperStyle={{ color: 'var(--text2)' }} />
-        <Line type="monotone" dataKey="due" name="Due" stroke="#38bdf8" strokeWidth={2.5} dot={false} activeDot={false} />
-        <Line type="monotone" dataKey="overdue" name="Overdue" stroke="#f87171" strokeWidth={2.5} dot={false} activeDot={false} />
-      </LineChart>
-    </ChartShell>
-  )
-}
-
-export function PriorityPieChart(props: { byPriority: Record<string, number>; fillHeight?: boolean }) {
-  const order = ['low', 'medium', 'high', 'urgent']
-  const data = order
-    .filter((k) => props.byPriority[k] != null)
-    .map((k) => ({ name: k, value: props.byPriority[k] || 0 }))
-    .filter((x) => x.value > 0)
-
-  const colors: Record<string, string> = {
-    low: '#22d3ee',
-    medium: '#818cf8',
-    high: '#fbbf24',
-    urgent: '#f87171',
-  }
-
-  if (data.length === 0) {
-    return (
-      <div
-        className={props.fillHeight ? 'chartScrollFill chartEmptyCenter' : undefined}
-        style={{
-          height: props.fillHeight ? '100%' : H,
-          minHeight: props.fillHeight ? 260 : undefined,
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--text2)',
-          fontSize: 14,
-        }}
-      >
-        No priority data
-      </div>
-    )
-  }
-
-  return (
-    <ChartShell height={props.fillHeight ? 'fill' : H}>
-      <PieChart>
-        <Tooltip {...chartTooltipProps} cursor={false} />
-        <Legend wrapperStyle={{ color: 'var(--text2)' }} />
-        <Pie data={data} dataKey="value" nameKey="name" outerRadius={92} innerRadius={54} paddingAngle={2} activeShape={false}>
-          {data.map((entry) => (
-            <Cell key={entry.name} fill={colors[entry.name] || 'rgba(255,255,255,0.35)'} />
-          ))}
-        </Pie>
-      </PieChart>
-    </ChartShell>
-  )
-}
-
-export function WorkloadBalanceChart(props: {
-  workload: {
-    averageOpenTasks: number
-    overloaded: Array<{ name: string; active: number; performanceScore: number }>
-    underutilized: Array<{ name: string; active: number; performanceScore: number }>
-  }
-  userCount: number
-  fillHeight?: boolean
-}) {
-  const overloadedCount = props.workload?.overloaded?.length ?? 0
-  const underutilizedCount = props.workload?.underutilized?.length ?? 0
-  const balancedCount = Math.max(0, props.userCount - overloadedCount - underutilizedCount)
-  const data = [
-    { name: 'Overloaded', value: overloadedCount, color: '#f97316' },
-    { name: 'Balanced', value: balancedCount, color: '#22c55e' },
-    { name: 'Underutilized', value: underutilizedCount, color: '#38bdf8' },
-  ]
-
-  return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <ChartShell height={H}>
-        <BarChart data={data} margin={{ bottom: 8, left: 4, right: 8 }}>
-          <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-          <XAxis dataKey="name" tick={{ fill: 'var(--chart-tick)', fontSize: 12 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
-          <YAxis tick={{ fill: 'var(--chart-tick2)', fontSize: 12 }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} width={40} />
-          <Tooltip {...chartTooltipProps} cursor={false} />
-          <Bar dataKey="value" name="Users" radius={[10, 10, 0, 0]} activeBar={false}>
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ChartShell>
-      <div style={{ display: 'grid', gap: 4, fontSize: 14, color: 'var(--text2)' }}>
-        <div>Average open tasks per user: {props.workload?.averageOpenTasks?.toFixed(1) ?? '0.0'}</div>
-        <div>{props.userCount} users in current scope</div>
+    <div style={{ height: H, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>📊</div>
+        No data yet
       </div>
     </div>
   )
