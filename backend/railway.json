@@ -1,7 +1,6 @@
 {
   "build": {
-    "builder": "dockerfile",
-    "dockerfilePath": "Dockerfile"
+    "builder": "nixpacks"
   },
   "deploy": {
     "startCommand": "node scripts/migrate.js && node src/server.js",
