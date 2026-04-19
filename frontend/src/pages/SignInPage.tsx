@@ -85,7 +85,6 @@ export function SignInPage() {
         navigate(next, { replace: true })
         return
       }
-      setError('Sign in failed. Please try again.')
     } catch (err) {
       if (err instanceof ApiError) setError(err.message)
       else setError('Sign in failed. Please try again.')
