@@ -1,13 +1,13 @@
 {
   "build": {
-    "builder": "nixpacks",
-    "nixpacks": {
-      "aptPackages": []
-    }
+    "builder": "dockerfile",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "command": "npm run migrate && npm start",
+    "startCommand": "node scripts/migrate.js && node src/server.js",
     "restartPolicyType": "Always",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30
   }
 }
