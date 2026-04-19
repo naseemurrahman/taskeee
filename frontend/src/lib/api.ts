@@ -28,6 +28,17 @@ function isErrorShape(value: unknown): value is { error: string } {
   return typeof rec.error === 'string'
 }
 
+function buildUrl(path: string): string {
+  return `${API_BASE.replace(/\/$/, '')}${path.startsWith('/') ? path : '/' + path}`
+}
+
+async function parseResponse(res: Response) {
+  const contentType = res.headers.get('content-type') || ''
+  return contentType.includes('application/json')
+    ? await res.json().catch(() => null)
+    : await res.text().catch(() => null)
+}
+
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit & { json?: Json }) {
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -43,10 +54,13 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit & {
     body = JSON.stringify(init.json)
   }
 
-  const url = `${API_BASE.replace(/\/$/, '')}${path.startsWith('/') ? path : '/' + path}`
+  const res = await fetch(buildUrl(path), {
+    ...init,
+    headers,
+    body,
+  })
 
-  const contentType = res.headers.get('content-type') || ''
-  const data = contentType.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => null)
+  const data = await parseResponse(res)
 
   if (!res.ok) {
     if (res.status === 401) clearAuth()
@@ -67,10 +81,8 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
   const token = getAccessToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(url, { ...init, method: init?.method || 'POST', headers, body: formData })
-
-  const contentType = res.headers.get('content-type') || ''
-  const data = contentType.includes('application/json') ? await res.json().catch(() => null) : await res.text().catch(() => null)
+  const res = await fetch(buildUrl(path), { ...init, method: init?.method || 'POST', headers, body: formData })
+  const data = await parseResponse(res)
 
   if (!res.ok) {
     if (res.status === 401) clearAuth()
@@ -80,4 +92,3 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
 
   return data as T
 }
-

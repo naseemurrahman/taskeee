@@ -16,7 +16,7 @@ router.get('/', authenticate, async (req, res, next) => {
       [...params, offset]
     );
     const countRes = await query(
-      `SELECT COUNT(*)::int AS unread_count FROM notifications WHERE user_id = $1::uuid AND is_read = FALSE`,
+      `SELECT COUNT(*)::int AS unread_count FROM notifications WHERE user_id = $1 AND is_read = FALSE`,
       [req.user.id]
     );
     const row0 = countRes.rows[0] || {};
