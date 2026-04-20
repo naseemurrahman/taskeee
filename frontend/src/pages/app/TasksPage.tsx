@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
+import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { getUser } from '../../state/auth'
+import { canCreateTasksAndProjects } from '../../lib/rbac'
 
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
@@ -41,7 +44,11 @@ function hashColor(str: string) {
 export function TasksPage() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed' | 'overdue'>('all')
+  const [createOpen, setCreateOpen] = useState(false)
   const tasksQ = useQuery({ queryKey: ['tasks','list'], queryFn: fetchTasks })
+
+  const me = getUser()
+  const canAssign = canCreateTasksAndProjects(me?.role)
 
   const tasks = tasksQ.data || []
 
@@ -98,6 +105,11 @@ export function TasksPage() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Link className="btn btnGhost btnSm" to="/app/board">Board view</Link>
+          {canAssign ? (
+            <button className="btn btnPrimary btnSm" type="button" onClick={() => setCreateOpen(true)}>
+              + Create task
+            </button>
+          ) : null}
           <Link className="btn btnPrimary btnSm" to="/app/my-tasks">My tasks</Link>
         </div>
       </div>
@@ -273,6 +285,7 @@ export function TasksPage() {
           </div>
         )}
       </div>
+      <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   )
 }

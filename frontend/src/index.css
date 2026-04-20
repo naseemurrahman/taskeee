@@ -1737,6 +1737,11 @@ label.btn {
   .topbarApp {
     position: relative;
     z-index: 99995;
+    background: var(--panel);
+  }
+  .topbarApp.topbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .main {
     position: relative;
@@ -1767,6 +1772,9 @@ label.btn {
     pointer-events: auto;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    background: var(--panel);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .sidebarResizeHandle {
     display: none;

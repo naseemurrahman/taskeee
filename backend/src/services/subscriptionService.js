@@ -31,13 +31,24 @@ async function checkEmployeeAdditionLimit(orgId) {
     const tier = subscription.tier || 'free';
     const limit = limits[tier] || limits.free;
     
-    // Get current employee count
-    const { rows: employeeRows } = await query(
-      `SELECT COUNT(*)::int as count FROM employees WHERE org_id = $1`,
-      [orgId]
-    );
-    
-    const currentEmployees = employeeRows[0]?.count || 0;
+    // Get current employee count (schema-aware fallback)
+    let currentEmployees = 0;
+    try {
+      const { rows: employeeRows } = await query(
+        `SELECT COUNT(*)::int as count FROM employees WHERE org_id = $1`,
+        [orgId]
+      );
+      currentEmployees = Number(employeeRows[0]?.count || 0) || 0;
+    } catch (empErr) {
+      // Legacy setups may not have an employees table yet.
+      // Fallback to counting employee-role users in the org.
+      const { rows: userRows } = await query(
+        `SELECT COUNT(*)::int as count FROM users WHERE org_id = $1 AND role = 'employee'`,
+        [orgId]
+      );
+      currentEmployees = Number(userRows[0]?.count || 0) || 0;
+      logger.warn(`Employee table unavailable for subscription check; used users fallback. orgId=${orgId} err=${empErr.message}`);
+    }
     
     const isAllowed = currentEmployees < limit.employees;
     const remainingSlots = Math.max(0, limit.employees - currentEmployees);
