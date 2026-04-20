@@ -493,13 +493,13 @@ export function AppLayout() {
               </select>
               <button
                 type="button"
-                className="btn btnGhost btnIcon"
-                style={{ flexShrink: 0 }}
+                className="themeToggleV3"
                 aria-label={theme === 'light' ? t('theme.dark') : t('theme.light')}
                 title={theme === 'light' ? t('theme.dark') : t('theme.light')}
                 onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
               >
-                {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+                <span style={{ fontSize: 11 }}>{theme === 'light' ? 'Dark' : 'Light'}</span>
               </button>
             </div>
           </div>

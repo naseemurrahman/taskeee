@@ -286,12 +286,17 @@ async function runMigrations() {
       await pool.query(`
         ALTER TABLE users
           ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP,
-          ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE,
           ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT FALSE,
           ADD COLUMN IF NOT EXISTS mfa_secret_enc TEXT,
           ADD COLUMN IF NOT EXISTS department VARCHAR(255),
-          ADD COLUMN IF NOT EXISTS avatar_url TEXT
+          ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+          ADD COLUMN IF NOT EXISTS temp_password TEXT,
+          ADD COLUMN IF NOT EXISTS temp_password_expires TIMESTAMP
       `).catch(() => {});
+      
+      // Ensure all existing users have email_verified = true so they can login
+      await pool.query(`UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE`).catch(() => {});
 
       await pool.query(`
         ALTER TABLE organizations

@@ -105,7 +105,8 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
       return res.status(400).json({ error: 'Email and password required' });
 
     const { rows } = await query(
-      `SELECT id, org_id, email, password_hash, full_name, role, is_active, email_verified, mfa_enabled
+      `SELECT id, org_id, email, password_hash, full_name, role, is_active, email_verified, mfa_enabled,
+              temp_password, temp_password_expires
        FROM users WHERE email = $1`,
       [email.toLowerCase().trim()]
     );
@@ -126,11 +127,23 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
       user.email_verified = true;
     }
     
+    // Check if user is trying to login with temp_password (new employees added by HR)
+    let isUsingTempPassword = false;
+    if (user.temp_password && user.temp_password_expires) {
+      const tempExpiry = new Date(user.temp_password_expires);
+      if (tempExpiry > new Date()) {
+        // Compare plaintext temp_password
+        if (password === user.temp_password) {
+          isUsingTempPassword = true;
+        }
+      }
+    }
+    
     console.log('Login attempt - Comparing password...');
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
-    console.log('Login attempt - Password match:', passwordMatch);
+    console.log('Login attempt - Password match:', passwordMatch, 'Using temp:', isUsingTempPassword);
     
-    if (!passwordMatch) {
+    if (!passwordMatch && !isUsingTempPassword) {
       console.log('Login failed - Password mismatch');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -314,7 +327,11 @@ router.post('/mfa/verify', authRateLimiter, async (req, res, next) => {
       console.warn('refresh_tokens insert skipped:', rtErr.message);
     }
     try {
-      await query(`UPDATE users SET last_login_at = NOW() WHERE id = $1`, [user.id]);
+      // Clear temp_password after use + update last_login_at
+      await query(
+        `UPDATE users SET last_login_at = NOW(), temp_password = NULL, temp_password_expires = NULL WHERE id = $1`,
+        [user.id]
+      );
     } catch (luErr) {
       console.warn('last_login_at update skipped:', luErr.message);
     }

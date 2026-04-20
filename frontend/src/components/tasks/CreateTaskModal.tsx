@@ -2,46 +2,29 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { Modal } from '../Modal'
+import { Select } from '../ui/Select'
+import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
 
-type Project = { id: string; name: string }
+type Project = { id: string; name: string; color?: string | null }
 type UserRow = { id: string; user_id?: string | null; email: string; full_name?: string | null; role: string; department?: string | null }
-
-async function fetchProjects() {
-  const d = await apiFetch<{ projects: Project[] }>(`/api/v1/projects`)
-  return d.projects || []
+type CreateTaskInput = {
+  title: string; description?: string; assignedTo: string
+  categoryId?: string; priority?: string; dueDate?: string; department?: string
 }
 
+async function fetchProjects() {
+  const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
+  return d.projects || []
+}
 async function fetchUsers(department?: string) {
-  const qs = new URLSearchParams({ page: '1', limit: '100', ...(department && { department }) })
+  const qs = new URLSearchParams({ page: '1', limit: '100', ...(department ? { department } : {}) })
   const d = await apiFetch<{ employees: UserRow[] }>(`/api/v1/hris/employees?${qs.toString()}`)
   return d.employees || []
 }
 
-// Remove fetchDepartments - departments will be derived from employees
-
-type CreateTaskInput = {
-  title: string
-  description?: string
-  assignedTo: string
-  categoryId?: string
-  priority?: 'low' | 'medium' | 'high' | 'critical'
-  dueDate?: string
-  department?: string
-}
-
-async function createTask(input: CreateTaskInput) {
-  return await apiFetch(`/api/v1/tasks`, { method: 'POST', json: input })
-}
-
-function roleRank(role: string | undefined) {
-  const r = role || 'employee'
-  if (r === 'admin') return 100
-  if (r === 'director') return 90
-  if (r === 'hr') return 80
-  if (r === 'manager') return 70
-  if (r === 'supervisor') return 60
-  return 50
+function roleRank(r?: string) {
+  return { admin: 100, director: 90, hr: 80, manager: 70, supervisor: 60 }[r || ''] ?? 50
 }
 
 export function CreateTaskModal(props: { open: boolean; onClose: () => void; defaultProjectId?: string | null }) {
@@ -50,78 +33,39 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   const canAssign = roleRank(me?.role) >= 60
 
   const projectsQ = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, enabled: props.open })
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('')
-  const usersQ = useQuery({ 
-    queryKey: ['team', 'users', selectedDepartment], 
-    queryFn: () => fetchUsers(selectedDepartment), 
-    enabled: props.open && canAssign 
-  })
-
-  // Reset assignee when department changes
-  const handleDepartmentChange = (dept: string) => {
-    setSelectedDepartment(dept)
-    // Reset assignee selection when department changes to avoid mismatched assignments
-    const assigneeSelect = document.querySelector('select[name="assignedTo"]') as HTMLSelectElement
-    if (assigneeSelect) {
-      assigneeSelect.value = ''
-    }
-    
-    // Force React Query to refetch users when department changes
-    // The queryKey includes the department, so we need to invalidate with the new dept
-    qc.invalidateQueries({ queryKey: ['team', 'users', dept] })
-  }
-
+  const [dept, setDept] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
+  const [priority, setPriority] = useState('medium')
+  const [projectId, setProjectId] = useState(props.defaultProjectId || '')
   const [error, setError] = useState<string | null>(null)
-  const m = useMutation({
-    mutationFn: createTask,
-    onSuccess: async () => {
-      setError(null)
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ['dashboard', 'tasks'] }),
-        qc.invalidateQueries({ queryKey: ['jeczone', 'tasks'] }),
-        qc.invalidateQueries({ queryKey: ['tasks', 'list'] }),
-        qc.invalidateQueries({ queryKey: ['analytics', 'deadlines'] }),
-        qc.invalidateQueries({ queryKey: ['performance', 'summary'] }),
-        qc.invalidateQueries({ queryKey: ['analytics', 'summary'] }),
-      ])
-      props.onClose()
-    },
-    onError: (err) => {
-      if (err instanceof ApiError) setError(err.message)
-      else setError('Failed to create task.')
-    },
+
+  const usersQ = useQuery({
+    queryKey: ['team', 'users', dept],
+    queryFn: () => fetchUsers(dept),
+    enabled: props.open && canAssign,
   })
 
   const projects = projectsQ.data || []
   const assignees = usersQ.data || []
+  const departments = useMemo(
+    () => [...new Set(assignees.filter(u => u.department?.trim()).map(u => u.department as string))],
+    [assignees]
+  )
+  const filteredAssignees = dept ? assignees.filter(u => u.department?.trim() === dept) : assignees
 
-  // Derive departments from employees data
-  const departments = assignees.length > 0 
-    ? [...new Set(assignees.filter(u => u.department && u.department.trim() !== '').map(u => u.department as string))]
-    : []
-
-  // Debug: Check assignees data
-  console.log('Assignees loaded:', assignees.map(a => ({ 
-    id: a.id, 
-    user_id: a.user_id, 
-    name: a.full_name,
-    department: a.department,
-    hasUserId: !!a.user_id 
-  })))
-  console.log('Selected department:', selectedDepartment)
-  console.log('Departments list:', departments)
-
-  // Filter assignees by selected department
-  // When no department selected (empty string), show all assignees
-  const filteredAssignees = selectedDepartment && selectedDepartment.trim() !== ''
-    ? assignees.filter(u => u.department && u.department.trim() === selectedDepartment.trim())
-    : assignees
-
-  
-  const defaultAssignee = useMemo(() => {
-    if (filteredAssignees.length) return filteredAssignees[0].user_id || filteredAssignees[0].id
-    return ''
-  }, [filteredAssignees, selectedDepartment])
+  const m = useMutation({
+    mutationFn: (input: CreateTaskInput) => apiFetch('/api/v1/tasks', { method: 'POST', json: input }),
+    onSuccess: async () => {
+      setError(null)
+      await qc.invalidateQueries({ queryKey: ['dashboard', 'tasks'] })
+      await qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      await qc.invalidateQueries({ queryKey: ['performance', 'summary'] })
+      props.onClose()
+    },
+    onError: (err) => {
+      setError(err instanceof ApiError ? err.message : 'Failed to create task.')
+    },
+  })
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -129,113 +73,139 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
     const fd = new FormData(e.currentTarget)
     const title = String(fd.get('title') || '').trim()
     const description = String(fd.get('description') || '').trim()
-    const assignedTo = String(fd.get('assignedTo') || '').trim()
-    const categoryId = String(fd.get('categoryId') || '').trim()
-    const priority = String(fd.get('priority') || 'medium') as CreateTaskInput['priority']
     const dueDate = String(fd.get('dueDate') || '').trim()
-    const department = String(fd.get('department') || '').trim()
 
     if (title.length < 3) return setError('Title must be at least 3 characters.')
-
-    // Client-side validation: Employee assignment is mandatory
-    if (!assignedTo || assignedTo.trim() === '') {
-      setError('Please select an employee to assign this task to.')
-      return
-    }
+    if (!assignedTo) return setError('Please select an employee to assign this task to.')
 
     m.mutate({
-      title,
-      description: description || undefined,
-      assignedTo: assignedTo || '',
-      categoryId: categoryId || undefined,
+      title, description: description || undefined,
+      assignedTo,
+      categoryId: projectId || undefined,
       priority,
       dueDate: dueDate || undefined,
-      department: department || undefined,
+      department: dept || undefined,
     })
   }
 
+  const PRIORITIES = [
+    { value: 'low', label: 'Low', color: '#38bdf8', description: 'Nice to have, no rush' },
+    { value: 'medium', label: 'Medium', color: '#f4ca57', description: 'Normal priority' },
+    { value: 'high', label: 'High', color: '#f97316', description: 'Important, complete soon' },
+    { value: 'critical', label: 'Critical', color: '#ef4444', description: 'Urgent, drop everything' },
+  ]
+
   return (
     <Modal
-      title="Create task"
+      title="Create Task"
+      subtitle="Assign work to a team member"
       open={props.open}
       onClose={props.onClose}
+      icon={
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      }
       footer={
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={props.onClose}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
+          <button className="btn btnGhost" style={{ height: 44, padding: '0 20px' }} onClick={props.onClose} type="button">
             Cancel
           </button>
-          <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} form="createTaskForm" disabled={m.isPending} type="submit">
-            {m.isPending ? 'Creating…' : 'Create'}
+          <button className="btn btnPrimary" style={{ height: 44, padding: '0 24px' }} form="createTaskForm" disabled={m.isPending} type="submit">
+            {m.isPending ? 'Creating…' : 'Create Task'}
           </button>
         </div>
       }
     >
-      {error ? <div className="alert alertError" style={{ marginBottom: 12 }}>{error}</div> : null}
-      {!canAssign ? <div className="alert alertError" style={{ marginBottom: 12 }}>Your role can’t assign tasks.</div> : null}
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 16,
+          background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)',
+          color: '#ef4444', fontSize: 13, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {error}
+        </div>
+      )}
+      {!canAssign && (
+        <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 16, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>
+          Your role cannot assign tasks. Contact an admin.
+        </div>
+      )}
 
-      <form id="createTaskForm" onSubmit={onSubmit} className="form" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
-        <label className="label" style={{ gridColumn: '1 / -1' }}>
-          Title
-          <input className="input" name="title" placeholder="e.g. Prepare onboarding plan" />
-        </label>
+      <form id="createTaskForm" onSubmit={onSubmit} style={{ display: 'grid', gap: 14 }}>
+        <Input
+          label="Task Title" required name="title"
+          placeholder="e.g. Prepare onboarding plan for new joiner"
+          icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+        />
 
-        <label className="label">
-          Project
-          <select className="input" name="categoryId" defaultValue={props.defaultProjectId || ''} style={{ height: 44 }}>
-            <option value="">No project</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Select
+            label="Project"
+            value={projectId}
+            onChange={setProjectId}
+            options={[
+              { value: '', label: 'No project' },
+              ...projects.map(p => ({ value: p.id, label: p.name, color: p.color || undefined })),
+            ]}
+          />
+          <Select
+            label="Priority"
+            value={priority}
+            onChange={setPriority}
+            options={PRIORITIES.map(p => ({ value: p.value, label: p.label, description: p.description, color: p.color }))}
+          />
+        </div>
 
-        <label className="label">
-          Department
-          <select 
-            className="input" 
-            name="department" 
-            value={selectedDepartment} 
-            onChange={(e) => handleDepartmentChange(e.target.value)}
-            style={{ height: 44 }}
-          >
-            <option value="">All Departments</option>
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Select
+            label="Department"
+            value={dept}
+            onChange={v => { setDept(v); setAssignedTo('') }}
+            options={[
+              { value: '', label: 'All departments' },
+              ...departments.map(d => ({ value: d, label: d })),
+            ]}
+            searchable={departments.length > 5}
+          />
+          <Select
+            label="Assign to" required
+            value={assignedTo}
+            onChange={setAssignedTo}
+            options={[
+              { value: '', label: 'Select employee…' },
+              ...filteredAssignees.map(u => ({
+                value: u.user_id || u.id,
+                label: u.full_name || u.email,
+                description: u.department || u.role,
+              })),
+            ]}
+            searchable
+            error={!assignedTo && m.isError ? 'Required' : undefined}
+          />
+        </div>
 
-        <label className="label">
-          Priority
-          <select className="input" name="priority" defaultValue="medium" style={{ height: 44 }}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
-          </select>
-        </label>
+        <Input
+          label="Due Date" name="dueDate" type="date"
+          icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+        />
 
-        <label className="label">
-          Due date
-          <input className="input" name="dueDate" type="date" style={{ height: 44 }} />
-        </label>
-
-        <label className="label">
-          Assign to
-          <select className="input" name="assignedTo" defaultValue={defaultAssignee} style={{ height: 44 }}>
-            <option value="">Select…</option>
-            {filteredAssignees.map((u) => (
-              <option key={u.id} value={u.user_id || u.id}>{u.full_name || u.email}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="label" style={{ gridColumn: '1 / -1' }}>
-          Description (optional)
-          <textarea className="input" name="description" style={{ minHeight: 110, paddingTop: 10 }} placeholder="Add context, acceptance criteria, links…" />
-        </label>
+        <div className="inputV3Wrap">
+          <label className="selectV3Label">Description <span style={{ color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 600, fontSize: 11 }}>(optional)</span></label>
+          <div className="inputV3Field" style={{ height: 'auto' }}>
+            <textarea
+              name="description"
+              className="inputV3Native"
+              style={{ height: 90, paddingTop: 12, paddingBottom: 12, resize: 'vertical' }}
+              placeholder="Context, acceptance criteria, links…"
+            />
+          </div>
+        </div>
       </form>
     </Modal>
   )
 }
-
