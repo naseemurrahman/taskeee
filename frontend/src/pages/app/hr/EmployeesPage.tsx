@@ -35,12 +35,15 @@ async function createEmployee(input: {
 }) {
   const data = await apiFetch<{ 
     employee?: { id?: string }
+    employeeRecordCreated?: boolean
     temporaryPassword?: string | null
     tempPasswordExpires?: string | null
     notificationSent?: boolean
     message?: string
   }>(`/api/v1/hris/employees`, { method: 'POST', json: input })
-  if (!data?.employee || typeof data.employee.id !== 'string' || !data.employee.id.trim()) {
+  const hasEmployeeId = !!(data?.employee && typeof data.employee.id === 'string' && data.employee.id.trim())
+  const userOnlyCreated = data?.employeeRecordCreated === false
+  if (!hasEmployeeId && !userOnlyCreated) {
     throw new Error('Server did not return a new employee.')
   }
   return data
@@ -110,7 +113,8 @@ export function EmployeesPage() {
       successDiv.className = 'alert alertSuccess'
       successDiv.style.marginTop = '12px'
       
-      let messageContent = `<strong>Employee created successfully!</strong><br>`
+      const headline = data.message || 'Employee created successfully!'
+      let messageContent = `<strong>${headline}</strong><br>`
       
       if (data.temporaryPassword) {
         const expires = data.tempPasswordExpires 
@@ -349,4 +353,3 @@ export function EmployeesPage() {
     </div>
   )
 }
-
