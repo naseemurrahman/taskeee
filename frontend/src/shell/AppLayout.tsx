@@ -8,673 +8,391 @@ import { getUser } from '../state/auth'
 import { useI18n, type Lang } from '../i18n'
 import type React from 'react'
 import {
-  BarChart3,
-  BookOpen,
-  Calendar,
-  ClipboardList,
-  CreditCard,
-  FolderKanban,
-  Gauge,
-  LayoutDashboard,
-  Link2,
-  ListChecks,
-  Lock,
-  Moon,
-  Network,
-  ScrollText,
-  Settings,
-  Shield,
-  Sun,
-  UserRound,
-  Users,
+  BarChart3, BookOpen, Calendar, ClipboardList, CreditCard, FolderKanban,
+  Gauge, LayoutDashboard, Link2, ListChecks, Moon, Network, ScrollText,
+  Settings, Shield, Sun, UserRound, Users, LogOut,
 } from 'lucide-react'
 
-const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  Dashboard: LayoutDashboard,
-  Tasks: ListChecks,
-  'My tasks': ClipboardList,
-  Board: FolderKanban,
-  Projects: Network,
-  Calendar: Calendar,
-  Analytics: BarChart3,
-  Billing: CreditCard,
-  Contractors: Users,
-  Jeczone: Gauge,
-  Profile: Settings,
-  Directory: Users,
-  Reports: ScrollText,
-  Audit: Shield,
-  Employees: Users,
-  'Time off': Calendar,
-  Pipeline: Link2,
-  Leads: BookOpen,
-  Connections: Link2,
-  Insights: BarChart3,
-  Logs: ScrollText,
+const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  Dashboard: LayoutDashboard, Tasks: ListChecks, 'My tasks': ClipboardList,
+  Board: FolderKanban, Projects: Network, Calendar: Calendar, Analytics: BarChart3,
+  Billing: CreditCard, Contractors: Users, Jeczone: Gauge, Profile: Settings,
+  Directory: Users, Reports: ScrollText, Audit: Shield, Employees: Users,
+  'Time off': Calendar, Pipeline: Link2, Leads: BookOpen, Connections: Link2,
+  Insights: BarChart3, Logs: ScrollText,
 }
 
 function labelKey(label: string) {
-  if (label === 'Dashboard') return 'nav.dashboard'
-  if (label === 'Tasks') return 'nav.tasks'
-  if (label === 'My tasks') return 'nav.myTasks'
-  if (label === 'Board') return 'nav.board'
-  if (label === 'Projects') return 'nav.projects'
-  if (label === 'Calendar') return 'nav.calendar'
-  if (label === 'Analytics') return 'nav.analytics'
-  if (label === 'Billing') return 'nav.billing'
-  if (label === 'Contractors') return 'nav.contractors'
-  if (label === 'Jeczone') return 'nav.jeczone'
-  if (label === 'Profile') return 'nav.profile'
-  if (label === 'Directory') return 'nav.directory'
-  if (label === 'Reports') return 'nav.reports'
-  if (label === 'Audit') return 'nav.audit'
-  if (label === 'Employees') return 'nav.employees'
-  if (label === 'Time off') return 'nav.timeOff'
-  if (label === 'Pipeline') return 'nav.pipeline'
-  if (label === 'Leads') return 'nav.leads'
-  if (label === 'Connections') return 'nav.connections'
-  if (label === 'Insights') return 'nav.insights'
-  if (label === 'Logs') return 'nav.logs'
-  return label
+  const map: Record<string, string> = {
+    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks',
+    Board: 'nav.board', Projects: 'nav.projects', Calendar: 'nav.calendar',
+    Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
+    Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
+    Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
+    'Time off': 'nav.timeOff', Pipeline: 'nav.pipeline', Leads: 'nav.leads',
+    Connections: 'nav.connections', Insights: 'nav.insights', Logs: 'nav.logs',
+  }
+  return map[label] || label
 }
 
-function NavItem(props: { to: string; label: string; collapsed?: boolean; display?: string }) {
-  const Icon = ICONS[props.label] || Lock
-  const visibleLabel = props.display || props.label
+function canSeeItem(role: string, item: string) {
+  const adminOnly = ['Billing', 'Audit', 'Logs']
+  const managerUp = ['Analytics', 'Reports']
+  if (adminOnly.includes(item)) return ['admin', 'director'].includes(role)
+  if (managerUp.includes(item)) return ['admin', 'director', 'hr', 'manager'].includes(role)
+  return true
+}
+function canSee(role: string, min: string) {
+  const order = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin']
+  return order.indexOf(role) >= order.indexOf(min)
+}
+function canSeeMyTasksPage(role: string) {
+  return ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'].includes(role)
+}
+
+function NavItem({ to, label, display, badge }: { to: string; label: string; display: string; badge?: number }) {
+  const Icon = ICONS[label]
   return (
-    <NavLink
-      className={({ isActive }) => `navItem ${isActive ? 'navItemActive' : ''}`}
-      to={props.to}
-      title={props.collapsed ? visibleLabel : undefined}
-    >
-      <span className="navIcon" aria-hidden="true">
-        <Icon size={16} />
-      </span>
-      <span className="navLabel">{visibleLabel}</span>
+    <NavLink to={to} className={({ isActive }) => `navItemV4 ${isActive ? 'navItemV4Active' : ''}`}>
+      {Icon && <Icon size={16} />}
+      <span className="navItemV4Label">{display}</span>
+      {badge && badge > 0 ? (
+        <span className="navItemV4Badge">{badge > 99 ? '99+' : badge}</span>
+      ) : null}
     </NavLink>
   )
 }
 
-function getTitle(pathname: string) {
-  if (pathname.startsWith('/app/hr/')) return 'hr'
-  if (pathname.startsWith('/app/crm/')) return 'crm'
-  if (pathname.startsWith('/app/billing')) return 'billing'
-  if (pathname.startsWith('/app/contractors')) return 'contractors'
-  if (pathname.startsWith('/app/jeczone')) return 'jeczone'
-  if (pathname.startsWith('/app/analytics')) return 'analytics'
-  if (pathname.startsWith('/app/projects')) return 'projects'
-  if (pathname.startsWith('/app/board')) return 'board'
-  if (pathname.startsWith('/app/my-tasks')) return 'myTasks'
-  if (pathname.startsWith('/app/tasks')) return 'tasks'
-  if (pathname.startsWith('/app/calendar')) return 'calendar'
-  if (pathname.startsWith('/app/team')) return 'team'
-  if (pathname.startsWith('/app/reports')) return 'reports'
-  if (pathname.startsWith('/app/insights')) return 'insights'
-  if (pathname.startsWith('/app/integrations')) return 'integrations'
-  if (pathname.startsWith('/app/audit')) return 'audit'
-  if (pathname.startsWith('/app/logs')) return 'logs'
-  if (pathname.startsWith('/app/hr/employees')) return 'hr'
-  if (pathname.startsWith('/app/profile')) return 'profile'
-  if (pathname === '/app' || pathname.startsWith('/app/dashboard')) return 'dashboard'
-  if (pathname.startsWith('/app/')) return 'dashboard'
-  return 'taskflow'
-}
-
-type Role = 'admin' | 'director' | 'hr' | 'manager' | 'supervisor' | 'employee'
-function roleRank(role: string): number {
-  const r = role as Role
-  if (r === 'admin') return 100
-  if (r === 'director') return 90
-  if (r === 'hr') return 80
-  if (r === 'manager') return 70
-  if (r === 'supervisor') return 60
-  return 50
-}
-
-function canSee(role: string | undefined, min: Role) {
-  return roleRank(role || 'employee') >= roleRank(min)
-}
-
-/** Assignee-focused work queue — not for org-wide HR/Admin roles. */
-function canSeeMyTasksPage(role: string | undefined) {
-  return ['employee', 'supervisor', 'manager', 'director'].includes(role || 'employee')
-}
-
-function canSeeItem(role: string | undefined, item: string) {
-  const r = (role || 'employee') as Role
-  if (r === 'employee') {
-    return ['Dashboard', 'Tasks', 'Projects', 'Analytics'].includes(item)
-  }
-  if (r === 'supervisor' || r === 'manager') {
-    return [
-      'Dashboard',
-      'Tasks',
-      'Board',
-      'Projects',
-      'Calendar',
-      'Analytics',
-      'Jeczone',
-      'Directory',
-      'Reports',
-      'Audit',
-      'Pipeline',
-      'Leads',
-    ].includes(item)
-  }
-  if (r === 'hr') {
-    return [
-      'Dashboard',
-      'Tasks',
-      'Projects',
-      'Calendar',
-      'Analytics',
-      'Directory',
-      'Reports',
-      'Audit',
-      'Employees',
-      'Time off',
-      'Connections',
-      'Insights',
-      'Logs',
-    ].includes(item)
-  }
-  // director/admin: everything
-  return true
-}
-
-type SearchResult = {
-  tasks: Array<{ id: string; title: string; status: string }>
-  users: Array<{ id: string; full_name?: string; fullName?: string; email: string; role: string }>
-  reports: Array<{ id: string; report_type?: string; scope_type?: string; created_at: string }>
-  notifications: Array<{ id: string; title?: string; body?: string; created_at: string; is_read?: boolean }>
-  projects?: Array<{ id: string; name: string; description?: string | null }>
-}
-
-const GLOBAL_SEARCH_Q = 'tf_global_search_q'
-
-function readStoredSearch() {
-  try {
-    return sessionStorage.getItem(GLOBAL_SEARCH_Q) || ''
-  } catch {
-    return ''
-  }
-}
-
-function writeStoredSearch(value: string) {
-  try {
-    if (value.trim()) sessionStorage.setItem(GLOBAL_SEARCH_Q, value)
-    else sessionStorage.removeItem(GLOBAL_SEARCH_Q)
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
-
-async function fetchSearch(q: string) {
-  const qs = new URLSearchParams({ q })
-  return await apiFetch<SearchResult>(`/api/v1/search?${qs.toString()}`)
-}
-
-type ShellUser = { avatar_url?: string | null; full_name?: string | null }
-async function fetchShellProfile(userId: string) {
-  return await apiFetch<{ user: ShellUser }>(`/api/v1/users/${encodeURIComponent(userId)}`)
-}
-
 export function AppLayout() {
+  const { t, lang, setLang } = useI18n()
+  const me = getUser()
+  const role = me?.role || 'employee'
   const navigate = useNavigate()
   const location = useLocation()
-  const titleId = getTitle(location.pathname)
-  const me = getUser()
-  const role = me?.role
-  const { lang, setLang, t } = useI18n()
 
-  const profileQ = useQuery({
-    queryKey: ['me', me?.id],
-    queryFn: () => fetchShellProfile(me!.id!),
-    enabled: !!me?.id,
-    staleTime: 20_000,
-  })
-  const avatarUrl = profileQ.data?.user?.avatar_url
-  const avatarOk = !!normalizeAvatarUrl(avatarUrl)
-  const avatarSrc = avatarDisplaySrc(avatarUrl, profileQ.dataUpdatedAt)
-  const [shellAvatarBroken, setShellAvatarBroken] = useState(false)
-  useEffect(() => {
-    setShellAvatarBroken(false)
-  }, [avatarUrl])
+  // Theme
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('tf_theme') : null
-    return stored === 'light' ? 'light' : 'dark'
+    const s = typeof window !== 'undefined' ? window.localStorage.getItem('tf_theme') : null
+    return s === 'light' ? 'light' : 'dark'
   })
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('tf_theme', theme)
     document.documentElement.dataset.theme = theme
   }, [theme])
-  const displayName = useMemo(() => {
-    const fromApi = profileQ.data?.user?.full_name?.trim()
-    if (fromApi) return fromApi
-    const fromMe = me?.fullName?.trim()
-    if (fromMe) return fromMe
-    return me?.email || ''
-  }, [profileQ.data?.user?.full_name, me?.fullName, me?.email])
-  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false)
-  const [sidebarWidth, setSidebarWidth] = useState(280)
-  const [shellNarrow, setShellNarrow] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false,
-  )
-  const resizeDragRef = useRef<{ startX: number; startW: number } | null>(null)
-  const [search, setSearch] = useState(readStoredSearch)
-  const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [results, setResults] = useState<SearchResult | null>(null)
 
-  const trimmed = search.trim()
-  const hasQuery = trimmed.length >= 2
+  // Search
+  const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchBusy, setSearchBusy] = useState(false)
+  const [searchResults, setSearchResults] = useState<any>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const flatCount = useMemo(() => {
-    if (!results) return 0
-    return (
-      (results.tasks?.length || 0) +
-      (results.users?.length || 0) +
-      (results.reports?.length || 0) +
-      (results.notifications?.length || 0) +
-      (results.projects?.length || 0)
-    )
-  }, [results])
-
-  async function runSearch(value: string) {
-    const q = value.trim()
-    setSearch(value)
-    writeStoredSearch(value)
-    if (q.length < 2) {
-      setResults(null)
-      setOpen(false)
-      return
-    }
-    setOpen(true)
-    setBusy(true)
-    try {
-      const data = await fetchSearch(q)
-      setResults(data)
-    } finally {
-      setBusy(false)
-    }
+  function runSearch(v: string) {
+    setSearch(v)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    if (v.trim().length < 2) { setSearchResults(null); return }
+    setSearchBusy(true)
+    setSearchOpen(true)
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const r = await apiFetch<any>(`/api/v1/search?q=${encodeURIComponent(v.trim())}&limit=5`)
+        setSearchResults(r)
+      } catch { setSearchResults(null) }
+      setSearchBusy(false)
+    }, 300)
   }
 
-  const searchRestoreDone = useRef(false)
-  useEffect(() => {
-    if (searchRestoreDone.current) return
-    searchRestoreDone.current = true
-    const s = readStoredSearch().trim()
-    if (s.length >= 2) void runSearch(readStoredSearch())
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot restore
-  }, [])
+  // Sidebar mobile
+  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false)
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 860px)')
-    function sync() {
-      setShellNarrow(mq.matches)
-    }
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
+  // Profile
+  const profileQ = useQuery({
+    queryKey: ['profile', 'shell'],
+    queryFn: () => apiFetch<any>('/api/v1/users/profile'),
+    staleTime: 5 * 60 * 1000,
+  })
+  const displayName = useMemo(() => {
+    return profileQ.data?.user?.full_name?.trim() || me?.fullName?.trim() || me?.email || ''
+  }, [profileQ.data, me])
 
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      const d = resizeDragRef.current
-      if (!d) return
-      const dx = e.clientX - d.startX
-      const next = Math.max(220, Math.min(360, d.startW + dx))
-      setSidebarWidth(next)
+  const rawAvatarUrl = normalizeAvatarUrl(profileQ.data?.user?.avatar_url)
+  const avatarSrc = rawAvatarUrl ? avatarDisplaySrc(rawAvatarUrl, 0) : ''
+  const [avatarBroken, setAvatarBroken] = useState(false)
+  useEffect(() => setAvatarBroken(false), [avatarSrc])
+
+  function signOut() {
+    apiFetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
+    localStorage.removeItem('tf_auth')
+    navigate('/signin')
+  }
+
+  // Count uncompleted tasks for badge
+  const tasksQ = useQuery({
+    queryKey: ['shell', 'myTaskCount'],
+    queryFn: () => apiFetch<any>('/api/v1/tasks?limit=1&page=1'),
+    staleTime: 60_000,
+  })
+  const overdueCount = tasksQ.data?.meta?.overdue || 0
+
+  const titleMap: Record<string, string> = {
+    '/app/dashboard': 'Dashboard', '/app/tasks': 'Tasks', '/app/my-tasks': 'My Tasks',
+    '/app/board': 'Board', '/app/projects': 'Projects', '/app/calendar': 'Calendar',
+    '/app/analytics': 'Analytics', '/app/billing': 'Billing',
+  }
+  const pageTitle = useMemo(() => {
+    for (const [path, title] of Object.entries(titleMap)) {
+      if (location.pathname.startsWith(path)) return title
     }
-    function onUp() {
-      resizeDragRef.current = null
-      document.body.style.cursor = ''
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-  }, [])
+    if (location.pathname.startsWith('/app/hr/employees')) return 'Employees'
+    if (location.pathname.startsWith('/app/hr')) return 'HR'
+    if (location.pathname.startsWith('/app/team')) return 'Team'
+    if (location.pathname.startsWith('/app/profile')) return 'Profile'
+    if (location.pathname.startsWith('/app/reports')) return 'Reports'
+    if (location.pathname.startsWith('/app/jeczone')) return 'JecZone AI'
+    return 'TaskFlow Pro'
+  }, [location.pathname])
+
+  const hasResults = searchResults && (
+    (searchResults.tasks?.length || 0) +
+    (searchResults.users?.length || 0) +
+    (searchResults.projects?.length || 0) > 0
+  )
 
   return (
-    <div
-      className={`appShell ${theme === 'light' ? 'appShellLight' : ''} ${sidebarOpenMobile ? 'appShellMobileSidebarOpen' : ''}`}
-      style={
-        shellNarrow
-          ? { gridTemplateColumns: 'minmax(0, 1fr)' }
-          : { gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }
-      }
-    >
-      <div
-        className="sidebarScrim"
-        role="button"
-        tabIndex={0}
-        aria-label="Close sidebar"
-        onClick={() => setSidebarOpenMobile(false)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') setSidebarOpenMobile(false)
-        }}
-      />
-      <aside className="sidebar" aria-label="Primary sidebar">
-        <div
-          className="sidebarResizeHandle"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          onMouseDown={(e) => {
-            resizeDragRef.current = { startX: e.clientX, startW: sidebarWidth }
-            document.body.style.cursor = 'col-resize'
-          }}
-        />
-        <div className="sidebarBrandBar">
-          <NavLink
-            to="/"
-            className={({ isActive }) => `brandNameLink ${isActive ? 'brandNameLinkActive' : ''}`}
-            title="TaskFlow Pro"
-            style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-          >
-            <div style={{
-              width: 32, height: 32, borderRadius: 10, flexShrink: 0,
-              background: 'linear-gradient(135deg, #f4ca57, #d4a030)',
-              display: 'grid', placeItems: 'center', color: '#0b0d12',
-            }}>
+    <div className={`appShellV4 ${theme === 'light' ? 'appShellV4Light' : 'appShellV4Dark'} ${sidebarOpenMobile ? 'sidebarMobileOpen' : ''}`}>
+      {/* Sidebar scrim */}
+      <div className="sidebarScrim" onClick={() => setSidebarOpenMobile(false)} />
+
+      {/* ── Sidebar ── */}
+      <aside className="sidebarV4">
+        {/* Logo */}
+        <div className="sidebarV4Logo">
+          <NavLink to="/" className="sidebarV4LogoLink">
+            <div className="sidebarV4LogoMark">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
               </svg>
             </div>
-            <div>
-              <span className="brandNameFull" style={{ display: 'block', fontWeight: 950, letterSpacing: '-0.3px' }}>TaskFlow Pro</span>
-              <span className="brandNameFull" style={{ display: 'block', fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>HR + Workflows + AI</span>
+            <div className="sidebarV4LogoText">
+              <span className="sidebarV4BrandName">TaskFlow Pro</span>
+              <span className="sidebarV4BrandSub">HR + Workflows + AI</span>
             </div>
-            <span className="brandNameShort" aria-hidden>TF</span>
           </NavLink>
         </div>
 
-        <div
-          className="sidebarNavScroll"
-          onClick={(e) => {
-            if (!shellNarrow) return
-            const el = e.target as HTMLElement
-            if (el.closest('a.navItem')) setSidebarOpenMobile(false)
-          }}
-        >
-          <div style={{ display: 'grid', gap: 4 }}>
-            <div className="sidebarSectionLabel">{t('nav.general')}</div>
-            {canSeeItem(role, 'Dashboard') ? <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Tasks') ? <NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={false} /> : null}
-            {canSeeMyTasksPage(role) ? <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Board') ? <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Projects') ? <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Calendar') ? <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Analytics') ? <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Billing') ? <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Contractors') ? <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={false} /> : null}
-            {canSeeItem(role, 'Jeczone') ? <NavItem to="/app/jeczone" label="Jeczone" display={t(labelKey('Jeczone'))} collapsed={false} /> : null}
+        {/* Nav */}
+        <nav className="sidebarV4Nav">
+          <div className="sidebarV4Section">
+            <div className="sidebarV4SectionLabel">{t('nav.general')}</div>
+            {canSeeItem(role, 'Dashboard') && <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} />}
+            {canSeeItem(role, 'Tasks') && <NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} badge={overdueCount} />}
+            {canSeeMyTasksPage(role) && <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} />}
+            {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} />}
+            {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} />}
+            {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} />}
+          </div>
 
-            {canSee(role, 'manager') ? (
-              <>
-                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.team')}</div>
-                {canSeeItem(role, 'Directory') ? <NavItem to="/app/team" label="Directory" display={t(labelKey('Directory'))} collapsed={false} /> : null}
-                {canSeeItem(role, 'Reports') ? <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={false} /> : null}
-                {canSeeItem(role, 'Audit') ? <NavItem to="/app/audit" label="Audit" display={t(labelKey('Audit'))} collapsed={false} /> : null}
-              </>
-            ) : null}
-
-            {canSee(role, 'hr') ? (
-              <>
-                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.peopleOps')}</div>
-                {canSeeItem(role, 'Employees') ? <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={false} /> : null}
-                {canSeeItem(role, 'Time off') ? <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={false} /> : null}
-              </>
-            ) : null}
-
-            {canSee(role, 'manager') ? (
-              <>
-                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.sales')}</div>
-                {canSeeItem(role, 'Pipeline') ? <NavItem to="/app/crm/pipeline" label="Pipeline" display={t(labelKey('Pipeline'))} collapsed={false} /> : null}
-                {canSeeItem(role, 'Leads') ? <NavItem to="/app/crm/leads" label="Leads" display={t(labelKey('Leads'))} collapsed={false} /> : null}
-              </>
-            ) : null}
-
-            {canSee(role, 'hr') ? (
-              <>
-                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.integrations')}</div>
-                {canSeeItem(role, 'Connections') ? <NavItem to="/app/integrations" label="Connections" display={t(labelKey('Connections'))} collapsed={false} /> : null}
-                {canSeeItem(role, 'Insights') ? <NavItem to="/app/insights" label="Insights" display={t(labelKey('Insights'))} collapsed={false} /> : null}
-              </>
-            ) : null}
-
-            {canSee(role, 'admin') ? (
-              <>
-                <div className="sidebarSectionLabel" style={{ marginTop: 6 }}>{t('nav.admin')}</div>
-                <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} collapsed={false} />
-                <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 700, padding: '4px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(244,202,87,0.10)', border: '1px solid rgba(244,202,87,0.18)', color: '#f4ca57', fontSize: 10, fontWeight: 800 }}>Soon</span>
-                  Admin tools
-                </div>
-              </>
-            ) : null}
-
-            {/* User chip */}
-            <NavLink
-              to="/app/profile"
-              className="sidebarUserChip"
-              style={{ marginTop: 14 }}
-            >
-              <div className="sidebarUserAvatar">
-                {displayName ? displayName.charAt(0).toUpperCase() : '?'}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="sidebarUserName" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {displayName || me?.email || 'Profile'}
-                </div>
-                <div className="sidebarUserRole">{role || 'user'}</div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--muted)', flexShrink: 0, marginLeft: 'auto' }}>
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </NavLink>
-
-            <div className="sidebarLangBlock" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select
-                className="input sidebarLangSelect"
-                style={{ flex: 1 }}
-                value={lang}
-                onChange={(e) => setLang(e.target.value as Lang)}
-                aria-label={t('nav.language')}
-              >
-                <option value="en">{t('lang.en')}</option>
-                <option value="ar">{t('lang.ar')}</option>
-              </select>
-              <button
-                type="button"
-                className="themeToggleV3"
-                aria-label={theme === 'light' ? t('theme.dark') : t('theme.light')}
-                title={theme === 'light' ? t('theme.dark') : t('theme.light')}
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              >
-                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-                <span style={{ fontSize: 11 }}>{theme === 'light' ? 'Dark' : 'Light'}</span>
-              </button>
+          {canSee(role, 'manager') && (
+            <div className="sidebarV4Section">
+              <div className="sidebarV4SectionLabel">Management</div>
+              {canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} />}
+              {canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} />}
+              {canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} />}
+              {canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} />}
+              {canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} />}
             </div>
+          )}
+
+          <div className="sidebarV4Section">
+            <div className="sidebarV4SectionLabel">Other</div>
+            {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} />}
+            {canSeeItem(role, 'Jeczone') && <NavItem to="/app/jeczone" label="Jeczone" display="JecZone AI" />}
+            {canSee(role, 'director') && (
+              <>
+                <NavItem to="/app/crm/leads" label="Leads" display={t(labelKey('Leads'))} />
+                <NavItem to="/app/crm/pipeline" label="Pipeline" display={t(labelKey('Pipeline'))} />
+                <NavItem to="/app/audit" label="Audit" display={t(labelKey('Audit'))} />
+                <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} />
+              </>
+            )}
+          </div>
+        </nav>
+
+        {/* Bottom user section */}
+        <div className="sidebarV4Bottom">
+          {/* Theme + Lang row */}
+          <div className="sidebarV4Controls">
+            <button
+              type="button"
+              className="sidebarV4ThemeBtn"
+              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
+            >
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+              <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
+            </button>
+            <select
+              value={lang || 'en'}
+              onChange={e => setLang(e.target.value as Lang)}
+              className="sidebarV4LangSelect"
+            >
+              <option value="en">EN</option>
+              <option value="ar">AR</option>
+            </select>
+          </div>
+
+          {/* User chip */}
+          <div className="sidebarV4UserChip">
+            <button
+              type="button"
+              className="sidebarV4UserBtn"
+              onClick={() => navigate('/app/profile')}
+            >
+              <div className="sidebarV4Avatar">
+                {avatarSrc && !avatarBroken ? (
+                  <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} />
+                ) : (
+                  <UserRound size={16} />
+                )}
+              </div>
+              <div className="sidebarV4UserInfo">
+                <span className="sidebarV4UserName">{displayName || 'My profile'}</span>
+                <span className="sidebarV4UserRole">{role}</span>
+              </div>
+            </button>
+            <button type="button" className="sidebarV4LogoutBtn" onClick={signOut} title="Sign out">
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
       </aside>
 
-      <main className="main">
-        <div className="topbar topbarApp">
-          <button className="topbarMenuBtn" type="button" aria-label="Open sidebar" onClick={() => setSidebarOpenMobile(true)}>
-            <LayoutDashboard size={16} />
+      {/* ── Main area ── */}
+      <main className="mainV4">
+        {/* Topbar — search only + notifications + mobile menu */}
+        <div className="topbarV4">
+          <button
+            type="button"
+            className="topbarV4MenuBtn"
+            onClick={() => setSidebarOpenMobile(v => !v)}
+            aria-label="Menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
           </button>
-          <div className="topbarTitle">
-            {titleId === 'dashboard' ? t('title.dashboard')
-              : titleId === 'tasks' ? t('title.tasks')
-              : titleId === 'myTasks' ? t('title.myTasks')
-              : titleId === 'analytics' ? t('title.analytics')
-              : titleId === 'profile' ? t('title.profile')
-              : titleId === 'logs' ? t('title.logs')
-              : titleId === 'hr' ? t('nav.employees')
-              : 'TaskFlow Pro'}
-          </div>
-          <div className="topbarSearch">
+
+          <span className="topbarV4PageTitle">{pageTitle}</span>
+
+          {/* Global search */}
+          <div className="topbarV4SearchWrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="topbarV4SearchIcon">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
             <input
-              className="input"
-              style={{ height: 40, width: '100%' }}
+              className="topbarV4SearchInput"
               value={search}
-              onChange={(e) => void runSearch(e.target.value)}
-              onFocus={() => setOpen(hasQuery)}
-              onBlur={() => setTimeout(() => setOpen(false), 120)}
-              placeholder={t('common.searchPlaceholder')}
+              onChange={e => runSearch(e.target.value)}
+              onFocus={() => { if (search.length >= 2) setSearchOpen(true) }}
+              onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+              placeholder="Search tasks, people, projects…"
               aria-label="Global search"
             />
-            {open ? (
-              <div className="searchPopover" role="dialog" aria-label="Search results">
-                {!hasQuery ? <div className="searchEmpty">{t('search.typeAtLeastTwo')}</div> : null}
-                {busy ? <div className="searchEmpty">{t('search.searching')}</div> : null}
-                {!busy && hasQuery && flatCount === 0 ? <div className="searchEmpty">{t('search.noResults')}</div> : null}
-
-                {!busy && results?.tasks?.length ? (
-                  <div className="searchGroup">
-                    <div className="searchGroupTitle">{t('search.group.tasks')}</div>
-                    {results.tasks.map((t) => (
-                      <button
-                        key={t.id}
-                        className="searchItem"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setOpen(false)
-                          navigate('/app/tasks')
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div className="searchItemStrong">{t.title}</div>
-                          <div className="searchItemSub">{t.status}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!busy && results?.users?.length ? (
-                  <div className="searchGroup">
-                    <div className="searchGroupTitle">{t('search.group.people')}</div>
-                    {results.users.map((u) => (
-                      <button
-                        key={u.id}
-                        className="searchItem"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setOpen(false)
-                          navigate('/app/team')
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div className="searchItemStrong">{u.full_name || u.fullName || u.email}</div>
-                          <div className="searchItemSub">{u.email} · {u.role}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!busy && results?.reports?.length ? (
-                  <div className="searchGroup">
-                    <div className="searchGroupTitle">{t('search.group.reports')}</div>
-                    {results.reports.map((r) => (
-                      <button
-                        key={r.id}
-                        className="searchItem"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setOpen(false)
-                          navigate(`/app/reports/${r.id}`)
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div className="searchItemStrong">{r.report_type || t('search.report')}</div>
-                          <div className="searchItemSub">{new Date(r.created_at).toLocaleString()}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!busy && results?.notifications?.length ? (
-                  <div className="searchGroup">
-                    <div className="searchGroupTitle">{t('search.group.notifications')}</div>
-                    {results.notifications.map((n) => (
-                      <button
-                        key={n.id}
-                        className="searchItem"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setOpen(false)
-                          navigate('/app/dashboard')
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div className="searchItemStrong">{n.title || t('search.notification')}</div>
-                          <div className="searchItemSub">{n.body || new Date(n.created_at).toLocaleString()}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!busy && results?.projects?.length ? (
-                  <div className="searchGroup">
-                    <div className="searchGroupTitle">{t('search.group.projects')}</div>
-                    {results.projects.map((p) => (
-                      <button
-                        key={p.id}
-                        className="searchItem"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setOpen(false)
-                          navigate('/app/projects')
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div className="searchItemStrong">{p.name}</div>
-                          <div className="searchItemSub">{p.description || t('search.openProjects')}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+            {search && (
+              <button
+                type="button"
+                className="topbarV4SearchClear"
+                onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false) }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            )}
+            {/* Search results dropdown */}
+            {searchOpen && (
+              <div className="topbarV4SearchDropdown">
+                {searchBusy && (
+                  <div className="topbarV4SearchEmpty">Searching…</div>
+                )}
+                {!searchBusy && !hasResults && search.length >= 2 && (
+                  <div className="topbarV4SearchEmpty">No results for "{search}"</div>
+                )}
+                {!searchBusy && search.length < 2 && (
+                  <div className="topbarV4SearchEmpty">Type at least 2 characters</div>
+                )}
+                {!searchBusy && hasResults && (
+                  <>
+                    {searchResults?.tasks?.length > 0 && (
+                      <div className="topbarV4SearchGroup">
+                        <div className="topbarV4SearchGroupTitle">Tasks</div>
+                        {searchResults.tasks.map((t: any) => (
+                          <button key={t.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/tasks') }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
+                            <div>
+                              <div className="topbarV4SearchItemTitle">{t.title}</div>
+                              <div className="topbarV4SearchItemSub">{t.status?.replace(/_/g, ' ')}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults?.users?.length > 0 && (
+                      <div className="topbarV4SearchGroup">
+                        <div className="topbarV4SearchGroupTitle">People</div>
+                        {searchResults.users.map((u: any) => (
+                          <button key={u.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/team') }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <div>
+                              <div className="topbarV4SearchItemTitle">{u.full_name || u.fullName || u.email}</div>
+                              <div className="topbarV4SearchItemSub">{u.role} · {u.email}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults?.projects?.length > 0 && (
+                      <div className="topbarV4SearchGroup">
+                        <div className="topbarV4SearchGroupTitle">Projects</div>
+                        {searchResults.projects.map((p: any) => (
+                          <button key={p.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/projects') }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            <div>
+                              <div className="topbarV4SearchItemTitle">{p.name}</div>
+                              <div className="topbarV4SearchItemSub">{p.description || 'Project'}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            ) : null}
+            )}
           </div>
-          <NotificationCenter />
-          <div className="topbarEnd">
-            <span className="topbarUserName" title={displayName}>
-              {displayName}
-            </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <NotificationCenter />
             <button
               type="button"
-              className="topbarProfileBtn"
+              className="topbarV4ProfileBtn"
               onClick={() => navigate('/app/profile')}
-              title={t('nav.profile')}
-              aria-label={t('nav.profile')}
+              title={displayName}
             >
-              {avatarOk && !shellAvatarBroken ? (
-                <img src={avatarSrc} alt="" onError={() => setShellAvatarBroken(true)} />
+              {avatarSrc && !avatarBroken ? (
+                <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} className="topbarV4AvatarImg" />
               ) : (
-                <UserRound size={18} />
+                <UserRound size={16} />
               )}
             </button>
           </div>
         </div>
-        <div className="content">
+
+        <div className="contentV4">
           <Outlet />
         </div>
       </main>
     </div>
   )
 }
-

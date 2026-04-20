@@ -4911,3 +4911,625 @@ select.input {
 select.input option { background: #1a1d2e; color: white; }
 .appShellLight select.input option { background: white; color: #1a1d2e; }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL V4 — Clean two-theme system
+   Night: #0f1117 bg, gold rgb(243,178,57) primary
+   Day: #f5f6fa bg, gold rgb(243,178,57) primary
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── CSS Custom Properties ────────────────────────────────────── */
+.appShellV4Dark {
+  --bg0:       #0f1117;
+  --bg1:       #161920;
+  --bg2:       #1d2029;
+  --surface:   #1d2029;
+  --surfaceUp: #242834;
+  --border:    rgba(255,255,255,0.08);
+  --borderUp:  rgba(255,255,255,0.14);
+  --text:      #f0ede6;
+  --text2:     #9a9fad;
+  --muted:     #5a6070;
+  --brand:     rgb(243,178,57);
+  --brandDim:  rgba(243,178,57,0.14);
+  --brandBorder: rgba(243,178,57,0.30);
+  --danger:    #ef4444;
+  --success:   #22c55e;
+  --info:      #38bdf8;
+  --shadow:    0 4px 24px rgba(0,0,0,0.45);
+  --shadowLg:  0 16px 48px rgba(0,0,0,0.55);
+  --radius:    14px;
+  --radiusLg:  20px;
+  /* chart */
+  --chartGrid: rgba(255,255,255,0.06);
+  --chartTick: #5a6070;
+  --chartTickUp: #9a9fad;
+  --tooltipBg:  rgba(14,16,22,0.97);
+  --tooltipBorder: rgba(255,255,255,0.12);
+}
+
+.appShellV4Light {
+  --bg0:       #f0f2f8;
+  --bg1:       #ffffff;
+  --bg2:       #f5f6fa;
+  --surface:   #ffffff;
+  --surfaceUp: #f8f9fc;
+  --border:    #e4e7ef;
+  --borderUp:  #d0d4e0;
+  --text:      #1a1d2e;
+  --text2:     #4b5368;
+  --muted:     #8892a4;
+  --brand:     rgb(243,178,57);
+  --brandDim:  rgba(243,178,57,0.12);
+  --brandBorder: rgba(243,178,57,0.35);
+  --danger:    #dc2626;
+  --success:   #16a34a;
+  --info:      #0284c7;
+  --shadow:    0 2px 12px rgba(0,0,0,0.07);
+  --shadowLg:  0 12px 40px rgba(0,0,0,0.12);
+  --radius:    14px;
+  --radiusLg:  20px;
+  /* chart */
+  --chartGrid: rgba(0,0,0,0.06);
+  --chartTick: #8892a4;
+  --chartTickUp: #4b5368;
+  --tooltipBg:  #ffffff;
+  --tooltipBorder: #e4e7ef;
+}
+
+/* ── App Shell Layout ──────────────────────────────────────────── */
+.appShellV4 {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: var(--bg0);
+  color: var(--text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+@media (max-width: 900px) {
+  .appShellV4 { grid-template-columns: 1fr; }
+}
+
+/* ── Sidebar V4 ────────────────────────────────────────────────── */
+.sidebarV4 {
+  display: flex; flex-direction: column;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  height: 100vh; position: sticky; top: 0;
+  overflow: hidden;
+  z-index: 200;
+}
+@media (max-width: 900px) {
+  .sidebarV4 {
+    position: fixed; left: -260px; top: 0; bottom: 0; width: 240px;
+    transition: left 0.25s ease; z-index: 500;
+    box-shadow: none;
+  }
+  .sidebarMobileOpen .sidebarV4 {
+    left: 0;
+    box-shadow: 8px 0 32px rgba(0,0,0,0.35);
+  }
+  .sidebarMobileOpen .sidebarScrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 499; backdrop-filter: blur(2px);
+    display: block;
+  }
+  .sidebarScrim { display: none; }
+}
+
+/* Logo */
+.sidebarV4Logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebarV4LogoLink {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; color: var(--text);
+}
+.sidebarV4LogoMark {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--brand), #c8820a);
+  display: grid; place-items: center; color: #1a1d2e;
+}
+.sidebarV4BrandName {
+  display: block; font-size: 14px; font-weight: 950; letter-spacing: -0.4px;
+  color: var(--text);
+}
+.sidebarV4BrandSub {
+  display: block; font-size: 10px; color: var(--muted); font-weight: 700;
+  margin-top: 1px;
+}
+
+/* Nav */
+.sidebarV4Nav {
+  flex: 1; overflow-y: auto; padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sidebarV4Nav::-webkit-scrollbar { width: 3px; }
+.sidebarV4Nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sidebarV4Section { margin-bottom: 8px; }
+.sidebarV4SectionLabel {
+  font-size: 10px; font-weight: 900; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted); padding: 4px 10px; margin-bottom: 4px;
+}
+
+/* Nav item */
+.navItemV4 {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 10px;
+  text-decoration: none; color: var(--text2);
+  font-size: 13px; font-weight: 700;
+  transition: all 0.12s ease;
+  border: 1px solid transparent;
+  position: relative;
+}
+.navItemV4:hover {
+  background: var(--surfaceUp);
+  color: var(--text);
+  border-color: var(--border);
+}
+.navItemV4Active {
+  background: var(--brandDim) !important;
+  color: var(--brand) !important;
+  border-color: var(--brandBorder) !important;
+}
+.navItemV4Label { flex: 1; }
+.navItemV4Badge {
+  font-size: 10px; font-weight: 900;
+  background: var(--danger); color: white;
+  padding: 1px 5px; border-radius: 999px;
+  min-width: 16px; text-align: center;
+}
+
+/* Bottom controls */
+.sidebarV4Bottom {
+  border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.sidebarV4Controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebarV4ThemeBtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 8px;
+  background: var(--surfaceUp); border: 1px solid var(--border);
+  color: var(--text2); font-size: 11px; font-weight: 800;
+  cursor: pointer; transition: all 0.15s; flex: 1;
+}
+.sidebarV4ThemeBtn:hover {
+  background: var(--brandDim); border-color: var(--brandBorder); color: var(--brand);
+}
+.sidebarV4LangSelect {
+  height: 30px; padding: 0 8px; border-radius: 8px;
+  background: var(--surfaceUp); border: 1px solid var(--border);
+  color: var(--text2); font-size: 11px; font-weight: 800;
+  cursor: pointer; appearance: none; outline: none;
+}
+
+.sidebarV4UserChip {
+  display: flex; align-items: center; gap: 0;
+  padding: 10px 12px;
+}
+.sidebarV4UserBtn {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  background: none; border: none; cursor: pointer;
+  text-align: left; padding: 6px 8px; border-radius: 10px;
+  transition: background 0.12s;
+  color: var(--text);
+}
+.sidebarV4UserBtn:hover { background: var(--surfaceUp); }
+.sidebarV4Avatar {
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+  background: var(--brandDim); border: 1.5px solid var(--brandBorder);
+  color: var(--brand); display: grid; place-items: center; overflow: hidden;
+  font-size: 12px; font-weight: 900;
+}
+.sidebarV4Avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sidebarV4UserInfo { min-width: 0; }
+.sidebarV4UserName {
+  display: block; font-size: 12px; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text);
+}
+.sidebarV4UserRole {
+  display: block; font-size: 10px; color: var(--muted); font-weight: 700;
+  text-transform: capitalize;
+}
+.sidebarV4LogoutBtn {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: none; border: 1px solid transparent;
+  color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  transition: all 0.15s;
+}
+.sidebarV4LogoutBtn:hover { background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); color: #ef4444; }
+
+/* ── Main area ─────────────────────────────────────────────────── */
+.mainV4 { display: flex; flex-direction: column; min-height: 100vh; min-width: 0; }
+
+/* ── Topbar V4 ─────────────────────────────────────────────────── */
+.topbarV4 {
+  height: 58px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.topbarV4MenuBtn {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: none; border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; display: none;
+  place-items: center; transition: all 0.15s;
+}
+.topbarV4MenuBtn:hover { background: var(--surfaceUp); color: var(--text); }
+@media (max-width: 900px) { .topbarV4MenuBtn { display: grid; } }
+
+.topbarV4PageTitle {
+  font-size: 15px; font-weight: 950; letter-spacing: -0.4px;
+  color: var(--text); white-space: nowrap; flex-shrink: 0;
+}
+
+/* Search */
+.topbarV4SearchWrap {
+  position: relative; flex: 1; max-width: 480px; min-width: 0;
+}
+.topbarV4SearchIcon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none;
+}
+.topbarV4SearchInput {
+  width: 100%; height: 38px;
+  padding: 0 36px 0 36px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 13px; font-weight: 500;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.topbarV4SearchInput::placeholder { color: var(--muted); }
+.topbarV4SearchInput:focus {
+  border-color: var(--brandBorder);
+  box-shadow: 0 0 0 3px var(--brandDim);
+  background: var(--surface);
+}
+.topbarV4SearchClear {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--surfaceUp); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  transition: all 0.12s;
+}
+.topbarV4SearchClear:hover { color: var(--text); }
+
+/* Search dropdown */
+.topbarV4SearchDropdown {
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+  background: var(--bg1); border: 1.5px solid var(--brandBorder);
+  border-radius: var(--radiusLg);
+  box-shadow: var(--shadowLg);
+  z-index: 1000; overflow: hidden;
+  animation: dropIn 0.15s ease;
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.topbarV4SearchEmpty {
+  padding: 20px 16px; text-align: center; color: var(--muted); font-size: 13px;
+}
+.topbarV4SearchGroup { padding: 8px 8px 4px; }
+.topbarV4SearchGroupTitle {
+  font-size: 10px; font-weight: 900; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); padding: 4px 10px; margin-bottom: 4px;
+}
+.topbarV4SearchItem {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 10px; border-radius: 10px;
+  background: none; border: none; cursor: pointer; text-align: left;
+  color: var(--text2); transition: background 0.1s;
+}
+.topbarV4SearchItem:hover { background: var(--surfaceUp); color: var(--text); }
+.topbarV4SearchItemTitle { font-size: 13px; font-weight: 800; }
+.topbarV4SearchItemSub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* Profile button */
+.topbarV4ProfileBtn {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: var(--brandDim); border: 1.5px solid var(--brandBorder);
+  color: var(--brand); cursor: pointer; display: grid; place-items: center;
+  transition: all 0.15s; overflow: hidden;
+}
+.topbarV4ProfileBtn:hover { box-shadow: 0 0 0 3px var(--brandDim); }
+.topbarV4AvatarImg { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Content area ──────────────────────────────────────────────── */
+.contentV4 {
+  flex: 1; padding: 24px;
+  min-width: 0;
+}
+@media (max-width: 640px) { .contentV4 { padding: 14px; } }
+
+/* ── Override old classes to use new vars ──────────────────────── */
+.appShellV4Dark .card,
+.appShellV4Light .card {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: var(--radiusLg);
+}
+.appShellV4Dark .chartV3,
+.appShellV4Light .chartV3,
+.appShellV4Dark .formCardV3,
+.appShellV4Light .formCardV3,
+.appShellV4Dark .kpiV3,
+.appShellV4Light .kpiV3 {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.appShellV4Dark .kpiV3:hover,
+.appShellV4Light .kpiV3:hover {
+  border-color: var(--brandBorder);
+  box-shadow: 0 12px 36px rgba(243,178,57,0.12);
+}
+.appShellV4Dark .chartV3:hover,
+.appShellV4Light .chartV3:hover {
+  border-color: var(--brandBorder);
+}
+.appShellV4Dark .formCardV3Head,
+.appShellV4Light .formCardV3Head {
+  border-color: var(--border);
+}
+
+/* Standardized button heights */
+.btn { height: 38px; padding: 0 16px; font-size: 13px; }
+.btnSm { height: 32px; padding: 0 12px; font-size: 12px; }
+.btnLg { height: 46px; padding: 0 22px; font-size: 14px; }
+
+/* Inputs */
+.appShellV4Dark .inputV3Field,
+.appShellV4Light .inputV3Field {
+  background: var(--bg2); border-color: var(--border);
+}
+.appShellV4Dark .inputV3Field:focus-within,
+.appShellV4Light .inputV3Field:focus-within {
+  border-color: var(--brandBorder);
+  box-shadow: 0 0 0 3px var(--brandDim);
+  background: var(--surface);
+}
+.appShellV4Dark .selectV3Trigger,
+.appShellV4Light .selectV3Trigger {
+  background: var(--bg2); border-color: var(--border);
+  color: var(--text);
+}
+.appShellV4Dark .selectV3Trigger:hover,
+.appShellV4Light .selectV3Trigger:hover {
+  border-color: var(--borderUp); background: var(--surfaceUp);
+}
+.appShellV4Dark .selectV3Open,
+.appShellV4Light .selectV3Open {
+  border-color: var(--brandBorder) !important;
+  box-shadow: 0 0 0 3px var(--brandDim);
+}
+.appShellV4Dark .selectV3Dropdown,
+.appShellV4Light .selectV3Dropdown {
+  background: var(--bg1); border-color: var(--brandBorder);
+}
+.appShellV4Light .selectV3Dropdown { box-shadow: 0 12px 40px rgba(0,0,0,0.14); }
+.appShellV4Dark .selectV3Option:hover,
+.appShellV4Light .selectV3Option:hover {
+  background: var(--surfaceUp);
+}
+.appShellV4Dark .selectV3OptionActive,
+.appShellV4Light .selectV3OptionActive {
+  background: var(--brandDim) !important; color: var(--brand) !important;
+}
+.appShellV4Dark .selectV3Placeholder,
+.appShellV4Light .selectV3Placeholder { color: var(--muted); }
+
+/* Primary button — gold on both themes */
+.appShellV4Dark .btnPrimary,
+.appShellV4Light .btnPrimary {
+  background: linear-gradient(135deg, rgb(243,178,57) 0%, #c8820a 100%);
+  color: #1a1d2e; border-color: rgba(243,178,57,0.4);
+  box-shadow: 0 4px 14px rgba(243,178,57,0.28);
+}
+.appShellV4Dark .btnPrimary:hover,
+.appShellV4Light .btnPrimary:hover {
+  background: linear-gradient(135deg, #f5c840 0%, #b87200 100%);
+  box-shadow: 0 6px 22px rgba(243,178,57,0.40);
+  transform: translateY(-1px);
+}
+.appShellV4Dark .btnGhost,
+.appShellV4Light .btnGhost {
+  background: var(--surfaceUp); border-color: var(--border); color: var(--text2);
+}
+.appShellV4Dark .btnGhost:hover,
+.appShellV4Light .btnGhost:hover {
+  background: var(--surfaceUp); border-color: var(--brandBorder); color: var(--brand);
+}
+
+/* Charts vars override */
+.appShellV4Dark { --chart-grid: var(--chartGrid); --chart-tick: var(--chartTick); --chart-tick2: var(--chartTickUp); }
+.appShellV4Light { --chart-grid: var(--chartGrid); --chart-tick: var(--chartTickUp); --chart-tick2: var(--chartTick); }
+
+/* Status badges V4 */
+.statusBadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+}
+.statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
+.statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
+.statusPending { background: rgba(243,178,57,0.12); color: rgb(243,178,57); border: 1px solid rgba(243,178,57,0.28); }
+.statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
+.statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
+
+/* Credential box theme-aware */
+.appShellV4Dark .credBox,
+.appShellV4Light .credBox {
+  background: rgba(243,178,57,0.07);
+  border-color: rgba(243,178,57,0.25);
+}
+.appShellV4Light .credBoxValue { background: rgba(0,0,0,0.06); }
+
+/* Error/Success alerts */
+.alertV4 {
+  padding: 11px 15px; border-radius: 12px;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.alertV4Error {
+  background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;
+}
+.alertV4Success {
+  background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.25); color: #22c55e;
+}
+.alertV4Info {
+  background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.22); color: #38bdf8;
+}
+.appShellV4Light .alertV4Error { color: #dc2626; }
+.appShellV4Light .alertV4Success { color: #16a34a; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTH PAGES V4 — Sign In / Sign Up
+   ═══════════════════════════════════════════════════════════════ */
+
+.authPageV4 {
+  min-height: 100vh; display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #0f1117;
+}
+@media (max-width: 900px) {
+  .authPageV4 { grid-template-columns: 1fr; }
+  .authV4Left { display: none; }
+}
+
+/* Left showcase panel */
+.authV4Left {
+  background: linear-gradient(160deg, #161920 0%, #0f1117 60%);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px 48px;
+  position: relative; overflow: hidden;
+}
+.authV4Left::before {
+  content: ''; position: absolute;
+  width: 500px; height: 500px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(243,178,57,0.12) 0%, transparent 70%);
+  top: -100px; left: -100px;
+}
+.authV4Left::after {
+  content: ''; position: absolute;
+  width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%);
+  bottom: -60px; right: -60px;
+}
+.authV4LeftInner { position: relative; z-index: 1; max-width: 400px; }
+
+.authV4Logo { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
+.authV4LogoMark {
+  width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgb(243,178,57), #c8820a);
+  display: grid; place-items: center; color: #1a1d2e;
+}
+.authV4BrandName { font-size: 16px; font-weight: 950; color: #f0ede6; letter-spacing: -0.3px; }
+
+.authV4LeftTitle {
+  font-size: 38px; font-weight: 950; color: #f0ede6; line-height: 1.1;
+  letter-spacing: -1.5px; margin: 0 0 16px;
+}
+.authV4Accent {
+  background: linear-gradient(135deg, rgb(243,178,57), #f9a825);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.authV4LeftSub { font-size: 15px; color: #9a9fad; line-height: 1.6; margin: 0 0 40px; }
+
+.authV4Features { display: grid; gap: 18px; margin-bottom: 40px; }
+.authV4FeatureRow { display: flex; gap: 14px; align-items: flex-start; }
+.authV4FeatureIcon {
+  font-size: 20px; width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  display: grid; place-items: center;
+}
+.authV4FeatureTitle { font-size: 14px; font-weight: 800; color: #f0ede6; }
+.authV4FeatureDesc { font-size: 12px; color: #9a9fad; margin-top: 2px; line-height: 1.4; }
+
+.authV4Stats {
+  display: flex; gap: 28px; padding-top: 28px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.authV4StatVal { font-size: 22px; font-weight: 950; color: rgb(243,178,57); letter-spacing: -0.5px; }
+.authV4StatLabel { font-size: 11px; color: #9a9fad; font-weight: 700; margin-top: 2px; }
+
+/* Right form panel */
+.authV4Right {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 24px;
+  background: #0f1117;
+}
+.authV4Card {
+  width: 100%; max-width: 420px;
+  background: #161920;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 36px 32px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+.authV4CardLogo {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: #f0ede6;
+}
+.authV4Title { font-size: 24px; font-weight: 950; color: #f0ede6; letter-spacing: -0.8px; margin: 0 0 6px; }
+.authV4Sub { font-size: 14px; color: #9a9fad; margin: 0 0 24px; }
+
+.authV4SubmitBtn {
+  width: 100%; height: 48px; border-radius: 13px;
+  background: linear-gradient(135deg, rgb(243,178,57) 0%, #c8820a 100%);
+  color: #1a1d2e; font-size: 15px; font-weight: 900;
+  border: none; cursor: pointer; letter-spacing: -0.2px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(243,178,57,0.30);
+}
+.authV4SubmitBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f5c840 0%, #b87200 100%);
+  box-shadow: 0 6px 24px rgba(243,178,57,0.42);
+  transform: translateY(-1px);
+}
+.authV4SubmitBtn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.authV4ForgotLink { font-size: 12px; color: #9a9fad; font-weight: 700; text-decoration: none; transition: color 0.12s; }
+.authV4ForgotLink:hover { color: rgb(243,178,57); }
+.authV4Footer { margin-top: 20px; text-align: center; font-size: 13px; color: #9a9fad; }
+.authV4FooterLink { color: rgb(243,178,57); font-weight: 800; text-decoration: none; }
+.authV4FooterLink:hover { text-decoration: underline; }
+
+/* Light mode auth - not used (auth pages are always dark) */
+
+/* Input inside auth cards */
+.authV4Card .inputV3Field {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.10);
+}
+.authV4Card .inputV3Field:focus-within {
+  border-color: rgba(243,178,57,0.5);
+  box-shadow: 0 0 0 3px rgba(243,178,57,0.12);
+  background: rgba(255,255,255,0.06);
+}
+.authV4Card .inputV3Native { color: #f0ede6; }
+.authV4Card .inputV3Native::placeholder { color: #5a6070; }
+.authV4Card .selectV3Label { color: #9a9fad; }
+
+/* Step indicators for signup */
+.authV4Steps {
+  display: flex; gap: 8px; margin-bottom: 24px;
+}
+.authV4Step {
+  height: 4px; border-radius: 2px; flex: 1;
+  background: rgba(255,255,255,0.08); transition: all 0.3s ease;
+}
+.authV4StepActive { background: rgb(243,178,57); }
+.authV4StepDone { background: rgba(243,178,57,0.4); }
+
