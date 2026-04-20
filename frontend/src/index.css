@@ -6,7 +6,7 @@
   --text: rgba(243, 239, 231, 0.9);
   --text2: rgba(243, 239, 231, 0.7);
   --muted: rgba(243, 239, 231, 0.55);
-  --primary: #8B5CF6;
+  --primary: #e2ab41;
   --primary-glow: rgba(244, 202, 87, 0.4);
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.4);
@@ -26,7 +26,7 @@
   --glass-blur: 18px;
 
   /* Premium gradient */
-  --gradient-primary: linear-gradient(135deg, #8B5CF6 0%, #d4a84b 50%, #c49a3f 100%);
+  --gradient-primary: linear-gradient(135deg, #e2ab41 0%, #d4a84b 50%, #c49a3f 100%);
   --gradient-accent: linear-gradient(135deg, #6d5efc 0%, #8b7cf7 50%, #a89bf9 100%);
   --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
@@ -305,7 +305,7 @@
   background-color: rgba(15, 17, 22, 0.75);
 }
 .mktLang:focus {
-  border-color: rgba(139, 92, 246, 0.45);
+  border-color: rgba(226, 171, 65, 0.45);
   box-shadow: 0 0 0 3px rgba(244, 202, 87, 0.12);
 }
 .mktLang option {
@@ -486,8 +486,8 @@
   --text: #1a1d2e;
   --text2: #4a5568;
   --muted: #718096;
-  --primary: #8B5CF6;
-  --primary-dark: #6D28D9;
+  --primary: #e2ab41;
+  --primary-dark: #c8820a;
   --shadow: 0 4px 20px rgba(99, 102, 241, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 40px rgba(99, 102, 241, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
@@ -524,14 +524,14 @@
 }
 
 .appShellLight .btnPrimary {
-  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
-  border-color: rgba(139, 92, 246, 0.4);
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  border-color: rgba(226, 171, 65, 0.4);
   color: #1a1d2e;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+  box-shadow: 0 4px 14px rgba(226, 171, 65, 0.35);
 }
 .appShellLight .btnPrimary:hover {
-  background: linear-gradient(135deg, #a78bfa 0%, #6D28D9 100%);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
+  background: linear-gradient(135deg, #f9e6a2 0%, #c8820a 100%);
+  box-shadow: 0 6px 20px rgba(226, 171, 65, 0.45);
   transform: translateY(-1px);
 }
 .appShellLight .btnGhost {
@@ -605,7 +605,7 @@
 }
 
 .appShellLight .brandLogo {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #c8820a 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
@@ -665,7 +665,7 @@
 .appShellLight .navItemActive .navIcon {
   background: rgba(99, 102, 241, 0.2);
   border-color: #6366f1;
-  color: #4f46e5;
+  color: #c8820a;
 }
 
 .appShellLight .btn {
@@ -1428,7 +1428,7 @@ label.btn {
   overflow: hidden;
 }
 .brandAvatarBtn:hover {
-  border-color: rgba(139, 92, 246, 0.35);
+  border-color: rgba(226, 171, 65, 0.35);
 }
 .brandAvatarBtn:focus-visible {
   outline: 2px solid rgba(244, 202, 87, 0.55);
@@ -1673,7 +1673,7 @@ label.btn {
 
 .navItemActive {
   background: rgba(244, 202, 87, 0.12);
-  border-color: rgba(139, 92, 246, 0.35);
+  border-color: rgba(226, 171, 65, 0.35);
   color: var(--text);
 }
 
@@ -2114,7 +2114,7 @@ label.btn {
 }
 
 .miniCard:hover {
-  border-color: rgba(139, 92, 246, 0.35);
+  border-color: rgba(226, 171, 65, 0.35);
   background: rgba(255, 255, 255, 0.06);
   transform: translateY(-3px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 202, 87, 0.08);
@@ -2697,7 +2697,7 @@ button.projectCard {
   background: rgba(255, 255, 255, 0.04);
 }
 .reportStatCardAccent {
-  border-color: rgba(139, 92, 246, 0.35);
+  border-color: rgba(226, 171, 65, 0.35);
   background: rgba(244, 202, 87, 0.08);
 }
 .reportStatN {
@@ -2821,7 +2821,7 @@ button.projectCard {
   background: rgba(255, 255, 255, 0.03);
 }
 .calCellToday {
-  border-color: rgba(139, 92, 246, 0.45);
+  border-color: rgba(226, 171, 65, 0.45);
 }
 .calCellNum {
   font-weight: 900;
@@ -2879,7 +2879,7 @@ button.projectCard {
   color: var(--text);
 }
 .taskQuickFilterBtnActive {
-  border-color: rgba(139, 92, 246, 0.45);
+  border-color: rgba(226, 171, 65, 0.45);
   background: rgba(244, 202, 87, 0.12);
   color: var(--text);
 }
@@ -3143,7 +3143,7 @@ button.projectCard {
 .heroBadgeDot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #8B5CF6;
+  background: #e2ab41;
   animation: pulse 2s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -3156,7 +3156,7 @@ button.projectCard {
   margin: 0 0 18px;
 }
 .heroAccent {
-  background: linear-gradient(135deg, #8B5CF6, #e0a844, #6d5efc);
+  background: linear-gradient(135deg, #e2ab41, #e0a844, #6d5efc);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -3190,7 +3190,7 @@ button.projectCard {
   padding: 0 22px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+  background: linear-gradient(135deg, #e2ab41, #c8820a);
   color: #0b0d12;
   font-weight: 900;
   font-size: 14px;
@@ -3352,7 +3352,7 @@ button.projectCard {
   place-items: center;
   font-size: 13px;
   font-weight: 950;
-  color: #8B5CF6;
+  color: #e2ab41;
   letter-spacing: -0.3px;
   flex-shrink: 0;
 }
@@ -3440,7 +3440,7 @@ button.projectCard {
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   width: 600px; height: 300px;
-  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(226, 171, 65, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 .heroCtaInner {
@@ -3489,7 +3489,7 @@ button.projectCard {
   padding: 40px;
   position: relative;
   background:
-    radial-gradient(ellipse at 30% 30%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 30%, rgba(226, 171, 65, 0.10) 0%, transparent 50%),
     radial-gradient(ellipse at 70% 70%, rgba(109,94,252,0.12) 0%, transparent 50%),
     var(--bg);
 }
@@ -3519,7 +3519,7 @@ button.projectCard {
 .authV2LogoMark {
   width: 44px; height: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+  background: linear-gradient(135deg, #e2ab41, #c8820a);
   display: grid;
   place-items: center;
   color: #0b0d12;
@@ -3556,7 +3556,7 @@ button.projectCard {
 }
 .authV2Input:focus {
   border-color: rgba(244,202,87,0.5);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
+  box-shadow: 0 0 0 3px rgba(226, 171, 65, 0.10);
 }
 .authV2InputWrap { position: relative; }
 .authV2InputWrap .authV2Input { padding-right: 44px; }
@@ -3573,7 +3573,7 @@ button.projectCard {
   width: 100%;
   height: 50px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+  background: linear-gradient(135deg, #e2ab41, #c8820a);
   border: none;
   color: #0b0d12;
   font-size: 15px;
@@ -3616,7 +3616,7 @@ button.projectCard {
   margin-top: 18px;
   color: var(--text2);
 }
-.authV2Links a { color: #8B5CF6; font-weight: 800; text-decoration: none; }
+.authV2Links a { color: #e2ab41; font-weight: 800; text-decoration: none; }
 .authV2Links a:hover { text-decoration: underline; }
 
 .authV2Error {
@@ -3858,7 +3858,7 @@ button.projectCard {
    ═══════════════════════════════════════════════════════════════ */
 
 /* Pill status colors */
-.pillPending   { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.25); }
+.pillPending   { background: rgba(226, 171, 65, 0.15); color: #e2ab41; border: 1px solid rgba(244,202,87,0.25); }
 .pillActive    { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
 .pillDone      { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
 .pillOverdue   { background: rgba(239,68,68,0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
@@ -3946,7 +3946,7 @@ button.projectCard {
 }
 .trendPos { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .trendNeg { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
-.trendNeutral { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.22); }
+.trendNeutral { background: rgba(226, 171, 65, 0.12); color: #e2ab41; border: 1px solid rgba(244,202,87,0.22); }
 
 /* ── Light theme overrides for chart card ─────────────────────── */
 .appShellLight .chartCardV2 {
@@ -4167,9 +4167,9 @@ button.projectCard {
 }
 .statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
-.statusPending { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.22); }
+.statusPending { background: rgba(226, 171, 65, 0.12); color: #e2ab41; border: 1px solid rgba(244,202,87,0.22); }
 .statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
-.statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
+.statusSubmitted { background: rgba(226, 171, 65,0.12); color: #f9e6a2; border: 1px solid rgba(226, 171, 65,0.22); }
 
 /* ═══════════════════════════════════════════════════════════════
    TOPBAR V2 — Elevated with search
@@ -4219,7 +4219,7 @@ button.projectCard {
   border-color: rgba(255,255,255,0.08);
 }
 .navItemV2Active {
-  background: rgba(139, 92, 246, 0.10) !important;
+  background: rgba(226, 171, 65, 0.10) !important;
   color: var(--primary) !important;
   border-color: rgba(244,202,87,0.20) !important;
 }
@@ -4233,12 +4233,12 @@ button.projectCard {
 }
 
 .appShellLight .navItemV2:hover {
-  background: rgba(139, 92, 246,0.08); color: #1a1d2e;
+  background: rgba(226, 171, 65,0.08); color: #1a1d2e;
 }
 .appShellLight .navItemV2Active {
-  background: rgba(139, 92, 246,0.14) !important;
+  background: rgba(226, 171, 65,0.14) !important;
   color: #a86200 !important;
-  border-color: rgba(139, 92, 246,0.30) !important;
+  border-color: rgba(226, 171, 65,0.30) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4337,7 +4337,7 @@ button.projectCard {
 }
 .kpiV3Trend.up { color: #10b981; }
 .kpiV3Trend.down { color: #ef4444; }
-.kpiV3Trend.neutral { color: #8B5CF6; }
+.kpiV3Trend.neutral { color: #e2ab41; }
 .kpiV3TrendLabel { color: var(--muted); margin-left: 4px; font-weight: 600; }
 
 /* Light theme kpi */
@@ -4347,8 +4347,8 @@ button.projectCard {
   box-shadow: 0 2px 10px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04);
 }
 .appShellLight .kpiV3:hover {
-  box-shadow: 0 12px 36px rgba(139, 92, 246,0.16);
-  border-color: rgba(139, 92, 246,0.25);
+  box-shadow: 0 12px 36px rgba(226, 171, 65,0.16);
+  border-color: rgba(226, 171, 65,0.25);
 }
 .appShellLight .kpiV3Details {
   background: #f9fafb;
@@ -4379,8 +4379,8 @@ button.projectCard {
   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 .appShellLight .chartV3:hover {
-  border-color: rgba(139, 92, 246,0.25);
-  box-shadow: 0 8px 24px rgba(139, 92, 246,0.10);
+  border-color: rgba(226, 171, 65,0.25);
+  box-shadow: 0 8px 24px rgba(226, 171, 65,0.10);
 }
 
 .chartV3Head {
@@ -4574,7 +4574,7 @@ button.projectCard {
   display: grid; place-items: center;
   color: white; font-weight: 900; font-size: 12px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #6366f1, #e2ab41);
 }
 
 /* Light theme tooltip vars  */
@@ -4592,20 +4592,20 @@ button.projectCard {
 
 /* ═══════════════════════════════════════════════════════════════
    SELECT V3 — Custom dropdown with search + icons
-   Primary accent: #8B5CF6
+   Primary accent: #e2ab41
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  --brand: #8B5CF6;
-  --brand-light: rgba(139, 92, 246, 0.15);
-  --brand-border: rgba(139, 92, 246, 0.35);
-  --brand-dark: #7C3AED;
+  --brand: #e2ab41;
+  --brand-light: rgba(226, 171, 65, 0.15);
+  --brand-border: rgba(226, 171, 65, 0.35);
+  --brand-dark: #d4930e;
 }
 .appShellLight {
   --brand: #6366f1;
   --brand-light: rgba(99,102,241,0.10);
   --brand-border: rgba(99,102,241,0.30);
-  --brand-dark: #4f46e5;
+  --brand-dark: #c8820a;
 }
 
 .selectV3Wrap { position: relative; display: flex; flex-direction: column; gap: 6px; }
@@ -4773,8 +4773,8 @@ button.projectCard {
   background: #fff; border-color: #e5e7eb;
 }
 .appShellLight .inputV3Field:focus-within {
-  border-color: rgba(139, 92, 246,0.5);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246,0.12);
+  border-color: rgba(226, 171, 65,0.5);
+  box-shadow: 0 0 0 3px rgba(226, 171, 65,0.12);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4815,8 +4815,8 @@ button.projectCard {
    ═══════════════════════════════════════════════════════════════ */
 
 .credBox {
-  background: rgba(139, 92, 246,0.08);
-  border: 1.5px solid rgba(139, 92, 246,0.25);
+  background: rgba(226, 171, 65,0.08);
+  border: 1.5px solid rgba(226, 171, 65,0.25);
   border-radius: 14px;
   padding: 16px 18px;
   margin-top: 12px;
@@ -4828,7 +4828,7 @@ button.projectCard {
 .credBoxRow {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(139, 92, 246,0.12);
+  border-bottom: 1px solid rgba(226, 171, 65,0.12);
   font-size: 13px;
 }
 .credBoxRow:last-child { border-bottom: none; }
@@ -4857,7 +4857,7 @@ button.projectCard {
 
 /* ═══════════════════════════════════════════════════════════════
    THEME SYSTEM — Day (light) vs Night (dark)
-   Primary: #8B5CF6
+   Primary: #e2ab41
    ═══════════════════════════════════════════════════════════════ */
 
 /* Night theme is the default :root theme */
@@ -4865,11 +4865,11 @@ button.projectCard {
 
 .appShellLight {
   /* Day theme uses same gold as night */
-  --primary: #8B5CF6;
-  --primary-dark: #6D28D9;
-  --brand: #8B5CF6;
-  --brand-light: rgba(139, 92, 246, 0.12);
-  --brand-border: rgba(139, 92, 246, 0.35);
+  --primary: #e2ab41;
+  --primary-dark: #c8820a;
+  --brand: #e2ab41;
+  --brand-light: rgba(226, 171, 65, 0.12);
+  --brand-border: rgba(226, 171, 65, 0.35);
 }
 
 /* Theme toggle button style */
@@ -4882,9 +4882,9 @@ button.projectCard {
   cursor: pointer; transition: all 0.2s ease;
 }
 .themeToggleV3:hover {
-  background: rgba(139, 92, 246,0.12);
-  border-color: rgba(139, 92, 246,0.3);
-  color: #8B5CF6;
+  background: rgba(226, 171, 65,0.12);
+  border-color: rgba(226, 171, 65,0.3);
+  color: #e2ab41;
 }
 .appShellLight .themeToggleV3 {
   background: #f9fafb; border-color: #e5e7eb; color: #4b5563;
@@ -4914,8 +4914,8 @@ select.input option { background: #1a1d2e; color: white; }
 
 /* ═══════════════════════════════════════════════════════════════
    APP SHELL V4 — Clean two-theme system
-   Night: #0f1117 bg, gold #8B5CF6 primary
-   Day: #f5f6fa bg, gold #8B5CF6 primary
+   Night: #0f1117 bg, gold #e2ab41 primary
+   Day: #f5f6fa bg, gold #e2ab41 primary
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Custom Properties ────────────────────────────────────── */
@@ -4930,9 +4930,9 @@ select.input option { background: #1a1d2e; color: white; }
   --text:      #f0ede6;
   --text2:     #9a9fad;
   --muted:     #5a6070;
-  --brand:     #8B5CF6;
-  --brandDim:  rgba(139, 92, 246,0.14);
-  --brandBorder: rgba(139, 92, 246,0.30);
+  --brand:     #e2ab41;
+  --brandDim:  rgba(226, 171, 65,0.14);
+  --brandBorder: rgba(226, 171, 65,0.30);
   --danger:    #ef4444;
   --success:   #22c55e;
   --info:      #38bdf8;
@@ -4959,9 +4959,9 @@ select.input option { background: #1a1d2e; color: white; }
   --text:      #1a1d2e;
   --text2:     #4b5368;
   --muted:     #8892a4;
-  --brand:     #8B5CF6;
-  --brandDim:  rgba(139, 92, 246,0.12);
-  --brandBorder: rgba(139, 92, 246,0.35);
+  --brand:     #e2ab41;
+  --brandDim:  rgba(226, 171, 65,0.12);
+  --brandBorder: rgba(226, 171, 65,0.35);
   --danger:    #dc2626;
   --success:   #16a34a;
   --info:      #0284c7;
@@ -5029,7 +5029,7 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .sidebarV4LogoMark {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--brand), #6D28D9);
+  background: linear-gradient(135deg, var(--brand), #c8820a);
   display: grid; place-items: center; color: #1a1d2e;
 }
 .sidebarV4BrandName {
@@ -5268,7 +5268,7 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Dark .kpiV3:hover,
 .appShellV4Light .kpiV3:hover {
   border-color: var(--brandBorder);
-  box-shadow: 0 12px 36px rgba(139, 92, 246,0.12);
+  box-shadow: 0 12px 36px rgba(226, 171, 65,0.12);
 }
 .appShellV4Dark .chartV3:hover,
 .appShellV4Light .chartV3:hover {
@@ -5328,14 +5328,14 @@ select.input option { background: #1a1d2e; color: white; }
 /* Primary button — gold on both themes */
 .appShellV4Dark .btnPrimary,
 .appShellV4Light .btnPrimary {
-  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
-  color: #ffffff; border-color: rgba(139, 92, 246,0.4);
-  box-shadow: 0 4px 14px rgba(139, 92, 246,0.28);
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  color: #1a1d2e; border-color: rgba(226, 171, 65,0.4);
+  box-shadow: 0 4px 14px rgba(226, 171, 65,0.28);
 }
 .appShellV4Dark .btnPrimary:hover,
 .appShellV4Light .btnPrimary:hover {
-  background: linear-gradient(135deg, #9d6ff5 0%, #5B21B6 100%);
-  box-shadow: 0 6px 22px rgba(139, 92, 246,0.40);
+  background: linear-gradient(135deg, #9d6ff5 0%, #b87200 100%);
+  box-shadow: 0 6px 22px rgba(226, 171, 65,0.40);
   transform: translateY(-1px);
 }
 .appShellV4Dark .btnGhost,
@@ -5359,15 +5359,15 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
-.statusPending { background: rgba(139, 92, 246,0.12); color: #8B5CF6; border: 1px solid rgba(139, 92, 246,0.28); }
+.statusPending { background: rgba(226, 171, 65,0.12); color: #e2ab41; border: 1px solid rgba(226, 171, 65,0.28); }
 .statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
-.statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
+.statusSubmitted { background: rgba(226, 171, 65,0.12); color: #f9e6a2; border: 1px solid rgba(226, 171, 65,0.22); }
 
 /* Credential box theme-aware */
 .appShellV4Dark .credBox,
 .appShellV4Light .credBox {
-  background: rgba(139, 92, 246,0.07);
-  border-color: rgba(139, 92, 246,0.25);
+  background: rgba(226, 171, 65,0.07);
+  border-color: rgba(226, 171, 65,0.25);
 }
 .appShellV4Light .credBoxValue { background: rgba(0,0,0,0.06); }
 
@@ -5415,7 +5415,7 @@ select.input option { background: #1a1d2e; color: white; }
 .authV4Left::before {
   content: ''; position: absolute;
   width: 500px; height: 500px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(226, 171, 65,0.12) 0%, transparent 70%);
   top: -100px; left: -100px;
 }
 .authV4Left::after {
@@ -5429,7 +5429,7 @@ select.input option { background: #1a1d2e; color: white; }
 .authV4Logo { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
 .authV4LogoMark {
   width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+  background: linear-gradient(135deg, #e2ab41, #c8820a);
   display: grid; place-items: center; color: #1a1d2e;
 }
 .authV4BrandName { font-size: 16px; font-weight: 950; color: #f0ede6; letter-spacing: -0.3px; }
@@ -5439,7 +5439,7 @@ select.input option { background: #1a1d2e; color: white; }
   letter-spacing: -1.5px; margin: 0 0 16px;
 }
 .authV4Accent {
-  background: linear-gradient(135deg, #8B5CF6, #f9a825);
+  background: linear-gradient(135deg, #e2ab41, #f9a825);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .authV4LeftSub { font-size: 15px; color: #9a9fad; line-height: 1.6; margin: 0 0 40px; }
@@ -5458,7 +5458,7 @@ select.input option { background: #1a1d2e; color: white; }
   display: flex; gap: 28px; padding-top: 28px;
   border-top: 1px solid rgba(255,255,255,0.07);
 }
-.authV4StatVal { font-size: 22px; font-weight: 950; color: #8B5CF6; letter-spacing: -0.5px; }
+.authV4StatVal { font-size: 22px; font-weight: 950; color: #e2ab41; letter-spacing: -0.5px; }
 .authV4StatLabel { font-size: 11px; color: #9a9fad; font-weight: 700; margin-top: 2px; }
 
 /* Right form panel */
@@ -5487,23 +5487,23 @@ select.input option { background: #1a1d2e; color: white; }
 
 .authV4SubmitBtn {
   width: 100%; height: 48px; border-radius: 13px;
-  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
   color: #ffffff; font-size: 15px; font-weight: 900;
   border: none; cursor: pointer; letter-spacing: -0.2px;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(139, 92, 246,0.30);
+  box-shadow: 0 4px 16px rgba(226, 171, 65,0.30);
 }
 .authV4SubmitBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #a78bfa 0%, #5B21B6 100%);
-  box-shadow: 0 6px 24px rgba(139, 92, 246,0.42);
+  background: linear-gradient(135deg, #f9e6a2 0%, #b87200 100%);
+  box-shadow: 0 6px 24px rgba(226, 171, 65,0.42);
   transform: translateY(-1px);
 }
 .authV4SubmitBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .authV4ForgotLink { font-size: 12px; color: #9a9fad; font-weight: 700; text-decoration: none; transition: color 0.12s; }
-.authV4ForgotLink:hover { color: #8B5CF6; }
+.authV4ForgotLink:hover { color: #e2ab41; }
 .authV4Footer { margin-top: 20px; text-align: center; font-size: 13px; color: #9a9fad; }
-.authV4FooterLink { color: #8B5CF6; font-weight: 800; text-decoration: none; }
+.authV4FooterLink { color: #e2ab41; font-weight: 800; text-decoration: none; }
 .authV4FooterLink:hover { text-decoration: underline; }
 
 /* Light mode auth - not used (auth pages are always dark) */
@@ -5514,8 +5514,8 @@ select.input option { background: #1a1d2e; color: white; }
   border-color: rgba(255,255,255,0.10);
 }
 .authV4Card .inputV3Field:focus-within {
-  border-color: rgba(139, 92, 246,0.5);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246,0.12);
+  border-color: rgba(226, 171, 65,0.5);
+  box-shadow: 0 0 0 3px rgba(226, 171, 65,0.12);
   background: rgba(255,255,255,0.06);
 }
 .authV4Card .inputV3Native { color: #f0ede6; }
@@ -5530,8 +5530,8 @@ select.input option { background: #1a1d2e; color: white; }
   height: 4px; border-radius: 2px; flex: 1;
   background: rgba(255,255,255,0.08); transition: all 0.3s ease;
 }
-.authV4StepActive { background: #8B5CF6; }
-.authV4StepDone { background: rgba(139, 92, 246,0.4); }
+.authV4StepActive { background: #e2ab41; }
+.authV4StepDone { background: rgba(226, 171, 65,0.4); }
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -5670,9 +5670,9 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .modalV2Icon {
   width: 38px; height: 38px; border-radius: 11px;
-  background: var(--brandDim, rgba(139,92,246,0.14));
-  border: 1px solid var(--brandBorder, rgba(139,92,246,0.30));
-  color: var(--brand, #8B5CF6);
+  background: var(--brandDim, rgba(226, 171, 65,0.14));
+  border: 1px solid var(--brandBorder, rgba(226, 171, 65,0.30));
+  color: var(--brand, #e2ab41);
   display: grid; place-items: center; flex-shrink: 0;
 }
 .modalV2Title { font-size: 17px; font-weight: 950; letter-spacing: -0.4px; color: var(--text); }
@@ -5709,7 +5709,7 @@ select.input option { background: #1a1d2e; color: white; }
 /* SelectV3 dropdown light theme */
 .appShellV4Light .selectV3Dropdown {
   background: #ffffff;
-  border-color: rgba(139,92,246,0.3);
+  border-color: rgba(226, 171, 65,0.3);
   box-shadow: 0 12px 40px rgba(0,0,0,0.14);
 }
 .appShellV4Light .selectV3Trigger {
@@ -5717,7 +5717,7 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .appShellV4Light .selectV3Trigger:hover { background: #fafafa; border-color: #d0d4e0; }
 .appShellV4Light .selectV3Option:hover { background: #f5f5fb; }
-.appShellV4Light .selectV3OptionActive { background: rgba(139,92,246,0.08) !important; color: #8B5CF6 !important; }
+.appShellV4Light .selectV3OptionActive { background: rgba(226, 171, 65,0.08) !important; color: #e2ab41 !important; }
 .appShellV4Light .selectV3Placeholder { color: #8892a4; }
 .appShellV4Light .selectV3SearchInput { color: #1a1d2e; }
 .appShellV4Light .selectV3SearchWrap { border-color: #f0f0f6; }
@@ -5728,8 +5728,8 @@ select.input option { background: #1a1d2e; color: white; }
   background: #ffffff; border-color: #e4e7ef;
 }
 .appShellV4Light .inputV3Field:focus-within {
-  border-color: rgba(139,92,246,0.5);
-  box-shadow: 0 0 0 3px rgba(139,92,246,0.10);
+  border-color: rgba(226, 171, 65,0.5);
+  box-shadow: 0 0 0 3px rgba(226, 171, 65,0.10);
   background: #ffffff;
 }
 .appShellV4Light .inputV3Native { color: #1a1d2e; }
@@ -5751,7 +5751,7 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Light .kpiV3 { background: #ffffff; border-color: #e4e7ef; }
 .appShellV4Light .kpiV3Label { color: #4b5368; }
 .appShellV4Light .kpiV3Details { background: #f5f5fb; border-color: #e4e7ef; color: #4b5368; }
-.appShellV4Light .kpiV3Details:hover { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25); color: #8B5CF6; }
+.appShellV4Light .kpiV3Details:hover { background: rgba(226, 171, 65,0.08); border-color: rgba(226, 171, 65,0.25); color: #e2ab41; }
 
 /* Table light */
 .appShellV4Light .employeeTableV3 thead tr { background: #f8f9fc; border-color: #e4e7ef; }
@@ -5760,24 +5760,24 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Light .employeeTableV3 th { color: #8892a4; }
 
 /* credBox light */  
-.appShellV4Light .credBox { background: rgba(139,92,246,0.07); border-color: rgba(139,92,246,0.22); }
-.appShellV4Light .credBox .credBoxTitle { color: #7C3AED; }
+.appShellV4Light .credBox { background: rgba(226, 171, 65,0.07); border-color: rgba(226, 171, 65,0.22); }
+.appShellV4Light .credBox .credBoxTitle { color: #d4930e; }
 .appShellV4Light .credBoxValue { background: rgba(0,0,0,0.05); color: #1a1d2e; }
 .appShellV4Light .credBoxField { color: #4b5368; }
 .appShellV4Light .credBoxCopy { border-color: #e4e7ef; color: #8892a4; background: #f9fafb; }
-.appShellV4Light .credBoxCopy:hover { color: #8B5CF6; border-color: rgba(139,92,246,0.3); }
+.appShellV4Light .credBoxCopy:hover { color: #e2ab41; border-color: rgba(226, 171, 65,0.3); }
 
 /* Ghost button light */
 .appShellV4Light .btnGhost {
   background: #f5f5fb; border-color: #e4e7ef; color: #4b5368;
 }
 .appShellV4Light .btnGhost:hover {
-  background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.3); color: #8B5CF6;
+  background: rgba(226, 171, 65,0.08); border-color: rgba(226, 171, 65,0.3); color: #e2ab41;
 }
 
 /* Auth card in dark (signup/signin are always dark) */
 .authV4Card .inputV3Field { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
-.authV4Card .inputV3Field:focus-within { border-color: rgba(139,92,246,0.5); box-shadow: 0 0 0 3px rgba(139,92,246,0.12); }
+.authV4Card .inputV3Field:focus-within { border-color: rgba(226, 171, 65,0.5); box-shadow: 0 0 0 3px rgba(226, 171, 65,0.12); }
 .authV4Card .inputV3Native { color: #f0ede6; }
 .authV4Card .selectV3Trigger { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
 .authV4Card .selectV3Dropdown { background: #1d2029; }
@@ -5814,4 +5814,208 @@ select.input option { background: #1a1d2e; color: white; }
 }
 /* Remove topbar page title fully */
 .topbarV4PageTitle { display: none; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   GOLD GRADIENT PRIMARY — f9e6a2 → e2ab41 (315deg)
+   Dark border visibility + page header cards
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Brand gradient vars */
+:root, .appShellV4Dark, .appShellV4Light {
+  --brand-gradient: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  --brand-gradient-hover: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(200,130,10,1.0));
+  --brand: #e2ab41;
+  --brandLight: #f9e6a2;
+  --brandDim: rgba(226,171,65,0.14);
+  --brandBorder: rgba(226,171,65,0.32);
+}
+
+/* Fix all primary buttons to use gradient */
+.btn.btnPrimary, .btnPrimary,
+.appShellV4Dark .btnPrimary, .appShellV4Light .btnPrimary,
+.authV4SubmitBtn {
+  background: var(--brand-gradient) !important;
+  color: #1a1d2e !important;
+  border-color: rgba(226,171,65,0.40) !important;
+  box-shadow: 0 4px 14px rgba(226,171,65,0.28) !important;
+  font-weight: 900;
+}
+.btn.btnPrimary:hover:not(:disabled), .btnPrimary:hover:not(:disabled),
+.authV4SubmitBtn:hover:not(:disabled) {
+  background: var(--brand-gradient-hover) !important;
+  box-shadow: 0 6px 22px rgba(226,171,65,0.42) !important;
+  transform: translateY(-1px);
+}
+
+/* Sidebar active nav item */
+.navItemV4Active {
+  background: rgba(226,171,65,0.13) !important;
+  color: #e2ab41 !important;
+  border-color: rgba(226,171,65,0.32) !important;
+}
+.sidebarV4LogoMark {
+  background: var(--brand-gradient) !important;
+  color: #1a1d2e;
+}
+.sidebarV4ThemeBtn:hover, .sidebarCollapseBtn:hover, .topbarV4ProfileBtn {
+  background: rgba(226,171,65,0.12) !important;
+  border-color: rgba(226,171,65,0.32) !important;
+  color: #e2ab41 !important;
+}
+
+/* Input / select focus ring */
+.inputV3Field:focus-within,
+.appShellV4Dark .inputV3Field:focus-within,
+.appShellV4Light .inputV3Field:focus-within,
+.authV4Card .inputV3Field:focus-within {
+  border-color: rgba(226,171,65,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.12) !important;
+}
+.selectV3Open, .appShellV4Dark .selectV3Open, .appShellV4Light .selectV3Open {
+  border-color: rgba(226,171,65,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.12) !important;
+}
+.selectV3Dropdown, .appShellV4Dark .selectV3Dropdown, .appShellV4Light .selectV3Dropdown {
+  border-color: rgba(226,171,65,0.35) !important;
+}
+.selectV3OptionActive, .appShellV4Dark .selectV3OptionActive, .appShellV4Light .selectV3OptionActive {
+  background: rgba(226,171,65,0.12) !important;
+  color: #e2ab41 !important;
+}
+
+/* Topbar search focus */
+.topbarV4SearchInput:focus {
+  border-color: rgba(226,171,65,0.45) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.10) !important;
+}
+.topbarV4SearchDropdown { border-color: rgba(226,171,65,0.35) !important; }
+.topbarV4ProfileBtn {
+  background: rgba(226,171,65,0.12) !important;
+  border-color: rgba(226,171,65,0.30) !important;
+  color: #e2ab41 !important;
+}
+
+/* credBox + modalV2Icon */
+.credBox {
+  background: rgba(226,171,65,0.08) !important;
+  border-color: rgba(226,171,65,0.25) !important;
+}
+.credBoxTitle { color: #d4930e !important; }
+.appShellV4Light .credBoxTitle { color: #b87200 !important; }
+.modalV2Icon {
+  background: rgba(226,171,65,0.12) !important;
+  border-color: rgba(226,171,65,0.28) !important;
+  color: #e2ab41 !important;
+}
+
+/* Auth page brand */
+.authV4LogoMark { background: var(--brand-gradient) !important; color: #1a1d2e !important; }
+.authV4Accent {
+  background: linear-gradient(135deg, #f9e6a2, #e2ab41) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important;
+}
+.authV4StatVal { color: #e2ab41 !important; }
+.authV4FooterLink, .authV4ForgotLink { color: #e2ab41 !important; }
+
+/* KPI card hover */
+.kpiV3:hover { border-color: rgba(226,171,65,0.32) !important; box-shadow: 0 12px 36px rgba(226,171,65,0.14) !important; }
+
+/* ── DARK THEME — Visible card/container borders ──────────────── */
+.appShellV4Dark .card,
+.appShellV4Dark .chartV3,
+.appShellV4Dark .formCardV3,
+.appShellV4Dark .kpiV3,
+.appShellV4Dark .chartCardV2,
+.appShellV4Dark .miniCard {
+  border: 1px solid rgba(255,255,255,0.11) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.appShellV4Dark .card:hover,
+.appShellV4Dark .chartV3:hover,
+.appShellV4Dark .formCardV3:hover,
+.appShellV4Dark .kpiV3:hover {
+  border-color: rgba(226,171,65,0.35) !important;
+}
+.appShellV4Dark .formCardV3Head,
+.appShellV4Dark .chartV3Head {
+  border-bottom-color: rgba(255,255,255,0.09) !important;
+}
+.appShellV4Dark .sidebarV4 { border-right-color: rgba(255,255,255,0.09) !important; }
+.appShellV4Dark .topbarV4 { border-bottom-color: rgba(255,255,255,0.09) !important; }
+
+/* ── PAGE HEADER CARD ─────────────────────────────────────────── */
+.pageHeaderCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 24px;
+  margin-bottom: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.pageHeaderCard::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--brand-gradient);
+  border-radius: 18px 18px 0 0;
+}
+.pageHeaderCardInner {
+  display: flex; justify-content: space-between;
+  align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.pageHeaderCardLeft { min-width: 0; }
+.pageHeaderCardTitle {
+  font-size: 22px; font-weight: 950; letter-spacing: -0.8px;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text);
+}
+.pageHeaderCardSub {
+  font-size: 13px; color: var(--text2); margin-top: 4px; line-height: 1.5;
+}
+.pageHeaderCardMeta {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px;
+}
+.pageHeaderCardTag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 800;
+  background: rgba(226,171,65,0.10);
+  border: 1px solid rgba(226,171,65,0.22);
+  color: #e2ab41;
+}
+.appShellV4Dark .pageHeaderCard { background: #1d2029; border-color: rgba(255,255,255,0.10); }
+.appShellV4Light .pageHeaderCard { background: #ffffff; border-color: #e4e7ef; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+
+/* ── Color picker trigger ─────────────────────────────────────── */
+.colorPickerTrigger {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 2px solid var(--border); cursor: pointer;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+.colorPickerTrigger:hover { border-color: rgba(226,171,65,0.5); }
+.colorPickerTrigger input[type="color"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.colorPickerTriggerSwatch {
+  position: absolute; inset: 0; border-radius: 7px;
+}
+
+/* Ghost buttons */
+.btnGhost,
+.appShellV4Dark .btnGhost,
+.appShellV4Light .btnGhost {
+  background: var(--surfaceUp) !important;
+  border-color: var(--border) !important;
+  color: var(--text2) !important;
+}
+.btnGhost:hover,
+.appShellV4Dark .btnGhost:hover,
+.appShellV4Light .btnGhost:hover {
+  background: var(--brandDim) !important;
+  border-color: var(--brandBorder) !important;
+  color: var(--brand) !important;
+}
 

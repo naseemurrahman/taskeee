@@ -81,26 +81,23 @@ export function TasksPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
 
-      {/* ── Header ── */}
-      <div className="dashHeaderV3">
-        <div>
-          <div className="dashGreetTitle" style={{ fontSize: 22 }}>Tasks</div>
-          <div className="dashSubtitle">
-            <span>{tasks.length} tasks</span>
-            {counts.overdue > 0 && <span className="dashHeroStat bad">⚠ {counts.overdue} overdue</span>}
-            {counts.completed > 0 && <span className="dashHeroStat good">✓ {counts.completed} done</span>}
+      {/* ── Page header card ── */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
+              Tasks
+            </div>
+            <div className="pageHeaderCardSub">Create, assign, and track tasks across your team. Filter by status, priority, or search by name.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag">{tasks.length} total</span>
+              {counts.overdue > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {counts.overdue} overdue</span>}
+              {counts.completed > 0 && <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {counts.completed} done</span>}
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn btnPrimary"
-            onClick={() => setCreateOpen(true)}
-            type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 900 }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
+          <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Create Task
           </button>
         </div>

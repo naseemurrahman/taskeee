@@ -144,29 +144,27 @@ export function EmployeesPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
 
-      {/* Header */}
-      <div className="dashHeaderV3">
-        <div>
-          <div className="dashGreetTitle" style={{ fontSize: 22 }}>👥 Employees</div>
-          <div className="dashSubtitle">
-            Directory and employee profiles
-            {employees.length > 0 && <span className="dashHeroStat good">{employees.length} total</span>}
-            {(counts['active'] || 0) > 0 && <span className="dashHeroStat good">{counts['active']} active</span>}
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Employees
+            </div>
+            <div className="pageHeaderCardSub">Manage your organization's employees, view profiles, add new members, and track workspace accounts.</div>
+            <div className="pageHeaderCardMeta">
+              {employees.length > 0 && <span className="pageHeaderCardTag">{employees.length} employees</span>}
+              {(counts['active'] || 0) > 0 && <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>{counts['active']} active</span>}
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
-          <button
-            type="button"
-            className="btn btnPrimary btnSm"
-            onClick={() => { resetForm(); setAddOpen(true) }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Add Employee
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
+            <button type="button" className="btn btnPrimary btnSm" onClick={() => { resetForm(); setAddOpen(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Employee
+            </button>
+          </div>
         </div>
       </div>
 

@@ -242,24 +242,27 @@ export function DashboardHomePage() {
   return (
     <div className="dashV3">
 
-      {/* ── Header greeting ── */}
-      <div className="dashHeaderV3">
-        <div>
-          <div className="dashGreetTitle">
-            <span className="dashGreetEmoji">{greetEmoji}</span>
-            {greetWord}{firstName ? `, ${firstName}` : ''}
+      {/* ── Page header card ── */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <span className="dashGreetEmoji">{greetEmoji}</span>
+              {greetWord}{firstName ? `, ${firstName}` : ''}
+            </div>
+            <div className="pageHeaderCardSub">{t('dashboard.subtitle')}</div>
+            <div className="pageHeaderCardMeta">
+              <span className={`pageHeaderCardTag ${overdue > 0 ? '' : ''}`} style={{ color: overdue > 0 ? '#ef4444' : '#22c55e', background: overdue > 0 ? 'rgba(239,68,68,0.10)' : 'rgba(34,197,94,0.10)', borderColor: overdue > 0 ? 'rgba(239,68,68,0.22)' : 'rgba(34,197,94,0.22)' }}>
+                {overdue > 0 ? `⚠ ${overdue} overdue` : '✓ All caught up'}
+              </span>
+              {total > 0 && <span className="pageHeaderCardTag">{total} total tasks</span>}
+            </div>
           </div>
-          <div className="dashSubtitle">
-            {t('dashboard.subtitle')}
-            <span className={`dashHeroStat ${overdue > 0 ? 'bad' : 'good'}`}>
-              {overdue > 0 ? `⚠ ${overdue} overdue` : '✓ All caught up'}
-            </span>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link className="btn btnGhost btnSm" to="/app/my-tasks">My tasks</Link>
+            <Link className="btn btnGhost btnSm" to="/app/board">Board</Link>
+            <Link className="btn btnPrimary btnSm" to="/app/jeczone">{t('dashboard.jeczone')}</Link>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link className="btn btnGhost btnSm" to="/app/my-tasks">My tasks</Link>
-          <Link className="btn btnGhost btnSm" to="/app/board">Board</Link>
-          <Link className="btn btnPrimary btnSm" to="/app/jeczone">{t('dashboard.jeczone')}</Link>
         </div>
       </div>
 

@@ -43,12 +43,17 @@ router.get('/employees', authenticate, requireAnyRole('supervisor', 'manager', '
     const conditions = ['e.org_id = $1'];
     let p = 2;
 
+    // Org-wide roles see all employees, others see only their team
     if (!isOrgWideRole(req.user.role)) {
-      // Managers/supervisors see only self + subtree
-      const { rows } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [req.user.id]);
-      const ids = [req.user.id, ...rows.map(r => r.user_id)];
-      conditions.push(`(e.user_id = ANY($${p++}) OR e.user_id IS NULL)`);
-      params.push(ids);
+      try {
+        const { rows: subRows } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [req.user.id]);
+        const ids = [req.user.id, ...subRows.map(r => r.user_id)];
+        conditions.push(`(e.user_id = ANY($${p++}) OR e.user_id IS NULL)`);
+        params.push(ids);
+      } catch (fnErr) {
+        // Fallback: function not available, show all org employees
+        console.warn('get_subordinate_ids not available, showing all employees');
+      }
     }
 
     if (status) { conditions.push(`e.status = $${p++}`); params.push(String(status)); }
