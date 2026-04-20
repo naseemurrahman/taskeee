@@ -90,7 +90,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
 
   const PRIORITIES = [
     { value: 'low', label: 'Low', color: '#38bdf8', description: 'Nice to have, no rush' },
-    { value: 'medium', label: 'Medium', color: '#f4ca57', description: 'Normal priority' },
+    { value: 'medium', label: 'Medium', color: '#8B5CF6', description: 'Normal priority' },
     { value: 'high', label: 'High', color: '#f97316', description: 'Important, complete soon' },
     { value: 'critical', label: 'Critical', color: '#ef4444', description: 'Urgent, drop everything' },
   ]

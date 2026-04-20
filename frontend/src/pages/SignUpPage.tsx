@@ -43,7 +43,7 @@ export function SignUpPage() {
     return s
   }, [password])
 
-  const pwColor = ['', '#ef4444', '#f97316', 'rgb(243,178,57)', '#22c55e', '#22c55e'][pwStrength]
+  const pwColor = ['', '#ef4444', '#f97316', '#8B5CF6', '#22c55e', '#22c55e'][pwStrength]
   const pwLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Strong'][pwStrength]
 
   async function onSubmit(e: FormEvent) {
@@ -72,7 +72,7 @@ export function SignUpPage() {
         <div style={{ fontSize: 24, fontWeight: 950, color: '#f0ede6', letterSpacing: '-0.8px', marginBottom: 10 }}>Account created!</div>
         <div style={{ color: '#9a9fad', fontSize: 14, marginBottom: 28 }}>Redirecting you to sign in…</div>
         <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'rgb(243,178,57)', borderRadius: 2, width: '100%', animation: 'shimmer 2.4s ease' }} />
+          <div style={{ height: '100%', background: '#8B5CF6', borderRadius: 2, width: '100%', animation: 'shimmer 2.4s ease' }} />
         </div>
       </div>
     </div>
@@ -110,9 +110,9 @@ export function SignUpPage() {
               }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-                  background: s.done ? 'rgba(34,197,94,0.15)' : i === step ? 'rgba(243,178,57,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : i === step ? 'rgba(243,178,57,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                  color: s.done ? '#22c55e' : i === step ? 'rgb(243,178,57)' : '#5a6070',
+                  background: s.done ? 'rgba(34,197,94,0.15)' : i === step ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : i === step ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                  color: s.done ? '#22c55e' : i === step ? '#8B5CF6' : '#5a6070',
                   fontSize: 11, fontWeight: 900,
                 }}>
                   {s.done ? '✓' : s.step}

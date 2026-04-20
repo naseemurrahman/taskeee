@@ -39,14 +39,14 @@ function hash(s: string) {
 }
 
 const PRIORITY_COLOR: Record<string, string> = {
-  low: '#38bdf8', medium: 'rgb(243,178,57)', high: '#f97316', critical: '#ef4444', urgent: '#ef4444',
+  low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444', urgent: '#ef4444',
 }
 
 
 const PRIORITY_OPTS = [
   { value: 'all', label: 'All priorities' },
   { value: 'low', label: 'Low', color: '#38bdf8' },
-  { value: 'medium', label: 'Medium', color: 'rgb(243,178,57)' },
+  { value: 'medium', label: 'Medium', color: '#8B5CF6' },
   { value: 'high', label: 'High', color: '#f97316' },
   { value: 'critical', label: 'Critical', color: '#ef4444' },
 ]
@@ -211,7 +211,7 @@ export function TasksPage() {
                 {tasks.slice(0, 200).map(task => {
                   const due = dueStat(task.due_date)
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
-                  const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? 'rgb(243,178,57)' : 'var(--text2)'
+                  const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
                   return (
                     <tr
                       key={task.id}

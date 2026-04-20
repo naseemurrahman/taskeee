@@ -277,7 +277,7 @@ export function DashboardHomePage() {
         <KpiV3
           label="In Progress" value={inProgress}
           icon={Icons.progress}
-          iconBg="rgba(244,202,87,0.12)" iconColor="#f4ca57" accent="#f4ca57"
+          iconBg="rgba(244,202,87,0.12)" iconColor="#8B5CF6" accent="#8B5CF6"
           sub={`${total ? Math.round(inProgress/total*100) : 0}% of total`}
           trend={{ value: `${inProgress} active`, up: 'neutral' }}
           onClick={() => setDetail({ title: 'In Progress', kind: 'kpi', status: 'in_progress' })}
@@ -397,7 +397,7 @@ export function DashboardHomePage() {
           <div className="chartV3Head">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="chartCardV2Icon" style={{
-                background: 'rgba(244,202,87,0.12)', color: '#f4ca57',
+                background: 'rgba(244,202,87,0.12)', color: '#8B5CF6',
                 border: '1px solid rgba(244,202,87,0.22)',
               }}>
                 {Icons.cal}
@@ -421,7 +421,7 @@ export function DashboardHomePage() {
             <div style={{ display: 'grid', gap: 8 }}>
               {dueToday.slice(0, 5).map(task => (
                 <div key={task.id} className="taskRowV3">
-                  <div className="taskRowV3Bar" style={{ background: task.category_color?.trim() || '#f4ca57' }} />
+                  <div className="taskRowV3Bar" style={{ background: task.category_color?.trim() || '#8B5CF6' }} />
                   <div style={{ minWidth: 0 }}>
                     <div className="taskRowV3Title">{task.title || task.id}</div>
                     <div className="taskRowV3Meta">
@@ -477,7 +477,7 @@ export function DashboardHomePage() {
                   <div className="taskRowV3Bar" style={{
                     background: task.priority === 'urgent' ? '#ef4444'
                       : task.priority === 'high' ? '#f97316'
-                      : task.priority === 'medium' ? '#f4ca57'
+                      : task.priority === 'medium' ? '#8B5CF6'
                       : '#38bdf8',
                   }} />
                   <div style={{ minWidth: 0 }}>
@@ -516,7 +516,7 @@ export function DashboardHomePage() {
           <div className="chartV3Head">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="chartCardV2Icon" style={{
-                background: 'rgba(244,202,87,0.12)', color: '#f4ca57',
+                background: 'rgba(244,202,87,0.12)', color: '#8B5CF6',
                 border: '1px solid rgba(244,202,87,0.22)',
               }}>
                 {Icons.trophy}

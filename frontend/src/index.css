@@ -6,7 +6,7 @@
   --text: rgba(243, 239, 231, 0.9);
   --text2: rgba(243, 239, 231, 0.7);
   --muted: rgba(243, 239, 231, 0.55);
-  --primary: #f4ca57;
+  --primary: #8B5CF6;
   --primary-glow: rgba(244, 202, 87, 0.4);
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.4);
@@ -26,7 +26,7 @@
   --glass-blur: 18px;
 
   /* Premium gradient */
-  --gradient-primary: linear-gradient(135deg, #f4ca57 0%, #d4a84b 50%, #c49a3f 100%);
+  --gradient-primary: linear-gradient(135deg, #8B5CF6 0%, #d4a84b 50%, #c49a3f 100%);
   --gradient-accent: linear-gradient(135deg, #6d5efc 0%, #8b7cf7 50%, #a89bf9 100%);
   --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
@@ -305,7 +305,7 @@
   background-color: rgba(15, 17, 22, 0.75);
 }
 .mktLang:focus {
-  border-color: rgba(244, 202, 87, 0.45);
+  border-color: rgba(139, 92, 246, 0.45);
   box-shadow: 0 0 0 3px rgba(244, 202, 87, 0.12);
 }
 .mktLang option {
@@ -486,8 +486,8 @@
   --text: #1a1d2e;
   --text2: #4a5568;
   --muted: #718096;
-  --primary: rgb(243, 178, 57);
-  --primary-dark: #d4930e;
+  --primary: #8B5CF6;
+  --primary-dark: #6D28D9;
   --shadow: 0 4px 20px rgba(99, 102, 241, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 40px rgba(99, 102, 241, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
@@ -524,14 +524,14 @@
 }
 
 .appShellLight .btnPrimary {
-  background: linear-gradient(135deg, rgb(243,178,57) 0%, #d4930e 100%);
-  border-color: rgba(243, 178, 57, 0.4);
+  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  border-color: rgba(139, 92, 246, 0.4);
   color: #1a1d2e;
-  box-shadow: 0 4px 14px rgba(243, 178, 57, 0.35);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
 }
 .appShellLight .btnPrimary:hover {
-  background: linear-gradient(135deg, #f5c040 0%, #c8850a 100%);
-  box-shadow: 0 6px 20px rgba(243, 178, 57, 0.45);
+  background: linear-gradient(135deg, #a78bfa 0%, #6D28D9 100%);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
   transform: translateY(-1px);
 }
 .appShellLight .btnGhost {
@@ -1428,7 +1428,7 @@ label.btn {
   overflow: hidden;
 }
 .brandAvatarBtn:hover {
-  border-color: rgba(244, 202, 87, 0.35);
+  border-color: rgba(139, 92, 246, 0.35);
 }
 .brandAvatarBtn:focus-visible {
   outline: 2px solid rgba(244, 202, 87, 0.55);
@@ -1673,7 +1673,7 @@ label.btn {
 
 .navItemActive {
   background: rgba(244, 202, 87, 0.12);
-  border-color: rgba(244, 202, 87, 0.35);
+  border-color: rgba(139, 92, 246, 0.35);
   color: var(--text);
 }
 
@@ -2114,7 +2114,7 @@ label.btn {
 }
 
 .miniCard:hover {
-  border-color: rgba(244, 202, 87, 0.35);
+  border-color: rgba(139, 92, 246, 0.35);
   background: rgba(255, 255, 255, 0.06);
   transform: translateY(-3px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 202, 87, 0.08);
@@ -2697,7 +2697,7 @@ button.projectCard {
   background: rgba(255, 255, 255, 0.04);
 }
 .reportStatCardAccent {
-  border-color: rgba(244, 202, 87, 0.35);
+  border-color: rgba(139, 92, 246, 0.35);
   background: rgba(244, 202, 87, 0.08);
 }
 .reportStatN {
@@ -2821,7 +2821,7 @@ button.projectCard {
   background: rgba(255, 255, 255, 0.03);
 }
 .calCellToday {
-  border-color: rgba(244, 202, 87, 0.45);
+  border-color: rgba(139, 92, 246, 0.45);
 }
 .calCellNum {
   font-weight: 900;
@@ -2879,7 +2879,7 @@ button.projectCard {
   color: var(--text);
 }
 .taskQuickFilterBtnActive {
-  border-color: rgba(244, 202, 87, 0.45);
+  border-color: rgba(139, 92, 246, 0.45);
   background: rgba(244, 202, 87, 0.12);
   color: var(--text);
 }
@@ -3143,7 +3143,7 @@ button.projectCard {
 .heroBadgeDot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #f4ca57;
+  background: #8B5CF6;
   animation: pulse 2s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -3156,7 +3156,7 @@ button.projectCard {
   margin: 0 0 18px;
 }
 .heroAccent {
-  background: linear-gradient(135deg, #f4ca57, #e0a844, #6d5efc);
+  background: linear-gradient(135deg, #8B5CF6, #e0a844, #6d5efc);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -3190,7 +3190,7 @@ button.projectCard {
   padding: 0 22px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #f4ca57, #d4a030);
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
   color: #0b0d12;
   font-weight: 900;
   font-size: 14px;
@@ -3352,7 +3352,7 @@ button.projectCard {
   place-items: center;
   font-size: 13px;
   font-weight: 950;
-  color: #f4ca57;
+  color: #8B5CF6;
   letter-spacing: -0.3px;
   flex-shrink: 0;
 }
@@ -3440,7 +3440,7 @@ button.projectCard {
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   width: 600px; height: 300px;
-  background: radial-gradient(ellipse, rgba(244,202,87,0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 .heroCtaInner {
@@ -3489,7 +3489,7 @@ button.projectCard {
   padding: 40px;
   position: relative;
   background:
-    radial-gradient(ellipse at 30% 30%, rgba(244,202,87,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 30%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
     radial-gradient(ellipse at 70% 70%, rgba(109,94,252,0.12) 0%, transparent 50%),
     var(--bg);
 }
@@ -3519,7 +3519,7 @@ button.projectCard {
 .authV2LogoMark {
   width: 44px; height: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #f4ca57, #d4a030);
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
   display: grid;
   place-items: center;
   color: #0b0d12;
@@ -3556,7 +3556,7 @@ button.projectCard {
 }
 .authV2Input:focus {
   border-color: rgba(244,202,87,0.5);
-  box-shadow: 0 0 0 3px rgba(244,202,87,0.10);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
 }
 .authV2InputWrap { position: relative; }
 .authV2InputWrap .authV2Input { padding-right: 44px; }
@@ -3573,7 +3573,7 @@ button.projectCard {
   width: 100%;
   height: 50px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #f4ca57, #d4a030);
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
   border: none;
   color: #0b0d12;
   font-size: 15px;
@@ -3616,7 +3616,7 @@ button.projectCard {
   margin-top: 18px;
   color: var(--text2);
 }
-.authV2Links a { color: #f4ca57; font-weight: 800; text-decoration: none; }
+.authV2Links a { color: #8B5CF6; font-weight: 800; text-decoration: none; }
 .authV2Links a:hover { text-decoration: underline; }
 
 .authV2Error {
@@ -3858,7 +3858,7 @@ button.projectCard {
    ═══════════════════════════════════════════════════════════════ */
 
 /* Pill status colors */
-.pillPending   { background: rgba(244,202,87,0.15); color: #f4ca57; border: 1px solid rgba(244,202,87,0.25); }
+.pillPending   { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.25); }
 .pillActive    { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
 .pillDone      { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
 .pillOverdue   { background: rgba(239,68,68,0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
@@ -3946,7 +3946,7 @@ button.projectCard {
 }
 .trendPos { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .trendNeg { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
-.trendNeutral { background: rgba(244,202,87,0.12); color: #f4ca57; border: 1px solid rgba(244,202,87,0.22); }
+.trendNeutral { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.22); }
 
 /* ── Light theme overrides for chart card ─────────────────────── */
 .appShellLight .chartCardV2 {
@@ -4167,7 +4167,7 @@ button.projectCard {
 }
 .statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
-.statusPending { background: rgba(244,202,87,0.12); color: #f4ca57; border: 1px solid rgba(244,202,87,0.22); }
+.statusPending { background: rgba(139, 92, 246, 0.12); color: #8B5CF6; border: 1px solid rgba(244,202,87,0.22); }
 .statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
 .statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
 
@@ -4219,7 +4219,7 @@ button.projectCard {
   border-color: rgba(255,255,255,0.08);
 }
 .navItemV2Active {
-  background: rgba(244,202,87,0.10) !important;
+  background: rgba(139, 92, 246, 0.10) !important;
   color: var(--primary) !important;
   border-color: rgba(244,202,87,0.20) !important;
 }
@@ -4233,12 +4233,12 @@ button.projectCard {
 }
 
 .appShellLight .navItemV2:hover {
-  background: rgba(243,178,57,0.08); color: #1a1d2e;
+  background: rgba(139, 92, 246,0.08); color: #1a1d2e;
 }
 .appShellLight .navItemV2Active {
-  background: rgba(243,178,57,0.14) !important;
+  background: rgba(139, 92, 246,0.14) !important;
   color: #a86200 !important;
-  border-color: rgba(243,178,57,0.30) !important;
+  border-color: rgba(139, 92, 246,0.30) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4337,7 +4337,7 @@ button.projectCard {
 }
 .kpiV3Trend.up { color: #10b981; }
 .kpiV3Trend.down { color: #ef4444; }
-.kpiV3Trend.neutral { color: #f4ca57; }
+.kpiV3Trend.neutral { color: #8B5CF6; }
 .kpiV3TrendLabel { color: var(--muted); margin-left: 4px; font-weight: 600; }
 
 /* Light theme kpi */
@@ -4347,8 +4347,8 @@ button.projectCard {
   box-shadow: 0 2px 10px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04);
 }
 .appShellLight .kpiV3:hover {
-  box-shadow: 0 12px 36px rgba(243,178,57,0.16);
-  border-color: rgba(243,178,57,0.25);
+  box-shadow: 0 12px 36px rgba(139, 92, 246,0.16);
+  border-color: rgba(139, 92, 246,0.25);
 }
 .appShellLight .kpiV3Details {
   background: #f9fafb;
@@ -4379,8 +4379,8 @@ button.projectCard {
   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 .appShellLight .chartV3:hover {
-  border-color: rgba(243,178,57,0.25);
-  box-shadow: 0 8px 24px rgba(243,178,57,0.10);
+  border-color: rgba(139, 92, 246,0.25);
+  box-shadow: 0 8px 24px rgba(139, 92, 246,0.10);
 }
 
 .chartV3Head {
@@ -4592,14 +4592,14 @@ button.projectCard {
 
 /* ═══════════════════════════════════════════════════════════════
    SELECT V3 — Custom dropdown with search + icons
-   Primary accent: rgb(243,178,57)
+   Primary accent: #8B5CF6
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  --brand: rgb(243, 178, 57);
-  --brand-light: rgba(243, 178, 57, 0.15);
-  --brand-border: rgba(243, 178, 57, 0.35);
-  --brand-dark: #e09a1a;
+  --brand: #8B5CF6;
+  --brand-light: rgba(139, 92, 246, 0.15);
+  --brand-border: rgba(139, 92, 246, 0.35);
+  --brand-dark: #7C3AED;
 }
 .appShellLight {
   --brand: #6366f1;
@@ -4773,8 +4773,8 @@ button.projectCard {
   background: #fff; border-color: #e5e7eb;
 }
 .appShellLight .inputV3Field:focus-within {
-  border-color: rgba(243,178,57,0.5);
-  box-shadow: 0 0 0 3px rgba(243,178,57,0.12);
+  border-color: rgba(139, 92, 246,0.5);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246,0.12);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4815,8 +4815,8 @@ button.projectCard {
    ═══════════════════════════════════════════════════════════════ */
 
 .credBox {
-  background: rgba(243,178,57,0.08);
-  border: 1.5px solid rgba(243,178,57,0.25);
+  background: rgba(139, 92, 246,0.08);
+  border: 1.5px solid rgba(139, 92, 246,0.25);
   border-radius: 14px;
   padding: 16px 18px;
   margin-top: 12px;
@@ -4828,7 +4828,7 @@ button.projectCard {
 .credBoxRow {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(243,178,57,0.12);
+  border-bottom: 1px solid rgba(139, 92, 246,0.12);
   font-size: 13px;
 }
 .credBoxRow:last-child { border-bottom: none; }
@@ -4857,7 +4857,7 @@ button.projectCard {
 
 /* ═══════════════════════════════════════════════════════════════
    THEME SYSTEM — Day (light) vs Night (dark)
-   Primary: rgb(243,178,57)
+   Primary: #8B5CF6
    ═══════════════════════════════════════════════════════════════ */
 
 /* Night theme is the default :root theme */
@@ -4865,11 +4865,11 @@ button.projectCard {
 
 .appShellLight {
   /* Day theme uses same gold as night */
-  --primary: rgb(243, 178, 57);
-  --primary-dark: #d4930e;
-  --brand: rgb(243, 178, 57);
-  --brand-light: rgba(243, 178, 57, 0.12);
-  --brand-border: rgba(243, 178, 57, 0.35);
+  --primary: #8B5CF6;
+  --primary-dark: #6D28D9;
+  --brand: #8B5CF6;
+  --brand-light: rgba(139, 92, 246, 0.12);
+  --brand-border: rgba(139, 92, 246, 0.35);
 }
 
 /* Theme toggle button style */
@@ -4882,9 +4882,9 @@ button.projectCard {
   cursor: pointer; transition: all 0.2s ease;
 }
 .themeToggleV3:hover {
-  background: rgba(243,178,57,0.12);
-  border-color: rgba(243,178,57,0.3);
-  color: rgb(243,178,57);
+  background: rgba(139, 92, 246,0.12);
+  border-color: rgba(139, 92, 246,0.3);
+  color: #8B5CF6;
 }
 .appShellLight .themeToggleV3 {
   background: #f9fafb; border-color: #e5e7eb; color: #4b5563;
@@ -4914,8 +4914,8 @@ select.input option { background: #1a1d2e; color: white; }
 
 /* ═══════════════════════════════════════════════════════════════
    APP SHELL V4 — Clean two-theme system
-   Night: #0f1117 bg, gold rgb(243,178,57) primary
-   Day: #f5f6fa bg, gold rgb(243,178,57) primary
+   Night: #0f1117 bg, gold #8B5CF6 primary
+   Day: #f5f6fa bg, gold #8B5CF6 primary
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Custom Properties ────────────────────────────────────── */
@@ -4930,9 +4930,9 @@ select.input option { background: #1a1d2e; color: white; }
   --text:      #f0ede6;
   --text2:     #9a9fad;
   --muted:     #5a6070;
-  --brand:     rgb(243,178,57);
-  --brandDim:  rgba(243,178,57,0.14);
-  --brandBorder: rgba(243,178,57,0.30);
+  --brand:     #8B5CF6;
+  --brandDim:  rgba(139, 92, 246,0.14);
+  --brandBorder: rgba(139, 92, 246,0.30);
   --danger:    #ef4444;
   --success:   #22c55e;
   --info:      #38bdf8;
@@ -4959,9 +4959,9 @@ select.input option { background: #1a1d2e; color: white; }
   --text:      #1a1d2e;
   --text2:     #4b5368;
   --muted:     #8892a4;
-  --brand:     rgb(243,178,57);
-  --brandDim:  rgba(243,178,57,0.12);
-  --brandBorder: rgba(243,178,57,0.35);
+  --brand:     #8B5CF6;
+  --brandDim:  rgba(139, 92, 246,0.12);
+  --brandBorder: rgba(139, 92, 246,0.35);
   --danger:    #dc2626;
   --success:   #16a34a;
   --info:      #0284c7;
@@ -5029,7 +5029,7 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .sidebarV4LogoMark {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--brand), #c8820a);
+  background: linear-gradient(135deg, var(--brand), #6D28D9);
   display: grid; place-items: center; color: #1a1d2e;
 }
 .sidebarV4BrandName {
@@ -5268,7 +5268,7 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Dark .kpiV3:hover,
 .appShellV4Light .kpiV3:hover {
   border-color: var(--brandBorder);
-  box-shadow: 0 12px 36px rgba(243,178,57,0.12);
+  box-shadow: 0 12px 36px rgba(139, 92, 246,0.12);
 }
 .appShellV4Dark .chartV3:hover,
 .appShellV4Light .chartV3:hover {
@@ -5328,14 +5328,14 @@ select.input option { background: #1a1d2e; color: white; }
 /* Primary button — gold on both themes */
 .appShellV4Dark .btnPrimary,
 .appShellV4Light .btnPrimary {
-  background: linear-gradient(135deg, rgb(243,178,57) 0%, #c8820a 100%);
-  color: #1a1d2e; border-color: rgba(243,178,57,0.4);
-  box-shadow: 0 4px 14px rgba(243,178,57,0.28);
+  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  color: #ffffff; border-color: rgba(139, 92, 246,0.4);
+  box-shadow: 0 4px 14px rgba(139, 92, 246,0.28);
 }
 .appShellV4Dark .btnPrimary:hover,
 .appShellV4Light .btnPrimary:hover {
-  background: linear-gradient(135deg, #f5c840 0%, #b87200 100%);
-  box-shadow: 0 6px 22px rgba(243,178,57,0.40);
+  background: linear-gradient(135deg, #9d6ff5 0%, #5B21B6 100%);
+  box-shadow: 0 6px 22px rgba(139, 92, 246,0.40);
   transform: translateY(-1px);
 }
 .appShellV4Dark .btnGhost,
@@ -5359,15 +5359,15 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .statusCompleted { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.22); }
 .statusInProgress { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.22); }
-.statusPending { background: rgba(243,178,57,0.12); color: rgb(243,178,57); border: 1px solid rgba(243,178,57,0.28); }
+.statusPending { background: rgba(139, 92, 246,0.12); color: #8B5CF6; border: 1px solid rgba(139, 92, 246,0.28); }
 .statusOverdue { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.22); }
 .statusSubmitted { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
 
 /* Credential box theme-aware */
 .appShellV4Dark .credBox,
 .appShellV4Light .credBox {
-  background: rgba(243,178,57,0.07);
-  border-color: rgba(243,178,57,0.25);
+  background: rgba(139, 92, 246,0.07);
+  border-color: rgba(139, 92, 246,0.25);
 }
 .appShellV4Light .credBoxValue { background: rgba(0,0,0,0.06); }
 
@@ -5415,7 +5415,7 @@ select.input option { background: #1a1d2e; color: white; }
 .authV4Left::before {
   content: ''; position: absolute;
   width: 500px; height: 500px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(243,178,57,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(139, 92, 246,0.12) 0%, transparent 70%);
   top: -100px; left: -100px;
 }
 .authV4Left::after {
@@ -5429,7 +5429,7 @@ select.input option { background: #1a1d2e; color: white; }
 .authV4Logo { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
 .authV4LogoMark {
   width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
-  background: linear-gradient(135deg, rgb(243,178,57), #c8820a);
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
   display: grid; place-items: center; color: #1a1d2e;
 }
 .authV4BrandName { font-size: 16px; font-weight: 950; color: #f0ede6; letter-spacing: -0.3px; }
@@ -5439,7 +5439,7 @@ select.input option { background: #1a1d2e; color: white; }
   letter-spacing: -1.5px; margin: 0 0 16px;
 }
 .authV4Accent {
-  background: linear-gradient(135deg, rgb(243,178,57), #f9a825);
+  background: linear-gradient(135deg, #8B5CF6, #f9a825);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .authV4LeftSub { font-size: 15px; color: #9a9fad; line-height: 1.6; margin: 0 0 40px; }
@@ -5458,7 +5458,7 @@ select.input option { background: #1a1d2e; color: white; }
   display: flex; gap: 28px; padding-top: 28px;
   border-top: 1px solid rgba(255,255,255,0.07);
 }
-.authV4StatVal { font-size: 22px; font-weight: 950; color: rgb(243,178,57); letter-spacing: -0.5px; }
+.authV4StatVal { font-size: 22px; font-weight: 950; color: #8B5CF6; letter-spacing: -0.5px; }
 .authV4StatLabel { font-size: 11px; color: #9a9fad; font-weight: 700; margin-top: 2px; }
 
 /* Right form panel */
@@ -5487,23 +5487,23 @@ select.input option { background: #1a1d2e; color: white; }
 
 .authV4SubmitBtn {
   width: 100%; height: 48px; border-radius: 13px;
-  background: linear-gradient(135deg, rgb(243,178,57) 0%, #c8820a 100%);
-  color: #1a1d2e; font-size: 15px; font-weight: 900;
+  background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  color: #ffffff; font-size: 15px; font-weight: 900;
   border: none; cursor: pointer; letter-spacing: -0.2px;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(243,178,57,0.30);
+  box-shadow: 0 4px 16px rgba(139, 92, 246,0.30);
 }
 .authV4SubmitBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f5c840 0%, #b87200 100%);
-  box-shadow: 0 6px 24px rgba(243,178,57,0.42);
+  background: linear-gradient(135deg, #a78bfa 0%, #5B21B6 100%);
+  box-shadow: 0 6px 24px rgba(139, 92, 246,0.42);
   transform: translateY(-1px);
 }
 .authV4SubmitBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .authV4ForgotLink { font-size: 12px; color: #9a9fad; font-weight: 700; text-decoration: none; transition: color 0.12s; }
-.authV4ForgotLink:hover { color: rgb(243,178,57); }
+.authV4ForgotLink:hover { color: #8B5CF6; }
 .authV4Footer { margin-top: 20px; text-align: center; font-size: 13px; color: #9a9fad; }
-.authV4FooterLink { color: rgb(243,178,57); font-weight: 800; text-decoration: none; }
+.authV4FooterLink { color: #8B5CF6; font-weight: 800; text-decoration: none; }
 .authV4FooterLink:hover { text-decoration: underline; }
 
 /* Light mode auth - not used (auth pages are always dark) */
@@ -5514,8 +5514,8 @@ select.input option { background: #1a1d2e; color: white; }
   border-color: rgba(255,255,255,0.10);
 }
 .authV4Card .inputV3Field:focus-within {
-  border-color: rgba(243,178,57,0.5);
-  box-shadow: 0 0 0 3px rgba(243,178,57,0.12);
+  border-color: rgba(139, 92, 246,0.5);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246,0.12);
   background: rgba(255,255,255,0.06);
 }
 .authV4Card .inputV3Native { color: #f0ede6; }
@@ -5530,6 +5530,288 @@ select.input option { background: #1a1d2e; color: white; }
   height: 4px; border-radius: 2px; flex: 1;
   background: rgba(255,255,255,0.08); transition: all 0.3s ease;
 }
-.authV4StepActive { background: rgb(243,178,57); }
-.authV4StepDone { background: rgba(243,178,57,0.4); }
+.authV4StepActive { background: #8B5CF6; }
+.authV4StepDone { background: rgba(139, 92, 246,0.4); }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR COLLAPSE — icon-only mode
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Collapsed state: 56px wide, icon-only */
+.appShellV4.sidebarCollapsed {
+  grid-template-columns: 56px 1fr;
+}
+.appShellV4.sidebarCollapsed .sidebarV4 {
+  width: 56px;
+  overflow: hidden;
+}
+/* Hide text labels, section labels, brand text, user info */
+.appShellV4.sidebarCollapsed .sidebarV4BrandName,
+.appShellV4.sidebarCollapsed .sidebarV4BrandSub,
+.appShellV4.sidebarCollapsed .sidebarV4SectionLabel,
+.appShellV4.sidebarCollapsed .navItemV4Label,
+.appShellV4.sidebarCollapsed .navItemV4Badge,
+.appShellV4.sidebarCollapsed .sidebarV4Controls,
+.appShellV4.sidebarCollapsed .sidebarV4UserInfo,
+.appShellV4.sidebarCollapsed .sidebarV4LogoutBtn {
+  display: none;
+}
+/* Centre the logo mark */
+.appShellV4.sidebarCollapsed .sidebarV4LogoLink {
+  justify-content: center;
+}
+.appShellV4.sidebarCollapsed .sidebarV4Logo {
+  padding: 16px 8px;
+}
+/* Centre nav items */
+.appShellV4.sidebarCollapsed .navItemV4 {
+  justify-content: center;
+  padding: 9px 0;
+}
+.appShellV4.sidebarCollapsed .sidebarV4Nav {
+  padding: 10px 6px;
+}
+.appShellV4.sidebarCollapsed .sidebarV4Section {
+  margin-bottom: 4px;
+}
+/* Centre user chip */
+.appShellV4.sidebarCollapsed .sidebarV4UserChip {
+  justify-content: center;
+  padding: 10px 8px;
+}
+.appShellV4.sidebarCollapsed .sidebarV4UserBtn {
+  padding: 6px;
+  justify-content: center;
+}
+/* Bottom controls when collapsed */
+.appShellV4.sidebarCollapsed .sidebarV4Bottom {
+  padding: 0;
+}
+/* Tooltip on hover for collapsed nav items */
+.appShellV4.sidebarCollapsed .navItemV4 {
+  position: relative;
+}
+.appShellV4.sidebarCollapsed .navItemV4:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%; transform: translateY(-50%);
+  background: var(--bg1);
+  border: 1px solid var(--borderUp);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: var(--shadowLg);
+  pointer-events: none;
+}
+
+/* Sidebar toggle button */
+.sidebarToggleBtn {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer;
+  display: grid; place-items: center; flex-shrink: 0;
+  transition: all 0.15s; margin-right: 4px;
+}
+.sidebarToggleBtn:hover {
+  background: var(--brandDim); border-color: var(--brandBorder); color: var(--brand);
+}
+
+/* ── Standardized buttons (global, all themes) ────────────────── */
+/* All .btn reset */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; height: 36px; padding: 0 14px;
+  border-radius: 9px; border: 1px solid transparent;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.1px;
+  cursor: pointer; text-decoration: none;
+  transition: all 0.14s ease; white-space: nowrap;
+  user-select: none; flex-shrink: 0;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.btnSm { height: 30px; padding: 0 10px; font-size: 12px; border-radius: 7px; }
+.btnLg { height: 44px; padding: 0 20px; font-size: 14px; border-radius: 11px; }
+.btnXl { height: 50px; padding: 0 28px; font-size: 15px; border-radius: 13px; font-weight: 900; }
+
+/* ── Fix Modal popups both themes ─────────────────────────────── */
+.modalOverlayV2 {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid; place-items: center; padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+.modalCardV2 {
+  width: 100%; max-width: 560px;
+  background: var(--bg1, #161920);
+  border: 1px solid var(--borderUp, rgba(255,255,255,0.14));
+  border-radius: 22px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  overflow: hidden;
+  max-height: calc(100vh - 40px);
+  display: flex; flex-direction: column;
+  animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.modalCardV2Wide { max-width: 760px; }
+.modalV2Head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  gap: 12px; flex-shrink: 0;
+}
+.modalV2Icon {
+  width: 38px; height: 38px; border-radius: 11px;
+  background: var(--brandDim, rgba(139,92,246,0.14));
+  border: 1px solid var(--brandBorder, rgba(139,92,246,0.30));
+  color: var(--brand, #8B5CF6);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.modalV2Title { font-size: 17px; font-weight: 950; letter-spacing: -0.4px; color: var(--text); }
+.modalV2Sub { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.modalV2Close {
+  width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: transparent; color: var(--text2);
+  cursor: pointer; display: grid; place-items: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.modalV2Close:hover {
+  background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.30); color: #ef4444;
+}
+.modalV2Body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modalV2Foot {
+  padding: 14px 24px; border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;
+}
+
+/* Light theme modal override */
+.appShellV4Light .modalCardV2 {
+  background: #ffffff;
+  border-color: #e4e7ef;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+}
+.appShellV4Light .modalV2Head,
+.appShellV4Light .modalV2Foot { border-color: #f0f0f6; }
+.appShellV4Light .modalV2Title { color: #1a1d2e; }
+.appShellV4Light .modalV2Sub { color: #4b5368; }
+.appShellV4Light .modalV2Close { border-color: #e4e7ef; color: #6b7280; background: #f9fafb; }
+.appShellV4Light .modalV2Close:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.22); color: #dc2626; }
+
+/* SelectV3 dropdown light theme */
+.appShellV4Light .selectV3Dropdown {
+  background: #ffffff;
+  border-color: rgba(139,92,246,0.3);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+}
+.appShellV4Light .selectV3Trigger {
+  background: #ffffff; border-color: #e4e7ef; color: #1a1d2e;
+}
+.appShellV4Light .selectV3Trigger:hover { background: #fafafa; border-color: #d0d4e0; }
+.appShellV4Light .selectV3Option:hover { background: #f5f5fb; }
+.appShellV4Light .selectV3OptionActive { background: rgba(139,92,246,0.08) !important; color: #8B5CF6 !important; }
+.appShellV4Light .selectV3Placeholder { color: #8892a4; }
+.appShellV4Light .selectV3SearchInput { color: #1a1d2e; }
+.appShellV4Light .selectV3SearchWrap { border-color: #f0f0f6; }
+.appShellV4Light .selectV3Option { color: #1a1d2e; }
+
+/* InputV3 light theme */
+.appShellV4Light .inputV3Field {
+  background: #ffffff; border-color: #e4e7ef;
+}
+.appShellV4Light .inputV3Field:focus-within {
+  border-color: rgba(139,92,246,0.5);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.10);
+  background: #ffffff;
+}
+.appShellV4Light .inputV3Native { color: #1a1d2e; }
+.appShellV4Light .inputV3Native::placeholder { color: #8892a4; }
+.appShellV4Light .inputV3Icon { color: #8892a4; }
+
+/* FormCard light */
+.appShellV4Light .formCardV3 { background: #ffffff; border-color: #e4e7ef; }
+.appShellV4Light .formCardV3Head { border-color: #f0f0f6; }
+.appShellV4Light .formCardV3Title { color: #1a1d2e; }
+.appShellV4Light .formCardV3Sub { color: #4b5368; }
+
+/* ChartV3 light */
+.appShellV4Light .chartV3 { background: #ffffff; border-color: #e4e7ef; }
+.appShellV4Light .chartV3Title { color: #1a1d2e; }
+.appShellV4Light .chartV3Sub { color: #4b5368; }
+
+/* KPI light */
+.appShellV4Light .kpiV3 { background: #ffffff; border-color: #e4e7ef; }
+.appShellV4Light .kpiV3Label { color: #4b5368; }
+.appShellV4Light .kpiV3Details { background: #f5f5fb; border-color: #e4e7ef; color: #4b5368; }
+.appShellV4Light .kpiV3Details:hover { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25); color: #8B5CF6; }
+
+/* Table light */
+.appShellV4Light .employeeTableV3 thead tr { background: #f8f9fc; border-color: #e4e7ef; }
+.appShellV4Light .employeeTableV3 td { border-color: #f0f0f6; color: #1a1d2e; }
+.appShellV4Light .employeeTableV3 tbody tr:hover td { background: #f5f5fb; }
+.appShellV4Light .employeeTableV3 th { color: #8892a4; }
+
+/* credBox light */  
+.appShellV4Light .credBox { background: rgba(139,92,246,0.07); border-color: rgba(139,92,246,0.22); }
+.appShellV4Light .credBox .credBoxTitle { color: #7C3AED; }
+.appShellV4Light .credBoxValue { background: rgba(0,0,0,0.05); color: #1a1d2e; }
+.appShellV4Light .credBoxField { color: #4b5368; }
+.appShellV4Light .credBoxCopy { border-color: #e4e7ef; color: #8892a4; background: #f9fafb; }
+.appShellV4Light .credBoxCopy:hover { color: #8B5CF6; border-color: rgba(139,92,246,0.3); }
+
+/* Ghost button light */
+.appShellV4Light .btnGhost {
+  background: #f5f5fb; border-color: #e4e7ef; color: #4b5368;
+}
+.appShellV4Light .btnGhost:hover {
+  background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.3); color: #8B5CF6;
+}
+
+/* Auth card in dark (signup/signin are always dark) */
+.authV4Card .inputV3Field { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
+.authV4Card .inputV3Field:focus-within { border-color: rgba(139,92,246,0.5); box-shadow: 0 0 0 3px rgba(139,92,246,0.12); }
+.authV4Card .inputV3Native { color: #f0ede6; }
+.authV4Card .selectV3Trigger { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
+.authV4Card .selectV3Dropdown { background: #1d2029; }
+.authV4Card .selectV3Option { color: #f0ede6; }
+.authV4Card .selectV3Option:hover { background: rgba(255,255,255,0.06); }
+
+/* Prevent layout shift when modal is open */
+.modalBodyLocked { overflow: hidden; }
+
+
+/* Sidebar collapse button */
+.sidebarCollapseBtn {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; display: grid; place-items: center;
+  transition: all 0.14s; margin-left: auto;
+}
+.sidebarCollapseBtn:hover {
+  background: var(--brandDim); border-color: var(--brandBorder); color: var(--brand);
+}
+.appShellV4.sidebarCollapsed .sidebarCollapseBtn {
+  margin-left: 0; margin-top: 6px;
+}
+/* In collapsed mode, logo area stacks vertically */
+.appShellV4.sidebarCollapsed .sidebarV4Logo {
+  flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px;
+}
+/* Smooth sidebar width transition */
+.sidebarV4 {
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.appShellV4 {
+  transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Remove topbar page title fully */
+.topbarV4PageTitle { display: none; }
 
