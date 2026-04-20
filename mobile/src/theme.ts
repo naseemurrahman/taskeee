@@ -1,7 +1,7 @@
 // src/theme.ts
 export const COLORS = {
-  primary:        '#6C47D9',
-  primaryLight:   '#EDE9FE',
+  primary:        '#FBBF24',
+  primaryLight:   '#FEF3C7',
   secondary:      '#1D9E75',
   background:     '#F9FAFB',
   surface:        '#FFFFFF',
