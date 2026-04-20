@@ -41,11 +41,6 @@ async function createEmployee(input: {
     notificationSent?: boolean
     message?: string
   }>(`/api/v1/hris/employees`, { method: 'POST', json: input })
-  const hasEmployeeId = !!(data?.employee && typeof data.employee.id === 'string' && data.employee.id.trim())
-  const userOnlyCreated = data?.employeeRecordCreated === false
-  if (!hasEmployeeId && !userOnlyCreated) {
-    throw new Error('Server did not return a new employee.')
-  }
   return data
 }
 
