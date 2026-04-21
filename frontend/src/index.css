@@ -6086,23 +6086,10 @@ select.input option { background: #1a1d2e; color: white; }
   border-radius: 18px !important;
 }
 
-/* Pull section controls into the header card area to avoid empty gap after hiding duplicate headings */
-.pageHeaderCard { position: relative; }
-.pageHeaderCard + .card > div:first-child,
-.pageHeaderCard + .chartV3 > div:first-child {
-  display: flex !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  margin-top: -62px !important;
-  margin-bottom: 14px !important;
-  position: relative;
-  z-index: 2;
-}
-
 /* Unified header action button sizing/design across pages */
 .pageHeaderCard .btn,
-.pageHeaderCard + .card > div:first-child .btn,
-.pageHeaderCard + .chartV3 > div:first-child .btn {
+.pageHeaderCard + .card .btn,
+.pageHeaderCard + .chartV3 .btn {
   height: 40px !important;
   padding: 0 14px !important;
   border-radius: 14px !important;

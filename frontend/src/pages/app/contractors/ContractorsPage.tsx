@@ -103,15 +103,6 @@ export function ContractorsPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👤</span> Profiles</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Contractors</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Manage contractors and engagements.</div>
-          </div>
           <div className="contractorsToolbar" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <label className="label" style={{ margin: 0 }}>
               Status
@@ -129,6 +120,10 @@ export function ContractorsPage() {
             </label>
           </div>
         </div>
+      </div>
+
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>Manage contractors and engagements.</div>
 
         {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
         {q.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load contractors.</div> : null}
@@ -203,4 +198,3 @@ export function ContractorsPage() {
     </div>
   )
 }
-

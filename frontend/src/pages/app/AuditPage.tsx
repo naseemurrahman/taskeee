@@ -56,20 +56,6 @@ export function AuditPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📍</span> IP address tracking</span>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Audit</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>
-              Security and configuration events recorded in the immutable audit trail. For day-to-day task history, use{' '}
-              <Link to="/app/logs" style={{ color: 'var(--primary)', fontWeight: 800 }}>
-                Logs
-              </Link>
-              .
-            </div>
-          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <label className="label" style={{ margin: 0 }}>
               Days
@@ -88,6 +74,15 @@ export function AuditPage() {
               <input className="input" style={{ height: 40 }} value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="e.g. user" />
             </label>
           </div>
+        </div>
+      </div>
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>
+          Security and configuration events recorded in the immutable audit trail. For day-to-day task history, use{' '}
+          <Link to="/app/logs" style={{ color: 'var(--primary)', fontWeight: 800 }}>
+            Logs
+          </Link>
+          .
         </div>
       </div>
 

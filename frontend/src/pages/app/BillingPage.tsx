@@ -101,18 +101,13 @@ export function BillingPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📈</span> Billing history</span>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Billing</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Stripe subscription management and invoices.</div>
-          </div>
           <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => portalM.mutate()} disabled={portalM.isPending}>
             {portalM.isPending ? 'Opening…' : 'Manage billing'}
           </button>
         </div>
+      </div>
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>Stripe subscription management and invoices.</div>
         {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
         {summaryQ.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load billing summary.</div> : null}
       </div>
@@ -187,4 +182,3 @@ export function BillingPage() {
     </div>
   )
 }
-

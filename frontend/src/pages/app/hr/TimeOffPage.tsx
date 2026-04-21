@@ -96,14 +96,6 @@ export function TimeOffPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Full history</span>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Time off</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Request time off and manage approvals.</div>
-          </div>
           <label className="label" style={{ margin: 0 }}>
             Filter
             <select className="input" style={{ height: 40 }} value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -115,6 +107,9 @@ export function TimeOffPage() {
             </select>
           </label>
         </div>
+      </div>
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>Request time off and manage approvals.</div>
 
         {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
         {q.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load requests.</div> : null}
@@ -172,4 +167,3 @@ export function TimeOffPage() {
     </div>
   )
 }
-

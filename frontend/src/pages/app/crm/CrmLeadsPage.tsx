@@ -84,14 +84,6 @@ export function CrmLeadsPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📝</span> Notes & status</span>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Leads</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Capture and qualify incoming leads.</div>
-          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <label className="label" style={{ margin: 0 }}>
               Status
@@ -109,6 +101,9 @@ export function CrmLeadsPage() {
             </label>
           </div>
         </div>
+      </div>
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>Capture and qualify incoming leads.</div>
 
         {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
         {q.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load leads.</div> : null}
@@ -167,4 +162,3 @@ export function CrmLeadsPage() {
     </div>
   )
 }
-
