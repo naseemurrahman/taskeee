@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiError } from '../lib/api'
-import { setAccessToken, setUser } from '../state/auth'
+import { setAccessToken, setRefreshToken, setUser } from '../state/auth'
 import { Input } from '../components/ui/Input'
 
 async function login(email: string, password: string) {
@@ -32,7 +32,7 @@ export function SignInPage() {
     setError(null); setLoading(true)
     try {
       const data = await login(email.trim().toLowerCase(), password)
-      setAccessToken(data.accessToken); setUser(data.user)
+      setAccessToken(data.accessToken); setRefreshToken(data.refreshToken); setUser(data.user)
       const next = params.get('next')
       navigate(next && next.startsWith('/app') ? next : '/app/dashboard', { replace: true })
     } catch (err) {

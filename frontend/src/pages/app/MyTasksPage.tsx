@@ -199,7 +199,24 @@ export function MyTasksPage() {
   const tasks = listQ.data || []
 
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>
+              My Tasks
+            </div>
+            <div className="pageHeaderCardSub">View tasks assigned to you. Submit work for approval, track your performance score, add comments, and upload files.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>✅</span> Personal tasks</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💬</span> Comments & files</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📤</span> Submit for review</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <div>

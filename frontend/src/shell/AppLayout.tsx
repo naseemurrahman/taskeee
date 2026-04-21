@@ -134,8 +134,8 @@ export function AppLayout() {
   useEffect(() => setAvatarBroken(false), [avatarSrc])
 
   function signOut() {
-    apiFetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
-    localStorage.removeItem('tf_auth')
+    apiFetch('/api/v1/auth/logout', { method: 'POST', json: { refreshToken: localStorage.getItem('tf_refresh_token') } }).catch(() => {})
+    import('../state/auth').then(m => m.clearAuth())
     navigate('/signin')
   }
 

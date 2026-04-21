@@ -40,7 +40,24 @@ export function AuditPage() {
   const entries = useMemo(() => q.data?.entries || [], [q.data])
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Audit Log
+            </div>
+            <div className="pageHeaderCardSub">Full audit trail of all actions in your organization — who did what, when, and from which IP address. Use filters to find specific events.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔍</span> Action history</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔒</span> Security events</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📍</span> IP address tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <div>

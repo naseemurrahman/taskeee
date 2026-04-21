@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiError } from '../lib/api'
-import { setAccessToken, setUser } from '../state/auth'
+import { setAccessToken, setRefreshToken, setUser } from '../state/auth'
 
 type MfaVerifyResponse = {
   accessToken: string
@@ -36,6 +36,7 @@ export function MfaPage() {
         json: { mfaToken, code },
       })
       setAccessToken(data.accessToken)
+      if (data.refreshToken) setRefreshToken(data.refreshToken)
       if (data.user) setUser(data.user)
       setLegacyAuth(data.accessToken, data.user)
       navigate(next, { replace: true })

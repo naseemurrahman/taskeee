@@ -184,7 +184,25 @@ export function JeczoneDashboardPage() {
   const deadlines = useMemo(() => buildDeadlineSeries(filteredTasks, 7), [filteredTasks])
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              JecZone AI
+            </div>
+            <div className="pageHeaderCardSub">AI-powered project management hub. View portfolio overview, Gantt timelines, resource allocation, and get AI-assisted task insights.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤖</span> AI insights</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Portfolio overview</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗓️</span> Gantt timelines</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>

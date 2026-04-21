@@ -70,6 +70,24 @@ export function BoardPage() {
 
   return (
     <div className="boardShell">
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Board
+            </div>
+            <div className="pageHeaderCardSub">Kanban-style task board. Drag tasks between columns (Pending → In Progress → Submitted → Approved → Completed) to update their status.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗂️</span> Kanban view</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔄</span> Drag to move status</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚡</span> Real-time updates</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>

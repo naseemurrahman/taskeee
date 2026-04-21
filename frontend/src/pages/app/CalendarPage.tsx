@@ -123,6 +123,24 @@ export function CalendarPage() {
 
   return (
     <div className="calShell">
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Calendar
+            </div>
+            <div className="pageHeaderCardSub">Monthly calendar view of all task due dates. Click any day to see tasks due that day. Color coded by overdue, due today, or upcoming.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📅</span> Monthly view</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🎯</span> Due date tracking</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚠️</span> Overdue alerts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div className="calNav">
           <div>

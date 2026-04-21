@@ -97,6 +97,25 @@ export function CrmPipelinePage() {
 
   if (!defaultPipeline) {
     return (
+      <>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              CRM Pipeline
+            </div>
+            <div className="pageHeaderCardSub">Manage your sales pipeline stages. Create custom pipelines with named stages to track deals from prospect to close.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔄</span> Pipeline stages</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Deal tracking</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚙️</span> Custom stages</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <h2 style={{ margin: 0 }}>CRM pipeline</h2>
         <div style={{ color: 'var(--text2)', marginTop: 4 }}>Create the default sales pipeline to start managing deals.</div>
@@ -105,6 +124,7 @@ export function CrmPipelinePage() {
           {ensureM.isPending ? 'Creating…' : 'Create default pipeline'}
         </button>
       </div>
+      </>
     )
   }
 

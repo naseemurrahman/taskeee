@@ -212,6 +212,24 @@ export function ProfilePage() {
 
   return (
     <div className="profilePage">
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              My Profile
+            </div>
+            <div className="pageHeaderCardSub">Update your personal information, change your password, manage security settings, and upload a profile photo.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👤</span> Personal info</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔑</span> Password &amp; security</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📸</span> Profile photo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card profileHero">
         <div className="profileHeroMain">
           <div className="profileHeroAvatar" aria-hidden="true">

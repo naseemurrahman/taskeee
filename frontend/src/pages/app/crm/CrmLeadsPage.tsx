@@ -68,7 +68,24 @@ export function CrmLeadsPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              CRM Leads
+            </div>
+            <div className="pageHeaderCardSub">Track and manage potential customers and business leads. Add notes, update status, and move leads through your sales pipeline.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📞</span> Lead tracking</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💼</span> Sales pipeline</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📝</span> Notes & status</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>

@@ -56,10 +56,30 @@ export function LogsPage() {
 
   if (!canSee) {
     return (
+      <>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Activity Logs
+            </div>
+            <div className="pageHeaderCardSub">Track user activity, login events, and system events across your organization in real time.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👁️</span> User activity</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔐</span> Login events</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚡</span> Real-time</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ fontWeight: 950, letterSpacing: '-0.4px' }}>Logs</div>
         <div style={{ marginTop: 8, color: 'var(--text2)' }}>You don’t have access to organization logs.</div>
       </div>
+      </>
     )
   }
 

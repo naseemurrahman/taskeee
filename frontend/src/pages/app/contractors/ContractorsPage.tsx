@@ -88,6 +88,24 @@ export function ContractorsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Contractors
+            </div>
+            <div className="pageHeaderCardSub">Manage external contractors — add, track, and view profiles for all contracted workers in your organization.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤝</span> External workers</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📄</span> Contract tracking</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👤</span> Profiles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <div>

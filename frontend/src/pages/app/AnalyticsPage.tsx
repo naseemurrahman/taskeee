@@ -105,7 +105,24 @@ export function AnalyticsPage() {
   }, [summaryQ.data?.workload, summaryQ.data?.userCount])
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Analytics
+            </div>
+            <div className="pageHeaderCardSub">Deep-dive into task completion rates, team performance, deadline trends, and workload balance across your organization.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Real-time charts</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📈</span> Performance scores</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🎯</span> Deadline tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>

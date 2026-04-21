@@ -85,7 +85,24 @@ export function BillingPage() {
   const invoices = useMemo(() => invoicesQ.data || [], [invoicesQ.data])
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
+      {/* Page header card */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Billing
+            </div>
+            <div className="pageHeaderCardSub">Manage your subscription plan, view seat usage, update payment details, and track billing history.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💳</span> Subscription plan</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👥</span> Seat usage</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📈</span> Billing history</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>
