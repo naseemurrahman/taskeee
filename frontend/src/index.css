@@ -6006,6 +6006,65 @@ select.input option { background: #1a1d2e; color: white; }
 .btnGhost {
   border-radius: 10px !important;
 }
+
+/* Calendar readability (light theme only) */
+.appShellV4Light .calWeekday,
+.appShellV4Light .calCellNum,
+.appShellV4Light .calShell .miniLabel,
+.appShellV4Light .calShell .miniValue {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Consistent card/container borders + hover treatment */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .kpiV3,
+.appShellV4Light .formCardV3,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .miniCard,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .projectCard,
+.appShellV4Light .boardCard,
+.appShellV4Light .boardCol {
+  border: 1px solid #d8d2bd !important;
+}
+.appShellV4Light .card:hover,
+.appShellV4Light .chartV3:hover,
+.appShellV4Light .kpiV3:hover,
+.appShellV4Light .formCardV3:hover,
+.appShellV4Light .pageHeaderCard:hover,
+.appShellV4Light .miniCard:hover,
+.appShellV4Light .chartCardV2:hover,
+.appShellV4Light .projectCard:hover,
+.appShellV4Light .boardCard:hover {
+  border-color: #c7b58a !important;
+  box-shadow: none !important;
+}
+
+.appShellV4Dark .card,
+.appShellV4Dark .chartV3,
+.appShellV4Dark .kpiV3,
+.appShellV4Dark .formCardV3,
+.appShellV4Dark .pageHeaderCard,
+.appShellV4Dark .miniCard,
+.appShellV4Dark .chartCardV2,
+.appShellV4Dark .projectCard,
+.appShellV4Dark .boardCard,
+.appShellV4Dark .boardCol {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+.appShellV4Dark .card:hover,
+.appShellV4Dark .chartV3:hover,
+.appShellV4Dark .kpiV3:hover,
+.appShellV4Dark .formCardV3:hover,
+.appShellV4Dark .pageHeaderCard:hover,
+.appShellV4Dark .miniCard:hover,
+.appShellV4Dark .chartCardV2:hover,
+.appShellV4Dark .projectCard:hover,
+.appShellV4Dark .boardCard:hover {
+  border-color: rgba(226, 171, 65, 0.42) !important;
+}
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
   border-color: rgba(226,171,65,0.28) !important;
