@@ -229,28 +229,6 @@ export function AppLayout() {
                   <Moon size={13} />
                 </button>
               </div>
-              <div
-                className="sidebarLangPillBtn"
-                title={t('nav.language')}
-                aria-label={t('nav.language')}
-              >
-                <button
-                  type="button"
-                  className={`sidebarThemeToggleBtn ${activeLang === 'en' ? 'active' : ''}`}
-                  onClick={() => setLang('en')}
-                  title="English"
-                >
-                  EN
-                </button>
-                <button
-                  type="button"
-                  className={`sidebarThemeToggleBtn ${activeLang === 'ar' ? 'active' : ''}`}
-                  onClick={() => setLang('ar')}
-                  title="Arabic"
-                >
-                  AR
-                </button>
-              </div>
             </div>
           )}
           {collapsed && (
@@ -263,15 +241,6 @@ export function AppLayout() {
                 title={theme === 'light' ? 'Dark mode' : 'Light mode'}
               >
                 {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-              </button>
-              <button
-                type="button"
-                className="sidebarV4ThemeBtn"
-                style={{ width: 34, height: 34, padding: 0, justifyContent: 'center', flex: 'none' }}
-                onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')}
-                title={t('nav.language')}
-              >
-                <Globe size={14} />
               </button>
             </div>
           )}
@@ -364,6 +333,15 @@ export function AppLayout() {
           {/* Right: notifications + profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
             <NotificationCenter />
+            <button
+              type="button"
+              className="topbarLangBtn"
+              onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')}
+              title={t('nav.language')}
+            >
+              <Globe size={13} />
+              <span>{activeLang.toUpperCase()}</span>
+            </button>
             <button type="button" className="topbarV4ProfileBtn" onClick={() => navigate('/app/profile')} title={displayName}>
               {avatarSrc && !avatarBroken ? (
                 <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} className="topbarV4AvatarImg" />
