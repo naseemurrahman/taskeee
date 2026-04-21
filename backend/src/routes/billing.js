@@ -3,9 +3,13 @@ const router = express.Router();
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { query } = require('../utils/db');
 const { getStripe } = require('../services/stripeService');
+const { orgIdForSessionUser } = require('../utils/orgContext');
 
-function orgIdOf(req) {
-  return req.user.org_id ?? req.user.orgId;
+async function orgIdOf(req) {
+  const fromContext = await orgIdForSessionUser(req);
+  if (fromContext) return fromContext;
+  const fallback = req.user.org_id ?? req.user.orgId;
+  return fallback ? String(fallback) : null;
 }
 
 async function getStripeCustomerId(orgId) {
@@ -32,7 +36,8 @@ async function getCurrentSubscription(orgId) {
 
 router.get('/summary', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
-    const orgId = orgIdOf(req);
+    const orgId = await orgIdOf(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const [sub, usersUsed] = await Promise.all([getCurrentSubscription(orgId), getActiveUserCount(orgId)]);
 
     const subscription = sub
@@ -55,11 +60,19 @@ router.get('/summary', authenticate, requireAnyRole('supervisor', 'manager', 'hr
 
 router.get('/invoices', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
-    const orgId = orgIdOf(req);
+    const orgId = await orgIdOf(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const stripeCustomerId = await getStripeCustomerId(orgId);
     if (!stripeCustomerId) return res.json({ invoices: [] });
 
-    const stripe = getStripe();
+    let stripe;
+    try {
+      stripe = getStripe();
+    } catch (_) {
+      // Stripe not configured — return empty list rather than 500
+      return res.json({ invoices: [] });
+    }
+
     const invoices = await stripe.invoices.list({ customer: stripeCustomerId, limit: 10 });
     const normalized = (invoices.data || []).map(inv => ({
       id: inv.id,
@@ -78,7 +91,8 @@ router.get('/invoices', authenticate, requireAnyRole('supervisor', 'manager', 'h
 
 router.get('/usage', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
-    const orgId = orgIdOf(req);
+    const orgId = await orgIdOf(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const [sub, usersUsed] = await Promise.all([getCurrentSubscription(orgId), getActiveUserCount(orgId)]);
     const seats = sub?.seats ?? null;
     res.json({

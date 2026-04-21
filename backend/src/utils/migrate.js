@@ -73,6 +73,15 @@ async function run() {
           ['003_work_management_features.sql', 'task_dependencies'],
           ['004_integrations.sql', 'integrations'],
           ['005_multi_org.sql', 'organization_members'],
+          ['006_auth_tokens_mfa.sql', 'email_verification_tokens'],
+          ['007_stripe_billing.sql', 'stripe_subscriptions'],
+          ['008_org_plan_check.sql', 'organizations'],
+          ['009_platform_primitives.sql', 'audit_logs'],
+          ['010_hris.sql', 'employees'],
+          ['011_crm.sql', 'crm_pipelines'],
+          ['012_contractors.sql', 'contractors'],
+          ['013_users_avatar_text.sql', 'users'],
+          ['014_dev_seed_login_fix.sql', 'users'],
         ]);
 
         let baselined = 0;

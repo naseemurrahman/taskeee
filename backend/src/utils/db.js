@@ -247,6 +247,7 @@ module.exports = {
   getUserById,
   getDepartments,
   useDemo,
+  isDemo: () => useDemo,
   getDemoUsers: () => demoUsers,
   getDemoOrgs: () => demoOrgs,
   getPool: () => pgPool,

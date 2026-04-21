@@ -158,6 +158,23 @@ router.get('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'dir
 });
 
 // GET /users/:id
+// GET /users/profile — returns the currently authenticated user's own profile
+router.get('/profile', authenticate, async (req, res, next) => {
+  try {
+    const sessionUserId = String(req.user.id || '').trim();
+    const profileSql = `
+      SELECT u.id, u.email, u.full_name, u.role, u.department, u.employee_code,
+             u.manager_id, m.full_name AS manager_name, u.last_login_at, u.created_at,
+             u.org_id, u.avatar_url
+      FROM users u LEFT JOIN users m ON m.id = u.manager_id`;
+    const { rows } = await query(`${profileSql} WHERE u.id = $1::uuid`, [sessionUserId]);
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const user = rows[0];
+    if (user.avatar_url) user.avatar_url = normalizeStoredAvatarUrl(user.avatar_url);
+    res.json({ user });
+  } catch (err) { next(err); }
+});
+
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const rawId = String(req.params.id || '').trim();
