@@ -297,8 +297,6 @@ export function TasksPage() {
           </div>
         )}
       </div>
-
-      {/* Create Task Modal */}
       <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   )

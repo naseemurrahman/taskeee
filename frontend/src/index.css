@@ -6,8 +6,8 @@
   --text: rgba(243, 239, 231, 0.9);
   --text2: rgba(243, 239, 231, 0.7);
   --muted: rgba(243, 239, 231, 0.55);
-  --primary: #e2ab41;
-  --primary-glow: rgba(244, 202, 87, 0.4);
+  --primary: #FBBF24;
+  --primary-glow: rgba(251, 191, 36, 0.4);
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.4);
   --success: #10b981;
@@ -26,7 +26,7 @@
   --glass-blur: 18px;
 
   /* Premium gradient */
-  --gradient-primary: linear-gradient(135deg, #e2ab41 0%, #d4a84b 50%, #c49a3f 100%);
+  --gradient-primary: linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%);
   --gradient-accent: linear-gradient(135deg, #6d5efc 0%, #8b7cf7 50%, #a89bf9 100%);
   --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
@@ -1737,6 +1737,11 @@ label.btn {
   .topbarApp {
     position: relative;
     z-index: 99995;
+    background: var(--panel);
+  }
+  .topbarApp.topbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .main {
     position: relative;
@@ -1767,6 +1772,9 @@ label.btn {
     pointer-events: auto;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    background: var(--panel);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .sidebarResizeHandle {
     display: none;
@@ -6018,4 +6026,3 @@ select.input option { background: #1a1d2e; color: white; }
   border-color: var(--brandBorder) !important;
   color: var(--brand) !important;
 }
-

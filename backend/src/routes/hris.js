@@ -11,6 +11,51 @@ async function resolveOrgId(req) {
   return orgId != null && orgId !== '' ? String(orgId) : null;
 }
 
+let tableColumnsCache = new Map();
+
+async function getTableColumns(tableName) {
+  if (tableColumnsCache.has(tableName)) return tableColumnsCache.get(tableName);
+  try {
+    let { rows } = await query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+    // Some managed PG environments restrict information_schema visibility.
+    // Fallback to pg_catalog to discover columns in those cases.
+    if (!rows.length) {
+      const fallback = await query(
+        `SELECT a.attname AS column_name
+         FROM pg_catalog.pg_attribute a
+         JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = 'public'
+           AND c.relname = $1
+           AND a.attnum > 0
+           AND NOT a.attisdropped`,
+        [tableName]
+      );
+      rows = fallback.rows || [];
+    }
+    const set = new Set(rows.map((r) => String(r.column_name)));
+    tableColumnsCache.set(tableName, set);
+    return set;
+  } catch (_err) {
+    return new Set();
+  }
+}
+
+function pickNameColumn(cols) {
+  if (cols.has('full_name')) return 'full_name';
+  if (cols.has('name')) return 'name';
+  return null;
+}
+
+function pickOrgColumn(cols) {
+  if (cols.has('org_id')) return 'org_id';
+  if (cols.has('organization_id')) return 'organization_id';
+  return null;
+}
+
 function parseDateOnly(value) {
   if (!value) return null;
   const d = new Date(String(value));
@@ -21,13 +66,21 @@ function parseDateOnly(value) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+async function safeGetSubordinateIds(managerId) {
+  if (!managerId) return [];
+  try {
+    const { rows } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [managerId]);
+    return rows.map((r) => r.user_id).filter(Boolean);
+  } catch (_err) {
+    // Legacy DBs may not have get_subordinate_ids(). Fallback to self-only visibility.
+    return [];
+  }
+}
+
 async function canApproveForUser(managerId, targetUserId) {
   if (!managerId || !targetUserId) return false;
-  const { rows } = await query(
-    `SELECT 1 FROM get_subordinate_ids($1) WHERE user_id = $2 LIMIT 1`,
-    [managerId, targetUserId]
-  );
-  return rows.length > 0;
+  const ids = await safeGetSubordinateIds(managerId);
+  return ids.includes(targetUserId);
 }
 
 // GET /hris/employees
@@ -35,46 +88,70 @@ router.get('/employees', authenticate, requireAnyRole('supervisor', 'manager', '
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const empCols = await getTableColumns('employees');
+    const userCols = await getTableColumns('users');
+    if (!empCols.size) return res.json({ employees: [], total: 0 });
+
+    const orgCol = empCols.has('org_id') ? 'org_id' : (empCols.has('organization_id') ? 'organization_id' : null);
+    if (!orgCol) return res.json({ employees: [], total: 0 });
+
     const { page = 1, limit = 50, status, search, department } = req.query;
     const safeLimit = Math.min(parseInt(limit, 10) || 50, 100);
     const offset = ((parseInt(page, 10) || 1) - 1) * safeLimit;
 
     const params = [orgId];
-    const conditions = ['e.org_id = $1'];
+    const conditions = [`e.${orgCol} = $1`];
     let p = 2;
 
-    // Org-wide roles see all employees, others see only their team
-    if (!isOrgWideRole(req.user.role)) {
-      try {
-        const { rows: subRows } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [req.user.id]);
-        const ids = [req.user.id, ...subRows.map(r => r.user_id)];
-        conditions.push(`(e.user_id = ANY($${p++}) OR e.user_id IS NULL)`);
-        params.push(ids);
-      } catch (fnErr) {
-        // Fallback: function not available, show all org employees
-        console.warn('get_subordinate_ids not available, showing all employees');
+    if (!isOrgWideRole(req.user.role) && empCols.has('user_id')) {
+      const subIds = await safeGetSubordinateIds(req.user.id);
+      const ids = [req.user.id, ...subIds];
+      conditions.push(`(e.user_id = ANY($${p++}) OR e.user_id IS NULL)`);
+      params.push(ids);
+    }
+
+    if (status && empCols.has('status')) { conditions.push(`e.status = $${p++}`); params.push(String(status)); }
+    if (department && empCols.has('department')) { conditions.push(`COALESCE(e.department,'') ILIKE $${p++}`); params.push(`%${department}%`); }
+    if (search) {
+      const searchParts = [];
+      if (empCols.has('full_name')) searchParts.push(`e.full_name ILIKE $${p}`);
+      if (empCols.has('work_email')) searchParts.push(`COALESCE(e.work_email,'') ILIKE $${p}`);
+      if (empCols.has('title')) searchParts.push(`COALESCE(e.title,'') ILIKE $${p}`);
+      if (searchParts.length) {
+        conditions.push(`(${searchParts.join(' OR ')})`);
+        params.push(`%${String(search)}%`);
+        p++;
       }
     }
 
-    if (status) { conditions.push(`e.status = $${p++}`); params.push(String(status)); }
-    if (department) { conditions.push(`COALESCE(e.department,'') ILIKE $${p++}`); params.push(`%${department}%`); }
-    if (search) {
-      conditions.push(`(e.full_name ILIKE $${p} OR COALESCE(e.work_email,'') ILIKE $${p} OR COALESCE(e.title,'') ILIKE $${p})`);
-      params.push(`%${String(search)}%`);
-      p++;
-    }
+    const managerNameCol = pickNameColumn(userCols);
+    const joinUser = empCols.has('user_id') && userCols.has('id');
+    const joinManager = empCols.has('manager_id') && userCols.has('id') && !!managerNameCol;
+
+    const selectCols = [
+      ...(empCols.has('id') ? ['e.id'] : ['NULL::uuid AS id']),
+      ...(empCols.has('full_name') ? ['e.full_name'] : ["''::text AS full_name"]),
+      ...(empCols.has('status') ? ['e.status'] : ["'active'::text AS status"]),
+      ...(empCols.has('title') ? ['e.title'] : ['NULL::text AS title']),
+      ...(empCols.has('department') ? ['e.department'] : ['NULL::text AS department']),
+      ...(empCols.has('work_email') ? ['e.work_email'] : ['NULL::text AS work_email']),
+      ...(empCols.has('manager_id') ? ['e.manager_id'] : ['NULL::uuid AS manager_id']),
+      ...(empCols.has('user_id') ? ['e.user_id'] : ['NULL::uuid AS user_id']),
+      ...(joinUser && userCols.has('email') ? ['u.email AS linked_user_email'] : ['NULL::text AS linked_user_email']),
+      ...(joinManager ? [`m.${managerNameCol} AS manager_name`] : ['NULL::text AS manager_name']),
+      'COUNT(*) OVER() AS total_count',
+    ];
+
+    const orderCol = empCols.has('full_name') ? 'e.full_name' : (empCols.has('created_at') ? 'e.created_at' : 'e.id');
 
     const { rows } = await query(
-      `SELECT
-         e.*,
-         u.email AS linked_user_email,
-         m.full_name AS manager_name,
-         COUNT(*) OVER() AS total_count
+      `SELECT ${selectCols.join(', ')}
        FROM employees e
-       LEFT JOIN users u ON u.id = e.user_id
-       LEFT JOIN users m ON m.id = e.manager_id
+       ${joinUser ? 'LEFT JOIN users u ON u.id = e.user_id' : ''}
+       ${joinManager ? 'LEFT JOIN users m ON m.id = e.manager_id' : ''}
        WHERE ${conditions.join(' AND ')}
-       ORDER BY e.full_name ASC
+       ORDER BY ${orderCol} ASC
        LIMIT $${p++} OFFSET $${p++}`,
       [...params, safeLimit, offset]
     );
@@ -84,18 +161,27 @@ router.get('/employees', authenticate, requireAnyRole('supervisor', 'manager', '
 });
 
 // POST /hris/employees (admin/hr)
-router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'), async (req, res, next) => {
+router.post('/employees', authenticate, requireAnyRole('manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    
+
+    const userCols = await getTableColumns('users');
+    const empCols = await getTableColumns('employees');
+    const userColsKnown = userCols.size > 0;
+    const empColsKnown = empCols.size > 0;
+
+    const userOrgCol = userColsKnown ? pickOrgColumn(userCols) : 'org_id';
+    const empOrgCol = empColsKnown ? pickOrgColumn(empCols) : 'org_id';
+    const userNameCol = userColsKnown ? pickNameColumn(userCols) : 'full_name';
+    if (!userOrgCol || !empOrgCol) return res.status(500).json({ error: 'Organization fields are missing in required tables.' });
+    if (userColsKnown && !userCols.has('email')) return res.status(500).json({ error: 'users.email column is required.' });
+
     // Check subscription limits before allowing employee creation
     const { checkEmployeeAdditionLimit } = require('../services/subscriptionService');
     const subscriptionCheck = await checkEmployeeAdditionLimit(orgId);
-    console.log('Subscription check result:', JSON.stringify(subscriptionCheck, null, 2));
-    
+
     if (!subscriptionCheck.allowed) {
-      console.log('SUBSCRIPTION CHECK FAILED - Returning 403');
       return res.status(403).json({ 
         error: subscriptionCheck.reason || 'Employee addition not allowed',
         subscription: {
@@ -105,10 +191,8 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
           remaining: subscriptionCheck.remaining
         }
       });
-    } else {
-      console.log('SUBSCRIPTION CHECK PASSED - Continuing with employee creation');
     }
-    
+
     const fullName = String(req.body?.fullName || req.body?.full_name || '').trim();
     const title = String(req.body?.title || '').trim() || null;
     const department = String(req.body?.department || '').trim() || null;
@@ -125,7 +209,7 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
     // Check if user already exists with this email
     let targetUserId = userId;
     const { rows: existingUserRows } = await query(
-      `SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND org_id = $2`,
+      `SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND ${userOrgCol} = $2`,
       [workEmail, orgId]
     );
     
@@ -133,10 +217,18 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
       targetUserId = existingUserRows[0].id;
       
       // Check if employee record already exists for this user
-      const { rows: existingEmpRows } = await query(
-        `SELECT id FROM employees WHERE user_id = $1 AND org_id = $2`,
-        [targetUserId, orgId]
-      );
+      let existingEmpRows = [];
+      if (!empColsKnown || empCols.has('user_id')) {
+        try {
+          ({ rows: existingEmpRows } = await query(
+            `SELECT id FROM employees WHERE user_id = $1 AND ${empOrgCol} = $2`,
+            [targetUserId, orgId]
+          ));
+        } catch (empCheckErr) {
+          // If employees table does not exist, continue with user-only onboarding.
+          if (empCheckErr.code !== '42P01') throw empCheckErr;
+        }
+      }
       
       if (existingEmpRows.length > 0) {
         return res.status(409).json({ 
@@ -144,8 +236,6 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
           existingEmployeeId: existingEmpRows[0].id
         });
       }
-      
-      console.log(`Linking to existing user: ${workEmail}`);
     } else {
       // Create new user with auto-generated secure password
       const { v4: uuidv4 } = require('uuid');
@@ -154,25 +244,85 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
       
       const tempPassword = generateSecurePassword();
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
-      
+
+      const newUserId = uuidv4();
+      const fields = ['id', userOrgCol, 'email'];
+      const values = [newUserId, orgId, workEmail.toLowerCase()];
+
+      if (!userColsKnown || userCols.has('password_hash')) {
+        fields.push('password_hash');
+        values.push(hashedPassword);
+      }
+      if (userNameCol) {
+        fields.push(userNameCol);
+        values.push(fullName);
+      }
+      if (!userColsKnown || userCols.has('role')) {
+        fields.push('role');
+        values.push('employee');
+      }
+      if (!userColsKnown || userCols.has('is_active')) {
+        fields.push('is_active');
+        values.push(true);
+      }
+      if (!userColsKnown || userCols.has('created_at')) {
+        fields.push('created_at');
+        values.push(new Date());
+      }
+      if (!userColsKnown || userCols.has('temp_password')) {
+        fields.push('temp_password');
+        values.push(tempPassword);
+      }
+      if (!userColsKnown || userCols.has('temp_password_expires')) {
+        fields.push('temp_password_expires');
+        values.push(new Date(Date.now() + 24 * 60 * 60 * 1000));
+      }
+
+      const placeholders = fields.map((_, idx) => `$${idx + 1}`).join(', ');
       const { rows: newUserRows } = await query(
-        `INSERT INTO users (id, org_id, email, password_hash, full_name, role, is_active, created_at, temp_password, temp_password_expires)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id`,
-        [uuidv4(), orgId, workEmail.toLowerCase(), hashedPassword, fullName, 'employee', true, new Date(), tempPassword, new Date(Date.now() + 24 * 60 * 60 * 1000)]
+        `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) RETURNING id`,
+        values
       );
       
       targetUserId = newUserRows[0].id;
-      console.log(`Created new user with auto-generated password: ${workEmail}`);
     }
 
     // Create employee record
-    const { rows } = await query(
-      `INSERT INTO employees (org_id, user_id, full_name, title, department, manager_id, location, hire_date, work_email, phone_e164, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active')
-       RETURNING *`,
-      [orgId, targetUserId, fullName, title, department, managerId, location, hireDate, workEmail, phoneE164]
-    );
+    const empFields = [empOrgCol];
+    const empValues = [orgId];
+
+    if (!empColsKnown || empCols.has('user_id')) { empFields.push('user_id'); empValues.push(targetUserId); }
+    if (!empColsKnown || empCols.has('full_name')) { empFields.push('full_name'); empValues.push(fullName); }
+    else if (empCols.has('name')) { empFields.push('name'); empValues.push(fullName); }
+    if (!empColsKnown || empCols.has('title')) { empFields.push('title'); empValues.push(title); }
+    if (!empColsKnown || empCols.has('department')) { empFields.push('department'); empValues.push(department); }
+    if (!empColsKnown || empCols.has('manager_id')) { empFields.push('manager_id'); empValues.push(managerId); }
+    if (!empColsKnown || empCols.has('location')) { empFields.push('location'); empValues.push(location); }
+    if (!empColsKnown || empCols.has('hire_date')) { empFields.push('hire_date'); empValues.push(hireDate); }
+    if (!empColsKnown || empCols.has('work_email')) { empFields.push('work_email'); empValues.push(workEmail); }
+    if (!empColsKnown || empCols.has('phone_e164')) { empFields.push('phone_e164'); empValues.push(phoneE164); }
+    if (!empColsKnown || empCols.has('status')) { empFields.push('status'); empValues.push('active'); }
+
+    const empPlaceholders = empFields.map((_, idx) => `$${idx + 1}`).join(', ');
+    let rows = [];
+    let employeeRecordCreated = true;
+    try {
+      ({ rows } = await query(
+        `INSERT INTO employees (${empFields.join(', ')}) VALUES (${empPlaceholders}) RETURNING *`,
+        empValues
+      ));
+    } catch (empInsertErr) {
+      // Legacy deployments may not have employees table yet.
+      if (empInsertErr.code !== '42P01') throw empInsertErr;
+      employeeRecordCreated = false;
+      rows = [{
+        id: null,
+        user_id: targetUserId,
+        full_name: fullName,
+        work_email: workEmail,
+        status: 'active'
+      }];
+    }
 
     if (!rows.length) return res.status(500).json({ error: 'Could not create employee record.' });
 
@@ -200,21 +350,20 @@ router.post('/employees', authenticate, requireAnyRole('hr', 'director', 'admin'
     };
     
     const notificationResult = await sendEmployeeWelcomeNotification(employee, orgId);
-    
-    if (notificationResult.success) {
-      console.log(`Welcome notification sent to employee: ${fullName}`);
-    } else {
-      console.log(`Failed to send welcome notification: ${notificationResult.error}`);
-    }
 
     res.status(201).json({ 
       employee: rows[0],
+      employeeRecordCreated,
       notificationSent: notificationResult.success,
       temporaryPassword: notificationResult.success ? notificationResult.tempPassword : null,
       tempPasswordExpires: notificationResult.success ? notificationResult.tempPasswordExpires : null,
-      message: notificationResult.success 
-        ? 'Employee created successfully. Welcome email sent with login credentials.'
-        : 'Employee created successfully. Welcome email failed to send. See temporary password below.'
+      message: notificationResult.success
+        ? (employeeRecordCreated
+          ? 'Employee created successfully. Welcome email sent with login credentials.'
+          : 'User created and onboarded successfully. Employee table is unavailable, so only user profile was created.')
+        : (employeeRecordCreated
+          ? 'Employee created successfully. Welcome email failed to send. See temporary password below.'
+          : 'User created successfully but employee table is unavailable and welcome email failed. See temporary password below.')
     });
   } catch (err) { 
     if (err.code === '23505') { // PostgreSQL unique violation
@@ -422,8 +571,8 @@ router.get('/time-off/requests', authenticate, requireAnyRole('supervisor', 'man
     if (status) { conditions.push(`r.status = $${p++}`); params.push(String(status)); }
 
     if (!isOrgWideRole(req.user.role)) {
-      const { rows } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [req.user.id]);
-      const ids = [req.user.id, ...rows.map(r => r.user_id)];
+      const subIds = await safeGetSubordinateIds(req.user.id);
+      const ids = [req.user.id, ...subIds];
       conditions.push(`e.user_id = ANY($${p++})`);
       params.push(ids);
     }
@@ -442,4 +591,3 @@ router.get('/time-off/requests', authenticate, requireAnyRole('supervisor', 'man
 });
 
 module.exports = router;
-

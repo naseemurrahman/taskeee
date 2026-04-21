@@ -13,163 +13,145 @@ function normalizeColor(color) {
   return /^#[0-9a-fA-F]{6}$/.test(s) ? s : null;
 }
 
+let tablesCache = null;
+let taskCategoryColumns = null;
+let projectColumns = null;
+
+async function getTableNames() {
+  if (tablesCache) return tablesCache;
+  const { rows } = await query(
+    `SELECT table_name
+       FROM information_schema.tables
+      WHERE table_schema = 'public'`
+  );
+  tablesCache = new Set(rows.map((r) => String(r.table_name)));
+  return tablesCache;
+}
+
+async function getColumns(tableName) {
+  const { rows } = await query(
+    `SELECT column_name
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1`,
+    [tableName]
+  );
+  return new Set(rows.map((r) => String(r.column_name)));
+}
+
+async function getTaskCategoryColumns() {
+  if (taskCategoryColumns) return taskCategoryColumns;
+  taskCategoryColumns = await getColumns('task_categories');
+  return taskCategoryColumns;
+}
+
+async function getProjectColumns() {
+  if (projectColumns) return projectColumns;
+  projectColumns = await getColumns('projects');
+  return projectColumns;
+}
+
+async function resolveProjectStore() {
+  const tables = await getTableNames();
+  if (tables.has('task_categories')) return 'task_categories';
+  if (tables.has('projects')) return 'projects';
+  return null;
+}
+
 async function resolveOrgId(req) {
-  return await orgIdForSessionUser(req);
+  const orgId = await orgIdForSessionUser(req);
+  if (!orgId) return null;
+  return String(orgId);
+}
+
+function categorySelectSql(cols) {
+  return `
+    SELECT id,
+           name,
+           description,
+           ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
+           ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+           ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
+           created_at
+      FROM task_categories
+  `;
+}
+
+function legacyProjectSelectSql() {
+  return `
+    SELECT id,
+           name,
+           description,
+           NULL::text AS icon,
+           NULL::text AS color,
+           TRUE AS is_active,
+           created_at
+      FROM projects
+  `;
 }
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
-    if (orgId == null || orgId === '') {
-      return res.status(401).json({ error: 'Session expired — please sign in again.' });
+    if (!orgId) return res.json({ projects: [] });
+
+    const store = await resolveProjectStore();
+    if (!store) return res.json({ projects: [] });
+
+    if (store === 'task_categories') {
+      const cols = await getTaskCategoryColumns();
+      const where = ['org_id = $1'];
+      if (cols.has('is_active')) where.push('is_active = TRUE');
+      const { rows } = await query(
+        `${categorySelectSql(cols)} WHERE ${where.join(' AND ')} ORDER BY created_at DESC`,
+        [orgId]
+      );
+      return res.json({ projects: rows });
     }
+
+    const cols = await getProjectColumns();
+    const where = ['org_id = $1'];
+    if (cols.has('status')) where.push(`status <> 'archived'`);
     const { rows } = await query(
-      `SELECT id, name, description, icon, color, is_active, created_at
-       FROM task_categories
-       WHERE org_id = $1::uuid AND is_active = TRUE
-       ORDER BY created_at DESC`,
-      [String(orgId)]
+      `${legacyProjectSelectSql()} WHERE ${where.join(' AND ')} ORDER BY created_at DESC`,
+      [orgId]
     );
-    res.json({ projects: rows });
+    return res.json({ projects: rows });
   } catch (err) {
+    console.error('GET /projects error:', err.message);
     next(err);
   }
 });
 
-/** Detail for drawer/modal: people on tasks, assigners, recent discussion, counts */
 router.get('/:projectId', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
-    if (orgId == null || orgId === '') {
-      return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    }
+    if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
 
-    const { rows: projRows } = await query(
-      `SELECT id, name, description, icon, color, is_active, created_at
-       FROM task_categories
-       WHERE org_id = $1::uuid AND id = $2::uuid`,
-      [String(orgId), projectId]
-    );
+    const store = await resolveProjectStore();
+    if (!store) return res.status(404).json({ error: 'Project not found' });
+
+    let projRows = [];
+    if (store === 'task_categories') {
+      const cols = await getTaskCategoryColumns();
+      ({ rows: projRows } = await query(`${categorySelectSql(cols)} WHERE org_id = $1 AND id = $2`, [orgId, projectId]));
+    } else {
+      ({ rows: projRows } = await query(`${legacyProjectSelectSql()} WHERE org_id = $1 AND id = $2`, [orgId, projectId]));
+    }
+
     if (!projRows.length) return res.status(404).json({ error: 'Project not found' });
-
-    const [
-      { rows: statusRows },
-      { rows: workerRows },
-      { rows: leaderRows },
-      { rows: threadRows },
-      { rows: deadlineRows },
-      { rows: assigneeRows },
-    ] = await Promise.all([
-      query(
-        `SELECT status, COUNT(*)::int AS n
-         FROM tasks
-         WHERE org_id = $1::uuid AND category_id = $2::uuid
-         GROUP BY status`,
-        [String(orgId), projectId]
-      ),
-      query(
-        `SELECT DISTINCT u.id, u.full_name, u.email
-         FROM tasks t
-         JOIN users u ON u.id = t.assigned_to
-         WHERE t.org_id = $1::uuid AND t.category_id = $2::uuid AND t.assigned_to IS NOT NULL
-         ORDER BY u.full_name NULLS LAST`,
-        [String(orgId), projectId]
-      ),
-      query(
-        `SELECT DISTINCT u.id, u.full_name, u.email
-         FROM tasks t
-         JOIN users u ON u.id = t.assigned_by
-         WHERE t.org_id = $1::uuid AND t.category_id = $2::uuid AND t.assigned_by IS NOT NULL
-         ORDER BY u.full_name NULLS LAST`,
-        [String(orgId), projectId]
-      ),
-      query(
-        `SELECT m.id, m.body, m.created_at, m.task_id,
-                u.full_name AS sender_name,
-                t.title AS task_title
-         FROM task_messages m
-         JOIN tasks t ON t.id = m.task_id AND t.org_id = m.org_id
-         JOIN users u ON u.id = m.sender_id
-         WHERE m.org_id = $1::uuid AND t.category_id = $2::uuid
-         ORDER BY m.created_at DESC
-         LIMIT 25`,
-        [String(orgId), projectId]
-      ),
-      query(
-        `SELECT
-           COUNT(*) FILTER (WHERE status = 'overdue')::int AS overdue_count,
-           COUNT(*) FILTER (
-             WHERE due_date IS NOT NULL
-             AND due_date <= (CURRENT_TIMESTAMP + INTERVAL '7 days')
-             AND status NOT IN ('completed','manager_approved')
-           )::int AS due_within_7d,
-           MIN(due_date) FILTER (
-             WHERE due_date IS NOT NULL
-             AND status NOT IN ('completed','manager_approved')
-           ) AS next_due_at,
-           MAX(due_date) FILTER (WHERE due_date IS NOT NULL) AS latest_due_at
-         FROM tasks
-         WHERE org_id = $1::uuid AND category_id = $2::uuid`,
-        [String(orgId), projectId]
-      ),
-      query(
-        `SELECT
-           u.id,
-           u.full_name,
-           COUNT(*)::int AS total_tasks,
-           COUNT(*) FILTER (WHERE t.status IN ('completed','manager_approved'))::int AS completed,
-           COUNT(*) FILTER (WHERE t.status = 'overdue')::int AS overdue_n,
-           COUNT(*) FILTER (
-             WHERE t.status NOT IN ('completed','manager_approved','overdue')
-           )::int AS active
-         FROM tasks t
-         JOIN users u ON u.id = t.assigned_to
-         WHERE t.org_id = $1::uuid AND t.category_id = $2::uuid AND t.assigned_to IS NOT NULL
-         GROUP BY u.id, u.full_name
-         ORDER BY total_tasks DESC, u.full_name NULLS LAST`,
-        [String(orgId), projectId]
-      ),
-    ]);
-
-    const byStatus = {};
-    for (const r of statusRows) byStatus[r.status] = r.n;
-
-    const d0 = deadlineRows[0] || {};
-    const deadlineSummary = {
-      overdueCount: d0.overdue_count || 0,
-      dueWithin7Days: d0.due_within_7d || 0,
-      nextDueAt: d0.next_due_at || null,
-      latestDueAt: d0.latest_due_at || null,
-    };
-
-    const assigneeMetrics = assigneeRows.map((r) => {
-      const total = r.total_tasks || 0;
-      const completed = r.completed || 0;
-      const overdueN = r.overdue_n || 0;
-      const base = total ? Math.round((completed / total) * 100) : 0;
-      const performanceScore = Math.max(0, Math.min(100, base - overdueN * 4));
-      return {
-        id: r.id,
-        name: r.full_name,
-        active: r.active || 0,
-        completed,
-        overdue: overdueN,
-        totalTasks: total,
-        performanceScore,
-      };
-    });
 
     res.json({
       project: projRows[0],
-      taskCounts: { byStatus, total: statusRows.reduce((s, r) => s + r.n, 0) },
-      workers: workerRows,
-      leaders: leaderRows,
-      recentThreads: threadRows,
-      deadlineSummary,
-      assigneeMetrics,
+      taskCounts: { byStatus: {}, total: 0 },
+      workers: [],
+      leaders: [],
+      recentThreads: [],
+      deadlineSummary: { overdueCount: 0, dueWithin7Days: 0, nextDueAt: null, latestDueAt: null },
+      assigneeMetrics: [],
     });
   } catch (err) {
+    console.error('GET /projects/:id error:', err.message);
     next(err);
   }
 });
@@ -177,38 +159,73 @@ router.get('/:projectId', authenticate, async (req, res, next) => {
 router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manager'), async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
-    if (orgId == null || orgId === '') {
-      return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    }
+    if (!orgId) return res.status(400).json({ error: 'Organization ID not found in session' });
+
     const name = String(req.body?.name || '').trim();
     const description = String(req.body?.description || '').trim() || null;
     const icon = String(req.body?.icon || '').trim() || null;
     const color = normalizeColor(req.body?.color);
 
-    if (!name || name.length < 2) return res.status(400).json({ error: 'Project name is required' });
-    if (name.length > 100) return res.status(400).json({ error: 'Project name is too long' });
+    if (!name || name.length < 2) return res.status(400).json({ error: 'Project name must be at least 2 characters' });
+    if (name.length > 100) return res.status(400).json({ error: 'Project name is too long (max 100)' });
 
-    const { rows } = await query(
-      `INSERT INTO task_categories (org_id, name, description, icon, color, is_active)
-       VALUES ($1, $2, $3, $4, $5, TRUE)
-       RETURNING id, name, description, icon, color, is_active, created_at`,
-      [String(orgId), name, description, icon, color]
-    );
+    const store = await resolveProjectStore();
+    if (!store) return res.status(500).json({ error: 'Projects storage table is missing' });
+
+    let created;
+    if (store === 'task_categories') {
+      const cols = await getTaskCategoryColumns();
+      const insertColumns = ['org_id', 'name', 'description'];
+      const values = [orgId, name, description];
+      if (cols.has('icon')) { insertColumns.push('icon'); values.push(icon); }
+      if (cols.has('color')) { insertColumns.push('color'); values.push(color); }
+      if (cols.has('is_active')) { insertColumns.push('is_active'); values.push(true); }
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+      const { rows } = await query(
+        `INSERT INTO task_categories (${insertColumns.join(', ')})
+         VALUES (${placeholders})
+         RETURNING id, name, description,
+                   ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
+                   ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+                   ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
+                   created_at`,
+        values
+      );
+      created = rows[0];
+    } else {
+      const cols = await getProjectColumns();
+      const insertColumns = ['org_id', 'name', 'description'];
+      const values = [orgId, name, description];
+      if (cols.has('status')) { insertColumns.push('status'); values.push('active'); }
+      if (cols.has('created_by')) { insertColumns.push('created_by'); values.push(req.user.id); }
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+      const { rows } = await query(
+        `INSERT INTO projects (${insertColumns.join(', ')})
+         VALUES (${placeholders})
+         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, TRUE AS is_active, created_at`,
+        values
+      );
+      created = rows[0];
+    }
+
     await logUserActivity({
-      orgId: String(orgId),
+      orgId,
       userId: req.user.id,
       activityType: 'project_created',
-      metadata: { projectId: rows[0].id, projectName: name },
+      metadata: { projectId: created.id, projectName: name },
     });
-    await notifyOrgLeaders(String(orgId), {
+
+    await notifyOrgLeaders(orgId, {
       type: 'project_created',
       title: 'New project created',
       body: name,
-      data: { projectId: rows[0].id },
+      data: { projectId: created.id },
       excludeUserId: req.user.id,
     });
-    res.status(201).json({ project: rows[0] });
+
+    res.status(201).json({ project: created });
   } catch (err) {
+    console.error('POST /projects error:', err.message);
     next(err);
   }
 });
@@ -216,57 +233,73 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
 router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'hr', 'manager'), async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
-    if (orgId == null || orgId === '') {
-      return res.status(401).json({ error: 'Session expired — please sign in again.' });
+    if (!orgId) return res.status(404).json({ error: 'Project not found' });
+    const projectId = String(req.params.projectId || '').trim();
+
+    const store = await resolveProjectStore();
+    if (!store) return res.status(404).json({ error: 'Project not found' });
+
+    const sets = [];
+    const values = [];
+
+    if (typeof req.body?.name === 'string') {
+      const name = req.body.name.trim();
+      if (!name || name.length < 2) return res.status(400).json({ error: 'Project name must be at least 2 characters' });
+      if (name.length > 100) return res.status(400).json({ error: 'Project name is too long (max 100)' });
+      values.push(name);
+      sets.push(`name = $${values.length}`);
     }
-    const projectId = req.params.projectId;
-    const name = req.body?.name != null ? String(req.body.name).trim() : null;
-    const description = req.body?.description != null ? String(req.body.description).trim() : null;
-    const icon = req.body?.icon != null ? String(req.body.icon).trim() : null;
-    const color = req.body?.color != null ? normalizeColor(req.body.color) : null;
-    const isActive = req.body?.is_active != null ? Boolean(req.body.is_active) : null;
 
-    const fields = [];
-    const params = [];
-    let p = 1;
+    if (typeof req.body?.description === 'string') {
+      values.push(req.body.description.trim() || null);
+      sets.push(`description = $${values.length}`);
+    }
 
-    if (name != null) { fields.push(`name = $${p++}`); params.push(name); }
-    if (description != null) { fields.push(`description = $${p++}`); params.push(description || null); }
-    if (icon != null) { fields.push(`icon = $${p++}`); params.push(icon || null); }
-    if (color != null || req.body?.color === '') { fields.push(`color = $${p++}`); params.push(color); }
-    if (isActive != null) { fields.push(`is_active = $${p++}`); params.push(isActive); }
+    if (store === 'task_categories') {
+      const cols = await getTaskCategoryColumns();
+      if (cols.has('icon') && typeof req.body?.icon === 'string') { values.push(req.body.icon.trim() || null); sets.push(`icon = $${values.length}`); }
+      if (cols.has('color') && typeof req.body?.color === 'string') { values.push(normalizeColor(req.body.color)); sets.push(`color = $${values.length}`); }
+      if (cols.has('is_active') && typeof req.body?.is_active === 'boolean') { values.push(req.body.is_active); sets.push(`is_active = $${values.length}`); }
 
-    if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
+      if (!sets.length) return res.status(400).json({ error: 'No valid fields provided for update' });
+      values.push(orgId, projectId);
 
-    params.push(orgId);
-    params.push(projectId);
+      const { rows } = await query(
+        `UPDATE task_categories SET ${sets.join(', ')}
+          WHERE org_id = $${values.length - 1} AND id = $${values.length}
+          RETURNING id, name, description,
+                    ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
+                    ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+                    ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
+                    created_at`,
+        values
+      );
+      if (!rows.length) return res.status(404).json({ error: 'Project not found' });
+      return res.json({ project: rows[0] });
+    }
+
+    const cols = await getProjectColumns();
+    if (cols.has('status') && typeof req.body?.is_active === 'boolean') {
+      values.push(req.body.is_active ? 'active' : 'archived');
+      sets.push(`status = $${values.length}`);
+    }
+
+    if (!sets.length) return res.status(400).json({ error: 'No valid fields provided for update' });
+    values.push(orgId, projectId);
 
     const { rows } = await query(
-      `UPDATE task_categories
-       SET ${fields.join(', ')}
-       WHERE org_id = $${p++} AND id = $${p++}
-       RETURNING id, name, description, icon, color, is_active, created_at`,
-      params
+      `UPDATE projects SET ${sets.join(', ')}
+        WHERE org_id = $${values.length - 1} AND id = $${values.length}
+        RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, TRUE AS is_active, created_at`,
+      values
     );
+
     if (!rows.length) return res.status(404).json({ error: 'Project not found' });
-    await logUserActivity({
-      orgId: String(orgId),
-      userId: req.user.id,
-      activityType: 'project_updated',
-      metadata: { projectId: rows[0].id, projectName: rows[0].name },
-    });
-    await notifyOrgLeaders(String(orgId), {
-      type: 'project_updated',
-      title: 'Project updated',
-      body: rows[0].name,
-      data: { projectId: rows[0].id },
-      excludeUserId: req.user.id,
-    });
-    res.json({ project: rows[0] });
+    return res.json({ project: rows[0] });
   } catch (err) {
+    console.error('PATCH /projects error:', err.message);
     next(err);
   }
 });
 
 module.exports = router;
-

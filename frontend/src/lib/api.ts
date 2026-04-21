@@ -41,7 +41,17 @@ function isErrorShape(value: unknown): value is { error: string } {
   return typeof (value as Record<string, unknown>).error === 'string'
 }
 
-// Token refresh state — prevent concurrent refreshes
+function buildUrl(path: string): string {
+  return `${API_BASE.replace(/\/$/, '')}${path.startsWith('/') ? path : '/' + path}`
+}
+
+async function parseResponse(res: Response) {
+  const contentType = res.headers.get('content-type') || ''
+  return contentType.includes('application/json')
+    ? await res.json().catch(() => null)
+    : await res.text().catch(() => null)
+}
+
 let refreshPromise: Promise<string | null> | null = null
 
 async function tryRefreshToken(): Promise<string | null> {
@@ -50,14 +60,14 @@ async function tryRefreshToken(): Promise<string | null> {
 
   if (refreshPromise) return refreshPromise
 
-  refreshPromise = fetch(`${API_BASE}/api/v1/auth/refresh`, {
+  refreshPromise = fetch(buildUrl('/api/v1/auth/refresh'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
   })
-    .then(async res => {
+    .then(async (res) => {
       if (!res.ok) { clearAuth(); return null }
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
       if (data?.accessToken) {
         setAccessToken(data.accessToken)
         return data.accessToken as string
@@ -86,22 +96,19 @@ async function doFetch<T>(path: string, init?: RequestInit & { json?: Json }, re
     body = JSON.stringify(init.json)
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, body })
+  const res = await fetch(buildUrl(path), {
+    ...init,
+    headers,
+    body,
+  })
 
-  const contentType = res.headers.get('content-type') || ''
-  const data = contentType.includes('application/json')
-    ? await res.json().catch(() => null)
-    : await res.text().catch(() => null)
+  const data = await parseResponse(res)
 
   if (!res.ok) {
-    // On 401 / 400 "No token" — try to refresh once
     if ((res.status === 401 || (res.status === 400 && isErrorShape(data) && data.error.toLowerCase().includes('token'))) && !retried) {
       const newToken = await tryRefreshToken()
-      if (newToken) {
-        return doFetch<T>(path, init, true)
-      }
+      if (newToken) return doFetch<T>(path, init, true)
       clearAuth()
-      // Redirect to sign-in if not already there
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/signin') && !window.location.pathname.startsWith('/signup')) {
         window.location.replace('/signin')
       }
@@ -126,11 +133,8 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
   const token = getAccessToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, method: init?.method || 'POST', headers, body: formData })
-  const contentType = res.headers.get('content-type') || ''
-  const data = contentType.includes('application/json')
-    ? await res.json().catch(() => null)
-    : await res.text().catch(() => null)
+  const res = await fetch(buildUrl(path), { ...init, method: init?.method || 'POST', headers, body: formData })
+  const data = await parseResponse(res)
 
   if (!res.ok) {
     if (res.status === 401) clearAuth()
