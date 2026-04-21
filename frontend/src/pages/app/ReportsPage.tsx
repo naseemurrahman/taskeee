@@ -43,6 +43,8 @@ export function ReportsPage() {
     },
   })
 
+  const listError = getApiErrorMessage(q.error, 'Failed to load reports.')
+
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       {/* Page header card */}
@@ -83,7 +85,7 @@ export function ReportsPage() {
 
       <div className="card">
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-        {q.isError ? <div className="alert alertError">{getApiErrorMessage(q.error, 'Failed to load reports.')}</div> : null}
+        {q.isError ? <div className="alert alertError">{listError}</div> : null}
         {!q.isLoading && (q.data?.reports?.length || 0) === 0 ? (
           <div style={{ color: 'var(--text2)' }}>No reports yet. Generate your first report above.</div>
         ) : null}
