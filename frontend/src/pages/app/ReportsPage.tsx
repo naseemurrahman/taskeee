@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { apiFetch, ApiError } from '../../lib/api'
+import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { useState } from 'react'
 
 type ReportRow = {
@@ -24,7 +24,12 @@ async function generateReport(reportType: string) {
 
 export function ReportsPage() {
   const qc = useQueryClient()
-  const q = useQuery({ queryKey: ['reports', 'list'], queryFn: fetchReports })
+  const q = useQuery({
+    queryKey: ['reports', 'list'],
+    queryFn: fetchReports,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
   const [error, setError] = useState<string | null>(null)
 
   const m = useMutation({
@@ -34,8 +39,7 @@ export function ReportsPage() {
       await qc.invalidateQueries({ queryKey: ['reports', 'list'] })
     },
     onError: (err) => {
-      if (err instanceof ApiError) setError(err.message)
-      else setError('Failed to generate report.')
+      setError(getApiErrorMessage(err, 'Failed to generate report.'))
     },
   })
 
@@ -79,7 +83,7 @@ export function ReportsPage() {
 
       <div className="card">
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-        {q.isError ? <div className="alert alertError">Failed to load reports.</div> : null}
+        {q.isError ? <div className="alert alertError">{getApiErrorMessage(q.error, 'Failed to load reports.')}</div> : null}
         {!q.isLoading && (q.data?.reports?.length || 0) === 0 ? (
           <div style={{ color: 'var(--text2)' }}>No reports yet. Generate your first report above.</div>
         ) : null}
@@ -105,4 +109,3 @@ export function ReportsPage() {
     </div>
   )
 }
-
