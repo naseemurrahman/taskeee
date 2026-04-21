@@ -5179,9 +5179,30 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Light .formCardV3,
 .appShellV4Light .pageHeaderCard,
 .appShellV4Light .modalCardV2,
+.appShellV4Light .miniCard,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .projectCard,
+.appShellV4Light .boardCard,
+.appShellV4Light .boardCol,
 .appShellV4Light .employeeTableV3,
 .appShellV4Light .btn {
   box-shadow: none !important;
+}
+.appShellV4Light .miniCard,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .projectCard,
+.appShellV4Light .boardCard,
+.appShellV4Light .boardCol {
+  background: #ffffff !important;
+  border-color: #e4e7ef !important;
+}
+.appShellV4Light .miniCard:hover,
+.appShellV4Light .chartCardV2:hover,
+.appShellV4Light .projectCard:hover,
+.appShellV4Light .boardCard:hover {
+  background: #ffffff !important;
+  border-color: #e4e7ef !important;
+  transform: none !important;
 }
 
 .sidebarV4UserChip {
