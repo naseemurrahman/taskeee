@@ -50,6 +50,10 @@ async function run() {
   }
   try {
     await client.query('BEGIN');
+    // Ensure required extensions are always available regardless of which migrations
+    // were baselined (e.g. uuid-ossp may not be installed if 001_initial_schema was skipped)
+    await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    await client.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         filename TEXT PRIMARY KEY,

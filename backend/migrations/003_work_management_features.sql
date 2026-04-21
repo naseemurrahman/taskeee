@@ -4,7 +4,7 @@ ALTER TABLE tasks
   ADD COLUMN IF NOT EXISTS approval_flow JSONB DEFAULT '[]';
 
 CREATE TABLE IF NOT EXISTS task_dependencies (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   depends_on_task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   dependency_type VARCHAR(30) NOT NULL DEFAULT 'blocks' CHECK (dependency_type IN ('blocks', 'related', 'subtask')),
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(ta
 CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on ON task_dependencies(depends_on_task_id);
 
 CREATE TABLE IF NOT EXISTS user_activity_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
