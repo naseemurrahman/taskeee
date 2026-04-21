@@ -5123,22 +5123,25 @@ select.input option { background: #1a1d2e; color: white; }
   gap: 4px;
   background: var(--surfaceUp);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px;
+  border-radius: 10px;
+  padding: 3px;
   width: 100%;
+  min-height: 38px;
 }
 .sidebarThemeToggleBtn {
   flex: 1 1 0;
   width: auto;
   min-width: 0;
-  height: 32px;
-  border-radius: 999px;
+  height: 30px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--text2);
   cursor: pointer;
   display: grid;
   place-items: center;
+  font-size: 12px;
+  font-weight: 800;
 }
 .sidebarThemeToggleBtn.active {
   background: var(--bg1);
@@ -5150,10 +5153,10 @@ select.input option { background: #1a1d2e; color: white; }
   align-items: center;
   gap: 4px;
   width: 100%;
-  padding: 4px;
+  padding: 3px;
   flex: 1 1 auto;
-  height: 40px;
-  border-radius: 999px;
+  min-height: 38px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surfaceUp);
   color: var(--text2);
@@ -5167,6 +5170,18 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .appShellV4Light .topbarV4SearchInput:focus {
   background: #f5f3eb;
+}
+
+/* Remove light-theme card/container shadows across pages */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .kpiV3,
+.appShellV4Light .formCardV3,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .modalCardV2,
+.appShellV4Light .employeeTableV3,
+.appShellV4Light .btn {
+  box-shadow: none !important;
 }
 
 .sidebarV4UserChip {
@@ -5963,6 +5978,13 @@ select.input option { background: #1a1d2e; color: white; }
 }
 .credBoxTitle { color: #d4930e !important; }
 .appShellV4Light .credBoxTitle { color: #b87200 !important; }
+
+/* Unify button corner shape with sidebar toggle style */
+.btn,
+.btnPrimary,
+.btnGhost {
+  border-radius: 10px !important;
+}
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
   border-color: rgba(226,171,65,0.28) !important;
