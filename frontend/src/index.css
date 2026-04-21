@@ -4957,7 +4957,7 @@ select.input option { background: #1a1d2e; color: white; }
 }
 
 .appShellV4Light {
-  --bg0:       #f7f4e4;
+  --bg0:       #f5f3eb;
   --bg1:       #ffffff;
   --bg2:       #fff1b8;
   --surface:   #ffffff;
@@ -5148,20 +5148,26 @@ select.input option { background: #1a1d2e; color: white; }
 .sidebarLangPillBtn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
+  padding: 4px;
   flex: 1 1 auto;
   height: 40px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surfaceUp);
-  color: var(--text);
-  font-size: 13px;
+  color: var(--text2);
+  font-size: 12px;
   font-weight: 800;
-  cursor: pointer;
 }
 .sidebarLangFlag { font-size: 16px; line-height: 1; }
+
+.appShellV4Light .topbarV4SearchInput {
+  background: #f5f3eb;
+}
+.appShellV4Light .topbarV4SearchInput:focus {
+  background: #f5f3eb;
+}
 
 .sidebarV4UserChip {
   display: flex; align-items: center; gap: 0;

@@ -136,8 +136,7 @@ export function AppLayout() {
   const hasResults = searchResults && (
     (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) > 0
   )
-  const nextLang: Lang = (lang || 'en') === 'en' ? 'ar' : 'en'
-  const langFlag = (lang || 'en') === 'en' ? '🇺🇸' : '🇸🇦'
+  const activeLang: Lang = (lang || 'en') as Lang
 
   return (
     <div className={`appShellV4 ${theme === 'light' ? 'appShellV4Light' : 'appShellV4Dark'} ${collapsed ? 'sidebarCollapsed' : ''} ${mobileOpen ? 'sidebarMobileOpen' : ''}`}>
@@ -230,16 +229,28 @@ export function AppLayout() {
                   <Moon size={13} />
                 </button>
               </div>
-              <button
-                type="button"
+              <div
                 className="sidebarLangPillBtn"
-                onClick={() => setLang(nextLang)}
                 title={t('nav.language')}
+                aria-label={t('nav.language')}
               >
-                <span className="sidebarLangFlag" aria-hidden="true">{langFlag}</span>
-                <span>{(lang || 'en').toUpperCase()}</span>
-                <Globe size={12} />
-              </button>
+                <button
+                  type="button"
+                  className={`sidebarThemeToggleBtn ${activeLang === 'en' ? 'active' : ''}`}
+                  onClick={() => setLang('en')}
+                  title="English"
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  className={`sidebarThemeToggleBtn ${activeLang === 'ar' ? 'active' : ''}`}
+                  onClick={() => setLang('ar')}
+                  title="Arabic"
+                >
+                  AR
+                </button>
+              </div>
             </div>
           )}
           {collapsed && (
@@ -257,7 +268,7 @@ export function AppLayout() {
                 type="button"
                 className="sidebarV4ThemeBtn"
                 style={{ width: 34, height: 34, padding: 0, justifyContent: 'center', flex: 'none' }}
-                onClick={() => setLang(nextLang)}
+                onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')}
                 title={t('nav.language')}
               >
                 <Globe size={14} />
