@@ -10,7 +10,7 @@ import type React from 'react'
 import {
   BarChart3, BookOpen, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Moon, Network, ScrollText,
-  Settings, Shield, Sun, UserRound, Users, LogOut, ChevronLeft, ChevronRight, Globe,
+  Settings, Shield, Sun, UserRound, Users, ChevronLeft, ChevronRight, Globe,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -132,12 +132,6 @@ export function AppLayout() {
   const avatarSrc = rawAvatarUrl ? avatarDisplaySrc(rawAvatarUrl, 0) : ''
   const [avatarBroken, setAvatarBroken] = useState(false)
   useEffect(() => setAvatarBroken(false), [avatarSrc])
-
-  function signOut() {
-    apiFetch('/api/v1/auth/logout', { method: 'POST', json: { refreshToken: localStorage.getItem('tf_refresh_token') } }).catch(() => {})
-    import('../state/auth').then(m => m.clearAuth())
-    navigate('/signin')
-  }
 
   const hasResults = searchResults && (
     (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) > 0
@@ -267,13 +261,6 @@ export function AppLayout() {
                 title={t('nav.language')}
               >
                 <Globe size={14} />
-              </button>
-            </div>
-          )}
-          {!collapsed && (
-            <div className="sidebarV4UserChip" style={{ justifyContent: 'center' }}>
-              <button type="button" className="sidebarV4LogoutBtn" onClick={signOut} title="Sign out">
-                <LogOut size={13} />
               </button>
             </div>
           )}
