@@ -8,14 +8,17 @@ const { generateReport, sendReportEmail } = require('../services/reportService')
 // GET /reports
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * 20;
+    const pageRaw = Number.parseInt(String(req.query.page || '1'), 10);
+    const limitRaw = Number.parseInt(String(req.query.limit || '20'), 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 20;
+    const offset = (page - 1) * limit;
     const { rows } = await query(`
       SELECT id, report_type, scope_type, period_start, period_end,
              email_sent, created_at, COUNT(*) OVER() AS total
       FROM reports WHERE generated_for = $1
       ORDER BY created_at DESC LIMIT $2 OFFSET $3
-    `, [req.user.id, Math.min(parseInt(limit), 50), offset]);
+    `, [req.user.id, limit, offset]);
     res.json({ reports: rows, total: parseInt(rows[0]?.total || 0) });
   } catch (err) { next(err); }
 });
