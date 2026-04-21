@@ -6076,6 +6076,15 @@ select.input option { background: #1a1d2e; color: white; }
   display: none !important;
 }
 
+/* Remove duplicate second header-card chrome (keep only functional content/controls) */
+.pageHeaderCard + .card,
+.pageHeaderCard + .chartV3 {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 /* Pull section controls into the header card area to avoid empty gap after hiding duplicate headings */
 .pageHeaderCard { position: relative; }
 .pageHeaderCard + .card > div:first-child,
@@ -6099,6 +6108,18 @@ select.input option { background: #1a1d2e; color: white; }
   font-size: 13px !important;
   font-weight: 800 !important;
   border-width: 1px !important;
+}
+
+/* Global action corner shape */
+.btn,
+.btnSm,
+.btnLg,
+.btnXl,
+.miniLink,
+.taskQuickFilterBtn,
+.sidebarThemeToggleBtn,
+.topbarLangBtn {
+  border-radius: 14px !important;
 }
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
