@@ -6075,6 +6075,30 @@ select.input option { background: #1a1d2e; color: white; }
 .pageHeaderCard + .chartV3 > div:first-child > div > h2 + div {
   display: none !important;
 }
+
+/* Pull section controls into the header card area to avoid empty gap after hiding duplicate headings */
+.pageHeaderCard { position: relative; }
+.pageHeaderCard + .card > div:first-child,
+.pageHeaderCard + .chartV3 > div:first-child {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  margin-top: -62px !important;
+  margin-bottom: 14px !important;
+  position: relative;
+  z-index: 2;
+}
+
+/* Unified header action button sizing/design across pages */
+.pageHeaderCard .btn,
+.pageHeaderCard + .card > div:first-child .btn,
+.pageHeaderCard + .chartV3 > div:first-child .btn {
+  height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
   border-color: rgba(226,171,65,0.28) !important;
