@@ -8,4 +8,4 @@ cmds = ["npm install --omit=dev"]
 cmds = []
 
 [start]
-cmd = "node scripts/migrate.js && node src/server.js"
+cmd = "node src/utils/migrate.js && node src/server.js"
