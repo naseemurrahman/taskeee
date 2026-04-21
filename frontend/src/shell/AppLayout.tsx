@@ -10,7 +10,7 @@ import type React from 'react'
 import {
   BarChart3, BookOpen, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Moon, Network, ScrollText,
-  Settings, Shield, Sun, UserRound, Users, LogOut, ChevronLeft, ChevronRight,
+  Settings, Shield, Sun, UserRound, Users, LogOut, ChevronLeft, ChevronRight, Globe,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -142,6 +142,8 @@ export function AppLayout() {
   const hasResults = searchResults && (
     (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) > 0
   )
+  const nextLang: Lang = (lang || 'en') === 'en' ? 'ar' : 'en'
+  const langFlag = (lang || 'en') === 'en' ? '🇺🇸' : '🇸🇦'
 
   return (
     <div className={`appShellV4 ${theme === 'light' ? 'appShellV4Light' : 'appShellV4Dark'} ${collapsed ? 'sidebarCollapsed' : ''} ${mobileOpen ? 'sidebarMobileOpen' : ''}`}>
@@ -215,27 +217,39 @@ export function AppLayout() {
         {/* Bottom */}
         <div className="sidebarV4Bottom">
           {!collapsed && (
-            <div className="sidebarV4Controls">
+            <div className="sidebarV4Controls sidebarV4ControlsStack">
+              <div className="sidebarThemeToggle" aria-label={t('nav.theme')}>
+                <button
+                  type="button"
+                  className={`sidebarThemeToggleBtn ${theme === 'light' ? 'active' : ''}`}
+                  onClick={() => setTheme('light')}
+                  title="Light mode"
+                >
+                  <Sun size={13} />
+                </button>
+                <button
+                  type="button"
+                  className={`sidebarThemeToggleBtn ${theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => setTheme('dark')}
+                  title="Dark mode"
+                >
+                  <Moon size={13} />
+                </button>
+              </div>
               <button
                 type="button"
-                className="sidebarV4ThemeBtn"
-                onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+                className="sidebarLangPillBtn"
+                onClick={() => setLang(nextLang)}
+                title={t('nav.language')}
               >
-                {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
-                <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
+                <span className="sidebarLangFlag" aria-hidden="true">{langFlag}</span>
+                <span>{(lang || 'en').toUpperCase()}</span>
+                <Globe size={12} />
               </button>
-              <select
-                value={lang || 'en'}
-                onChange={e => setLang(e.target.value as Lang)}
-                className="sidebarV4LangSelect"
-              >
-                <option value="en">EN</option>
-                <option value="ar">AR</option>
-              </select>
             </div>
           )}
           {collapsed && (
-            <div style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', display: 'grid', gap: 8, justifyItems: 'center' }}>
               <button
                 type="button"
                 className="sidebarV4ThemeBtn"
@@ -245,30 +259,24 @@ export function AppLayout() {
               >
                 {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
               </button>
+              <button
+                type="button"
+                className="sidebarV4ThemeBtn"
+                style={{ width: 34, height: 34, padding: 0, justifyContent: 'center', flex: 'none' }}
+                onClick={() => setLang(nextLang)}
+                title={t('nav.language')}
+              >
+                <Globe size={14} />
+              </button>
             </div>
           )}
-          <div className="sidebarV4UserChip">
-            <button type="button" className="sidebarV4UserBtn" onClick={() => navigate('/app/profile')} title={displayName}>
-              <div className="sidebarV4Avatar">
-                {avatarSrc && !avatarBroken ? (
-                  <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} />
-                ) : (
-                  <UserRound size={15} />
-                )}
-              </div>
-              {!collapsed && (
-                <div className="sidebarV4UserInfo">
-                  <span className="sidebarV4UserName">{displayName || 'My profile'}</span>
-                  <span className="sidebarV4UserRole">{role}</span>
-                </div>
-              )}
-            </button>
-            {!collapsed && (
+          {!collapsed && (
+            <div className="sidebarV4UserChip" style={{ justifyContent: 'center' }}>
               <button type="button" className="sidebarV4LogoutBtn" onClick={signOut} title="Sign out">
                 <LogOut size={13} />
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </aside>
 
