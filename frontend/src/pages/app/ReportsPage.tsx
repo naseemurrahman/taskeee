@@ -62,15 +62,6 @@ export function ReportsPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🕐</span> Historical snapshots</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Reports</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Generate on-demand exports and review history.</div>
-          </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('on_demand')}>
               {m.isPending ? 'Generating…' : 'Generate'}
@@ -80,6 +71,10 @@ export function ReportsPage() {
             </a>
           </div>
         </div>
+      </div>
+
+      <div className="card">
+        <div style={{ color: 'var(--text2)' }}>Generate on-demand exports and review history.</div>
         {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
       </div>
 

@@ -138,17 +138,6 @@ export function CalendarPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚠️</span> Overdue alerts</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="calNav">
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Calendar</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4, maxWidth: 560, lineHeight: 1.45 }}>
-              Task due dates use your project (category) accent color on the day cell. Project start dates use the same color from Projects.
-            </div>
-          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
               Prev
@@ -160,6 +149,12 @@ export function CalendarPage() {
               Next
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div style={{ color: 'var(--text2)', maxWidth: 700, lineHeight: 1.45 }}>
+          Task due dates use your project (category) accent color on the day cell. Project start dates use the same color from Projects.
         </div>
       </div>
 
