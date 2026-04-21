@@ -5,6 +5,12 @@ const { query } = require('../utils/db');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { generateReport, sendReportEmail } = require('../services/reportService');
 
+function isMissingReportsTableError(err) {
+  const code = String(err?.code || '');
+  const msg = String(err?.message || '').toLowerCase();
+  return code === '42P01' && (msg.includes('reports') || msg.includes('relation'));
+}
+
 // GET /reports
 router.get('/', authenticate, async (req, res, next) => {
   try {
@@ -42,7 +48,17 @@ router.get('/', authenticate, async (req, res, next) => {
 
     if (!rows) throw lastColumnErr;
     res.json({ reports: rows, total: parseInt(rows[0]?.total || 0) });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (isMissingReportsTableError(err)) {
+      return res.json({
+        reports: [],
+        total: 0,
+        migrationRequired: true,
+        warning: 'Reports table missing. Run database migrations.',
+      });
+    }
+    next(err);
+  }
 });
 
 // GET /reports/:id
@@ -53,7 +69,12 @@ router.get('/:id', authenticate, async (req, res, next) => {
     `, [req.params.id, req.user.id]); // OWASP A01: own reports only
     if (!rows.length) return res.status(404).json({ error: 'Report not found' });
     res.json({ report: rows[0] });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (isMissingReportsTableError(err)) {
+      return res.status(503).json({ error: 'Reports are not available yet. Run database migrations.', migrationRequired: true });
+    }
+    next(err);
+  }
 });
 
 router.get('/:id/export', authenticate, async (req, res, next) => {
@@ -83,7 +104,12 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
     }
 
     return res.status(400).json({ error: 'Unsupported export format' });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (isMissingReportsTableError(err)) {
+      return res.status(503).json({ error: 'Reports are not available yet. Run database migrations.', migrationRequired: true });
+    }
+    next(err);
+  }
 });
 
 // POST /reports/generate – on-demand
@@ -101,7 +127,12 @@ router.post('/generate', authenticate, async (req, res, next) => {
 
     const data = await generateReport(req.user.id, req.user.org_id, start, end, reportType);
     res.json({ report: data });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (isMissingReportsTableError(err)) {
+      return res.status(503).json({ error: 'Reports are not available yet. Run database migrations.', migrationRequired: true });
+    }
+    next(err);
+  }
 });
 
 module.exports = router;
