@@ -14,8 +14,7 @@ router.get('/', authenticate, async (req, res, next) => {
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 20;
     const offset = (page - 1) * limit;
     const { rows } = await query(`
-      SELECT id, report_type, scope_type, period_start, period_end,
-             email_sent, created_at, COUNT(*) OVER() AS total
+      SELECT *, COUNT(*) OVER() AS total
       FROM reports WHERE generated_for = $1
       ORDER BY created_at DESC LIMIT $2 OFFSET $3
     `, [req.user.id, limit, offset]);
