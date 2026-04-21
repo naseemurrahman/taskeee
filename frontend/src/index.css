@@ -6079,10 +6079,11 @@ select.input option { background: #1a1d2e; color: white; }
 /* Remove duplicate second header-card chrome (keep only functional content/controls) */
 .pageHeaderCard + .card,
 .pageHeaderCard + .chartV3 {
-  background: transparent !important;
-  border: none !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
   box-shadow: none !important;
-  padding: 0 !important;
+  padding: 16px 20px !important;
+  border-radius: 18px !important;
 }
 
 /* Pull section controls into the header card area to avoid empty gap after hiding duplicate headings */
@@ -6119,7 +6120,21 @@ select.input option { background: #1a1d2e; color: white; }
 .taskQuickFilterBtn,
 .sidebarThemeToggleBtn,
 .topbarLangBtn {
-  border-radius: 14px !important;
+  border-radius: 999px !important;
+}
+
+/* Keep filled buttons in primary color while preserving non-filled button variants */
+.btnPrimary {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: #111827 !important;
+}
+.btnPrimary:hover {
+  filter: brightness(0.97);
+}
+
+.appShellV4 button:not(.topbarV4ProfileBtn):not(.sidebarCollapseBtn):not(.topbarV4MenuBtn) {
+  border-radius: 999px !important;
 }
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
