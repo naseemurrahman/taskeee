@@ -3,10 +3,11 @@
 /**
  * SSL options for node-pg Client / Pool.
  *
- * - Unset: development → no TLS; production → TLS with certificate verification (cloud DBs).
- * - DATABASE_SSL=false: no TLS (typical Postgres in Docker on your PC).
- * - DATABASE_SSL=true: TLS and verify server certificate.
- * - DATABASE_SSL=no-verify: TLS but allow self-signed / custom CAs (use sparingly).
+ * - Unset: development → no TLS; production → TLS, accept self-signed certs
+ *   (Railway, Render, Fly.io all use self-signed certificates by default).
+ * - DATABASE_SSL=false: no TLS (local Docker Postgres).
+ * - DATABASE_SSL=true or verify-full: TLS with strict certificate verification.
+ * - DATABASE_SSL=no-verify: TLS but allow self-signed / custom CAs.
  */
 function resolvePgSsl() {
   const raw = (process.env.DATABASE_SSL || '').trim().toLowerCase();
@@ -17,8 +18,10 @@ function resolvePgSsl() {
   if (raw === 'no-verify' || raw === 'insecure') {
     return { rejectUnauthorized: false };
   }
+  // Default for production: accept self-signed certs.
+  // Set DATABASE_SSL=true to enforce strict certificate verification.
   if (process.env.NODE_ENV === 'production') {
-    return { rejectUnauthorized: true };
+    return { rejectUnauthorized: false };
   }
   return false;
 }
