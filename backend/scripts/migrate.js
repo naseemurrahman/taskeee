@@ -267,11 +267,29 @@ async function runMigrations() {
         )
       `);
 
+      // Create reports table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS reports (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          generated_for UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          report_type VARCHAR(50) DEFAULT 'on_demand',
+          scope_type VARCHAR(30),
+          period_start TIMESTAMP,
+          period_end TIMESTAMP,
+          data JSONB DEFAULT '{}',
+          email_sent BOOLEAN DEFAULT FALSE,
+          email_sent_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Create indexes
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_org ON tasks(org_id)`);
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to)`);
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_reports_user ON reports(generated_for, created_at DESC)`);
 
       // Insert default subscription plans
       await pool.query(`
@@ -303,6 +321,18 @@ async function runMigrations() {
           ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}',
           ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
           ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `).catch(() => {});
+
+      await pool.query(`
+        ALTER TABLE reports
+          ADD COLUMN IF NOT EXISTS report_type VARCHAR(50) DEFAULT 'on_demand',
+          ADD COLUMN IF NOT EXISTS scope_type VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS period_start TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS period_end TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}',
+          ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       `).catch(() => {});
 
       logger.info('Database migrations completed successfully');
