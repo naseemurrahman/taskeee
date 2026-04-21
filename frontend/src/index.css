@@ -6065,6 +6065,16 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Dark .boardCard:hover {
   border-color: rgba(226, 171, 65, 0.42) !important;
 }
+
+/* Avoid duplicated page heading cards: hide repeated H2/subtitle in first section card */
+.pageHeaderCard + .card > div:first-child > div > h2,
+.pageHeaderCard + .chartV3 > div:first-child > div > h2 {
+  display: none !important;
+}
+.pageHeaderCard + .card > div:first-child > div > h2 + div,
+.pageHeaderCard + .chartV3 > div:first-child > div > h2 + div {
+  display: none !important;
+}
 .modalV2Icon {
   background: rgba(226,171,65,0.12) !important;
   border-color: rgba(226,171,65,0.28) !important;
