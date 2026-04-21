@@ -23,6 +23,19 @@ export class ApiError extends Error {
 
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null
 
+export function sanitizeApiErrorMessage(message: string): string {
+  return message
+    .replace(/(https?:\/\/)[^@\s]+@/gi, '$1***@')
+    .replace(/\bgh[pousr]_[A-Za-z0-9_]+\b/g, '***')
+}
+
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) return fallback
+  const raw = (err.message || '').trim()
+  if (!raw) return fallback
+  return sanitizeApiErrorMessage(raw)
+}
+
 function isErrorShape(value: unknown): value is { error: string } {
   if (typeof value !== 'object' || value === null) return false
   return typeof (value as Record<string, unknown>).error === 'string'
