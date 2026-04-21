@@ -13,28 +13,34 @@ router.get('/', authenticate, async (req, res, next) => {
     const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 20;
     const offset = (page - 1) * limit;
-    const schemaRes = await query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'reports'
-        AND table_schema = current_schema()
-    `);
-    const columnNames = new Set(schemaRes.rows.map((r) => r.column_name));
-    const scopeExpr = columnNames.has('scope_type')
-      ? 'scope_type'
-      : (columnNames.has('scope') ? 'scope AS scope_type' : "NULL::text AS scope_type");
-    const periodStartExpr = columnNames.has('period_start')
-      ? 'period_start'
-      : "NULL::timestamptz AS period_start";
-    const periodEndExpr = columnNames.has('period_end')
-      ? 'period_end'
-      : "NULL::timestamptz AS period_end";
-    const { rows } = await query(`
-      SELECT id, report_type, ${scopeExpr}, ${periodStartExpr}, ${periodEndExpr},
-             email_sent, created_at, COUNT(*) OVER() AS total
-      FROM reports WHERE generated_for = $1
-      ORDER BY created_at DESC LIMIT $2 OFFSET $3
-    `, [req.user.id, limit, offset]);
+    const candidateSelects = [
+      'id, report_type, scope_type, period_start, period_end, email_sent, created_at',
+      'id, report_type, scope AS scope_type, period_start, period_end, email_sent, created_at',
+      'id, report_type, NULL::text AS scope_type, period_start, period_end, email_sent, created_at',
+      'id, report_type, NULL::text AS scope_type, NULL::timestamptz AS period_start, NULL::timestamptz AS period_end, email_sent, created_at'
+    ];
+
+    let rows = null;
+    let lastColumnErr = null;
+    for (const selectClause of candidateSelects) {
+      try {
+        const result = await query(`
+          SELECT ${selectClause}, COUNT(*) OVER() AS total
+          FROM reports WHERE generated_for = $1
+          ORDER BY created_at DESC LIMIT $2 OFFSET $3
+        `, [req.user.id, limit, offset]);
+        rows = result.rows;
+        break;
+      } catch (err) {
+        if (err?.code === '42703') {
+          lastColumnErr = err;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!rows) throw lastColumnErr;
     res.json({ reports: rows, total: parseInt(rows[0]?.total || 0) });
   } catch (err) { next(err); }
 });
