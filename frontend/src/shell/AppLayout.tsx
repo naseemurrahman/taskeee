@@ -130,6 +130,20 @@ export function AppLayout() {
   const displayName = profileQ.data?.user?.full_name?.trim() || me?.fullName?.trim() || me?.email || ''
   const rawAvatarUrl = normalizeAvatarUrl(profileQ.data?.user?.avatar_url)
   const avatarSrc = rawAvatarUrl ? avatarDisplaySrc(rawAvatarUrl, 0) : ''
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const [avatarBroken, setAvatarBroken] = useState(false)
   useEffect(() => setAvatarBroken(false), [avatarSrc])
 
@@ -342,11 +356,57 @@ export function AppLayout() {
               <Globe size={13} />
               <span>{activeLang.toUpperCase()}</span>
             </button>
-            <button type="button" className="topbarV4ProfileBtn" onClick={() => navigate('/app/profile')} title={displayName}>
-              {avatarSrc && !avatarBroken ? (
-                <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} className="topbarV4AvatarImg" />
-              ) : <UserRound size={15} />}
-            </button>
+            <div className="topbarProfileWrap" ref={profileRef}>
+              <button type="button" className="topbarV4ProfileBtn"
+                onClick={() => setProfileOpen(v => !v)}
+                title={displayName}
+              >
+                {avatarSrc && !avatarBroken ? (
+                  <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} className="topbarV4AvatarImg" />
+                ) : <UserRound size={15} />}
+              </button>
+
+              {profileOpen && (
+                <div className="profileDropdown">
+                  <div className="profileDropdownHead">
+                    <div className="profileDropdownAvatar">
+                      {avatarSrc && !avatarBroken
+                        ? <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} />
+                        : (displayName.charAt(0) || '?').toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="profileDropdownName">{displayName || 'My Account'}</div>
+                      <div className="profileDropdownEmail">{me?.email || ''}</div>
+                      <div className="profileDropdownRole">{me?.role || 'user'}</div>
+                    </div>
+                  </div>
+                  <div className="profileDropdownList">
+                    <button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/profile') }}>
+                      <UserRound size={14} />
+                      My Profile
+                    </button>
+                    <button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/dashboard') }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                      Dashboard
+                    </button>
+                    <div className="profileDropdownDivider" />
+                    <button className="profileDropdownItem" onClick={() => { setProfileOpen(false); setTheme(theme === 'light' ? 'dark' : 'light') }}>
+                      {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+                      {theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}
+                    </button>
+                    <div className="profileDropdownDivider" />
+                    <button className="profileDropdownItem profileDropdownItemDanger" onClick={() => {
+                      setProfileOpen(false)
+                      localStorage.clear()
+                      window.location.href = '/signin'
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

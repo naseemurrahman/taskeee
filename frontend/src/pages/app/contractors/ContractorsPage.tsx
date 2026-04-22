@@ -123,10 +123,8 @@ export function ContractorsPage() {
       </div>
 
       <div className="card">
-        <div style={{ color: 'var(--text2)' }}>Manage contractors and engagements.</div>
-
-        {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
-        {q.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load contractors.</div> : null}
+        {error ? <div className="alert alertError" style={{ marginBottom: 12 }}>{error}</div> : null}
+        {q.isError ? <div className="alert alertError" style={{ marginBottom: 12 }}>Failed to load contractors.</div> : null}
 
         <form onSubmit={onCreate} className="form" style={{ marginTop: 12, gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
           <label className="label">

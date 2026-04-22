@@ -4959,7 +4959,7 @@ select.input option { background: #1a1d2e; color: white; }
 .appShellV4Light {
   --bg0:       #f5f3eb;
   --bg1:       #ffffff;
-  --bg2:       #fff1b8;
+  --bg2:       #f0f2f7;
   --surface:   #ffffff;
   --surfaceUp: #fff7e0;
   --border:    #e4e7ef;
@@ -6505,3 +6505,190 @@ button.btnPrimary,
   border-radius: 10px !important;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME CALENDAR — visible borders + professional look
+   ═══════════════════════════════════════════════════════════════ */
+.appShellV4Light .calCell {
+  border: 1px solid #d8d2bd !important;
+  background: #ffffff !important;
+  border-radius: 10px !important;
+}
+.appShellV4Light .calCell:hover {
+  border-color: rgba(226,171,65,0.6) !important;
+  background: rgba(226,171,65,0.04) !important;
+}
+.appShellV4Light .calCellMuted {
+  opacity: 0.4;
+  border-color: #e8e4d8 !important;
+  background: #f8f7f3 !important;
+}
+.appShellV4Light .calCellMuted:hover {
+  border-color: #e8e4d8 !important;
+  background: #f8f7f3 !important;
+}
+.appShellV4Light .calCellToday {
+  border: 2px solid #e2ab41 !important;
+  background: rgba(226,171,65,0.06) !important;
+  box-shadow: 0 0 0 2px rgba(226,171,65,0.15) !important;
+}
+.appShellV4Light .calCellNum {
+  color: #1a1d2e !important;
+  font-weight: 900;
+}
+.appShellV4Light .calCellToday .calCellNum {
+  color: #b87200 !important;
+}
+.appShellV4Light .calWeekday {
+  color: #8892a4 !important;
+}
+.appShellV4Light .calMonthGrid {
+  gap: 6px;
+}
+.appShellV4Light .calShell .card {
+  background: #ffffff !important;
+}
+
+/* ─── Dark theme calendar ─── */
+.appShellV4Dark .calCell {
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+.appShellV4Dark .calCell:hover {
+  border-color: rgba(226,171,65,0.35) !important;
+  background: rgba(255,255,255,0.04) !important;
+}
+.appShellV4Dark .calCellToday {
+  border: 2px solid #e2ab41 !important;
+  background: rgba(226,171,65,0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFESSIONAL PROFILE DROPDOWN
+   ═══════════════════════════════════════════════════════════════ */
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: var(--bg1);
+  border: 1.5px solid var(--borderUp);
+  border-radius: 16px;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 500;
+  overflow: hidden;
+  animation: dropIn 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.appShellV4Light .profileDropdown {
+  background: #ffffff;
+  border-color: #e4e7ef;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+.profileDropdownHead {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.appShellV4Light .profileDropdownHead {
+  border-color: #f0f0f6;
+}
+.profileDropdownAvatar {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: var(--brandDim); border: 1.5px solid var(--brandBorder);
+  display: grid; place-items: center; overflow: hidden;
+  color: var(--brand); font-weight: 900; font-size: 13px;
+}
+.profileDropdownAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.profileDropdownName {
+  font-size: 13px; font-weight: 800; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profileDropdownEmail {
+  font-size: 11px; color: var(--muted); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profileDropdownRole {
+  display: inline-flex; align-items: center;
+  margin-top: 3px; padding: 2px 8px;
+  border-radius: 999px; font-size: 10px; font-weight: 800;
+  background: var(--brandDim); color: var(--brand);
+  border: 1px solid var(--brandBorder); text-transform: capitalize;
+}
+.profileDropdownList {
+  padding: 6px;
+}
+.profileDropdownItem {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 10px; border-radius: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text2); font-size: 13px; font-weight: 700;
+  text-align: left; text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+.profileDropdownItem:hover {
+  background: var(--surfaceUp); color: var(--text);
+}
+.profileDropdownItem svg { flex-shrink: 0; color: var(--muted); }
+.profileDropdownItem:hover svg { color: var(--brand); }
+.appShellV4Light .profileDropdownItem:hover { background: #f5f5fb; }
+.profileDropdownDivider {
+  height: 1px; background: var(--border); margin: 4px 10px;
+}
+.appShellV4Light .profileDropdownDivider { background: #f0f0f6; }
+.profileDropdownItemDanger { color: #ef4444 !important; }
+.profileDropdownItemDanger svg { color: #ef4444 !important; }
+.profileDropdownItemDanger:hover { background: rgba(239,68,68,0.08) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH DROPDOWN — professional
+   ═══════════════════════════════════════════════════════════════ */
+.topbarV4SearchDropdown {
+  border-radius: 16px !important;
+  border: 1.5px solid var(--brandBorder) !important;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12) !important;
+  overflow: hidden;
+}
+.appShellV4Light .topbarV4SearchDropdown {
+  background: #ffffff !important;
+  border-color: rgba(226,171,65,0.3) !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
+}
+.topbarV4SearchItem {
+  border-radius: 10px !important;
+}
+.topbarV4SearchGroupTitle {
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+}
+.appShellV4Light .topbarV4SearchItem:hover {
+  background: #f5f5fb !important;
+  color: #1a1d2e !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE HEADER CARD — remove duplicate top stripe
+   Single header per page only
+   ═══════════════════════════════════════════════════════════════ */
+/* When a page has ONLY formCardV3 (no pageHeaderCard), style it as the de-facto header */
+.formCardV3Head {
+  padding: 18px 22px !important;
+}
+
+/* ─── Light theme: employee/workspace account rows ─── */
+.appShellV4Light .workspaceUserRow {
+  background: #f8f9fc !important;
+  border-color: #e4e7ef !important;
+}
+.appShellV4Light .workspaceUserRow:hover {
+  background: #f0f2f8 !important;
+  border-color: rgba(226,171,65,0.4) !important;
+}
+
+/* ─── Topbar profile button wrap — enable relative for dropdown ─── */
+.topbarProfileWrap {
+  position: relative;
+  flex-shrink: 0;
+}

@@ -103,10 +103,8 @@ export function CrmLeadsPage() {
         </div>
       </div>
       <div className="card">
-        <div style={{ color: 'var(--text2)' }}>Capture and qualify incoming leads.</div>
-
-        {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
-        {q.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load leads.</div> : null}
+        {error ? <div className="alert alertError" style={{ marginBottom: 12 }}>{error}</div> : null}
+        {q.isError ? <div className="alert alertError" style={{ marginBottom: 12 }}>Failed to load leads.</div> : null}
 
         <form onSubmit={onCreate} className="form" style={{ marginTop: 12, gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
           <label className="label">

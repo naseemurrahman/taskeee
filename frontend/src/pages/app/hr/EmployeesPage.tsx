@@ -135,38 +135,8 @@ export function EmployeesPage() {
     m.mutate({ fullName: fullName.trim(), department, email: email.trim(), phone: phone.trim(), countryCode, employeeId: employeeId.trim(), designation: designation.trim() })
   }
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {}
-    for (const e of employees) c[e.status] = (c[e.status] || 0) + 1
-    return c
-  }, [employees])
-
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-
-      {/* Page header card */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Employees
-            </div>
-            <div className="pageHeaderCardSub">Manage your organization's employees, view profiles, add new members, and track workspace accounts.</div>
-            <div className="pageHeaderCardMeta">
-              {employees.length > 0 && <span className="pageHeaderCardTag">{employees.length} employees</span>}
-              {(counts['active'] || 0) > 0 && <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>{counts['active']} active</span>}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
-            <button type="button" className="btn btnPrimary btnSm" onClick={() => { resetForm(); setAddOpen(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Employee
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Credentials panel shown after creating */}
       {createdData && (
@@ -200,18 +170,24 @@ export function EmployeesPage() {
         </div>
       )}
 
-      {/* Directory */}
+      {/* ── Employee Directory (primary card with title + actions) ── */}
       <div className="formCardV3">
         <div className="formCardV3Head">
           <div>
-            <div className="formCardV3Title">Employee Directory</div>
-            <div className="formCardV3Sub">{employees.length} employee{employees.length !== 1 ? 's' : ''} found</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--brand)', flexShrink: 0 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span className="formCardV3Title">Employee Directory</span>
+              {employees.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)', border: '1px solid var(--brandBorder)' }}>{employees.length}</span>
+              )}
+            </div>
+            <div className="formCardV3Sub">Manage your organization's employees, view profiles, and track workspace accounts.</div>
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ width: 170 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ width: 160 }}>
               <Select value={status} onChange={setStatus} options={STATUS_OPTS} />
             </div>
-            <div style={{ width: 220 }}>
+            <div style={{ width: 200 }}>
               <Input
                 placeholder="Search name, email…"
                 value={search}
@@ -219,6 +195,11 @@ export function EmployeesPage() {
                 icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
               />
             </div>
+            <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
+            <button type="button" className="btn btnPrimary btnSm" onClick={() => { resetForm(); setAddOpen(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Employee
+            </button>
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -233,8 +214,8 @@ export function EmployeesPage() {
                 <tr><td colSpan={5}>
                   <div className="emptyStateV3">
                     <div className="emptyStateV3Icon">👥</div>
-                    <div className="emptyStateV3Title">No employees yet</div>
-                    <div className="emptyStateV3Body">Click "Add Employee" to get started</div>
+                    <div className="emptyStateV3Title">No HRIS employees yet</div>
+                    <div className="emptyStateV3Body">Click "Add Employee" to create a full employee record with login credentials. Workspace accounts are listed below.</div>
                   </div>
                 </td></tr>
               ) : employees.map(e => (
@@ -262,15 +243,21 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* Workspace accounts */}
+      {/* ── Workspace Accounts ── */}
       {canSeeAccounts && (
         <div className="formCardV3">
           <div className="formCardV3Head">
             <div>
-              <div className="formCardV3Title">Workspace Accounts</div>
-              <div className="formCardV3Sub">People who can sign in · click to view task data</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--brand)', flexShrink: 0 }}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span className="formCardV3Title">Workspace Accounts</span>
+                {orgUsers.length > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)', border: '1px solid var(--brandBorder)' }}>{orgUsers.length}</span>
+                )}
+              </div>
+              <div className="formCardV3Sub">People with sign-in access — click to view task activity</div>
             </div>
-            <div style={{ width: 220 }}>
+            <div style={{ width: 200 }}>
               <Input placeholder="Search…" value={acctSearch} onChange={e => setAcctSearch(e.target.value)}
                 icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
               />
@@ -278,12 +265,13 @@ export function EmployeesPage() {
           </div>
           <div className="formCardV3Body">
             {!acctQ.isLoading && orgUsers.length === 0 && <div className="emptyStateV3"><div className="emptyStateV3Icon">🔑</div><div className="emptyStateV3Title">No accounts found</div></div>}
-            <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gap: 6 }}>
               {orgUsers.map(u => (
                 <button key={u.id} type="button" onClick={() => setPickId(u.id)}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.13s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brandBorder)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                  className="workspaceUserRow"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--bg1)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.13s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brandBorder)'; e.currentTarget.style.background = 'var(--surfaceUp)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg1)' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <div className="avatarV3" style={{ background: hashColor(u.email) }}>{(u.full_name || u.email).charAt(0).toUpperCase()}</div>
