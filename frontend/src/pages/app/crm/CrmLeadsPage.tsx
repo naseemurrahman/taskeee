@@ -136,15 +136,15 @@ export function CrmLeadsPage() {
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!q.isLoading && leads.length === 0 ? <div style={{ color: 'var(--text2)' }}>No leads found.</div> : null}
 
-        <div style={{ border: '1px solid rgba(255, 255, 255, 0.10)', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '10px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
+        <div className="tableWrapThemed">
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
             <div>Lead</div>
             <div>Contact</div>
             <div>Status</div>
             <div>Source</div>
           </div>
           {leads.map((l) => (
-            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '12px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '12px 12px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 900, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.full_name || '—'}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{l.owner_name || '—'}</div>

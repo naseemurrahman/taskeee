@@ -127,9 +127,11 @@ export function TimeOffPage() {
             Reason (optional)
             <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Vacation, medical, etc." />
           </label>
-          <button className="btn btnPrimary" type="submit" disabled={createM.isPending}>
-            {createM.isPending ? 'Submitting…' : 'Request time off'}
-          </button>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <button className="btn btnPrimary" type="submit" disabled={createM.isPending} style={{ width: 'fit-content' }}>
+              {createM.isPending ? 'Submitting…' : 'Request time off'}
+            </button>
+          </div>
         </form>
       </div>
 

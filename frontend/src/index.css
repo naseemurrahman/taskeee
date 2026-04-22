@@ -6265,3 +6265,243 @@ select.input option { background: #1a1d2e; color: white; }
   border-color: var(--brandBorder) !important;
   color: var(--brand) !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM UNIFICATION — v5 final pass
+   Buttons: pill (999px) everywhere, filled stays filled
+   Cards/containers: consistent 16px radius + theme-aware border
+   Calendar today: primary color border
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. BUTTON SHAPE — pill for EVERY button in the app ─────── */
+/* Single source-of-truth override, highest cascade priority */
+.btn,
+.btnSm,
+.btnLg,
+.btnXl,
+button.btn,
+a.btn,
+label.btn,
+.taskQuickFilterBtn,
+.sidebarThemeToggleBtn,
+.topbarLangBtn,
+.mktBtn,
+.mktBtnPrimary,
+.mktBtnGhost,
+.heroCtaBtn,
+.authV4SubmitBtn,
+.authV2Submit,
+.topbarLangBtn {
+  border-radius: 999px !important;
+}
+
+/* pageHeaderCard buttons get same pill shape */
+.pageHeaderCard .btn,
+.pageHeaderCard + .card .btn,
+.pageHeaderCard + .chartV3 .btn {
+  border-radius: 999px !important;
+}
+
+/* Icon-only round buttons stay circular */
+.topbarV4ProfileBtn,
+.sidebarCollapseBtn,
+.topbarV4MenuBtn,
+.modalV2Close,
+.topbarMenuBtn,
+.sidebarV4LogoutBtn {
+  border-radius: 50% !important;
+}
+
+/* Small square-ish UI controls keep their shape */
+.colorPickerTrigger,
+.colorSwatch {
+  border-radius: 8px !important;
+}
+
+/* ── 2. FILLED BUTTON — gold gradient preserved ──────────────── */
+.btn.btnPrimary,
+.btnPrimary,
+button.btnPrimary,
+.appShellV4Dark .btnPrimary,
+.appShellV4Light .btnPrimary,
+.appShellLight .btnPrimary {
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0)) !important;
+  border-color: rgba(226,171,65,0.40) !important;
+  color: #1a1d2e !important;
+  box-shadow: 0 4px 14px rgba(226,171,65,0.28) !important;
+}
+.btn.btnPrimary:hover:not(:disabled),
+.btnPrimary:hover:not(:disabled) {
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(200,130,10,1.0)) !important;
+  box-shadow: 0 6px 22px rgba(226,171,65,0.42) !important;
+  transform: translateY(-1px);
+}
+
+/* ── 3. CARD / CONTAINER SHAPE — consistent 16px radius ─────── */
+.card,
+.miniCard,
+.chartV3,
+.kpiV3,
+.kpiCard,
+.chartCardV2,
+.formCardV3,
+.pageHeaderCard,
+.modalCardV2,
+.modalCard,
+.projectCard,
+.boardCard,
+.boardCol,
+.teamCard,
+.taskListBody,
+.reportStatCard,
+.reportKpi,
+.skeletonCard,
+.authCard,
+.authV4Card,
+.boardEmpty,
+.dashEmptyWell,
+.miniCard,
+.heroDashMock,
+.aiDecisionCard {
+  border-radius: 16px !important;
+}
+
+/* Slightly larger radius for page-level wrappers */
+.pageHeaderCard,
+.modalCardV2,
+.authV4Card {
+  border-radius: 20px !important;
+}
+
+/* ── 4. THEME-AWARE CARD BORDERS ─────────────────────────────── */
+/* Dark theme — subtle white glass border */
+.appShellV4Dark .card,
+.appShellV4Dark .miniCard,
+.appShellV4Dark .chartV3,
+.appShellV4Dark .kpiV3,
+.appShellV4Dark .chartCardV2,
+.appShellV4Dark .formCardV3,
+.appShellV4Dark .pageHeaderCard,
+.appShellV4Dark .projectCard,
+.appShellV4Dark .boardCard,
+.appShellV4Dark .boardCol {
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: var(--surface) !important;
+}
+.appShellV4Dark .card:hover,
+.appShellV4Dark .chartV3:hover,
+.appShellV4Dark .kpiV3:hover,
+.appShellV4Dark .formCardV3:hover,
+.appShellV4Dark .miniCard:hover {
+  border-color: rgba(226,171,65,0.38) !important;
+}
+
+/* Light theme — warm beige border on white background */
+.appShellV4Light .card,
+.appShellV4Light .miniCard,
+.appShellV4Light .chartV3,
+.appShellV4Light .kpiV3,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .formCardV3,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .projectCard,
+.appShellV4Light .boardCard,
+.appShellV4Light .boardCol {
+  border: 1px solid #d8d2bd !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+.appShellV4Light .card:hover,
+.appShellV4Light .chartV3:hover,
+.appShellV4Light .kpiV3:hover,
+.appShellV4Light .formCardV3:hover,
+.appShellV4Light .miniCard:hover {
+  border-color: rgba(226,171,65,0.45) !important;
+  box-shadow: 0 4px 20px rgba(226,171,65,0.10) !important;
+  transform: none !important;
+}
+
+/* ── 5. THEME-AWARE INLINE TABLE WRAPPERS (leads, contractors) ── */
+/* Class used to override hardcoded dark rgba borders */
+.tableWrapThemed {
+  border: 1px solid var(--border, rgba(255,255,255,0.10)) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+.appShellV4Dark .tableWrapThemed {
+  border-color: rgba(255,255,255,0.10) !important;
+  background: transparent;
+}
+.appShellV4Light .tableWrapThemed {
+  border-color: #d8d2bd !important;
+  background: #ffffff;
+}
+
+/* ── 6. CALENDAR — TODAY CELL border uses primary color ─────── */
+.calCell {
+  border-radius: 12px !important;
+}
+.calCellToday {
+  border-color: var(--brand, #e2ab41) !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 0 1px rgba(226,171,65,0.20) !important;
+}
+/* Light theme today cell */
+.appShellV4Light .calCellToday {
+  border-color: #e2ab41 !important;
+  background: rgba(226,171,65,0.04) !important;
+}
+
+/* ── 7. BUTTON POSITIONING — prevent overflow in form grids ──── */
+/* Ensure submit buttons in 2-col grid forms don't stretch full width */
+.form button.btn.btnPrimary:not([style*="width"]) {
+  width: fit-content;
+  min-width: auto;
+}
+
+/* ── 8. PILL / FILTER CHIPS — keep pill shape ────────────────── */
+.pill,
+.pillMuted,
+.pillPending,
+.pillActive,
+.pillDone,
+.pillOverdue,
+.pillSubmitted,
+.statusBadge,
+.pageHeaderCardTag,
+.taskQuickFilterBtn,
+.boardColCount,
+.heroBadge,
+.trendBadge,
+.mktChip,
+.rolePill {
+  border-radius: 999px !important;
+}
+
+/* ── 9. INPUT / SELECT — consistent radius ───────────────────── */
+.input,
+.inputV3Native,
+.inputV3Field,
+.selectV3Trigger,
+.authV2Input,
+.authV4Card .inputV3Field {
+  border-radius: 12px !important;
+}
+
+/* ── 10. MODAL — consistent radius ──────────────────────────── */
+.modalCardV2,
+.modalCard {
+  border-radius: 20px !important;
+}
+.modalV2Close {
+  border-radius: 50% !important;
+}
+
+/* ── 11. nav items — pill on hover, keep clean ───────────────── */
+.navItemV4,
+.navItem,
+.navItemV2 {
+  border-radius: 10px !important;
+}
+

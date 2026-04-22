@@ -166,8 +166,8 @@ export function ContractorsPage() {
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!q.isLoading && contractors.length === 0 ? <div style={{ color: 'var(--text2)' }}>No contractors found.</div> : null}
 
-        <div className="contractorsTableWrap" style={{ border: '1px solid rgba(255, 255, 255, 0.10)', borderRadius: 16, overflow: 'auto' }}>
-          <div className="contractorsTableGrid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.7fr 0.6fr', minWidth: 520, padding: '10px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
+        <div className="contractorsTableWrap tableWrapThemed" style={{ overflowX: 'auto' }}>
+          <div className="contractorsTableGrid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.7fr 0.6fr', minWidth: 520, padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
             <div>Contractor</div>
             <div>Company</div>
             <div>Rate</div>
@@ -178,7 +178,7 @@ export function ContractorsPage() {
               key={c.id}
               to={`/app/contractors/${c.id}`}
               className="contractorsTableGrid"
-              style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.7fr 0.6fr', minWidth: 520, padding: '12px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', textDecoration: 'none', color: 'inherit' }}
+              style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.7fr 0.6fr', minWidth: 520, padding: '12px 12px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 900, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
