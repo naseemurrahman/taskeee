@@ -784,14 +784,30 @@ router.post('/change-password', authenticate, async (req, res, next) => {
       return res.status(400).json({ error: 'Valid passwords required (min 8 chars)' });
 
     const { rows } = await query(
-      `SELECT password_hash FROM users WHERE id = $1`, [req.user.id]
+      `SELECT password_hash, temp_password, temp_password_expires
+       FROM users WHERE id = $1`,
+      [req.user.id]
     );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const user = rows[0];
 
-    if (!await bcrypt.compare(currentPassword, rows[0].password_hash))
+    const passwordMatch = user.password_hash
+      ? await bcrypt.compare(currentPassword, user.password_hash)
+      : false;
+    const tempPasswordValid = !!user.temp_password
+      && user.temp_password === currentPassword
+      && (!user.temp_password_expires || new Date(user.temp_password_expires) > new Date());
+
+    if (!passwordMatch && !tempPasswordValid)
       return res.status(401).json({ error: 'Current password incorrect' });
 
     const hash = await bcrypt.hash(newPassword, 12);
-    await query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, req.user.id]);
+    await query(
+      `UPDATE users
+       SET password_hash = $1, temp_password = NULL, temp_password_expires = NULL
+       WHERE id = $2`,
+      [hash, req.user.id]
+    );
 
     // Revoke all refresh tokens for security
     await query(`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, [req.user.id]);
