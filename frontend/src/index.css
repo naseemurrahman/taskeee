@@ -6871,8 +6871,8 @@ select.input {
 }
 .createTaskModalBody .selectV3Wrap {
   position: relative;
-  z-index: 2;
-}
-.createTaskModalBody .selectV3Wrap:has(.selectV3Open) {
   z-index: 20;
+}
+.createTaskModalBody .selectV3Dropdown {
+  z-index: 1200;
 }
