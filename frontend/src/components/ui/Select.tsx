@@ -72,7 +72,8 @@ export function Select({
       : { top: 0, bottom: window.innerHeight }
     const spaceBelow = bounds.bottom - rect.bottom
     const spaceAbove = rect.top - bounds.top
-    setOpenUp(spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow)
+    const minUsableAbove = searchable ? 170 : 140
+    setOpenUp(spaceBelow < estimatedDropdownHeight && spaceAbove >= minUsableAbove)
   }, [open, searchable, filtered.length])
 
   function handleSelect(opt: SelectOption) {

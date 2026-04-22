@@ -20,14 +20,52 @@ async function fetchProjects() {
 
 // Always fetch all assignable users — department filtering done client-side
 async function fetchAllUsers(): Promise<UserRow[]> {
+  const normalize = (rows: UserRow[]) => {
+    const seen = new Set<string>()
+    const out: UserRow[] = []
+    for (const row of rows) {
+      if (!row?.id || seen.has(row.id)) continue
+      seen.add(row.id)
+      out.push(row)
+    }
+    return out
+  }
+
+  const enrichWithEmployeeDepartments = async (users: UserRow[]) => {
+    if (!users.length) return users
+    try {
+      const d = await apiFetch<{ employees: Array<{ user_id?: string | null; work_email?: string | null; department?: string | null }> }>(
+        '/api/v1/hris/employees?page=1&limit=200'
+      )
+      const emps = d.employees || []
+      if (!emps.length) return users
+      const byUserId = new Map<string, string>()
+      const byEmail = new Map<string, string>()
+      for (const e of emps) {
+        const dep = String(e.department || '').trim()
+        if (!dep) continue
+        if (e.user_id) byUserId.set(e.user_id, dep)
+        if (e.work_email) byEmail.set(String(e.work_email).toLowerCase(), dep)
+      }
+      return users.map((u) => ({
+        ...u,
+        department: u.department?.trim() || byUserId.get(u.id) || byEmail.get(String(u.email || '').toLowerCase()) || null,
+      }))
+    } catch {
+      return users
+    }
+  }
+
   try {
     const d = await apiFetch<{ users: UserRow[] }>('/api/v1/tasks/assignable-users')
-    if (d.users && d.users.length > 0) return d.users
+    if (d.users && d.users.length > 0) {
+      return await enrichWithEmployeeDepartments(normalize(d.users))
+    }
   } catch { /* fall through */ }
   // Fallback to workspace accounts
   try {
     const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=200')
-    return d.users || []
+    return await enrichWithEmployeeDepartments(normalize(d.users || []))
   } catch { return [] }
 }
 
