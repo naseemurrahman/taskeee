@@ -237,7 +237,6 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             label="Assign To" required
             value={assignedTo}
             onChange={setAssignedTo}
-            preferOpenUp
             options={[
               { value: '', label: usersQ.isLoading ? 'Loading…' : 'Select employee…' },
               ...filteredAssignees.map(u => ({
