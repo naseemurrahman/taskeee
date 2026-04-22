@@ -7486,3 +7486,40 @@ tr:hover .inlineEditBtn {
   gap: 12px !important;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL DROPDOWN OVERFLOW — definitive fix
+   The dropdown must render outside modal bounds via portal-style z-index
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Reset all overflow fighting rules — single authoritative block */
+.modalCardV2 {
+  overflow: visible !important;
+  max-height: none !important;
+  contain: layout !important;  /* creates stacking context without clipping */
+}
+.modalV2Body {
+  overflow: visible !important;
+  max-height: none !important;
+  position: relative;
+  z-index: 0;
+}
+
+/* Dropdown always floats above everything */
+.selectV3Dropdown {
+  position: fixed !important;  /* Fixed positioning escapes all overflow:hidden parents */
+  z-index: 999999 !important;
+  min-width: 200px;
+}
+
+/* Trigger stores its position so dropdown can be fixed-positioned */
+.selectV3Trigger {
+  position: relative;
+}
+
+/* Row hover reveals delete button */
+.employeeTableV3 tbody tr:hover .employeeDeleteBtn {
+  opacity: 1 !important;
+}
+

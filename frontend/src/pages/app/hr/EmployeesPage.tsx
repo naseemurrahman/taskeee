@@ -51,7 +51,15 @@ function copyText(text: string, btn: HTMLButtonElement) {
   })
 }
 
-const DEPARTMENTS = ['Engineering','Product','Design','Marketing','Sales','Finance','Human Resources','Operations','Legal','Customer Success','Data & Analytics','Other']
+const DEPARTMENTS = [
+  'IT', 'Technical', 'Engineering', 'Software Development', 'Infrastructure',
+  'Cybersecurity', 'Data & Analytics', 'AI & Machine Learning',
+  'Human Resources', 'Finance', 'Accounting', 'Legal',
+  'Sales', 'Marketing', 'Customer Success', 'Customer Support',
+  'Operations', 'Product', 'Design', 'Research & Development',
+  'Project Management', 'Business Development', 'Procurement',
+  'Quality Assurance', 'Administration', 'Executive', 'Other',
+]
 const COUNTRY_CODES = [
   { value: '+966', label: '+966 — Saudi Arabia' },{ value: '+971', label: '+971 — UAE' },
   { value: '+1', label: '+1 — US/Canada' },{ value: '+44', label: '+44 — UK' },
@@ -99,6 +107,18 @@ export function EmployeesPage() {
     setCountryCode('+966'); setEmployeeId(''); setDesignation(''); setRoleType('')
     setFormError(null); setFieldErrors({})
   }
+
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+
+  const deleteEmpM = useMutation({
+    mutationFn: (empId: string) => apiFetch(`/api/v1/hris/employees/${empId}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
+  })
+
+  const deleteAllM = useMutation({
+    mutationFn: () => apiFetch('/api/v1/hris/employees', { method: 'DELETE' }),
+    onSuccess: () => { setDeleteAllConfirm(false); qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
+  })
 
   const m = useMutation({
     mutationFn: (input: Record<string, string>) => createEmployee(input).then(d => ({ ...d, loginEmail: input.email })),
@@ -198,6 +218,16 @@ export function EmployeesPage() {
               />
             </div>
             <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
+            {me?.role === 'admin' && (
+              <button
+                type="button" className="btn btnSm"
+                onClick={() => setDeleteAllConfirm(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', borderRadius: 999 }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                Delete All
+              </button>
+            )}
             <button type="button" className="btn btnPrimary btnSm" onClick={() => { resetForm(); setAddOpen(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Employee
@@ -225,10 +255,23 @@ export function EmployeesPage() {
                   </td>
                   <td><span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>{e.department || '—'}</span></td>
                   <td><span style={{ fontSize: 12 }}>{e.title || '—'}</span></td>
-                  <td>
+                  <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : e.status === 'on_leave' ? 'statusSubmitted' : 'statusPending'}`}>
                       {e.status.replace(/_/g, ' ')}
                     </span>
+                    {canSeeAccounts && (
+                      <button
+                        type="button"
+                        title="Delete employee"
+                        onClick={evt => { evt.stopPropagation(); if (window.confirm(`Delete ${e.full_name}? This cannot be undone.`)) deleteEmpM.mutate(e.id) }}
+                        style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}
+                        onMouseEnter={ev => (ev.currentTarget.style.opacity = '1')}
+                        onMouseLeave={ev => (ev.currentTarget.style.opacity = '0')}
+                        className="employeeDeleteBtn"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               )) : canSeeAccounts && orgUsers.length > 0 ? (
@@ -322,6 +365,42 @@ export function EmployeesPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete All Confirm ── */}
+      {deleteAllConfirm && (
+        <div className="modalOverlayV2" onMouseDown={() => setDeleteAllConfirm(false)}>
+          <div className="modalCardV2" style={{ maxWidth: 420, padding: 0 }} onMouseDown={e => e.stopPropagation()}>
+            <div className="modalV2Head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', display: 'grid', placeItems: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </div>
+                <div>
+                  <div className="modalV2Title" style={{ color: '#ef4444' }}>Delete All Employees</div>
+                  <div className="modalV2Sub">This action cannot be undone</div>
+                </div>
+              </div>
+              <button className="modalV2Close" onClick={() => setDeleteAllConfirm(false)} type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="modalV2Body" style={{ padding: '16px 22px' }}>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--text2)' }}>
+                This will <strong>permanently delete all employee records</strong> and deactivate their user accounts. Your admin account will not be affected.
+              </p>
+              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#ef4444', fontWeight: 700 }}>⚠️ Use this only to reset employee data before re-adding with correct departments.</p>
+            </div>
+            <div className="modalV2Foot">
+              <button type="button" className="btn btnGhost" onClick={() => setDeleteAllConfirm(false)}>Cancel</button>
+              <button type="button" disabled={deleteAllM.isPending}
+                onClick={() => deleteAllM.mutate()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 38, borderRadius: 999, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', opacity: deleteAllM.isPending ? 0.7 : 1 }}>
+                {deleteAllM.isPending ? 'Deleting…' : '🗑 Yes, Delete All Employees'}
+              </button>
             </div>
           </div>
         </div>

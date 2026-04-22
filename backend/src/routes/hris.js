@@ -461,6 +461,60 @@ router.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'a
 });
 
 // POST /hris/time-off/requests
+
+// DELETE /hris/employees/:id — hard delete employee + deactivate user (admin/hr only)
+router.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { id } = req.params;
+
+    // Find the employee record first
+    const { rows: empRows } = await query(
+      `SELECT e.*, u.role FROM hris_employees e
+       LEFT JOIN users u ON u.id = e.user_id
+       WHERE e.id = $1 AND e.org_id = $2`,
+      [id, orgId]
+    );
+    if (!empRows.length) return res.status(404).json({ error: 'Employee not found' });
+
+    const emp = empRows[0];
+    // Safety: cannot delete admin users
+    if (emp.role === 'admin') return res.status(403).json({ error: 'Cannot delete an admin user.' });
+
+    // Soft-delete: deactivate user account + delete HRIS employee record
+    if (emp.user_id) {
+      await query(
+        `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND org_id = $2`,
+        [emp.user_id, orgId]
+      );
+    }
+    await query(`DELETE FROM hris_employees WHERE id = $1 AND org_id = $2`, [id, orgId]);
+
+    res.json({ success: true, message: 'Employee deleted and account deactivated.' });
+  } catch (err) { next(err); }
+});
+
+// DELETE /hris/employees — delete ALL non-admin employees in org (admin only)
+router.delete('/employees', authenticate, requireAnyRole('admin'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+
+    // Deactivate all non-admin users except current user
+    await query(
+      `UPDATE users SET is_active = FALSE, updated_at = NOW()
+       WHERE org_id = $1 AND role != 'admin' AND id != $2`,
+      [orgId, req.user.id]
+    );
+    // Delete all HRIS employee records in this org
+    const { rowCount } = await query(
+      `DELETE FROM hris_employees WHERE org_id = $1`,
+      [orgId]
+    );
+
+    res.json({ success: true, deleted: rowCount, message: \`Deleted \${rowCount} employee records.\` });
+  } catch (err) { next(err); }
+});
+
 router.post('/time-off/requests', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
