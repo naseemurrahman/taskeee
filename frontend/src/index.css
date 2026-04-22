@@ -7507,3 +7507,29 @@ tr:hover .inlineEditBtn {
 .chartV3 { overflow: hidden; }
 .formCardV3 { overflow: hidden; }
 .miniCard { overflow: hidden; }
+
+/* Final select behavior: keep dropdown visible and anchored to trigger */
+.selectV3Wrap {
+  position: relative !important;
+}
+.selectV3Dropdown {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  bottom: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+}
+.selectV3DropdownUp {
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
+}
+
+/* Textarea should be lightly rounded, not fully pill-shaped */
+.textareaField {
+  border-radius: 14px !important;
+}
+.textareaField .inputV3Native,
+.textareaField textarea {
+  border-radius: 14px !important;
+}

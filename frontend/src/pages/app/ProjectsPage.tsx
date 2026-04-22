@@ -308,7 +308,7 @@ export function ProjectsPage() {
           />
           <div className="inputV3Wrap">
             <label className="selectV3Label">Description <span style={{ color: 'var(--muted)', fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-            <div className="inputV3Field" style={{ height: 'auto' }}>
+            <div className="inputV3Field textareaField" style={{ height: 'auto' }}>
               <textarea
                 className="inputV3Native"
                 value={description}
@@ -320,13 +320,7 @@ export function ProjectsPage() {
           </div>
           {/* Color picker BELOW description */}
           <div className="inputV3Wrap">
-            <label className="selectV3Label">
-              Accent Color
-              <span style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 14, height: 14, borderRadius: 4, background: color, border: '1px solid rgba(255,255,255,0.2)' }} />
-                <span style={{ color: 'var(--muted)', fontSize: 10, fontWeight: 700, textTransform: 'none' }}>{color}</span>
-              </span>
-            </label>
+            <label className="selectV3Label">Accent Color</label>
             <ColorPickerTrigger value={color} onChange={setColor} />
           </div>
         </form>
