@@ -314,8 +314,8 @@ export function TasksPage() {
             )}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <div style={{ overflow: 'visible' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />
