@@ -1,5 +1,6 @@
 // db.js - supports real PostgreSQL or in-memory demo mode
 const logger = require('./logger');
+const { resolvePgSsl } = require('./pgSsl');
 
 // Check if we should use demo mode (for development) or production mode
 let useDemo = process.env.NODE_ENV !== 'production';
@@ -20,7 +21,7 @@ let pgPool = null;
 if (!useDemo) {
   pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_SSL === 'true',
+    ssl: resolvePgSsl(),
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,

@@ -30,7 +30,7 @@ const {
 } = require('./middleware/security');
 
 // ── OWASP A05: crash immediately if required env vars missing ─────────────
-const REQUIRED = ['DATABASE_URL','REDIS_URL','JWT_SECRET','JWT_REFRESH_SECRET'];
+const REQUIRED = ['DATABASE_URL','JWT_SECRET','JWT_REFRESH_SECRET'];
 for (const v of REQUIRED) {
   if (!process.env[v]) {
     console.error(`\nFATAL: Missing env var: ${v}`);
