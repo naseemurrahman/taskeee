@@ -4110,12 +4110,16 @@ button.projectCard {
 .modalV2Body {
   padding: 20px 24px; overflow-y: auto; flex: 1;
   overscroll-behavior: contain;
+  position: relative;
+  z-index: 2;
 }
 .modalV2Foot {
   padding: 16px 24px;
   border-top: 1px solid var(--glass-border);
   display: flex; justify-content: flex-end; gap: 10px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* Light theme Modal */
@@ -5788,10 +5792,10 @@ select.input option { background: #1a1d2e; color: white; }
 .modalV2Close:hover {
   background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.30); color: #ef4444;
 }
-.modalV2Body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modalV2Body { padding: 20px 24px; overflow-y: auto; flex: 1; position: relative; z-index: 2; }
 .modalV2Foot {
   padding: 14px 24px; border-top: 1px solid var(--border, rgba(255,255,255,0.08));
-  display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;
+  display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; position: relative; z-index: 1;
 }
 
 /* Light theme modal override */

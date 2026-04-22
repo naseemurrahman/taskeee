@@ -66,8 +66,12 @@ export function Select({
     if (!open || !ref.current) return
     const rect = ref.current.getBoundingClientRect()
     const estimatedDropdownHeight = searchable ? 300 : 250
-    const spaceBelow = window.innerHeight - rect.bottom
-    const spaceAbove = rect.top
+    const modalBody = ref.current.closest('.modalV2Body')
+    const bounds = modalBody
+      ? modalBody.getBoundingClientRect()
+      : { top: 0, bottom: window.innerHeight }
+    const spaceBelow = bounds.bottom - rect.bottom
+    const spaceAbove = rect.top - bounds.top
     setOpenUp(spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow)
   }, [open, searchable, filtered.length])
 
