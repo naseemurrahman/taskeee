@@ -236,24 +236,23 @@ export function CalendarPage() {
               <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 8 }}>TASKS DUE</div>
               {pick.tasks.length ? (
                 <div style={{ display: 'grid', gap: 8 }}>
-                  {pick.tasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="miniCard"
-                      style={{
-                        padding: 12,
-                        borderLeftWidth: 4,
-                        borderLeftStyle: 'solid',
-                        borderLeftColor: t.category_color?.trim() || 'rgba(244, 202, 87, 0.75)',
-                      }}
-                    >
-                      <div style={{ fontWeight: 800 }}>{t.title}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
-                        {t.category_name ? `${t.category_name} · ` : ''}
-                        {t.assigned_to_name || '—'} · {t.status}
+                  {pick.tasks.map((t) => {
+                    const taskColor = t.category_color?.trim() || '#e2ab41'
+                    return (
+                      <div key={t.id} className="miniCard" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex' }}>
+                          <div style={{ width: 4, background: taskColor, flexShrink: 0 }} />
+                          <div style={{ padding: '10px 12px', flex: 1 }}>
+                            <div style={{ fontWeight: 800 }}>{t.title}</div>
+                            <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
+                              {t.category_name ? `${t.category_name} · ` : ''}
+                              {t.assigned_to_name || '—'} · {t.status}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div style={{ color: 'var(--text2)', fontSize: 13 }}>No tasks due this day.</div>
@@ -263,22 +262,24 @@ export function CalendarPage() {
               <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 8 }}>PROJECTS (START DATE)</div>
               {pick.projects.length ? (
                 <div style={{ display: 'grid', gap: 8 }}>
-                  {pick.projects.map((p) => (
-                    <div
-                      key={p.id}
-                      className="miniCard"
-                      style={{
-                        padding: 12,
-                        borderLeftWidth: 4,
-                        borderLeftStyle: 'solid',
-                        borderLeftColor: p.color?.trim() || 'rgba(56, 189, 248, 0.85)',
-                      }}
-                    >
-                      <div style={{ fontWeight: 800 }}>{p.name}</div>
-                      {p.description ? <div style={{ color: 'var(--text2)', fontSize: 13, marginTop: 4 }}>{p.description}</div> : null}
-                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>Created {new Date(p.created_at).toLocaleString()}</div>
-                    </div>
-                  ))}
+                  {pick.projects.map((p) => {
+                    const projColor = p.color?.trim() || '#38bdf8'
+                    return (
+                      <div key={p.id} className="miniCard" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex' }}>
+                          <div style={{ width: 4, background: projColor, flexShrink: 0 }} />
+                          <div style={{ padding: '10px 12px', flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 10, height: 10, borderRadius: '50%', background: projColor, flexShrink: 0, display: 'inline-block' }} />
+                              <span style={{ fontWeight: 900 }}>{p.name}</span>
+                            </div>
+                            {p.description ? <div style={{ color: 'var(--text2)', fontSize: 13, marginTop: 4 }}>{p.description}</div> : null}
+                            <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 4 }}>Started {new Date(p.created_at).toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <div style={{ color: 'var(--text2)', fontSize: 13 }}>No projects started this day.</div>

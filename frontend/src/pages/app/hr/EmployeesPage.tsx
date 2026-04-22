@@ -86,6 +86,7 @@ export function EmployeesPage() {
   const [countryCode, setCountryCode] = useState('+966')
   const [employeeId, setEmployeeId] = useState('')
   const [designation, setDesignation] = useState('')
+  const [roleType, setRoleType] = useState('')
 
   const q = useQuery({ queryKey: ['hris', 'employees', search, status], queryFn: () => fetchEmployees(search, status) })
   const employees = useMemo(() => q.data || [], [q.data])
@@ -95,7 +96,7 @@ export function EmployeesPage() {
 
   function resetForm() {
     setFullName(''); setDepartment(''); setEmail(''); setPhone('')
-    setCountryCode('+966'); setEmployeeId(''); setDesignation('')
+    setCountryCode('+966'); setEmployeeId(''); setDesignation(''); setRoleType('')
     setFormError(null); setFieldErrors({})
   }
 
@@ -124,6 +125,7 @@ export function EmployeesPage() {
     if (!phone.trim()) errs.phone = 'Required'
     if (!employeeId.trim()) errs.employeeId = 'Required'
     if (!designation.trim()) errs.designation = 'Required'
+    if (!roleType) errs.roleType = 'Required'
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -132,7 +134,7 @@ export function EmployeesPage() {
     e.preventDefault()
     setFormError(null)
     if (!validate()) return
-    m.mutate({ fullName: fullName.trim(), department, email: email.trim(), phone: phone.trim(), countryCode, employeeId: employeeId.trim(), designation: designation.trim() })
+    m.mutate({ fullName: fullName.trim(), department, email: email.trim(), phone: phone.trim(), countryCode, employeeId: employeeId.trim(), designation: designation.trim(), roleType })
   }
 
   return (
@@ -277,8 +279,8 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* ── Workspace Accounts ── */}
-      {canSeeAccounts && (
+      {/* Workspace Accounts — only show when HRIS employees exist (otherwise directory table above already shows them) */}
+      {canSeeAccounts && employees.length > 0 && (
         <div className="formCardV3">
           <div className="formCardV3Head">
             <div>
@@ -370,11 +372,15 @@ export function EmployeesPage() {
             />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Input
-              label="Work Email" required type="email" placeholder="employee@company.com"
-              value={email} onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })) }}
-              error={fieldErrors.email} hint="This will be their login email"
-              icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
+            <Select
+              label="Role Type" required value={roleType}
+              onChange={v => { setRoleType(v); setFieldErrors(p => ({ ...p, roleType: '' })) }}
+              options={[
+                { value: 'employee', label: 'Employee', description: 'Standard team member' },
+                { value: 'manager', label: 'Manager', description: 'Team or department lead' },
+                { value: 'technician', label: 'Technician', description: 'Technical specialist' },
+              ]}
+              placeholder="Select role…" error={fieldErrors.roleType}
             />
             <Input
               label="Employee ID" required placeholder="e.g. EMP-001"
@@ -383,6 +389,12 @@ export function EmployeesPage() {
               icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
             />
           </div>
+          <Input
+            label="Work Email" required type="email" placeholder="employee@company.com"
+            value={email} onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })) }}
+            error={fieldErrors.email} hint="This will be their login email"
+            icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
+          />
           <div>
             <label className="selectV3Label">Phone Number <span className="selectV3Required">*</span></label>
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>

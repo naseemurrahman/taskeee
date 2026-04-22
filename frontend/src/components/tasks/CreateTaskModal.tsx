@@ -7,7 +7,7 @@ import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
 
 type Project = { id: string; name: string; color?: string | null }
-type UserRow = { id: string; user_id?: string | null; email: string; full_name?: string | null; role: string; department?: string | null }
+type UserRow = { id: string; email: string; full_name?: string | null; role: string; department?: string | null }
 type CreateTaskInput = {
   title: string; description?: string; assignedTo: string
   categoryId?: string; priority?: string; dueDate?: string; department?: string
@@ -17,10 +17,10 @@ async function fetchProjects() {
   const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
   return d.projects || []
 }
-async function fetchUsers(department?: string) {
-  const qs = new URLSearchParams({ page: '1', limit: '100', ...(department ? { department } : {}) })
-  const d = await apiFetch<{ employees: UserRow[] }>(`/api/v1/hris/employees?${qs.toString()}`)
-  return d.employees || []
+async function fetchUsers() {
+  // Use workspace accounts (org users) since HRIS employees may be empty
+  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=100')
+  return d.users || []
 }
 
 function roleRank(r?: string) {
@@ -40,8 +40,8 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   const [error, setError] = useState<string | null>(null)
 
   const usersQ = useQuery({
-    queryKey: ['team', 'users', dept],
-    queryFn: () => fetchUsers(dept),
+    queryKey: ['team', 'users'],
+    queryFn: fetchUsers,
     enabled: props.open && canAssign,
   })
 
@@ -179,7 +179,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             options={[
               { value: '', label: 'Select employee…' },
               ...filteredAssignees.map(u => ({
-                value: u.user_id || u.id,
+                value: u.id,
                 label: u.full_name || u.email,
                 description: u.department || u.role,
               })),

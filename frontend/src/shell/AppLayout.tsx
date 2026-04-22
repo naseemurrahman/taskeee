@@ -227,30 +227,32 @@ export function AppLayout() {
                 type="button"
                 onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '8px 12px', borderRadius: 999,
                   border: '1px solid var(--border)', background: 'var(--surfaceUp)',
-                  color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s',
-                  fontSize: 12, fontWeight: 800,
+                  cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
+                {/* Track */}
                 <div style={{
-                  width: 38, height: 22, borderRadius: 999, flexShrink: 0, position: 'relative',
-                  background: theme === 'light' ? 'var(--brand)' : 'rgba(255,255,255,0.12)',
+                  width: 48, height: 26, borderRadius: 999, position: 'relative',
+                  background: theme === 'light' ? 'var(--brand)' : 'rgba(255,255,255,0.15)',
                   transition: 'background 0.25s',
                 }}>
+                  {/* Thumb */}
                   <div style={{
                     position: 'absolute', top: 3,
-                    left: theme === 'dark' ? 3 : 'calc(100% - 19px)',
-                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    left: theme === 'dark' ? 3 : 'calc(100% - 23px)',
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
                     transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
-                    display: 'grid', placeItems: 'center', fontSize: 9, lineHeight: 1,
+                    display: 'grid', placeItems: 'center', fontSize: 11,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                   }}>
                     {theme === 'light' ? '☀️' : '🌙'}
                   </div>
                 </div>
-                <span>{theme === 'light' ? 'Light mode' : 'Dark mode'}</span>
               </button>
             ) : (
               <button

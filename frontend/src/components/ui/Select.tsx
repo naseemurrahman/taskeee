@@ -1,4 +1,8 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+
+// Global registry: only one Select open at a time
+const _selectListeners = new Set<() => void>()
+function closeAllSelects() { _selectListeners.forEach(fn => fn()) }
 
 export interface SelectOption {
   value: string
@@ -37,6 +41,13 @@ export function Select({
     ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
     : options
 
+  // Register this instance so others can close it
+  const closeMe = useCallback(() => { setOpen(false); setSearch('') }, [])
+  useEffect(() => {
+    _selectListeners.add(closeMe)
+    return () => { _selectListeners.delete(closeMe) }
+  }, [closeMe])
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -73,7 +84,11 @@ export function Select({
       )}
       <div
         className={`selectV3Trigger ${open ? 'selectV3Open' : ''} ${error ? 'selectV3Error' : ''} ${disabled ? 'selectV3Disabled' : ''}`}
-        onClick={() => { if (!disabled) setOpen(v => !v) }}
+        onClick={() => {
+          if (disabled) return
+          if (!open) { closeAllSelects() }
+          setOpen(v => !v)
+        }}
         onKeyDown={handleKeyDown}
         tabIndex={disabled ? -1 : 0}
         role="combobox"
