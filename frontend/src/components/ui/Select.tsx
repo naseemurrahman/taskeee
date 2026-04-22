@@ -82,7 +82,18 @@ export function Select({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') { setOpen(false); setSearch('') }
-    if (e.key === 'Enter' || e.key === ' ') { if (!open) setOpen(true) }
+    if ((e.key === 'Enter' || e.key === ' ') && !open) { e.preventDefault(); closeAllSelects(); setOpen(true) }
+  }
+
+  // Close when trigger loses focus entirely (tab-away)
+  function handleBlur(e: React.FocusEvent) {
+    if (!ref.current?.contains(e.relatedTarget as Node)) {
+      setTimeout(() => {
+        if (!ref.current?.contains(document.activeElement)) {
+          setOpen(false); setSearch('')
+        }
+      }, 100)
+    }
   }
 
   return (
@@ -100,6 +111,7 @@ export function Select({
           setOpen(v => !v)
         }}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         tabIndex={disabled ? -1 : 0}
         role="combobox"
         aria-expanded={open}

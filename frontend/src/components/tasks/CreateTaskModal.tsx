@@ -218,18 +218,10 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             Description{' '}
             <span style={{ color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 600, fontSize: 11 }}>(optional)</span>
           </label>
-          <div style={{
-            background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.10)',
-            borderRadius: 16, overflow: 'hidden', transition: 'border-color 0.15s',
-          }}>
+          <div className="textareaWrap">
             <textarea
               name="description"
-              style={{
-                display: 'block', width: '100%', minHeight: 88, padding: '12px 14px',
-                background: 'transparent', border: 'none', outline: 'none',
-                color: 'var(--text)', fontSize: 14, lineHeight: 1.6,
-                resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
+              className="textareaInner"
               placeholder="Context, acceptance criteria, links…"
             />
           </div>
