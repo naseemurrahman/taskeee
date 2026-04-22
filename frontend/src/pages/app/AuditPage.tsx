@@ -77,20 +77,14 @@ export function AuditPage() {
         </div>
       </div>
       <div className="card">
-        <div style={{ color: 'var(--text2)' }}>
-          Security and configuration events recorded in the immutable audit trail. For day-to-day task history, use{' '}
-          <Link to="/app/logs" style={{ color: 'var(--primary)', fontWeight: 800 }}>
-            Logs
-          </Link>
-          .
-        </div>
-      </div>
-
-      <div className="card">
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-        {q.isError ? <div className="alert alertError">Failed to load audit trail.</div> : null}
+        {q.isError ? <div className="alertV4 alertV4Error">Failed to load audit trail.</div> : null}
         {!q.isLoading && entries.length === 0 ? (
-          <div style={{ color: 'var(--text2)' }}>No audit entries in this range. Sensitive actions are logged here as they occur.</div>
+          <div className="emptyStateV3">
+            <div className="emptyStateV3Icon">🔍</div>
+            <div className="emptyStateV3Title">No audit entries in this range</div>
+            <div className="emptyStateV3Body">Sensitive actions are logged here as they occur. For day-to-day task history, use <Link to="/app/logs" style={{ color: 'var(--brand)', fontWeight: 800 }}>Logs</Link>.</div>
+          </div>
         ) : null}
 
         <div style={{ display: 'grid', gap: 10, marginTop: q.isLoading ? 12 : 0 }}>

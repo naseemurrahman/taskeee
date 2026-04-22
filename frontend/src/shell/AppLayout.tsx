@@ -219,45 +219,98 @@ export function AppLayout() {
               <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} collapsed={collapsed} />
             </>
           )}
-        </nav>
 
-        {/* Bottom */}
-        <div className="sidebarV4Bottom">
-          {!collapsed && (
-            <div className="sidebarV4Controls sidebarV4ControlsStack">
-              <div className="sidebarThemeToggle" aria-label={t('nav.theme')}>
+          {/* ── Theme toggle — at end of nav, pill shape ── */}
+          <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+            {!collapsed ? (
+              <div style={{ display: 'flex', gap: 6, padding: '6px 0' }}>
                 <button
                   type="button"
-                  className={`sidebarThemeToggleBtn ${theme === 'light' ? 'active' : ''}`}
                   onClick={() => setTheme('light')}
                   title="Light mode"
+                  style={{
+                    flex: 1, height: 32, borderRadius: 999, border: '1px solid var(--border)',
+                    background: theme === 'light' ? 'var(--brandDim)' : 'transparent',
+                    color: theme === 'light' ? 'var(--brand)' : 'var(--muted)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    fontSize: 12, fontWeight: 800,
+                    borderColor: theme === 'light' ? 'var(--brandBorder)' : 'var(--border)',
+                    transition: 'all 0.15s',
+                  }}
                 >
-                  <Sun size={13} />
+                  <Sun size={12} /> {collapsed ? '' : 'Light'}
                 </button>
                 <button
                   type="button"
-                  className={`sidebarThemeToggleBtn ${theme === 'dark' ? 'active' : ''}`}
                   onClick={() => setTheme('dark')}
                   title="Dark mode"
+                  style={{
+                    flex: 1, height: 32, borderRadius: 999, border: '1px solid var(--border)',
+                    background: theme === 'dark' ? 'var(--brandDim)' : 'transparent',
+                    color: theme === 'dark' ? 'var(--brand)' : 'var(--muted)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    fontSize: 12, fontWeight: 800,
+                    borderColor: theme === 'dark' ? 'var(--brandBorder)' : 'var(--border)',
+                    transition: 'all 0.15s',
+                  }}
                 >
-                  <Moon size={13} />
+                  <Moon size={12} /> {collapsed ? '' : 'Dark'}
                 </button>
               </div>
-            </div>
-          )}
-          {collapsed && (
-            <div style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', display: 'grid', gap: 8, justifyItems: 'center' }}>
+            ) : (
               <button
                 type="button"
-                className="sidebarV4ThemeBtn"
-                style={{ width: 34, height: 34, padding: 0, justifyContent: 'center', flex: 'none' }}
                 onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
                 title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+                style={{
+                  width: '100%', height: 32, borderRadius: 999, border: '1px solid var(--brandBorder)',
+                  background: 'var(--brandDim)', color: 'var(--brand)',
+                  cursor: 'pointer', display: 'grid', placeItems: 'center',
+                  transition: 'all 0.15s',
+                }}
               >
-                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+                {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
               </button>
-            </div>
-          )}
+            )}
+          </div>
+        </nav>
+
+        {/* Bottom — user chip */}
+        <div className="sidebarV4Bottom">
+          <div className="sidebarV4UserChip">
+            <button
+              type="button"
+              className="sidebarV4UserBtn"
+              onClick={() => navigate('/app/profile')}
+              title="My profile"
+            >
+              <div className="sidebarV4Avatar">
+                {avatarSrc && !avatarBroken
+                  ? <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} />
+                  : (displayName.charAt(0) || '?').toUpperCase()}
+              </div>
+              {!collapsed && (
+                <div className="sidebarV4UserInfo">
+                  <span className="sidebarV4UserName">{displayName || 'My Account'}</span>
+                  <span className="sidebarV4UserRole">{me?.role || 'user'}</span>
+                </div>
+              )}
+            </button>
+            {!collapsed && (
+              <button
+                type="button"
+                className="sidebarV4LogoutBtn"
+                title="Sign out"
+                onClick={() => { localStorage.clear(); window.location.href = '/signin' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 

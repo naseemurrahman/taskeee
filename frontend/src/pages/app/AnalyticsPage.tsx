@@ -123,17 +123,7 @@ export function AnalyticsPage() {
           </div>
         </div>
       </div>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Analytics</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>
-              Live performance signals from tasks and activity.
-            </div>
-          </div>
-        </div>
-        {summaryQ.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load summary.</div> : null}
-      </div>
+      {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load summary.</div> : null}
 
       <div className="grid4">
         <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}>

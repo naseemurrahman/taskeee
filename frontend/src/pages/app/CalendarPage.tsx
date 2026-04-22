@@ -153,12 +153,6 @@ export function CalendarPage() {
       </div>
 
       <div className="card">
-        <div style={{ color: 'var(--text2)', maxWidth: 700, lineHeight: 1.45 }}>
-          Task due dates use your project (category) accent color on the day cell. Project start dates use the same color from Projects.
-        </div>
-      </div>
-
-      <div className="card">
         {tq.isLoading || pq.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {tq.isError ? <div className="alert alertError">Failed to load tasks.</div> : null}
         {pq.isError ? <div className="alert alertError">Failed to load projects.</div> : null}

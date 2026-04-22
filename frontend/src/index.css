@@ -6692,3 +6692,86 @@ button.btnPrimary,
   position: relative;
   flex-shrink: 0;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH BARS — same pill corners as buttons everywhere
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Topbar search pill */
+.topbarV4SearchInput {
+  border-radius: 999px !important;
+}
+.topbarV4SearchWrap {
+  border-radius: 999px !important;
+  overflow: visible;
+}
+
+/* Input wrappers used in forms (Select, Input components) */
+.inputV3Field {
+  border-radius: 999px !important;
+}
+.inputV3Native {
+  border-radius: 0 !important; /* inner native input: no radius, wrapper has it */
+}
+
+/* Native .input class (plain inputs on older pages) */
+.input,
+input.input,
+select.input {
+  border-radius: 999px !important;
+}
+
+/* Select trigger pill */
+.selectV3Trigger {
+  border-radius: 999px !important;
+}
+/* Dropdown still needs soft corners, not pill */
+.selectV3Dropdown {
+  border-radius: 16px !important;
+}
+
+/* Light theme overrides to match */
+.appShellV4Light .inputV3Field,
+.appShellV4Light .input,
+.appShellV4Light input.input,
+.appShellV4Light .selectV3Trigger,
+.appShellV4Light .topbarV4SearchInput {
+  border-radius: 999px !important;
+}
+
+/* ── Sidebar nav: allow flex-column + push theme toggle to bottom ── */
+.sidebarV4Nav {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* ── Hide legacy sidebarV4Bottom theme controls (moved into nav) ── */
+.sidebarV4Controls { display: none !important; }
+.sidebarThemeToggle { display: none !important; }
+
+/* ── Light theme: page background should be warm neutral, not pure white ── */
+.appShellV4Light {
+  background-color: #f5f3eb !important;
+}
+.appShellV4Light .contentV4 {
+  background: #f5f3eb;
+}
+
+/* ── pageHeaderCard top stripe: thinner, cleaner ── */
+.pageHeaderCard::before {
+  height: 3px !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* ── Empty state inside cards: centered, clean ── */
+.emptyStateV3 {
+  padding: 32px 20px !important;
+}
+
+/* ── Alert styling cleanup ── */
+.alertV4 {
+  border-radius: 999px !important;
+  padding: 10px 18px !important;
+}
+

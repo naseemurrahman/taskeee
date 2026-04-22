@@ -73,16 +73,17 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <div className="card">
-        <div style={{ color: 'var(--text2)' }}>Generate on-demand exports and review history.</div>
-        {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
-      </div>
+      {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
 
       <div className="card">
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-        {q.isError ? <div className="alert alertError">{listError}</div> : null}
+        {q.isError ? <div className="alertV4 alertV4Error">{listError}</div> : null}
         {!q.isLoading && (q.data?.reports?.length || 0) === 0 ? (
-          <div style={{ color: 'var(--text2)' }}>No reports yet. Generate your first report above.</div>
+          <div className="emptyStateV3">
+            <div className="emptyStateV3Icon">📋</div>
+            <div className="emptyStateV3Title">No reports yet</div>
+            <div className="emptyStateV3Body">Click "Generate" above to create your first report snapshot.</div>
+          </div>
         ) : null}
         <div style={{ display: 'grid', gap: 10 }}>
           {(q.data?.reports || []).map((r) => (

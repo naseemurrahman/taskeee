@@ -106,11 +106,8 @@ export function BillingPage() {
           </button>
         </div>
       </div>
-      <div className="card">
-        <div style={{ color: 'var(--text2)' }}>Stripe subscription management and invoices.</div>
-        {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
-        {summaryQ.isError ? <div className="alert alertError" style={{ marginTop: 12 }}>Failed to load billing summary.</div> : null}
-      </div>
+      {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
+      {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load billing summary.</div> : null}
 
       <div className="grid4">
         <div className="miniCard">

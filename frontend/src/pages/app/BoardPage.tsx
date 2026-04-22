@@ -88,18 +88,9 @@ export function BoardPage() {
         </div>
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Board</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Quickly move tasks between stages.</div>
-          </div>
-        </div>
-        {error ? <div className="alert alertError" style={{ marginTop: 12 }}>{error}</div> : null}
-      </div>
-
-      {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-      {q.isError ? <div className="alert alertError">Failed to load tasks.</div> : null}
+      {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
+      {q.isLoading ? <div style={{ color: 'var(--text2)', padding: '8px 0' }}>Loading…</div> : null}
+      {q.isError ? <div className="alertV4 alertV4Error">Failed to load tasks.</div> : null}
 
       <div className="boardGrid">
         {COLUMNS.map((col) => (
