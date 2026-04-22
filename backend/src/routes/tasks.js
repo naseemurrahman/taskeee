@@ -754,6 +754,24 @@ router.post('/:id/time/stop', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+
+// PATCH /tasks/:id/rename - Rename a task title (manager+)
+router.patch('/:id/rename', authenticate, requireAnyRole('supervisor','manager','hr','director','admin'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { id } = req.params;
+    const { title } = req.body;
+    if (!title || String(title).trim().length < 1) return res.status(400).json({ error: 'Title required' });
+    const newTitle = String(title).trim().slice(0, 255);
+    const { rows } = await query(
+      `UPDATE tasks SET title = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING id, title`,
+      [newTitle, id, orgId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+    res.json({ task: rows[0] });
+  } catch (err) { next(err); }
+});
+
 // PATCH /tasks/:id/status
 router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res, next) => {
   try {

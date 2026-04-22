@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, useRef, type FormEvent, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, ApiError } from '../../lib/api'
@@ -16,6 +16,9 @@ async function fetchProjects() {
 }
 async function createProject(input: { name: string; description?: string; color?: string }) {
   return await apiFetch<{ project: Project }>('/api/v1/projects', { method: 'POST', json: input })
+}
+async function renameProject(id: string, name: string) {
+  return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { name } })
 }
 
 const PROJECT_PALETTE = [
@@ -56,6 +59,67 @@ function ColorPickerTrigger({ value, onChange }: { value: string; onChange: (v: 
           style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
         />
       </label>
+    </div>
+  )
+}
+
+/** Inline rename for project cards */
+function InlineProjectName({ project, canEdit }: { project: Project; canEdit: boolean }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(project.name)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const qc = useQueryClient()
+
+  const m = useMutation({
+    mutationFn: (name: string) => renameProject(project.id, name),
+    onSuccess: () => { setEditing(false); qc.invalidateQueries({ queryKey: ['projects'] }) },
+    onError: () => { setEditing(false); setVal(project.name) },
+  })
+
+  function startEdit(e: React.MouseEvent) {
+    e.stopPropagation()
+    setVal(project.name)
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 30)
+  }
+
+  function commit() {
+    const t = val.trim()
+    if (t.length >= 2 && t !== project.name) m.mutate(t)
+    else setEditing(false)
+  }
+
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') commit()
+    if (e.key === 'Escape') { setEditing(false); setVal(project.name) }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="inlineEditInput"
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={onKey}
+        onClick={e => e.stopPropagation()}
+        style={{ fontSize: 13 }}
+      />
+    )
+  }
+
+  return (
+    <div className="inlineEditWrap" style={{ maxWidth: '100%' }}>
+      <span style={{ fontWeight: 900, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: 'var(--text)' }}>{project.name}</span>
+      {canEdit && (
+        <button className="inlineEditBtn" type="button" onClick={startEdit} title="Rename project">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
@@ -199,7 +263,7 @@ export function ProjectsPage() {
                     <div style={{ width: 14, height: 14, borderRadius: 4, background: p.color || '#e2ab41' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 900, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{p.name}</div>
+                    <InlineProjectName project={p} canEdit={canCreate} />
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{p.description || 'No description'}</div>
                   </div>
                 </button>

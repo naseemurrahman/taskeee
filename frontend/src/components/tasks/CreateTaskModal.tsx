@@ -25,9 +25,17 @@ async function fetchUsersByDepartment(department: string) {
   const d = await apiFetch<{ users: UserRow[] }>(`/api/v1/tasks/assignable-users?department=${encodeURIComponent(department)}`)
   return d.users || []
 }
-async function fetchDepartments() {
-  const d = await apiFetch<{ departments: string[] }>('/api/v1/tasks/departments')
-  return d.departments || []
+async function fetchDepartments(): Promise<string[]> {
+  try {
+    const d = await apiFetch<{ departments: string[] }>('/api/v1/tasks/departments')
+    if (d.departments && d.departments.length > 0) return d.departments
+  } catch { /* fall through */ }
+  // Fall back: derive departments from all org users
+  try {
+    const d = await apiFetch<{ users: Array<{ department?: string | null }> }>('/api/v1/users?page=1&limit=200')
+    const depts = [...new Set((d.users || []).filter(u => u.department?.trim()).map(u => u.department as string))].sort()
+    return depts
+  } catch { return [] }
 }
 
 function roleRank(r?: string) {

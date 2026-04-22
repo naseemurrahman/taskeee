@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState, useRef, type KeyboardEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
+import { getUser } from '../../state/auth'
+import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
@@ -18,6 +20,10 @@ async function fetchTasks(status: string, priority: string, search: string) {
   if (search.trim()) qs.set('search', search.trim())
   const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?${qs}`)
   return (d.tasks || d.rows || []) as Task[]
+}
+
+async function renameTask(id: string, title: string) {
+  return apiFetch(`/api/v1/tasks/${id}/rename`, { method: 'PATCH', json: { title } })
 }
 
 function dueStat(iso?: string | null): { label: string; tone: string } {
@@ -41,8 +47,6 @@ function hash(s: string) {
 const PRIORITY_COLOR: Record<string, string> = {
   low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444', urgent: '#ef4444',
 }
-
-
 const PRIORITY_OPTS = [
   { value: 'all', label: 'All priorities' },
   { value: 'low', label: 'Low', color: '#38bdf8' },
@@ -51,7 +55,74 @@ const PRIORITY_OPTS = [
   { value: 'critical', label: 'Critical', color: '#ef4444' },
 ]
 
+/** Inline rename cell for task titles */
+function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(task.title || '')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const qc = useQueryClient()
+
+  const m = useMutation({
+    mutationFn: (title: string) => renameTask(task.id, title),
+    onSuccess: () => { setEditing(false); qc.invalidateQueries({ queryKey: ['tasks', 'list'] }); onSaved() },
+    onError: () => { setEditing(false); setVal(task.title || '') },
+  })
+
+  function startEdit(e: React.MouseEvent) {
+    e.stopPropagation()
+    setVal(task.title || '')
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 30)
+  }
+
+  function commit() {
+    const t = val.trim()
+    if (t && t !== task.title) m.mutate(t)
+    else setEditing(false)
+  }
+
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') commit()
+    if (e.key === 'Escape') { setEditing(false); setVal(task.title || '') }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="inlineEditInput"
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={onKey}
+        onClick={e => e.stopPropagation()}
+        style={{ fontSize: 13 }}
+      />
+    )
+  }
+
+  return (
+    <div className="inlineEditWrap">
+      <span style={{ fontWeight: 800, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        {task.title || task.id}
+      </span>
+      {canEdit && (
+        <button className="inlineEditBtn" type="button" onClick={startEdit} title="Rename task">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function TasksPage() {
+  const me = getUser()
+  const canCreate = canCreateTasksAndProjects(me?.role)
+  const isEmployee = me?.role === 'employee'
+
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
   const [search, setSearch] = useState('')
@@ -61,7 +132,7 @@ export function TasksPage() {
     queryKey: ['tasks', 'list', status, priority, search],
     queryFn: () => fetchTasks(status, priority, search),
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
   })
 
   const tasks = q.data || []
@@ -80,33 +151,36 @@ export function TasksPage() {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-
-      {/* ── Page header card ── */}
+      {/* ── Header ── */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
               Tasks
+              {isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>Employee view</span>}
             </div>
-            <div className="pageHeaderCardSub">Create, assign, and track tasks across your team. Filter by status, priority, or search by name.</div>
+            <div className="pageHeaderCardSub">
+              {isEmployee ? 'Tasks assigned to you. Submit work for review and track your progress.' : 'Create, assign, and track tasks across your team.'}
+            </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} total</span>
               {counts.overdue > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {counts.overdue} overdue</span>}
               {counts.completed > 0 && <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {counts.completed} done</span>}
             </div>
           </div>
-          <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Create Task
-          </button>
+          {canCreate && (
+            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Task
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Filters bar ── */}
+      {/* ── Filters ── */}
       <div className="chartV3" style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Status quick tabs */}
           <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
             {[
               { k: 'all', label: 'All', count: counts.all },
@@ -115,43 +189,25 @@ export function TasksPage() {
               { k: 'completed', label: 'Done', count: counts.completed },
               { k: 'overdue', label: 'Overdue', count: counts.overdue },
             ].map(f => (
-              <button
-                key={f.k} type="button"
-                onClick={() => setStatus(f.k)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '5px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 800,
-                  background: status === f.k ? 'var(--brand)' : 'var(--bg2)',
-                  color: status === f.k ? '#1a1d2e' : 'var(--text2)',
-                  transition: 'all 0.12s',
-                }}
-              >
+              <button key={f.k} type="button" onClick={() => setStatus(f.k)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 800,
+                background: status === f.k ? 'var(--brand)' : 'var(--bg2)',
+                color: status === f.k ? '#1a1d2e' : 'var(--text2)',
+                transition: 'all 0.12s',
+              }}>
                 {f.label}
-                <span style={{
-                  padding: '1px 6px', borderRadius: 999, fontSize: 10, fontWeight: 900,
-                  background: status === f.k ? 'rgba(0,0,0,0.15)' : 'var(--surfaceUp)',
-                }}>{f.count}</span>
+                <span style={{ padding: '1px 6px', borderRadius: 999, fontSize: 10, fontWeight: 900, background: status === f.k ? 'rgba(0,0,0,0.15)' : 'var(--surfaceUp)' }}>{f.count}</span>
               </button>
             ))}
           </div>
-
-          {/* Priority filter */}
           <div style={{ width: 160, flexShrink: 0 }}>
             <Select value={priority} onChange={setPriority} options={PRIORITY_OPTS} />
           </div>
-
-          {/* Search */}
           <div style={{ width: 240, flexShrink: 0 }}>
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search tasks…"
-              icon={
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-              }
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+              icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
             />
           </div>
         </div>
@@ -170,25 +226,14 @@ export function TasksPage() {
         ) : tasks.length === 0 ? (
           <div className="emptyStateV3" style={{ padding: '48px 24px' }}>
             <div className="emptyStateV3Icon">📋</div>
-            <div className="emptyStateV3Title">
-              {search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : 'No tasks yet'}
-            </div>
-            <div className="emptyStateV3Body">
-              {search || status !== 'all' || priority !== 'all'
-                ? 'Try adjusting the filters above'
-                : 'Create your first task to get started'}
-            </div>
-            <button
-              className="btn btnPrimary"
-              onClick={() => setCreateOpen(true)}
-              type="button"
-              style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 7 }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Create First Task
-            </button>
+            <div className="emptyStateV3Title">{search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : 'No tasks yet'}</div>
+            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'No tasks have been assigned to you yet'}</div>
+            {canCreate && (
+              <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create First Task
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -198,7 +243,7 @@ export function TasksPage() {
                   <th style={{ width: 4, padding: 0 }} />
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Task</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Project</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Assignee</th>
+                  {!isEmployee && <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Assignee</th>}
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Priority</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Due</th>
@@ -210,79 +255,45 @@ export function TasksPage() {
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
                   const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
                   return (
-                    <tr
-                      key={task.id}
-                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s' }}
+                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'default', transition: 'background 0.1s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}
-                    >
-                      {/* Priority bar */}
+                      onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: 0, width: 4 }}>
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
-                      {/* Title */}
-                      <td style={{ padding: '12px 14px', maxWidth: 300 }}>
-                        <div style={{ fontWeight: 800, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {task.title || task.id}
-                        </div>
+                      <td style={{ padding: '10px 14px', maxWidth: 280 }}>
+                        <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
                       </td>
-                      {/* Project */}
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '10px 14px' }}>
                         {task.category_name ? (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800,
-                            background: (task.category_color || '#6366f1') + '18',
-                            color: task.category_color || '#818cf8',
-                            border: `1px solid ${(task.category_color || '#6366f1')}28`,
-                          }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: (task.category_color || '#6366f1') + '18', color: task.category_color || '#818cf8', border: `1px solid ${(task.category_color || '#6366f1')}28` }}>
                             <span style={{ width: 5, height: 5, borderRadius: '50%', background: task.category_color || '#818cf8' }} />
                             {task.category_name}
                           </span>
                         ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
                       </td>
-                      {/* Assignee */}
-                      <td style={{ padding: '12px 14px' }}>
-                        {task.assigned_to_name ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{
-                              width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                              background: hash(task.assigned_to_name) + '25',
-                              border: `1.5px solid ${hash(task.assigned_to_name)}40`,
-                              color: hash(task.assigned_to_name),
-                              display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 900,
-                            }}>
-                              {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+                      {!isEmployee && (
+                        <td style={{ padding: '10px 14px' }}>
+                          {task.assigned_to_name ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: hash(task.assigned_to_name) + '25', border: `1.5px solid ${hash(task.assigned_to_name)}40`, color: hash(task.assigned_to_name), display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 900 }}>
+                                {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{task.assigned_to_name}</span>
                             </div>
-                            <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>{task.assigned_to_name}</span>
-                          </div>
-                        ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>Unassigned</span>}
-                      </td>
-                      {/* Status */}
-                      <td style={{ padding: '12px 14px' }}>
-                        <span className={`statusBadge ${
-                          task.status === 'completed' || task.status === 'manager_approved' ? 'statusCompleted'
-                            : task.status === 'in_progress' ? 'statusInProgress'
-                            : task.status === 'overdue' ? 'statusOverdue'
-                            : task.status === 'submitted' ? 'statusSubmitted'
-                            : 'statusPending'
-                        }`}>
+                          ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>Unassigned</span>}
+                        </td>
+                      )}
+                      <td style={{ padding: '10px 14px' }}>
+                        <span className={`statusBadge ${task.status === 'completed' || task.status === 'manager_approved' ? 'statusCompleted' : task.status === 'in_progress' ? 'statusInProgress' : task.status === 'overdue' ? 'statusOverdue' : task.status === 'submitted' ? 'statusSubmitted' : 'statusPending'}`}>
                           {task.status.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      {/* Priority */}
-                      <td style={{ padding: '12px 14px' }}>
-                        {task.priority ? (
-                          <span style={{ fontSize: 12, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>
-                            {task.priority}
-                          </span>
-                        ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
+                      <td style={{ padding: '10px 14px' }}>
+                        {task.priority ? <span style={{ fontSize: 12, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>{task.priority}</span> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
                       </td>
-                      {/* Due */}
-                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: dueColor }}>
-                          {due.tone === 'danger' && '⚠ '}{due.label}
-                        </span>
+                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: dueColor }}>{due.tone === 'danger' && '⚠ '}{due.label}</span>
                       </td>
                     </tr>
                   )
@@ -297,7 +308,8 @@ export function TasksPage() {
           </div>
         )}
       </div>
-      <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />
+
+      {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
     </div>
   )
 }
