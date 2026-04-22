@@ -10,6 +10,7 @@ export function Modal(props: {
   footer?: ReactNode
   wide?: boolean
   icon?: ReactNode
+  bodyClassName?: string
 }) {
   useEffect(() => {
     if (!props.open) return
@@ -62,7 +63,7 @@ export function Modal(props: {
         </div>
 
         {/* Body */}
-        <div className="modalV2Body">{props.children}</div>
+        <div className={`modalV2Body ${props.bodyClassName || ''}`.trim()}>{props.children}</div>
 
         {/* Footer */}
         {props.footer && <div className="modalV2Foot">{props.footer}</div>}

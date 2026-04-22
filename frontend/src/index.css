@@ -4617,6 +4617,7 @@ button.projectCard {
 }
 
 .selectV3Wrap { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.selectV3WrapOpen { z-index: 50; }
 .selectV3Label {
   font-size: 12px; font-weight: 800; color: var(--text2);
   text-transform: uppercase; letter-spacing: 0.06em;
@@ -4667,6 +4668,10 @@ button.projectCard {
   box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2);
   overflow: hidden;
   animation: selectDropIn 0.15s ease;
+}
+.selectV3DropdownUp {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 @supports (backdrop-filter: blur(1px)) {
   .selectV3Dropdown { backdrop-filter: blur(24px); }
@@ -6847,3 +6852,100 @@ select.input {
   padding-bottom: 0;
 }
 
+/* Topbar theme switch (moved from sidebar) */
+.topbarThemeBtn {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+.topbarThemeBtn:hover {
+  color: var(--brand);
+}
+
+/* Ensure select dropdown is not clipped in create task modal */
+.createTaskModalBody {
+  overflow: visible !important;
+}
+.createTaskModalBody .selectV3Wrap {
+  position: relative;
+  z-index: 20;
+}
+.createTaskModalBody .selectV3WrapOpen {
+  z-index: 80;
+}
+.createTaskModalBody .selectV3Dropdown {
+  z-index: 1200;
+}
+
+/* Unified dropdown style (all app pages) */
+.appShellV4 .selectV3Trigger,
+.appShellV4 select.input {
+  height: 46px;
+  border: 1.5px solid #cfd5e3 !important;
+  background: #ffffff !important;
+  color: #2b3244 !important;
+  border-radius: 999px !important;
+  font-weight: 600;
+}
+.appShellV4 .selectV3Trigger:hover:not(.selectV3Disabled),
+.appShellV4 select.input:hover:not(:disabled) {
+  border-color: #b9c2d3 !important;
+}
+.appShellV4 .selectV3Trigger:focus-within,
+.appShellV4 .selectV3Open,
+.appShellV4 select.input:focus {
+  border-color: rgba(226,171,65,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.15) !important;
+}
+.appShellV4 .selectV3Dropdown {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(226,171,65,0.45) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 42px rgba(19,29,51,0.16) !important;
+}
+.appShellV4 .selectV3SearchWrap {
+  border-bottom: 1px solid #eef1f6;
+}
+.appShellV4 .selectV3SearchInput::placeholder {
+  color: #8a94a9;
+}
+.appShellV4 .selectV3Option {
+  border-radius: 12px;
+}
+.appShellV4 .selectV3Option:hover:not(.selectV3OptionDisabled) {
+  background: #f6f8fc !important;
+}
+.appShellV4 .selectV3OptionActive {
+  background: #f6efe2 !important;
+  color: #cf8f1f !important;
+}
+.appShellV4 .selectV3OptionDesc {
+  color: #8791a7;
+}
+.appShellV4 .selectV3Check,
+.appShellV4 .selectV3ChevronOpen {
+  color: #cf8f1f !important;
+}
+
+/* Keep native select controls aligned with the standard dropdown design */
+select.input,
+.mktLang {
+  border-radius: 999px !important;
+  border: 1.5px solid #cfd5e3 !important;
+  background-color: #ffffff !important;
+  color: #2b3244 !important;
+}
+select.input:focus,
+.mktLang:focus {
+  border-color: rgba(226,171,65,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.15) !important;
+  outline: none;
+}

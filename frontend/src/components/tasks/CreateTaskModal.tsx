@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { Modal } from '../Modal'
@@ -7,7 +7,7 @@ import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
 
 type Project = { id: string; name: string; color?: string | null }
-type UserRow = { id: string; email: string; full_name?: string | null; role: string; department?: string | null }
+type UserRow = { id: string; email: string; name?: string | null; full_name?: string | null; role: string; department?: string | null }
 type CreateTaskInput = {
   title: string; description?: string; assignedTo: string
   categoryId?: string; priority?: string; dueDate?: string; department?: string
@@ -18,13 +18,16 @@ async function fetchProjects() {
   return d.projects || []
 }
 async function fetchUsers() {
-  // Try HRIS employees first, fall back to workspace accounts
-  try {
-    const d = await apiFetch<{ employees: UserRow[] }>('/api/v1/hris/employees?page=1&limit=200')
-    if (d.employees && d.employees.length > 0) return d.employees
-  } catch { /* fall through */ }
-  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=200')
+  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/tasks/assignable-users')
   return d.users || []
+}
+async function fetchUsersByDepartment(department: string) {
+  const d = await apiFetch<{ users: UserRow[] }>(`/api/v1/tasks/assignable-users?department=${encodeURIComponent(department)}`)
+  return d.users || []
+}
+async function fetchDepartments() {
+  const d = await apiFetch<{ departments: string[] }>('/api/v1/tasks/departments')
+  return d.departments || []
 }
 
 function roleRank(r?: string) {
@@ -43,26 +46,20 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   const [projectId, setProjectId] = useState(props.defaultProjectId || '')
   const [error, setError] = useState<string | null>(null)
 
+  const departmentsQ = useQuery({
+    queryKey: ['tasks', 'departments'],
+    queryFn: fetchDepartments,
+    enabled: props.open && canAssign,
+  })
   const usersQ = useQuery({
-    queryKey: ['team', 'users'],
-    queryFn: fetchUsers,
+    queryKey: ['tasks', 'assignable-users', dept || 'all'],
+    queryFn: () => (dept ? fetchUsersByDepartment(dept) : fetchUsers()),
     enabled: props.open && canAssign,
   })
 
   const projects = projectsQ.data || []
-  const allUsers = usersQ.data || []
-
-  // Build unique departments from actual employee data
-  const departments = useMemo(
-    () => [...new Set(allUsers.filter(u => u.department?.trim()).map(u => u.department as string))].sort(),
-    [allUsers]
-  )
-
-  // Filter assignees by selected department
-  const filteredAssignees = useMemo(
-    () => dept ? allUsers.filter(u => u.department?.trim() === dept) : allUsers,
-    [allUsers, dept]
-  )
+  const assignees = usersQ.data || []
+  const departments = departmentsQ.data || []
 
   const m = useMutation({
     mutationFn: (input: CreateTaskInput) => apiFetch('/api/v1/tasks', { method: 'POST', json: input }),
@@ -112,6 +109,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
       subtitle="Assign work to a team member"
       open={props.open}
       onClose={props.onClose}
+      bodyClassName="createTaskModalBody"
       icon={
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -179,7 +177,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             onChange={v => { setDept(v); setAssignedTo('') }}
             options={[
               { value: '', label: 'All departments' },
-              ...departments.map(d => ({ value: d, label: d })),
+              ...departments.length
+                ? departments.map(d => ({ value: d, label: d }))
+                : [{ value: '__none__', label: 'No departments found', disabled: true }],
             ]}
             searchable={departments.length > 5}
           />
@@ -189,9 +189,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             onChange={setAssignedTo}
             options={[
               { value: '', label: 'Select employee…' },
-              ...filteredAssignees.map(u => ({
+              ...assignees.map(u => ({
                 value: u.id,
-                label: u.full_name || u.email,
+                label: u.full_name || u.name || u.email,
                 description: u.department || u.role,
               })),
             ]}
