@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
+import { Select } from '../../../components/ui/Select'
 
 type RequestItem = {
   id: string
@@ -96,16 +97,19 @@ export function TimeOffPage() {
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Full history</span>
             </div>
           </div>
-          <label className="label" style={{ margin: 0 }}>
-            Filter
-            <select className="input" style={{ height: 40 }} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </label>
+          <div style={{ width: 160 }}>
+            <Select
+              value={status}
+              onChange={setStatus}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'approved', label: 'Approved' },
+                { value: 'rejected', label: 'Rejected' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ]}
+            />
+          </div>
         </div>
       </div>
       <div className="card">

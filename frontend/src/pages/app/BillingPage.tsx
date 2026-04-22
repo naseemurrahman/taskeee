@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { Select } from '../../components/ui/Select'
 import { apiFetch, ApiError } from '../../lib/api'
 
 type BillingSummary = {
@@ -133,11 +134,15 @@ export function BillingPage() {
         <form onSubmit={onSubmit} className="form" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
           <label className="label">
             Plan
-            <select className="input" value={plan} onChange={(e) => setPlan(e.target.value)} style={{ height: 44 }}>
-              <option value="basic">Basic</option>
-              <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
+<div style={{ minWidth: 200 }}>
+              <Select value={plan} onChange={setPlan}
+                options={[
+                  { value: 'basic', label: 'Basic' },
+                  { value: 'pro', label: 'Pro' },
+                  { value: 'enterprise', label: 'Enterprise' },
+                ]}
+              />
+            </div>
           </label>
           <label className="label">
             Seats

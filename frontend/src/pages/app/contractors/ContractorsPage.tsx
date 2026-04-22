@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
+import { Select } from '../../../components/ui/Select'
 
 type Contractor = {
   id: string
@@ -104,20 +105,20 @@ export function ContractorsPage() {
             </div>
           </div>
           <div className="contractorsToolbar" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Status
-              <select className="input" style={{ height: 40 }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="onboarding">Onboarding</option>
-                <option value="inactive">Inactive</option>
-                <option value="terminated">Terminated</option>
-              </select>
-            </label>
-            <label className="label" style={{ margin: 0 }}>
-              Search
-              <input className="input" style={{ height: 40 }} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, email, company…" />
-            </label>
+            <div style={{ width: 160 }}>
+              <Select
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'onboarding', label: 'Onboarding' },
+                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'terminated', label: 'Terminated' },
+                ]}
+              />
+            </div>
+            <input className="input" style={{ height: 40 }} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, company…" />
           </div>
         </div>
       </div>

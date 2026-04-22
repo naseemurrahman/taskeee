@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
+import { Select } from '../../components/ui/Select'
 
 type AuditEntry = {
   id: string
@@ -57,22 +58,17 @@ export function AuditPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Days
-              <select className="input" style={{ height: 40 }} value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
-                <option value={7}>7</option>
-                <option value={30}>30</option>
-                <option value={90}>90</option>
-              </select>
-            </label>
-            <label className="label" style={{ margin: 0 }}>
-              Action
-              <input className="input" style={{ height: 40 }} value={action} onChange={(e) => setAction(e.target.value)} placeholder="e.g. login" />
-            </label>
-            <label className="label" style={{ margin: 0 }}>
-              Entity
-              <input className="input" style={{ height: 40 }} value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="e.g. user" />
-            </label>
+            <div style={{ width: 150 }}>
+              <Select value={String(days)} onChange={v => setDays(parseInt(v, 10))}
+                options={[
+                  { value: '7', label: 'Last 7 days' },
+                  { value: '30', label: 'Last 30 days' },
+                  { value: '90', label: 'Last 90 days' },
+                ]}
+              />
+            </div>
+            <input className="input" style={{ height: 40 }} value={action} onChange={(e) => setAction(e.target.value)} placeholder="Filter by action…" />
+            <input className="input" style={{ height: 40 }} value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="Filter by entity…" />
           </div>
         </div>
       </div>

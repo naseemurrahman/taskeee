@@ -18,8 +18,12 @@ async function fetchProjects() {
   return d.projects || []
 }
 async function fetchUsers() {
-  // Use workspace accounts (org users) since HRIS employees may be empty
-  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=100')
+  // Try HRIS employees first, fall back to workspace accounts
+  try {
+    const d = await apiFetch<{ employees: UserRow[] }>('/api/v1/hris/employees?page=1&limit=200')
+    if (d.employees && d.employees.length > 0) return d.employees
+  } catch { /* fall through */ }
+  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=200')
   return d.users || []
 }
 
@@ -46,12 +50,19 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   })
 
   const projects = projectsQ.data || []
-  const assignees = usersQ.data || []
+  const allUsers = usersQ.data || []
+
+  // Build unique departments from actual employee data
   const departments = useMemo(
-    () => [...new Set(assignees.filter(u => u.department?.trim()).map(u => u.department as string))],
-    [assignees]
+    () => [...new Set(allUsers.filter(u => u.department?.trim()).map(u => u.department as string))].sort(),
+    [allUsers]
   )
-  const filteredAssignees = dept ? assignees.filter(u => u.department?.trim() === dept) : assignees
+
+  // Filter assignees by selected department
+  const filteredAssignees = useMemo(
+    () => dept ? allUsers.filter(u => u.department?.trim() === dept) : allUsers,
+    [allUsers, dept]
+  )
 
   const m = useMutation({
     mutationFn: (input: CreateTaskInput) => apiFetch('/api/v1/tasks', { method: 'POST', json: input }),

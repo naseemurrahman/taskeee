@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { Select } from '../../../components/ui/Select'
 import { apiFetch } from '../../../lib/api'
 import { ChartCard } from '../../../components/charts/ChartCard'
 import { AssignmentsChart, ProjectProgressChart } from '../../../components/charts/WorkCharts'
@@ -212,12 +213,16 @@ export function JeczoneDashboardPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <label className="label" style={{ margin: 0 }}>
               Project
-              <select className="input" style={{ height: 40 }} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="all">All projects</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+<div style={{ minWidth: 220 }}>
+              <Select
+                value={projectId}
+                onChange={setProjectId}
+                options={[
+                  { value: '', label: 'All projects' },
+                  ...projects.map(p => ({ value: p.id, label: p.name })),
+                ]}
+              />
+            </div>
             </label>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { Modal } from '../../components/Modal'
+import { Select } from '../../components/ui/Select'
 
 type ActivityLog = {
   id: string
@@ -136,22 +137,21 @@ export function LogsPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select
-              className="input"
-              style={{ height: 36, fontSize: 13 }}
-              value={days}
-              onChange={e => setDays(parseInt(e.target.value, 10))}
-            >
-              {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <select
-              className="input"
-              style={{ height: 36, fontSize: 13, minWidth: 160 }}
-              value={type}
-              onChange={e => setType(e.target.value)}
-            >
-              {TYPE_FILTER_OPTIONS.map(o => <option key={o.value || 'all'} value={o.value}>{o.label}</option>)}
-            </select>
+            <div style={{ width: 160 }}>
+              <Select
+                value={String(days)}
+                onChange={v => setDays(parseInt(v, 10))}
+                options={DAY_OPTIONS.map(o => ({ value: String(o.value), label: o.label }))}
+              />
+            </div>
+            <div style={{ width: 180 }}>
+              <Select
+                value={type}
+                onChange={setType}
+                options={TYPE_FILTER_OPTIONS}
+                searchable
+              />
+            </div>
           </div>
         </div>
       </div>

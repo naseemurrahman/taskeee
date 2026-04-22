@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
+import { Select } from '../../../components/ui/Select'
 
 type Lead = {
   id: string
@@ -85,20 +86,20 @@ export function CrmLeadsPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Status
-              <select className="input" style={{ height: 40 }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="all">All</option>
-                <option value="open">Open</option>
-                <option value="qualified">Qualified</option>
-                <option value="disqualified">Disqualified</option>
-                <option value="converted">Converted</option>
-              </select>
-            </label>
-            <label className="label" style={{ margin: 0 }}>
-              Search
-              <input className="input" style={{ height: 40 }} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, email, source…" />
-            </label>
+            <div style={{ width: 160 }}>
+              <Select
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'open', label: 'Open' },
+                  { value: 'qualified', label: 'Qualified' },
+                  { value: 'disqualified', label: 'Disqualified' },
+                  { value: 'converted', label: 'Converted' },
+                ]}
+              />
+            </div>
+            <input className="input" style={{ height: 40 }} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, source…" />
           </div>
         </div>
       </div>

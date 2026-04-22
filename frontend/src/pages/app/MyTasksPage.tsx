@@ -5,6 +5,7 @@ import { getUser } from '../../state/auth'
 import { Link, Navigate } from 'react-router-dom'
 import { Camera, MessageCircle } from 'lucide-react'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
+import { Select } from '../../components/ui/Select'
 
 type TaskRow = {
   id: string
@@ -231,13 +232,11 @@ export function MyTasksPage() {
         </div>
         <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 900 }}>STATUS</span>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} style={{ minWidth: 160 }}>
-            {STATUS_FILTER.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          <div style={{ width: 180 }}>
+            <Select value={status} onChange={setStatus}
+              options={STATUS_FILTER.map(s => ({ value: s.key, label: s.label }))}
+            />
+          </div>
         </div>
       </div>
 
@@ -382,18 +381,16 @@ export function MyTasksPage() {
                     Only transitions allowed by your role and the current state are listed. Directors and admins can set any valid status.
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                    <select
-                      className="input"
-                      value={manualStatusChoices.includes(manualStatus) ? manualStatus : task.status}
-                      onChange={(e) => setManualStatus(e.target.value)}
-                      style={{ minWidth: 220 }}
-                    >
-                      {manualStatusChoices.map((s) => (
-                        <option key={s} value={s}>
-                          {s === task.status ? `${s} (current)` : s}
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ width: 240 }}>
+                      <Select
+                        value={manualStatusChoices.includes(manualStatus) ? manualStatus : task.status}
+                        onChange={setManualStatus}
+                        options={manualStatusChoices.map(s => ({
+                          value: s,
+                          label: s === task.status ? `${s} (current)` : s,
+                        }))}
+                      />
+                    </div>
                     <button
                       type="button"
                       className="btn btnPrimary"
