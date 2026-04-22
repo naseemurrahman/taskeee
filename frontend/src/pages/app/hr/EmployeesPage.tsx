@@ -149,7 +149,18 @@ export function EmployeesPage() {
     e.preventDefault()
     setFormError(null)
     if (!validate()) return
-    m.mutate({ fullName: fullName.trim(), department, email: email.trim(), phone: phone.trim(), countryCode, employeeId: employeeId.trim(), designation: designation.trim(), roleType })
+    const normalizedDesignation = designation.trim()
+    m.mutate({
+      fullName: fullName.trim(),
+      department,
+      email: email.trim(),
+      phone: phone.trim(),
+      countryCode,
+      employeeId: employeeId.trim(),
+      designation: normalizedDesignation,
+      title: normalizedDesignation,
+      roleType,
+    })
   }
 
   return (

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
 
@@ -42,6 +42,7 @@ async function updateEmployee(input: { id: string; patch: EmployeePatch }) {
 
 export function EmployeeProfilePage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const empId = id || ''
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['hris', 'employee', empId], queryFn: () => fetchEmployee(empId), enabled: !!empId })
@@ -95,6 +96,18 @@ export function EmployeeProfilePage() {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      <div>
+        <button
+          type="button"
+          className="btn btnGhost"
+          onClick={() => navigate(-1)}
+          style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px' }}
+          aria-label="Go back"
+        >
+          <span aria-hidden>←</span>
+          <span>Back</span>
+        </button>
+      </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
           <div>
@@ -164,4 +177,3 @@ export function EmployeeProfilePage() {
     </div>
   )
 }
-

@@ -194,7 +194,7 @@ router.post('/employees', authenticate, requireAnyRole('manager', 'hr', 'directo
     }
 
     const fullName = String(req.body?.fullName || req.body?.full_name || '').trim();
-    const title = String(req.body?.title || '').trim() || null;
+    const title = String(req.body?.title || req.body?.designation || '').trim() || null;
     const department = String(req.body?.department || '').trim() || null;
     const location = String(req.body?.location || '').trim() || null;
     const workEmail = String(req.body?.workEmail || req.body?.work_email || req.body?.email || '').trim() || null;
