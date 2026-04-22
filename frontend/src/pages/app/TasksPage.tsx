@@ -292,7 +292,7 @@ export function TasksPage() {
       </div>
 
       {/* ── Table ── */}
-      <div className="chartV3" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="chartV3" style={{ padding: 0, overflow: 'visible' }}>
         {q.isLoading ? (
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>
             <svg className="animate-rotate" width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 8px', display: 'block' }}>
@@ -314,7 +314,7 @@ export function TasksPage() {
             )}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
