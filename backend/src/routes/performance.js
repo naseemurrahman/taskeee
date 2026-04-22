@@ -3,6 +3,24 @@ const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/auth');
 
+let columnsCache = new Map();
+async function getColumns(tableName) {
+  if (columnsCache.has(tableName)) return columnsCache.get(tableName);
+  try {
+    const { rows } = await query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+    const set = new Set(rows.map(r => String(r.column_name)));
+    columnsCache.set(tableName, set);
+    return set;
+  } catch {
+    return new Set();
+  }
+}
+
 async function getScopedAssigneeFilter(user) {
   const orgId = user.org_id ?? user.orgId;
   let assigneeFilter = [];
@@ -11,8 +29,12 @@ async function getScopedAssigneeFilter(user) {
     if (!rows.length) ({ rows } = await query(`SELECT id FROM users WHERE org_id = $1`, [orgId]));
     assigneeFilter = rows.map(r => r.id);
   } else {
-    const { rows: subs } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [user.id]);
-    assigneeFilter = [user.id, ...subs.map(r => r.user_id)];
+    try {
+      const { rows: subs } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [user.id]);
+      assigneeFilter = [user.id, ...subs.map(r => r.user_id)];
+    } catch {
+      assigneeFilter = [user.id];
+    }
   }
   return assigneeFilter;
 }
@@ -33,11 +55,18 @@ function calculateScore({ total, completed, overdue, rejected, onTimeCompleted }
   return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
-router.get('/summary', authenticate, requireAnyRole('hr', 'manager', 'supervisor', 'director', 'admin'), async (req, res, next) => {
+router.get('/summary', authenticate, requireAnyRole('employee', 'hr', 'manager', 'supervisor', 'director', 'admin'), async (req, res, next) => {
   try {
     const u = req.user;
     const orgId = u.org_id ?? u.orgId;
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const assigneeFilter = await getScopedAssigneeFilter(u);
+    const taskCols = await getColumns('tasks');
+    const userCols = await getColumns('users');
+    const hasCompletedAt = taskCols.has('completed_at');
+    const hasDueDate = taskCols.has('due_date');
+    const hasDepartment = userCols.has('department');
+    const hasLastLoginAt = userCols.has('last_login_at');
 
     if (!assigneeFilter.length) {
       return res.json({
@@ -67,7 +96,9 @@ router.get('/summary', authenticate, requireAnyRole('hr', 'manager', 'supervisor
     }
 
     const { rows: taskRows } = await query(
-      `SELECT id, assigned_to, status, due_date, completed_at
+      `SELECT id, assigned_to, status,
+              ${hasDueDate ? 'due_date' : 'NULL::timestamptz AS due_date'},
+              ${hasCompletedAt ? 'completed_at' : 'NULL::timestamptz AS completed_at'}
        FROM tasks WHERE org_id = $1 AND assigned_to = ANY($2)`,
       [orgId, assigneeFilter]
     );
@@ -92,19 +123,28 @@ router.get('/summary', authenticate, requireAnyRole('hr', 'manager', 'supervisor
     }
 
     const { rows: nameRows } = await query(
-      `SELECT id, full_name, department, role, last_login_at FROM users WHERE org_id = $1 AND id = ANY($2)`,
+      `SELECT id, full_name,
+              ${hasDepartment ? 'department' : 'NULL::text AS department'},
+              role,
+              ${hasLastLoginAt ? 'last_login_at' : 'NULL::timestamptz AS last_login_at'}
+       FROM users WHERE org_id = $1 AND id = ANY($2)`,
       [orgId, assigneeFilter]
     );
     const idToUser = Object.fromEntries(nameRows.map(r => [String(r.id), r]));
 
-    const activityRows = await query(
-      `SELECT user_id, activity_type, created_at
-       FROM user_activity_logs
-       WHERE org_id = $1 AND user_id = ANY($2)
-         AND created_at >= NOW() - INTERVAL '14 days'
-       ORDER BY created_at DESC`,
-      [orgId, assigneeFilter]
-    );
+    let activityRows = { rows: [] };
+    try {
+      activityRows = await query(
+        `SELECT user_id, activity_type, created_at
+         FROM user_activity_logs
+         WHERE org_id = $1 AND user_id = ANY($2)
+           AND created_at >= NOW() - INTERVAL '14 days'
+         ORDER BY created_at DESC`,
+        [orgId, assigneeFilter]
+      );
+    } catch {
+      activityRows = { rows: [] };
+    }
     const activityByUser = {};
     for (const row of activityRows.rows) {
       const key = String(row.user_id);
@@ -160,20 +200,24 @@ router.get('/summary', authenticate, requireAnyRole('hr', 'manager', 'supervisor
   } catch (err) { next(err); }
 });
 
-router.get('/activity', authenticate, requireAnyRole('hr', 'manager', 'supervisor', 'director', 'admin'), async (req, res, next) => {
+router.get('/activity', authenticate, requireAnyRole('employee', 'hr', 'manager', 'supervisor', 'director', 'admin'), async (req, res, next) => {
   try {
     const u = req.user;
     const orgId = u.org_id ?? u.orgId;
     const assigneeFilter = await getScopedAssigneeFilter(u);
-    const { rows } = await query(
-      `SELECT user_id, activity_type, task_id, metadata, created_at
-       FROM user_activity_logs
-       WHERE org_id = $1 AND user_id = ANY($2)
-       ORDER BY created_at DESC
-       LIMIT 200`,
-      [orgId, assigneeFilter]
-    );
-    res.json({ activities: rows });
+    try {
+      const { rows } = await query(
+        `SELECT user_id, activity_type, task_id, metadata, created_at
+         FROM user_activity_logs
+         WHERE org_id = $1 AND user_id = ANY($2)
+         ORDER BY created_at DESC
+         LIMIT 200`,
+        [orgId, assigneeFilter]
+      );
+      return res.json({ activities: rows });
+    } catch {
+      return res.json({ activities: [] });
+    }
   } catch (err) { next(err); }
 });
 

@@ -779,7 +779,8 @@ router.post('/logout', authenticate, async (req, res, next) => {
 // POST /api/v1/auth/change-password
 router.post('/change-password', authenticate, async (req, res, next) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const currentPassword = req.body?.currentPassword || req.body?.current_password;
+    const newPassword = req.body?.newPassword || req.body?.new_password;
     if (!currentPassword || !newPassword || newPassword.length < 8)
       return res.status(400).json({ error: 'Valid passwords required (min 8 chars)' });
 
