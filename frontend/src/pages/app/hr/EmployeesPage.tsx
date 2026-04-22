@@ -210,15 +210,7 @@ export function EmployeesPage() {
             <tbody>
               {q.isLoading ? (
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>Loading…</td></tr>
-              ) : employees.length === 0 ? (
-                <tr><td colSpan={5}>
-                  <div className="emptyStateV3">
-                    <div className="emptyStateV3Icon">👥</div>
-                    <div className="emptyStateV3Title">No HRIS employees yet</div>
-                    <div className="emptyStateV3Body">Click "Add Employee" to create a full employee record with login credentials. Workspace accounts are listed below.</div>
-                  </div>
-                </td></tr>
-              ) : employees.map(e => (
+              ) : employees.length > 0 ? employees.map(e => (
                 <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => window.location.href = `/app/hr/employees/${e.id}`}>
                   <td style={{ padding: '10px 8px 10px 16px' }}>
                     <div className="avatarV3" style={{ background: hashColor(e.full_name) }}>
@@ -237,7 +229,49 @@ export function EmployeesPage() {
                     </span>
                   </td>
                 </tr>
-              ))}
+              )) : canSeeAccounts && orgUsers.length > 0 ? (
+                // Fallback: show workspace accounts in the table when no HRIS records exist
+                <>
+                  <tr>
+                    <td colSpan={5} style={{ padding: '8px 16px 2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--brandDim)', border: '1px solid var(--brandBorder)', marginBottom: 4 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand)' }}>
+                          Showing workspace accounts — use "Add Employee" to create full HRIS records with departments, titles and more.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                  {orgUsers.map(u => (
+                    <tr key={u.id} style={{ cursor: 'pointer' }} onClick={() => setPickId(u.id)}>
+                      <td style={{ padding: '10px 8px 10px 16px' }}>
+                        <div className="avatarV3" style={{ background: hashColor(u.email) }}>
+                          {(u.full_name || u.email).charAt(0).toUpperCase()}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 800, fontSize: 13 }}>{u.full_name || u.email}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 1 }}>{u.email}</div>
+                      </td>
+                      <td><span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>—</span></td>
+                      <td>
+                        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(99,102,241,0.10)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.22)', textTransform: 'capitalize' }}>{u.role}</span>
+                      </td>
+                      <td>
+                        <span className={`statusBadge ${u.last_login_at ? 'statusCompleted' : 'statusPending'}`}>{u.last_login_at ? 'Active' : 'New'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              ) : (
+                <tr><td colSpan={5}>
+                  <div className="emptyStateV3">
+                    <div className="emptyStateV3Icon">👥</div>
+                    <div className="emptyStateV3Title">No employees yet</div>
+                    <div className="emptyStateV3Body">Click "Add Employee" to create your first employee record.</div>
+                  </div>
+                </td></tr>
+              )}
             </tbody>
           </table>
         </div>

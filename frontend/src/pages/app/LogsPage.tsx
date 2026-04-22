@@ -23,20 +23,47 @@ async function fetchOrgLogs(days: number, type: string) {
   return await apiFetch<{ logs: ActivityLog[] }>(`/api/v1/activity?${qs.toString()}`)
 }
 
-const ACTIVITY_TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'All types' },
-  { value: 'login', label: 'Employee login' },
-  { value: 'user_added', label: 'User added' },
-  { value: 'task_created', label: 'Task created' },
-  { value: 'task_status_changed', label: 'Task status changed' },
-  { value: 'task_priority_changed', label: 'Task priority changed' },
-  { value: 'task_time_logged', label: 'Time logged on task' },
-  { value: 'task_comment_added', label: 'Task comment / thread' },
-  { value: 'profile_updated', label: 'Profile updated' },
-  { value: 'profile_avatar_updated', label: 'Profile photo updated' },
-  { value: 'project_created', label: 'Project created' },
-  { value: 'project_updated', label: 'Project updated' },
-  { value: 'password_changed', label: 'Password changed' },
+const TYPE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
+  login:                  { label: 'Login',             icon: '🔐', color: '#22c55e', bg: 'rgba(34,197,94,0.10)'   },
+  user_added:             { label: 'User Added',        icon: '👤', color: '#38bdf8', bg: 'rgba(56,189,248,0.10)'  },
+  task_created:           { label: 'Task Created',      icon: '✅', color: '#818cf8', bg: 'rgba(129,140,248,0.10)' },
+  task_status_changed:    { label: 'Status Changed',    icon: '🔄', color: '#e2ab41', bg: 'rgba(226,171,65,0.10)'  },
+  task_priority_changed:  { label: 'Priority Changed',  icon: '⚡', color: '#f97316', bg: 'rgba(249,115,22,0.10)'  },
+  task_time_logged:       { label: 'Time Logged',       icon: '⏱️', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)' },
+  task_comment_added:     { label: 'Comment Added',     icon: '💬', color: '#60a5fa', bg: 'rgba(96,165,250,0.10)'  },
+  profile_updated:        { label: 'Profile Updated',   icon: '✏️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
+  profile_avatar_updated: { label: 'Avatar Updated',    icon: '🖼️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
+  project_created:        { label: 'Project Created',   icon: '📁', color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  project_updated:        { label: 'Project Updated',   icon: '📝', color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  password_changed:       { label: 'Password Changed',  icon: '🔑', color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
+}
+
+function getTypeMeta(type: string) {
+  return TYPE_META[type] ?? { label: type.replace(/_/g, ' '), icon: '📋', color: '#9ca3af', bg: 'rgba(156,163,175,0.10)' }
+}
+
+function relativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
+}
+
+const DAY_OPTIONS = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 90 days' },
+  { value: 365, label: 'Last year' },
+]
+
+const TYPE_FILTER_OPTIONS = [
+  { value: '', label: 'All events' },
+  ...Object.entries(TYPE_META).map(([value, meta]) => ({ value, label: meta.label })),
 ]
 
 export function LogsPage() {
@@ -44,6 +71,7 @@ export function LogsPage() {
   const canSee = !!me?.role && ['admin', 'hr', 'director'].includes(me.role)
   const [days, setDays] = useState(30)
   const [type, setType] = useState('')
+  const [search, setSearch] = useState('')
   const [pick, setPick] = useState<ActivityLog | null>(null)
 
   const q = useQuery({
@@ -52,165 +80,255 @@ export function LogsPage() {
     enabled: canSee,
   })
 
-  const logs = useMemo(() => q.data?.logs || [], [q.data])
+  const logs = useMemo(() => {
+    const all = q.data?.logs || []
+    if (!search.trim()) return all
+    const s = search.toLowerCase()
+    return all.filter(l =>
+      l.user_name.toLowerCase().includes(s) ||
+      l.activity_type.toLowerCase().includes(s) ||
+      (l.task_title || '').toLowerCase().includes(s)
+    )
+  }, [q.data, search])
+
+  // Stats
+  const stats = useMemo(() => {
+    const all = q.data?.logs || []
+    const today = all.filter(l => {
+      const d = new Date(l.created_at)
+      const now = new Date()
+      return d.toDateString() === now.toDateString()
+    })
+    const logins = all.filter(l => l.activity_type === 'login')
+    const uniqueUsers = new Set(all.map(l => l.user_id)).size
+    return { total: all.length, today: today.length, logins: logins.length, uniqueUsers }
+  }, [q.data])
 
   if (!canSee) {
     return (
-      <>
-      {/* Page header card */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Activity Logs
-            </div>
-            <div className="pageHeaderCardSub">Track user activity, login events, and system events across your organization in real time.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👁️</span> User activity</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔐</span> Login events</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚡</span> Real-time</span>
-            </div>
+      <div className="formCardV3">
+        <div className="formCardV3Head">
+          <div>
+            <div className="formCardV3Title">Activity Logs</div>
+            <div className="formCardV3Sub">You don't have permission to view organization logs.</div>
           </div>
         </div>
       </div>
-
-      <div className="card">
-        <div style={{ fontWeight: 950, letterSpacing: '-0.4px' }}>Logs</div>
-        <div style={{ marginTop: 8, color: 'var(--text2)' }}>You don’t have access to organization logs.</div>
-      </div>
-      </>
     )
   }
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Logs</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>
-              Organization activity for admins, HR, and directors. Includes logins, tasks, projects, profile changes, and
-              security events (e.g. <span style={{ fontWeight: 800 }}>password_changed</span>). <strong>Open a row</strong> for
-              full detail.
+    <div style={{ display: 'grid', gap: 16 }}>
+
+      {/* Header */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Activity Logs
+            </div>
+            <div className="pageHeaderCardSub">Real-time record of all user actions — logins, tasks, projects, and security events across your organization.</div>
+            <div className="pageHeaderCardMeta">
+              <span className="pageHeaderCardTag">👁️ User activity</span>
+              <span className="pageHeaderCardTag">🔐 Security events</span>
+              <span className="pageHeaderCardTag">⚡ Real-time</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Days
-              <select className="input" style={{ height: 40 }} value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
-                <option value={7}>7</option>
-                <option value={30}>30</option>
-                <option value={90}>90</option>
-                <option value={365}>365</option>
-              </select>
-            </label>
-            <label className="label" style={{ margin: 0 }}>
-              Event type
-              <select className="input logsTypeSelect" value={type} onChange={(e) => setType(e.target.value)}>
-                {ACTIVITY_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value || 'all'} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-        {q.isError ? <div className="alert alertError">Failed to load logs.</div> : null}
-        {!q.isLoading && logs.length === 0 ? <div style={{ color: 'var(--text2)' }}>No logs found.</div> : null}
-
-        <div style={{ display: 'grid', gap: 10 }}>
-          {logs.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className="miniCard miniLink"
-              style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', width: '100%', textAlign: 'left' }}
-              onClick={() => setPick(l)}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select
+              className="input"
+              style={{ height: 36, fontSize: 13 }}
+              value={days}
+              onChange={e => setDays(parseInt(e.target.value, 10))}
             >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 900, letterSpacing: '-0.2px' }}>{l.activity_type}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>
-                  {new Date(l.created_at).toLocaleString()} · {l.user_name}{l.user_role ? ` (${l.user_role})` : ''}{l.task_title ? ` · ${l.task_title}` : ''}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                {l.task_status ? <span className="pill pillMuted">{l.task_status}</span> : null}
-                <span className="pill">{l.task_id ? 'Task' : 'Org'}</span>
-              </div>
-            </button>
-          ))}
+              {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select
+              className="input"
+              style={{ height: 36, fontSize: 13, minWidth: 160 }}
+              value={type}
+              onChange={e => setType(e.target.value)}
+            >
+              {TYPE_FILTER_OPTIONS.map(o => <option key={o.value || 'all'} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
-      <Modal title="Activity detail" open={!!pick} wide onClose={() => setPick(null)}>
-        {pick ? (
-          <div style={{ display: 'grid', gap: 14, fontSize: 13 }}>
-            <div>
-              <div style={{ color: 'var(--muted)', fontWeight: 900, fontSize: 11, letterSpacing: '0.06em' }}>ACTION</div>
-              <div style={{ fontWeight: 950, fontSize: 16, marginTop: 4 }}>{pick.activity_type}</div>
+      {/* Stats row */}
+      <div className="grid4">
+        {[
+          { label: 'Total events', value: q.isLoading ? '—' : String(stats.total), icon: '📊', color: '#818cf8' },
+          { label: 'Today',        value: q.isLoading ? '—' : String(stats.today), icon: '📅', color: '#22c55e' },
+          { label: 'Logins',       value: q.isLoading ? '—' : String(stats.logins), icon: '🔐', color: '#38bdf8' },
+          { label: 'Active users', value: q.isLoading ? '—' : String(stats.uniqueUsers), icon: '👥', color: '#e2ab41' },
+        ].map(s => (
+          <div key={s.label} className="miniCard">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="miniLabel">{s.label}</div>
+              <span style={{ fontSize: 18 }}>{s.icon}</span>
             </div>
-            <div>
-              <div style={{ color: 'var(--muted)', fontWeight: 900, fontSize: 11, letterSpacing: '0.06em' }}>WHEN</div>
-              <div style={{ marginTop: 4 }}>{new Date(pick.created_at).toLocaleString()}</div>
-            </div>
-            <div>
-              <div style={{ color: 'var(--muted)', fontWeight: 900, fontSize: 11, letterSpacing: '0.06em' }}>ACTOR (WHO DID IT)</div>
-              <div style={{ marginTop: 4 }}>
-                {pick.user_name}
-                {pick.user_role ? ` · ${pick.user_role}` : ''}
-              </div>
-              <div style={{ color: 'var(--text2)', marginTop: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>user_id: {pick.user_id}</div>
-            </div>
-            {pick.task_id ? (
-              <div>
-                <div style={{ color: 'var(--muted)', fontWeight: 900, fontSize: 11, letterSpacing: '0.06em' }}>RELATED TASK</div>
-                <div style={{ marginTop: 4 }}>{pick.task_title || 'Task'}</div>
-                <div style={{ color: 'var(--text2)', marginTop: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>
-                  task_id: {pick.task_id}
-                  {pick.task_status ? ` · status ${pick.task_status}` : ''}
-                </div>
-              </div>
-            ) : null}
-            <div>
-              <div style={{ color: 'var(--muted)', fontWeight: 900, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6 }}>METADATA</div>
-              <pre
-                style={{
-                  margin: 0,
-                  padding: 12,
-                  borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  background: 'rgba(0,0,0,0.25)',
-                  color: 'var(--text2)',
-                  fontSize: 12,
-                  lineHeight: 1.5,
-                  overflow: 'auto',
-                  maxHeight: 280,
-                }}
-              >
-                {(() => {
-                  try {
-                    return JSON.stringify(
-                      typeof pick.metadata === 'string' ? JSON.parse(pick.metadata) : pick.metadata ?? {},
-                      null,
-                      2,
-                    )
-                  } catch {
-                    return String(pick.metadata ?? '{}')
-                  }
-                })()}
-              </pre>
-            </div>
-            <div style={{ color: 'var(--muted)', fontSize: 12 }}>log_id: {pick.id}</div>
+            <div className="miniValue" style={{ color: s.color, fontSize: 28 }}>{s.value}</div>
           </div>
-        ) : null}
+        ))}
+      </div>
+
+      {/* Log table */}
+      <div className="formCardV3">
+        <div className="formCardV3Head">
+          <div>
+            <div className="formCardV3Title">
+              Event Stream
+              {logs.length > 0 && (
+                <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)', border: '1px solid var(--brandBorder)' }}>
+                  {logs.length}
+                </span>
+              )}
+            </div>
+            <div className="formCardV3Sub">Click any row for full details</div>
+          </div>
+          {/* Search */}
+          <div style={{ position: 'relative', width: 220 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }}>
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              className="input"
+              style={{ height: 36, paddingLeft: 34, fontSize: 13, width: '100%' }}
+              placeholder="Search user, event…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table className="employeeTableV3" style={{ minWidth: 620 }}>
+            <thead>
+              <tr>
+                <th style={{ width: 160 }}>Event</th>
+                <th>User</th>
+                <th>Target</th>
+                <th style={{ width: 100, textAlign: 'right' }}>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.isLoading && (
+                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>Loading events…</td></tr>
+              )}
+              {q.isError && (
+                <tr><td colSpan={4}><div className="alertV4 alertV4Error" style={{ margin: 12 }}>Failed to load logs.</div></td></tr>
+              )}
+              {!q.isLoading && logs.length === 0 && (
+                <tr><td colSpan={4}>
+                  <div className="emptyStateV3">
+                    <div className="emptyStateV3Icon">📋</div>
+                    <div className="emptyStateV3Title">No events found</div>
+                    <div className="emptyStateV3Body">Try adjusting the date range or event type filter.</div>
+                  </div>
+                </td></tr>
+              )}
+              {logs.map(l => {
+                const meta = getTypeMeta(l.activity_type)
+                return (
+                  <tr key={l.id} style={{ cursor: 'pointer' }} onClick={() => setPick(l)}>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '3px 10px', borderRadius: 999,
+                        background: meta.bg, color: meta.color,
+                        border: `1px solid ${meta.color}33`,
+                        fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
+                      }}>
+                        {meta.icon} {meta.label}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{l.user_name}</div>
+                      {l.user_role && <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 1, textTransform: 'capitalize' }}>{l.user_role}</div>}
+                    </td>
+                    <td>
+                      {l.task_title
+                        ? <div style={{ fontSize: 12, color: 'var(--text2)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.task_title}</div>
+                        : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>
+                      }
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 700 }}>{relativeTime(l.created_at)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{new Date(l.created_at).toLocaleDateString()}</div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail modal */}
+      <Modal title="Event Detail" open={!!pick} wide onClose={() => setPick(null)}
+        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
+      >
+        {pick ? (() => {
+          const meta = getTypeMeta(pick.activity_type)
+          return (
+            <div style={{ display: 'grid', gap: 18, fontSize: 13 }}>
+              {/* Event badge */}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '8px 16px', borderRadius: 999,
+                background: meta.bg, color: meta.color,
+                border: `1px solid ${meta.color}44`,
+                fontSize: 14, fontWeight: 900, width: 'fit-content',
+              }}>
+                {meta.icon} {meta.label}
+              </span>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                {[
+                  { label: 'Actor', value: `${pick.user_name}${pick.user_role ? ` · ${pick.user_role}` : ''}` },
+                  { label: 'Timestamp', value: new Date(pick.created_at).toLocaleString() },
+                  ...(pick.task_title ? [{ label: 'Task', value: pick.task_title }] : []),
+                  ...(pick.task_status ? [{ label: 'Task Status', value: pick.task_status }] : []),
+                ].map(row => (
+                  <div key={row.label} style={{ background: 'var(--bg2)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border)' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>{row.label}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--text)' }}>{row.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <div style={{ color: 'var(--muted)', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Metadata</div>
+                <pre style={{
+                  margin: 0, padding: '12px 16px', borderRadius: 12,
+                  border: '1px solid var(--border)', background: 'var(--bg2)',
+                  color: 'var(--text2)', fontSize: 12, lineHeight: 1.6,
+                  overflow: 'auto', maxHeight: 240, fontFamily: 'ui-monospace, monospace',
+                }}>
+                  {(() => {
+                    try {
+                      return JSON.stringify(
+                        typeof pick.metadata === 'string' ? JSON.parse(pick.metadata) : pick.metadata ?? {},
+                        null, 2,
+                      )
+                    } catch {
+                      return String(pick.metadata ?? '{}')
+                    }
+                  })()}
+                </pre>
+              </div>
+
+              <div style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>
+                log_id: {pick.id} · user_id: {pick.user_id}
+              </div>
+            </div>
+          )
+        })() : null}
       </Modal>
     </div>
   )
 }
-

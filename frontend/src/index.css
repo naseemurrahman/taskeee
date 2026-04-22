@@ -6775,3 +6775,75 @@ select.input {
   padding: 10px 18px !important;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR + TOPBAR ALIGNMENT FIX
+   Logo area height must match topbar height (58px)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Make logo area same height as topbar */
+.sidebarV4Logo {
+  min-height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 14px !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Collapse button in logo row */
+.sidebarCollapseBtn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Topbar same height */
+.topbarV4 {
+  min-height: 58px !important;
+}
+
+/* Nav section labels — more breathing room */
+.sidebarV4SectionLabel {
+  margin: 14px 0 4px !important;
+  padding: 0 4px !important;
+}
+
+/* Nav items — consistent compact spacing */
+.navItemV4 {
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  gap: 9px !important;
+}
+
+/* Sidebar nav — good top padding */
+.sidebarV4Nav {
+  padding: 10px 10px 8px !important;
+}
+
+/* sidebarV4BrandName larger, sub smaller */
+.sidebarV4BrandName {
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.4px !important;
+}
+.sidebarV4BrandSub {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  color: var(--muted) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOG TABLE — event type badges
+   ═══════════════════════════════════════════════════════════════ */
+.appShellV4Light .employeeTableV3 tbody tr:hover td {
+  background: rgba(226,171,65,0.04) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPLOYEE DIRECTORY — workspace fallback banner
+   ═══════════════════════════════════════════════════════════════ */
+.appShellV4Light .employeeTableV3 .workspaceBanner td {
+  padding-bottom: 0;
+}
+

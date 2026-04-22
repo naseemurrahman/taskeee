@@ -9,8 +9,8 @@ import { useI18n, type Lang } from '../i18n'
 import type React from 'react'
 import {
   BarChart3, BookOpen, Calendar, ClipboardList, CreditCard, FolderKanban,
-  Gauge, LayoutDashboard, Link2, ListChecks, Moon, Network, ScrollText,
-  Settings, Shield, Sun, UserRound, Users, ChevronLeft, ChevronRight, Globe,
+  Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
+  Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -172,7 +172,7 @@ export function AppLayout() {
             {!collapsed && (
               <div>
                 <span className="sidebarV4BrandName">TaskFlow Pro</span>
-                <span className="sidebarV4BrandSub">HR + Workflows + AI</span>
+                <span className="sidebarV4BrandSub">Task Management by AI</span>
               </div>
             )}
           </NavLink>
@@ -220,62 +220,57 @@ export function AppLayout() {
             </>
           )}
 
-          {/* ── Theme toggle — at end of nav, pill shape ── */}
-          <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+          {/* ── Theme toggle — sliding switch ── */}
+          <div style={{ marginTop: 'auto', paddingTop: 16, paddingBottom: 4 }}>
             {!collapsed ? (
-              <div style={{ display: 'flex', gap: 6, padding: '6px 0' }}>
-                <button
-                  type="button"
-                  onClick={() => setTheme('light')}
-                  title="Light mode"
-                  style={{
-                    flex: 1, height: 32, borderRadius: 999, border: '1px solid var(--border)',
-                    background: theme === 'light' ? 'var(--brandDim)' : 'transparent',
-                    color: theme === 'light' ? 'var(--brand)' : 'var(--muted)',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                    fontSize: 12, fontWeight: 800,
-                    borderColor: theme === 'light' ? 'var(--brandBorder)' : 'var(--border)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <Sun size={12} /> {collapsed ? '' : 'Light'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTheme('dark')}
-                  title="Dark mode"
-                  style={{
-                    flex: 1, height: 32, borderRadius: 999, border: '1px solid var(--border)',
-                    background: theme === 'dark' ? 'var(--brandDim)' : 'transparent',
-                    color: theme === 'dark' ? 'var(--brand)' : 'var(--muted)',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                    fontSize: 12, fontWeight: 800,
-                    borderColor: theme === 'dark' ? 'var(--brandBorder)' : 'var(--border)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <Moon size={12} /> {collapsed ? '' : 'Dark'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', borderRadius: 999,
+                  border: '1px solid var(--border)', background: 'var(--surfaceUp)',
+                  color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s',
+                  fontSize: 12, fontWeight: 800,
+                }}
+              >
+                <div style={{
+                  width: 38, height: 22, borderRadius: 999, flexShrink: 0, position: 'relative',
+                  background: theme === 'light' ? 'var(--brand)' : 'rgba(255,255,255,0.12)',
+                  transition: 'background 0.25s',
+                }}>
+                  <div style={{
+                    position: 'absolute', top: 3,
+                    left: theme === 'dark' ? 3 : 'calc(100% - 19px)',
+                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
+                    display: 'grid', placeItems: 'center', fontSize: 9, lineHeight: 1,
+                  }}>
+                    {theme === 'light' ? '☀️' : '🌙'}
+                  </div>
+                </div>
+                <span>{theme === 'light' ? 'Light mode' : 'Dark mode'}</span>
+              </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-                title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+                title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
                 style={{
-                  width: '100%', height: 32, borderRadius: 999, border: '1px solid var(--brandBorder)',
-                  background: 'var(--brandDim)', color: 'var(--brand)',
-                  cursor: 'pointer', display: 'grid', placeItems: 'center',
-                  transition: 'all 0.15s',
+                  width: '100%', height: 32, borderRadius: 999,
+                  border: '1px solid var(--brandBorder)', background: 'var(--brandDim)',
+                  color: 'var(--brand)', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                  fontSize: 14,
                 }}
               >
-                {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
+                {theme === 'light' ? '☀️' : '🌙'}
               </button>
             )}
           </div>
         </nav>
 
-        {/* Bottom — user chip */}
+        {/* Bottom — user chip only */}
         <div className="sidebarV4Bottom">
           <div className="sidebarV4UserChip">
             <button
@@ -444,7 +439,7 @@ export function AppLayout() {
                     </button>
                     <div className="profileDropdownDivider" />
                     <button className="profileDropdownItem" onClick={() => { setProfileOpen(false); setTheme(theme === 'light' ? 'dark' : 'light') }}>
-                      {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+                      <span style={{ fontSize: 14 }}>{theme === 'light' ? '🌙' : '☀️'}</span>
                       {theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}
                     </button>
                     <div className="profileDropdownDivider" />
