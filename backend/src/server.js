@@ -267,9 +267,21 @@ app.use(errorHandler);
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
 async function start() {
-  await connectDB();
-  await connectRedis();
-  require('./services/schedulerService').start();
+  try {
+    await connectDB();
+  } catch (err) {
+    logger.error('Database bootstrap failed, starting API in degraded mode: ' + err.message);
+  }
+  try {
+    await connectRedis();
+  } catch (err) {
+    logger.warn('Redis bootstrap failed, continuing with fallback cache: ' + err.message);
+  }
+  try {
+    require('./services/schedulerService').start();
+  } catch (err) {
+    logger.warn('Scheduler failed to start: ' + err.message);
+  }
   server.listen(PORT);
 }
 
