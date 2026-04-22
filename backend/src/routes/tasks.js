@@ -431,12 +431,34 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
       }
     }
     
-    // Validate category exists
+    // Validate category/project reference if provided. In mixed legacy deployments,
+    // /projects may be backed by a legacy projects table while tasks still uses
+    // category_id. If not found, gracefully drop the reference instead of failing
+    // task creation.
+    let resolvedCategoryId = categoryId || null;
     if (categoryId) {
-      const { rows: categoryCheck } = await query('SELECT id FROM task_categories WHERE id = $1', [categoryId]);
-      if (categoryCheck.length === 0) {
-        return res.status(400).json({ error: 'Referenced resource not found: Category not found' });
+      let found = false;
+      try {
+        const { rows: categoryCheck } = await query(
+          'SELECT id FROM task_categories WHERE id = $1 AND org_id = $2',
+          [categoryId, orgId]
+        );
+        found = categoryCheck.length > 0;
+      } catch (err) {
+        if (err.code !== '42P01') throw err;
       }
+      if (!found) {
+        try {
+          const { rows: legacyProjectCheck } = await query(
+            'SELECT id FROM projects WHERE id = $1 AND org_id = $2',
+            [categoryId, orgId]
+          );
+          found = legacyProjectCheck.length > 0;
+        } catch (err) {
+          if (err.code !== '42P01') throw err;
+        }
+      }
+      if (!found) resolvedCategoryId = null;
     }
 
     const task = await withTransaction(async (client) => {
@@ -448,7 +470,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending')
         RETURNING *
       `, [
-        orgId, title, description, assignedTo, req.user.id, categoryId,
+        orgId, title, description, assignedTo, req.user.id, resolvedCategoryId,
         priority, dueDate, location, notes,
         normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null,
         JSON.stringify({ approval_index: 0 }),

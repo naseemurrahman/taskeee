@@ -32,6 +32,7 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [openUp, setOpenUp] = useState(false)
+  const [listMaxHeight, setListMaxHeight] = useState(240)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -70,10 +71,12 @@ export function Select({
     const bounds = modalBody
       ? modalBody.getBoundingClientRect()
       : { top: 0, bottom: window.innerHeight }
-    const spaceBelow = bounds.bottom - rect.bottom
-    const spaceAbove = rect.top - bounds.top
-    const minUsableAbove = searchable ? 170 : 140
-    setOpenUp(spaceBelow < estimatedDropdownHeight && spaceAbove >= minUsableAbove)
+    const spaceBelow = Math.max(0, bounds.bottom - rect.bottom)
+    const spaceAbove = Math.max(0, rect.top - bounds.top)
+    const shouldOpenUp = spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow
+    setOpenUp(shouldOpenUp)
+    const available = shouldOpenUp ? spaceAbove : spaceBelow
+    setListMaxHeight(Math.max(120, Math.min(280, Math.floor(available - 14))))
   }, [open, searchable, filtered.length])
 
   function handleSelect(opt: SelectOption) {
@@ -144,7 +147,7 @@ export function Select({
               />
             </div>
           )}
-          <div className="selectV3List">
+          <div className="selectV3List" style={{ maxHeight: listMaxHeight }}>
             {filtered.length === 0 ? (
               <div className="selectV3Empty">No options found</div>
             ) : filtered.map(opt => (
