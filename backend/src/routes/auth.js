@@ -45,6 +45,23 @@ const SUBSCRIPTION_PLANS = {
 
 // Initialize email service
 const emailService = new EmailService();
+const _tableColsCache = new Map();
+
+async function getTableColumns(tableName) {
+  if (_tableColsCache.has(tableName)) return _tableColsCache.get(tableName);
+  try {
+    const { rows } = await query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+    const cols = new Set(rows.map(r => String(r.column_name)));
+    _tableColsCache.set(tableName, cols);
+    return cols;
+  } catch {
+    return new Set();
+  }
+}
 
 function normalizePlan(plan) {
   const key = String(plan || '').trim().toLowerCase();
@@ -784,8 +801,13 @@ router.post('/change-password', authenticate, async (req, res, next) => {
     if (!currentPassword || !newPassword || newPassword.length < 8)
       return res.status(400).json({ error: 'Valid passwords required (min 8 chars)' });
 
+    const userCols = await getTableColumns('users');
+    const hasTempPassword = userCols.has('temp_password');
+    const hasTempPasswordExpiry = userCols.has('temp_password_expires');
     const { rows } = await query(
-      `SELECT password_hash, temp_password, temp_password_expires
+      `SELECT password_hash,
+              ${hasTempPassword ? 'temp_password' : 'NULL::text AS temp_password'},
+              ${hasTempPasswordExpiry ? 'temp_password_expires' : 'NULL::timestamptz AS temp_password_expires'}
        FROM users WHERE id = $1`,
       [req.user.id]
     );
@@ -803,15 +825,17 @@ router.post('/change-password', authenticate, async (req, res, next) => {
       return res.status(401).json({ error: 'Current password incorrect' });
 
     const hash = await bcrypt.hash(newPassword, 12);
-    await query(
-      `UPDATE users
-       SET password_hash = $1, temp_password = NULL, temp_password_expires = NULL
-       WHERE id = $2`,
-      [hash, req.user.id]
-    );
+    const updates = ['password_hash = $1'];
+    if (hasTempPassword) updates.push('temp_password = NULL');
+    if (hasTempPasswordExpiry) updates.push('temp_password_expires = NULL');
+    await query(`UPDATE users SET ${updates.join(', ')} WHERE id = $2`, [hash, req.user.id]);
 
     // Revoke all refresh tokens for security
-    await query(`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, [req.user.id]);
+    try {
+      await query(`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, [req.user.id]);
+    } catch (_err) {
+      // Legacy schemas may not have refresh_tokens or revoked column
+    }
     await cacheDel(`user:${req.user.id}`);
 
     await logUserActivity({
