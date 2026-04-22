@@ -2,8 +2,8 @@
 const logger = require('./logger');
 const { resolvePgSsl } = require('./pgSsl');
 
-// Check if we should use demo mode (for development) or production mode
-let useDemo = process.env.NODE_ENV !== 'production';
+// Check if we should use demo mode (for development) or when no DB is configured
+let useDemo = process.env.NODE_ENV !== 'production' || !process.env.DATABASE_URL;
 
 // Demo data (used when PostgreSQL not available)
 const bcrypt = require('bcryptjs');

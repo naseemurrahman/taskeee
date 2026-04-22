@@ -511,7 +511,7 @@ router.delete('/employees', authenticate, requireAnyRole('admin'), async (req, r
       [orgId]
     );
 
-    res.json({ success: true, deleted: rowCount, message: \`Deleted \${rowCount} employee records.\` });
+    res.json({ success: true, deleted: rowCount, message: `Deleted ${rowCount} employee records.` });
   } catch (err) { next(err); }
 });
 

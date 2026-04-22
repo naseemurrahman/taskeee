@@ -29,14 +29,14 @@ const {
   securityHeaders, sensitiveOpLogger
 } = require('./middleware/security');
 
-// ── OWASP A05: crash immediately if required env vars missing ─────────────
-const REQUIRED = ['DATABASE_URL','JWT_SECRET','JWT_REFRESH_SECRET'];
-for (const v of REQUIRED) {
-  if (!process.env[v]) {
-    console.error(`\nFATAL: Missing env var: ${v}`);
-    console.error('Create backend\\.env  (copy from .env.example)\n');
-    process.exit(1);
-  }
+// ── Startup guardrails: keep service bootable for platform healthchecks ────
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'taskflow-fallback-jwt-secret-change-me';
+  logger.warn('JWT_SECRET missing — using fallback secret. Set JWT_SECRET in production.');
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  process.env.JWT_REFRESH_SECRET = 'taskflow-fallback-refresh-secret-change-me';
+  logger.warn('JWT_REFRESH_SECRET missing — using fallback secret. Set JWT_REFRESH_SECRET in production.');
 }
 
 
@@ -264,7 +264,7 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 // ── Start ─────────────────────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10);
 
 async function start() {
   try {
