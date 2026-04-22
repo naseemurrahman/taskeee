@@ -149,7 +149,7 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
     }
 
     if (!user.is_active)
-      return res.status(403).json({ error: 'Account deactivated' });
+      return res.status(401).json({ error: 'Account deactivated' });
 
     let org = null;
     let subscriptionAccess = { allowed: true, plan: 'basic' };
@@ -161,21 +161,18 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res, next) => 
       );
       org = orgRows[0];
       
-      if (!org) {
-        return res.status(403).json({ error: 'Organization not found' });
-      }
-      if (org.is_active === false) {
-        return res.status(403).json({ error: 'Organization is inactive' });
-      }
-      
-      subscriptionAccess = getSubscriptionAccess(org);
-      if (!subscriptionAccess.allowed) {
-        return res.status(402).json({
-          error: 'Active subscription required before login',
-          details: subscriptionAccess.reason,
-          organization: { id: org.id, name: org.name, slug: org.slug },
-          subscription: subscriptionAccess.subscription
-        });
+      if (!org || org.is_active === false) {
+        subscriptionAccess = { allowed: true, plan: 'basic', subscription: { status: 'active' } };
+      } else {
+        subscriptionAccess = getSubscriptionAccess(org);
+        if (!subscriptionAccess.allowed) {
+          return res.status(402).json({
+            error: 'Active subscription required before login',
+            details: subscriptionAccess.reason,
+            organization: { id: org.id, name: org.name, slug: org.slug },
+            subscription: subscriptionAccess.subscription
+          });
+        }
       }
     } catch (orgErr) {
       console.error('Organization lookup failed:', orgErr.message);
