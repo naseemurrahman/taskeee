@@ -6949,3 +6949,245 @@ select.input:focus,
   box-shadow: 0 0 0 3px rgba(226,171,65,0.15) !important;
   outline: none;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DROPDOWN Z-INDEX & OVERFLOW FIXES
+   Cards have overflow:hidden which clips absolute dropdowns
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Cards must not clip dropdowns — use overflow:visible when a Select is open inside */
+.card,
+.formCardV3,
+.formCardV3Body,
+.pageHeaderCard,
+.miniCard,
+.chartV3,
+.kpiV3,
+.modalCardV2,
+.modalCard,
+.modalV2Body,
+.modalV2Foot,
+.modalV2Head {
+  overflow: visible !important;
+}
+
+/* Restore clip only for decorative ::before pseudo-elements via clip wrapper */
+.card::before,
+.pageHeaderCard::before {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* selectV3Dropdown — always on top of everything */
+.selectV3Dropdown {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Wrapper needs stacking context when open */
+.selectV3Wrap {
+  position: relative !important;
+}
+.selectV3Open ~ .selectV3Dropdown,
+.selectV3Wrap:focus-within .selectV3Dropdown {
+  z-index: 9999 !important;
+}
+
+/* Ensure Select trigger sets up stacking context when open */
+.selectV3Trigger.selectV3Open {
+  position: relative;
+  z-index: 9998;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TEXTAREA — preserve border-radius fully
+   ═══════════════════════════════════════════════════════════════ */
+
+/* inputV3Field wrapping textarea */
+.inputV3Field:has(textarea),
+.inputV3Field[data-type="textarea"] {
+  border-radius: 16px !important;
+  height: auto !important;
+  align-items: flex-start !important;
+}
+
+textarea.inputV3Native,
+.inputV3Native[rows],
+textarea {
+  border-radius: 14px !important;
+  resize: vertical;
+  min-height: 80px;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+/* All textareas that are children of .inputV3Field */
+.inputV3Field textarea {
+  border-radius: 12px !important;
+}
+
+/* Standalone textarea (not wrapped in inputV3Field) */
+textarea.input {
+  border-radius: 16px !important;
+  height: auto !important;
+  min-height: 80px;
+  padding: 12px 14px !important;
+  resize: vertical;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK THEME — invisible text fixes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Dark mode select options & inputs */
+.appShellV4Dark .selectV3Option {
+  color: var(--text) !important;
+}
+.appShellV4Dark .selectV3Trigger {
+  color: var(--text) !important;
+}
+.appShellV4Dark .selectV3Dropdown {
+  background: var(--bg1) !important;
+  color: var(--text) !important;
+}
+.appShellV4Dark .selectV3SearchInput {
+  color: var(--text) !important;
+}
+.appShellV4Dark .inputV3Native,
+.appShellV4Dark .inputV3Native::placeholder {
+  color: var(--text) !important;
+}
+.appShellV4Dark .inputV3Native::placeholder {
+  color: var(--muted) !important;
+}
+
+/* Dark mode card text */
+.appShellV4Dark .formCardV3Title,
+.appShellV4Dark .formCardV3Sub,
+.appShellV4Dark .pageHeaderCardTitle,
+.appShellV4Dark .pageHeaderCardSub {
+  color: var(--text) !important;
+}
+
+/* Dark theme table text */
+.appShellV4Dark .employeeTableV3 td,
+.appShellV4Dark .employeeTableV3 th {
+  color: var(--text) !important;
+}
+.appShellV4Dark .employeeTableV3 th {
+  color: var(--muted) !important;
+}
+
+/* Dark mode miniCard text */
+.appShellV4Dark .miniLabel {
+  color: var(--muted) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL — polished popup windows
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Modal overlay */
+.modalOverlayV2 {
+  background: rgba(0,0,0,0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Modal card */
+.modalCardV2 {
+  border-radius: 24px !important;
+  border: 1px solid var(--borderUp, rgba(255,255,255,0.14)) !important;
+  overflow: visible !important;  /* dropdowns inside must not clip */
+}
+
+/* Inner sections still need their own overflow management */
+.modalV2Body {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
+/* Light theme modal */
+.appShellV4Light .modalCardV2 {
+  background: #ffffff !important;
+  border-color: #e4e7ef !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.18), 0 8px 32px rgba(0,0,0,0.08) !important;
+}
+
+/* Dark theme modal */
+.appShellV4Dark .modalCardV2 {
+  background: #1d2029 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4) !important;
+}
+
+/* Modal head separator */
+.modalV2Head {
+  border-bottom: 1px solid var(--border) !important;
+}
+.appShellV4Light .modalV2Head {
+  border-color: #f0f0f6 !important;
+}
+.appShellV4Dark .modalV2Head {
+  border-color: rgba(255,255,255,0.09) !important;
+}
+
+/* Modal footer */
+.modalV2Foot {
+  border-top: 1px solid var(--border) !important;
+  background: transparent !important;
+}
+.appShellV4Light .modalV2Foot {
+  border-color: #f0f0f6 !important;
+  background: #fafafa !important;
+}
+.appShellV4Dark .modalV2Foot {
+  border-color: rgba(255,255,255,0.09) !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* Modal icon */
+.modalV2Icon {
+  background: var(--brandDim) !important;
+  border-color: var(--brandBorder) !important;
+  color: var(--brand) !important;
+  border-radius: 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CREATE TASK MODAL — special treatment for dropdowns inside modal
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ensure the form inside modal creates stacking context layers */
+#createTaskForm .selectV3Wrap,
+.modalV2Body .selectV3Wrap,
+.modalBody .selectV3Wrap {
+  position: relative;
+  isolation: isolate;
+}
+
+#createTaskForm .selectV3Dropdown,
+.modalV2Body .selectV3Dropdown,
+.modalBody .selectV3Dropdown {
+  z-index: 99999 !important;
+}
+
+/* Description textarea in create task — ensure full radius */
+#createTaskForm textarea,
+.modalV2Body textarea,
+.modalBody textarea {
+  border-radius: 14px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEPARTMENT → ASSIGN TO live filter indicator
+   ═══════════════════════════════════════════════════════════════ */
+.deptFilterHint {
+  font-size: 11px;
+  color: var(--brand);
+  font-weight: 700;
+  margin-top: 3px;
+  padding-left: 2px;
+}
+

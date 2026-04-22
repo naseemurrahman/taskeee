@@ -338,37 +338,6 @@ export function JeczoneDashboardPage() {
             </ChartCard>
           </div>
 
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0 }}>Your projects</h3>
-              <div style={{ color: 'var(--text2)', fontWeight: 800, fontSize: 12 }}>
-                {projectId === 'all' ? 'All projects' : (projects.find((p) => p.id === projectId)?.name || 'Project')}
-              </div>
-            </div>
-            <div style={{ color: 'var(--text2)', fontSize: 13, marginTop: 8 }}>
-              Click a project for people, deadlines, scores, and threads. Use the <strong style={{ color: 'var(--text)' }}>Project</strong> menu above to filter charts.
-            </div>
-            <div className="projectGrid" style={{ marginTop: 12 }}>
-              {projectCards.slice(0, 6).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="projectCard"
-                  style={{ textAlign: 'left' }}
-                  onClick={() => setProjectModalId(p.id)}
-                >
-                  <div className="projectDot" style={{ background: p.color || 'rgba(168,85,247,0.85)' }} />
-                  <div style={{ minWidth: 0, width: '100%' }}>
-                    <div className="projectName">{p.name}</div>
-                    <div className="projectDesc">{p.total} tasks · {p.progress}% complete</div>
-                    <div style={{ marginTop: 10, height: 10, borderRadius: 999, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
-                      <div style={{ width: `${p.progress}%`, height: '100%', background: 'rgba(168, 85, 247, 0.55)' }} />
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </>
       ) : null}
 

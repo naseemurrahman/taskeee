@@ -59,6 +59,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
 
   const projects = projectsQ.data || []
   const assignees = usersQ.data || []
+  const filteredAssignees = assignees  // already filtered by dept via the query
   const departments = departmentsQ.data || []
 
   const m = useMutation({
@@ -171,28 +172,35 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Select
-            label="Department"
-            value={dept}
-            onChange={v => { setDept(v); setAssignedTo('') }}
-            options={[
-              { value: '', label: 'All departments' },
-              ...departments.length
-                ? departments.map(d => ({ value: d, label: d }))
-                : [{ value: '__none__', label: 'No departments found', disabled: true }],
-            ]}
-            searchable={departments.length > 5}
-          />
+          <div>
+            <Select
+              label="Department"
+              value={dept}
+              onChange={v => { setDept(v); setAssignedTo('') }}
+              options={[
+                { value: '', label: 'All departments' },
+                ...departments.length
+                  ? departments.map(d => ({ value: d, label: d }))
+                  : [{ value: '__none__', label: 'No departments yet', disabled: true }],
+              ]}
+              searchable={departments.length > 4}
+            />
+            {dept && (
+              <div className="deptFilterHint">
+                ↓ {filteredAssignees.length} employee{filteredAssignees.length !== 1 ? 's' : ''} in {dept}
+              </div>
+            )}
+          </div>
           <Select
             label="Assign to" required
             value={assignedTo}
             onChange={setAssignedTo}
             options={[
-              { value: '', label: 'Select employee…' },
-              ...assignees.map(u => ({
+              { value: '', label: filteredAssignees.length === 0 && dept ? 'No employees in dept' : 'Select employee…' },
+              ...filteredAssignees.map(u => ({
                 value: u.id,
-                label: u.full_name || u.name || u.email,
-                description: u.department || u.role,
+                label: u.full_name || (u as any).name || u.email,
+                description: [u.department, u.role].filter(Boolean).join(' · '),
               })),
             ]}
             searchable
@@ -206,12 +214,22 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
         />
 
         <div className="inputV3Wrap">
-          <label className="selectV3Label">Description <span style={{ color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 600, fontSize: 11 }}>(optional)</span></label>
-          <div className="inputV3Field" style={{ height: 'auto' }}>
+          <label className="selectV3Label">
+            Description{' '}
+            <span style={{ color: 'var(--muted)', textTransform: 'none', letterSpacing: 0, fontWeight: 600, fontSize: 11 }}>(optional)</span>
+          </label>
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.10)',
+            borderRadius: 16, overflow: 'hidden', transition: 'border-color 0.15s',
+          }}>
             <textarea
               name="description"
-              className="inputV3Native"
-              style={{ height: 90, paddingTop: 12, paddingBottom: 12, resize: 'vertical' }}
+              style={{
+                display: 'block', width: '100%', minHeight: 88, padding: '12px 14px',
+                background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--text)', fontSize: 14, lineHeight: 1.6,
+                resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
               placeholder="Context, acceptance criteria, links…"
             />
           </div>
