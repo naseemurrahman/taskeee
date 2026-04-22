@@ -4617,6 +4617,7 @@ button.projectCard {
 }
 
 .selectV3Wrap { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.selectV3WrapOpen { z-index: 50; }
 .selectV3Label {
   font-size: 12px; font-weight: 800; color: var(--text2);
   text-transform: uppercase; letter-spacing: 0.06em;
@@ -4667,6 +4668,10 @@ button.projectCard {
   box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2);
   overflow: hidden;
   animation: selectDropIn 0.15s ease;
+}
+.selectV3DropdownUp {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 @supports (backdrop-filter: blur(1px)) {
   .selectV3Dropdown { backdrop-filter: blur(24px); }
@@ -6872,6 +6877,9 @@ select.input {
 .createTaskModalBody .selectV3Wrap {
   position: relative;
   z-index: 20;
+}
+.createTaskModalBody .selectV3WrapOpen {
+  z-index: 80;
 }
 .createTaskModalBody .selectV3Dropdown {
   z-index: 1200;

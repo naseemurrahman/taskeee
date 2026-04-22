@@ -32,6 +32,7 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [openUp, setOpenUp] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -64,6 +65,15 @@ export function Select({
     }
   }, [open, searchable])
 
+  useEffect(() => {
+    if (!open || !ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const estimatedDropdownHeight = searchable ? 300 : 250
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    setOpenUp(spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow)
+  }, [open, searchable, filtered.length])
+
   function handleSelect(opt: SelectOption) {
     if (opt.disabled) return
     onChange(opt.value)
@@ -76,7 +86,7 @@ export function Select({
   }
 
   return (
-    <div className={`selectV3Wrap ${className || ''}`} ref={ref}>
+    <div className={`selectV3Wrap ${open ? 'selectV3WrapOpen' : ''} ${className || ''}`.trim()} ref={ref}>
       {label && (
         <label className="selectV3Label">
           {label}{required && <span className="selectV3Required"> *</span>}
@@ -118,7 +128,7 @@ export function Select({
       </div>
 
       {open && (
-        <div className="selectV3Dropdown" role="listbox">
+        <div className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox">
           {searchable && (
             <div className="selectV3SearchWrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

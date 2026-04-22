@@ -169,7 +169,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             onChange={v => { setDept(v); setAssignedTo('') }}
             options={[
               { value: '', label: 'All departments' },
-              ...departments.map(d => ({ value: d, label: d })),
+              ...departments.length
+                ? departments.map(d => ({ value: d, label: d }))
+                : [{ value: '__none__', label: 'No departments found', disabled: true }],
             ]}
             searchable={departments.length > 5}
           />
