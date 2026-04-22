@@ -14,6 +14,7 @@
     "build": "npm run build",
     "test": "npm run test",
     "db:test": "node scripts/test-db.js",
+    "admin:create": "node scripts/create-admin.js",
     "dev:set-password": "node scripts/dev-set-password.js",
     "test:coverage": "jest --coverage"
   },
