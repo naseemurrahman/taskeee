@@ -108,16 +108,11 @@ export function EmployeesPage() {
     setFormError(null); setFieldErrors({})
   }
 
-  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
 
   const deleteEmpM = useMutation({
     mutationFn: (empId: string) => apiFetch(`/api/v1/hris/employees/${empId}`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
-  })
-
-  const deleteAllM = useMutation({
-    mutationFn: () => apiFetch('/api/v1/hris/employees', { method: 'DELETE' }),
-    onSuccess: () => { setDeleteAllConfirm(false); qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
+    onSuccess: () => { setDeleteTarget(null); qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
   })
 
   const m = useMutation({
@@ -218,16 +213,7 @@ export function EmployeesPage() {
               />
             </div>
             <Link className="btn btnGhost btnSm" to="/app/hr/time-off">Time Off</Link>
-            {me?.role === 'admin' && (
-              <button
-                type="button" className="btn btnSm"
-                onClick={() => setDeleteAllConfirm(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', borderRadius: 999 }}
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                Delete All
-              </button>
-            )}
+
             <button type="button" className="btn btnPrimary btnSm" onClick={() => { resetForm(); setAddOpen(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Employee
@@ -262,14 +248,14 @@ export function EmployeesPage() {
                     {canSeeAccounts && (
                       <button
                         type="button"
-                        title="Delete employee"
-                        onClick={evt => { evt.stopPropagation(); if (window.confirm(`Delete ${e.full_name}? This cannot be undone.`)) deleteEmpM.mutate(e.id) }}
-                        style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}
-                        onMouseEnter={ev => (ev.currentTarget.style.opacity = '1')}
-                        onMouseLeave={ev => (ev.currentTarget.style.opacity = '0')}
+                        title="Remove employee"
+                        onClick={evt => { evt.stopPropagation(); setDeleteTarget(e) }}
                         className="employeeDeleteBtn"
+                        style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: 0, transition: 'all 0.15s' }}
+                        onMouseEnter={ev => { ev.currentTarget.style.opacity = '1'; ev.currentTarget.style.background = 'rgba(239,68,68,0.18)' }}
+                        onMouseLeave={ev => { ev.currentTarget.style.opacity = '0'; ev.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                       </button>
                     )}
                   </td>
@@ -370,36 +356,51 @@ export function EmployeesPage() {
         </div>
       )}
 
-      {/* ── Delete All Confirm ── */}
-      {deleteAllConfirm && (
-        <div className="modalOverlayV2" onMouseDown={() => setDeleteAllConfirm(false)}>
-          <div className="modalCardV2" style={{ maxWidth: 420, padding: 0 }} onMouseDown={e => e.stopPropagation()}>
+      {/* ── Delete Employee Confirm ── */}
+      {deleteTarget && (
+        <div className="modalOverlayV2" onMouseDown={() => { if (!deleteEmpM.isPending) setDeleteTarget(null) }}>
+          <div className="modalCardV2" style={{ maxWidth: 420 }} onMouseDown={e => e.stopPropagation()}>
             <div className="modalV2Head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', display: 'grid', placeItems: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                 </div>
                 <div>
-                  <div className="modalV2Title" style={{ color: '#ef4444' }}>Delete All Employees</div>
-                  <div className="modalV2Sub">This action cannot be undone</div>
+                  <div className="modalV2Title">Remove Employee</div>
+                  <div className="modalV2Sub">This will deactivate their account</div>
                 </div>
               </div>
-              <button className="modalV2Close" onClick={() => setDeleteAllConfirm(false)} type="button">
+              <button className="modalV2Close" onClick={() => setDeleteTarget(null)} type="button" disabled={deleteEmpM.isPending}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div className="modalV2Body" style={{ padding: '16px 22px' }}>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--text2)' }}>
-                This will <strong>permanently delete all employee records</strong> and deactivate their user accounts. Your admin account will not be affected.
+            <div className="modalV2Body">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)', marginBottom: 14 }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--brandDim)', border: '1.5px solid var(--brandBorder)', color: 'var(--brand)', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 900, flexShrink: 0 }}>
+                  {deleteTarget.full_name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)' }}>{deleteTarget.full_name}</div>
+                  {deleteTarget.title && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{deleteTarget.title}</div>}
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>
+                Removing <strong>{deleteTarget.full_name}</strong> will <strong>delete their HRIS record</strong> and <strong>deactivate their login</strong>. They will no longer be able to sign in.
               </p>
-              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#ef4444', fontWeight: 700 }}>⚠️ Use this only to reset employee data before re-adding with correct departments.</p>
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>⚠️ This action cannot be undone.</p>
             </div>
-            <div className="modalV2Foot">
-              <button type="button" className="btn btnGhost" onClick={() => setDeleteAllConfirm(false)}>Cancel</button>
-              <button type="button" disabled={deleteAllM.isPending}
-                onClick={() => deleteAllM.mutate()}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 38, borderRadius: 999, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', opacity: deleteAllM.isPending ? 0.7 : 1 }}>
-                {deleteAllM.isPending ? 'Deleting…' : '🗑 Yes, Delete All Employees'}
+            <div className="modalV2Foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" className="btn btnGhost" onClick={() => setDeleteTarget(null)} disabled={deleteEmpM.isPending}>Cancel</button>
+              <button
+                type="button"
+                disabled={deleteEmpM.isPending}
+                onClick={() => deleteEmpM.mutate(deleteTarget.id)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 38, borderRadius: 999, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: 13, cursor: deleteEmpM.isPending ? 'not-allowed' : 'pointer', opacity: deleteEmpM.isPending ? 0.7 : 1 }}
+              >
+                {deleteEmpM.isPending
+                  ? <><svg className="animate-rotate" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/></svg> Removing…</>
+                  : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Remove Employee</>
+                }
               </button>
             </div>
           </div>

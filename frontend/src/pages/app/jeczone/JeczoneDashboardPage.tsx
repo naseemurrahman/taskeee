@@ -57,7 +57,7 @@ async function fetchPerf() {
   return await apiFetch<PerformanceSummary>(`/api/v1/performance/summary`)
 }
 
-type Tab = 'overview' | 'projects' | 'gantt' | 'resources'
+type Tab = 'overview' | 'projects' | 'gantt' | 'resources' | 'ai'
 
 export function JeczoneDashboardPage() {
   const navigate = useNavigate()
@@ -233,6 +233,9 @@ export function JeczoneDashboardPage() {
               {t[0].toUpperCase() + t.slice(1)}
             </button>
           ))}
+          <button className={`btn ${tab === 'ai' ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab('ai')}>
+            🤖 AI Assistant
+          </button>
         </div>
       </div>
 

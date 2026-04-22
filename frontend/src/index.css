@@ -6870,20 +6870,7 @@ select.input {
   color: var(--brand);
 }
 
-/* Ensure select dropdown is not clipped in create task modal */
-.createTaskModalBody {
-  overflow: visible !important;
-}
-.createTaskModalBody .selectV3Wrap {
-  position: relative;
-  z-index: 20;
-}
-.createTaskModalBody .selectV3WrapOpen {
-  z-index: 80;
-}
-.createTaskModalBody .selectV3Dropdown {
-  z-index: 1200;
-}
+/* createTaskModalBody — overflow managed by portal */
 
 /* Unified dropdown style (all app pages) */
 .appShellV4 .selectV3Trigger,
@@ -6957,32 +6944,10 @@ select.input:focus,
    ═══════════════════════════════════════════════════════════════ */
 
 /* Cards must not clip dropdowns — use overflow:visible when a Select is open inside */
-.card,
-.formCardV3,
-.formCardV3Body,
-.pageHeaderCard,
-.miniCard,
-.chartV3,
-.kpiV3,
-.modalCardV2,
-.modalCard,
-.modalV2Body,
-.modalV2Foot,
-.modalV2Head {
-  overflow: visible !important;
-}
-
-/* Restore clip only for decorative ::before pseudo-elements via clip wrapper */
-.card::before,
-.pageHeaderCard::before {
-  pointer-events: none;
-  overflow: hidden;
-}
-
-/* selectV3Dropdown — always on top of everything */
+/* Cards can clip normally — Select dropdowns use createPortal+position:fixed
+   so they never need parent overflow:visible */
 .selectV3Dropdown {
   z-index: 9999 !important;
-  position: absolute !important;
 }
 
 /* Wrapper needs stacking context when open */
@@ -7099,7 +7064,7 @@ textarea.input {
 .modalCardV2 {
   border-radius: 24px !important;
   border: 1px solid var(--borderUp, rgba(255,255,255,0.14)) !important;
-  overflow: visible !important;  /* dropdowns inside must not clip */
+  overflow: visible !important;  /* modals: dropdowns use fixed positioning */
 }
 
 /* Inner sections still need their own overflow management */
@@ -7523,3 +7488,22 @@ tr:hover .inlineEditBtn {
   opacity: 1 !important;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGEHEADERCARD — always clips ::before stripe (no overflow)
+   Safe because Select dropdowns use position:fixed via createPortal
+   ═══════════════════════════════════════════════════════════════ */
+.pageHeaderCard {
+  overflow: hidden !important;
+  position: relative !important;
+}
+.pageHeaderCard::before {
+  border-radius: 18px 18px 0 0;
+}
+
+/* Cards also clip normally — dropdowns escape via portal */
+.card { overflow: hidden; }
+.chartV3 { overflow: hidden; }
+.formCardV3 { overflow: hidden; }
+.miniCard { overflow: hidden; }

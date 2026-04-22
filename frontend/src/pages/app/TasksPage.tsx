@@ -13,17 +13,21 @@ type Task = {
   category_color?: string | null; assigned_to?: string | null; assigned_to_name?: string | null
 }
 
-async function fetchTasks(status: string, priority: string, search: string) {
+function fetchTasks(status: string, priority: string, search: string, mine: boolean) {
   const qs = new URLSearchParams({ limit: '200', page: '1' })
   if (status !== 'all') qs.set('status', status)
   if (priority !== 'all') qs.set('priority', priority)
   if (search.trim()) qs.set('search', search.trim())
-  const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?${qs}`)
-  return (d.tasks || d.rows || []) as Task[]
+  if (mine) qs.set('mine', 'true')   // employee: only own tasks
+  return apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?${qs}`)
+    .then(d => (d.tasks || d.rows || []) as Task[])
 }
 
 async function renameTask(id: string, title: string) {
   return apiFetch(`/api/v1/tasks/${id}/rename`, { method: 'PATCH', json: { title } })
+}
+async function changeStatus(id: string, status: string) {
+  return apiFetch(`/api/v1/tasks/${id}/status`, { method: 'PATCH', json: { status } })
 }
 
 function dueStat(iso?: string | null): { label: string; tone: string } {
@@ -47,6 +51,48 @@ function hash(s: string) {
 const PRIORITY_COLOR: Record<string, string> = {
   low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444', urgent: '#ef4444',
 }
+
+const STATUS_OPTIONS: Record<string, { label: string; color: string; bg: string }> = {
+  pending:          { label: 'Pending',          color: '#e2ab41', bg: 'rgba(226,171,65,0.12)'  },
+  in_progress:      { label: 'In Progress',      color: '#818cf8', bg: 'rgba(99,102,241,0.12)'  },
+  submitted:        { label: 'Submitted',        color: '#f9e6a2', bg: 'rgba(226,171,65,0.12)'  },
+  manager_approved: { label: 'Approved',         color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  manager_rejected: { label: 'Rejected',         color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  completed:        { label: 'Completed',        color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  overdue:          { label: 'Overdue',          color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  cancelled:        { label: 'Cancelled',        color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+}
+
+// Allowed status transitions per role (mirrors backend)
+function getAllowedTransitions(fromStatus: string, role: string): string[] {
+  const map: Record<string, Record<string, string[]>> = {
+    employee: {
+      pending:          ['in_progress'],
+      overdue:          ['in_progress'],
+      in_progress:      ['submitted', 'pending'],
+      submitted:        ['in_progress'],
+      manager_approved: ['completed'],
+      manager_rejected: ['in_progress'],
+    },
+    supervisor: {
+      pending: ['in_progress'], overdue: ['in_progress', 'completed', 'pending'],
+      in_progress: ['submitted', 'completed', 'pending'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      manager_approved: ['completed'], completed: ['pending', 'in_progress'],
+    },
+    manager: {
+      pending: ['in_progress', 'completed', 'cancelled'],
+      overdue: ['in_progress', 'completed', 'pending'],
+      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
+      completed: ['pending', 'in_progress'], cancelled: ['pending'],
+    },
+  }
+  const roleMap = map[role] || map['manager']
+  return roleMap[fromStatus] || []
+}
+
 const PRIORITY_OPTS = [
   { value: 'all', label: 'All priorities' },
   { value: 'low', label: 'Low', color: '#38bdf8' },
@@ -55,7 +101,7 @@ const PRIORITY_OPTS = [
   { value: 'critical', label: 'Critical', color: '#ef4444' },
 ]
 
-/** Inline rename cell for task titles */
+/** Inline title rename */
 function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean; onSaved: () => void }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(task.title || '')
@@ -81,22 +127,16 @@ function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean;
     else setEditing(false)
   }
 
-  function onKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') commit()
-    if (e.key === 'Escape') { setEditing(false); setVal(task.title || '') }
-  }
-
   if (editing) {
     return (
-      <input
-        ref={inputRef}
-        className="inlineEditInput"
-        value={val}
+      <input ref={inputRef} className="inlineEditInput" value={val}
         onChange={e => setVal(e.target.value)}
         onBlur={commit}
-        onKeyDown={onKey}
-        onClick={e => e.stopPropagation()}
-        style={{ fontSize: 13 }}
+        onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') { setEditing(false); setVal(task.title || '') }
+        }}
+        onClick={e => e.stopPropagation()} style={{ fontSize: 13 }}
       />
     )
   }
@@ -107,7 +147,7 @@ function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean;
         {task.title || task.id}
       </span>
       {canEdit && (
-        <button className="inlineEditBtn" type="button" onClick={startEdit} title="Rename task">
+        <button className="inlineEditBtn" type="button" onClick={startEdit} title="Rename">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -118,10 +158,48 @@ function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean;
   )
 }
 
+/** Inline status badge — click to change */
+function InlineStatus({ task, role }: { task: Task; role: string }) {
+  const qc = useQueryClient()
+  const transitions = getAllowedTransitions(task.status, role)
+  const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
+
+  const m = useMutation({
+    mutationFn: (s: string) => changeStatus(task.id, s),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', 'list'] }),
+  })
+
+  if (transitions.length === 0) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color }} />
+        {meta.label}
+      </span>
+    )
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <Select
+        value={task.status}
+        onChange={s => m.mutate(s)}
+        options={[
+          { value: task.status, label: meta.label, color: meta.color },
+          ...transitions.map(s => {
+            const tm = STATUS_OPTIONS[s] || { label: s.replace(/_/g, ' '), color: '#9ca3af', bg: '' }
+            return { value: s, label: tm.label, color: tm.color }
+          }),
+        ]}
+      />
+    </div>
+  )
+}
+
 export function TasksPage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
   const isEmployee = me?.role === 'employee'
+  const role = me?.role || 'employee'
 
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
@@ -129,8 +207,8 @@ export function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false)
 
   const q = useQuery({
-    queryKey: ['tasks', 'list', status, priority, search],
-    queryFn: () => fetchTasks(status, priority, search),
+    queryKey: ['tasks', 'list', status, priority, search, isEmployee],
+    queryFn: () => fetchTasks(status, priority, search, isEmployee),
     staleTime: 30_000,
     refetchInterval: 30_000,
   })
@@ -158,10 +236,10 @@ export function TasksPage() {
             <div className="pageHeaderCardTitle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
               Tasks
-              {isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>Employee view</span>}
+              {isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>My Tasks</span>}
             </div>
             <div className="pageHeaderCardSub">
-              {isEmployee ? 'Tasks assigned to you. Submit work for review and track your progress.' : 'Create, assign, and track tasks across your team.'}
+              {isEmployee ? 'Tasks assigned to you. Start, submit, or track your work.' : 'Create, assign, and track tasks. Click a status badge to change it inline.'}
             </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} total</span>
@@ -226,8 +304,8 @@ export function TasksPage() {
         ) : tasks.length === 0 ? (
           <div className="emptyStateV3" style={{ padding: '48px 24px' }}>
             <div className="emptyStateV3Icon">📋</div>
-            <div className="emptyStateV3Title">{search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : 'No tasks yet'}</div>
-            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'No tasks have been assigned to you yet'}</div>
+            <div className="emptyStateV3Title">{search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : isEmployee ? 'No tasks assigned to you yet' : 'No tasks yet'}</div>
+            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Check back when your manager assigns you work'}</div>
             {canCreate && (
               <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -242,7 +320,7 @@ export function TasksPage() {
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Task</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Project</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
                   {!isEmployee && <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Assignee</th>}
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Priority</th>
@@ -255,13 +333,13 @@ export function TasksPage() {
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
                   const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
                   return (
-                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'default', transition: 'background 0.1s' }}
+                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: 0, width: 4 }}>
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
-                      <td style={{ padding: '10px 14px', maxWidth: 280 }}>
+                      <td style={{ padding: '10px 14px', maxWidth: 260 }}>
                         <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
@@ -284,10 +362,8 @@ export function TasksPage() {
                           ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>Unassigned</span>}
                         </td>
                       )}
-                      <td style={{ padding: '10px 14px' }}>
-                        <span className={`statusBadge ${task.status === 'completed' || task.status === 'manager_approved' ? 'statusCompleted' : task.status === 'in_progress' ? 'statusInProgress' : task.status === 'overdue' ? 'statusOverdue' : task.status === 'submitted' ? 'statusSubmitted' : 'statusPending'}`}>
-                          {task.status.replace(/_/g, ' ')}
-                        </span>
+                      <td style={{ padding: '8px 10px', minWidth: 140 }}>
+                        <InlineStatus task={task} role={role} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {task.priority ? <span style={{ fontSize: 12, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>{task.priority}</span> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
@@ -300,11 +376,6 @@ export function TasksPage() {
                 })}
               </tbody>
             </table>
-            {tasks.length > 200 && (
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
-                Showing 200 of {tasks.length} tasks. Use filters to narrow results.
-              </div>
-            )}
           </div>
         )}
       </div>
