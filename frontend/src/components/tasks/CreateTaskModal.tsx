@@ -155,14 +155,6 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
       }
-      footer={
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', width: '100%' }}>
-          <button className="btn btnGhost" onClick={props.onClose} type="button">Cancel</button>
-          <button className="btn btnPrimary" form="createTaskForm" disabled={m.isPending} type="submit">
-            {m.isPending ? 'Creating…' : 'Create Task'}
-          </button>
-        </div>
-      }
     >
       {error && (
         <div style={{
@@ -264,6 +256,13 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
           <div className="textareaWrap">
             <textarea name="description" className="textareaInner" style={{ minHeight: 76 }} placeholder="Context, acceptance criteria, links…" />
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+          <button className="btn btnGhost" onClick={props.onClose} type="button">Cancel</button>
+          <button className="btn btnPrimary" disabled={m.isPending} type="submit">
+            {m.isPending ? 'Creating…' : 'Create Task'}
+          </button>
         </div>
 
       </form>
