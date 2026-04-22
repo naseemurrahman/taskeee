@@ -7,6 +7,24 @@ const { emitNotification } = require('../services/notificationService');
 const { logUserActivity } = require('../services/activityService');
 const { triggerAITaskReview } = require('../services/aiService');
 
+const _tableColsCache = new Map();
+async function getTableColumns(tableName) {
+  if (_tableColsCache.has(tableName)) return _tableColsCache.get(tableName);
+  try {
+    const { rows } = await query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+    const set = new Set((rows || []).map((r) => String(r.column_name)));
+    _tableColsCache.set(tableName, set);
+    return set;
+  } catch {
+    return new Set();
+  }
+}
+
 async function assertCanViewTask(req, task) {
   const u = req.user;
   if (isOrgWideRole(u.role)) return true;
@@ -412,6 +430,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     } = req.body;
 
     const orgId = req.user.org_id ?? req.user.orgId;
+    const taskCols = await getTableColumns('tasks');
     const normalizedRecurrence = normalizeRecurrence(recurrence, dueDate);
     const nextRunAt = normalizedRecurrence ? computeNextRunAt(dueDate || new Date().toISOString(), normalizedRecurrence) : null;
 
@@ -462,22 +481,36 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     }
 
     const task = await withTransaction(async (client) => {
-      const { rows } = await client.query(`
-        INSERT INTO tasks (
-          org_id, title, description, assigned_to, assigned_by, category_id, priority,
-          due_date, location, notes, recurrence, metadata, parent_task_id, next_run_at, approval_flow, status
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending')
-        RETURNING *
-      `, [
-        orgId, title, description, assignedTo, req.user.id, resolvedCategoryId,
-        priority, dueDate, location, notes,
-        normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null,
-        JSON.stringify({ approval_index: 0 }),
-        parentTaskId || null,
-        nextRunAt ? nextRunAt.toISOString() : null,
-        JSON.stringify(approvalFlow || [])
-      ]);
+      const insertCols = [];
+      const insertVals = [];
+      const pushCol = (col, val) => {
+        if (!taskCols.size || taskCols.has(col)) { insertCols.push(col); insertVals.push(val); }
+      };
+
+      pushCol('org_id', orgId);
+      pushCol('title', title);
+      pushCol('description', description || null);
+      pushCol('assigned_to', assignedTo || null);
+      pushCol('assigned_by', req.user.id);
+      pushCol('category_id', resolvedCategoryId || null);
+      pushCol('priority', priority || 'medium');
+      pushCol('due_date', dueDate || null);
+      pushCol('location', location || null);
+      pushCol('notes', notes || null);
+      pushCol('recurrence', normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null);
+      pushCol('metadata', JSON.stringify({ approval_index: 0 }));
+      pushCol('parent_task_id', parentTaskId || null);
+      pushCol('next_run_at', nextRunAt ? nextRunAt.toISOString() : null);
+      pushCol('approval_flow', JSON.stringify(approvalFlow || []));
+      pushCol('status', 'pending');
+
+      const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
+      const { rows } = await client.query(
+        `INSERT INTO tasks (${insertCols.join(', ')})
+         VALUES (${placeholders})
+         RETURNING *`,
+        insertVals
+      );
 
       if (dependencyIds.length) {
         for (const dependencyId of dependencyIds) {
