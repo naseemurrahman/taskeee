@@ -103,11 +103,11 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
 
   const m = useMutation({
     mutationFn: (input: CreateTaskInput) => apiFetch('/api/v1/tasks', { method: 'POST', json: input }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setError(null)
-      await qc.invalidateQueries({ queryKey: ['dashboard', 'tasks'] })
-      await qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
-      await qc.invalidateQueries({ queryKey: ['performance', 'summary'] })
+      void qc.invalidateQueries({ queryKey: ['dashboard', 'tasks'] })
+      void qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      void qc.invalidateQueries({ queryKey: ['performance', 'summary'] })
       props.onClose()
     },
     onError: (err) => {
@@ -237,6 +237,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             label="Assign To" required
             value={assignedTo}
             onChange={setAssignedTo}
+            preferOpenUp
             options={[
               { value: '', label: usersQ.isLoading ? 'Loading…' : 'Select employee…' },
               ...filteredAssignees.map(u => ({

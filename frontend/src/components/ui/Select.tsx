@@ -23,11 +23,12 @@ interface SelectProps {
   required?: boolean
   searchable?: boolean
   className?: string
+  preferOpenUp?: boolean
 }
 
 export function Select({
   value, onChange, options, placeholder = 'Select…', label,
-  disabled, error, required, searchable, className,
+  disabled, error, required, searchable, className, preferOpenUp,
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -73,11 +74,11 @@ export function Select({
       : { top: 0, bottom: window.innerHeight }
     const spaceBelow = Math.max(0, bounds.bottom - rect.bottom)
     const spaceAbove = Math.max(0, rect.top - bounds.top)
-    const shouldOpenUp = spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow
+    const shouldOpenUp = preferOpenUp || (spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow)
     setOpenUp(shouldOpenUp)
     const available = shouldOpenUp ? spaceAbove : spaceBelow
     setListMaxHeight(Math.max(120, Math.min(280, Math.floor(available - 14))))
-  }, [open, searchable, filtered.length])
+  }, [open, searchable, filtered.length, preferOpenUp])
 
   function handleSelect(opt: SelectOption) {
     if (opt.disabled) return
