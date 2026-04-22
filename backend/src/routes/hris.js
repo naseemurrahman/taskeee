@@ -470,7 +470,7 @@ router.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', '
 
     // Find the employee record first
     const { rows: empRows } = await query(
-      `SELECT e.*, u.role FROM hris_employees e
+      `SELECT e.*, u.role FROM employees e
        LEFT JOIN users u ON u.id = e.user_id
        WHERE e.id = $1 AND e.org_id = $2`,
       [id, orgId]
@@ -484,11 +484,11 @@ router.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', '
     // Soft-delete: deactivate user account + delete HRIS employee record
     if (emp.user_id) {
       await query(
-        `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND org_id = $2`,
+        `UPDATE users SET is_active = FALSE WHERE id = $1 AND org_id = $2`,
         [emp.user_id, orgId]
       );
     }
-    await query(`DELETE FROM hris_employees WHERE id = $1 AND org_id = $2`, [id, orgId]);
+    await query(`DELETE FROM employees WHERE id = $1 AND org_id = $2`, [id, orgId]);
 
     res.json({ success: true, message: 'Employee deleted and account deactivated.' });
   } catch (err) { next(err); }
@@ -501,13 +501,13 @@ router.delete('/employees', authenticate, requireAnyRole('admin'), async (req, r
 
     // Deactivate all non-admin users except current user
     await query(
-      `UPDATE users SET is_active = FALSE, updated_at = NOW()
+      `UPDATE users SET is_active = FALSE
        WHERE org_id = $1 AND role != 'admin' AND id != $2`,
       [orgId, req.user.id]
     );
     // Delete all HRIS employee records in this org
     const { rowCount } = await query(
-      `DELETE FROM hris_employees WHERE org_id = $1`,
+      `DELETE FROM employees WHERE org_id = $1`,
       [orgId]
     );
 
