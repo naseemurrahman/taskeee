@@ -13,6 +13,7 @@ export function Input({ label, error, hint, prefix, suffix, icon, className, ...
   const [showPwd, setShowPwd] = useState(false)
   const isPassword = props.type === 'password'
   const inputType = isPassword ? (showPwd ? 'text' : 'password') : props.type
+  const isDateInput = inputType === 'date'
 
   return (
     <div className="inputV3Wrap">
@@ -28,6 +29,18 @@ export function Input({ label, error, hint, prefix, suffix, icon, className, ...
           {...props}
           type={inputType}
           className={`inputV3Native ${className || ''}`}
+          onFocus={(e) => {
+            if (isDateInput && typeof (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker === 'function') {
+              ;(e.currentTarget as HTMLInputElement & { showPicker: () => void }).showPicker()
+            }
+            props.onFocus?.(e)
+          }}
+          onClick={(e) => {
+            if (isDateInput && typeof (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker === 'function') {
+              ;(e.currentTarget as HTMLInputElement & { showPicker: () => void }).showPicker()
+            }
+            props.onClick?.(e)
+          }}
           style={{ paddingLeft: icon ? 36 : prefix ? undefined : 14 }}
         />
         {isPassword && (

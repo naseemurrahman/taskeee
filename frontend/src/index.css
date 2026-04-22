@@ -6876,3 +6876,53 @@ select.input {
 .createTaskModalBody .selectV3Dropdown {
   z-index: 1200;
 }
+
+/* Unified dropdown style (all app pages) */
+.appShellV4 .selectV3Trigger,
+.appShellV4 select.input {
+  height: 46px;
+  border: 1.5px solid #cfd5e3 !important;
+  background: #ffffff !important;
+  color: #2b3244 !important;
+  border-radius: 999px !important;
+  font-weight: 600;
+}
+.appShellV4 .selectV3Trigger:hover:not(.selectV3Disabled),
+.appShellV4 select.input:hover:not(:disabled) {
+  border-color: #b9c2d3 !important;
+}
+.appShellV4 .selectV3Trigger:focus-within,
+.appShellV4 .selectV3Open,
+.appShellV4 select.input:focus {
+  border-color: rgba(226,171,65,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.15) !important;
+}
+.appShellV4 .selectV3Dropdown {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(226,171,65,0.45) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 42px rgba(19,29,51,0.16) !important;
+}
+.appShellV4 .selectV3SearchWrap {
+  border-bottom: 1px solid #eef1f6;
+}
+.appShellV4 .selectV3SearchInput::placeholder {
+  color: #8a94a9;
+}
+.appShellV4 .selectV3Option {
+  border-radius: 12px;
+}
+.appShellV4 .selectV3Option:hover:not(.selectV3OptionDisabled) {
+  background: #f6f8fc !important;
+}
+.appShellV4 .selectV3OptionActive {
+  background: #f6efe2 !important;
+  color: #cf8f1f !important;
+}
+.appShellV4 .selectV3OptionDesc {
+  color: #8791a7;
+}
+.appShellV4 .selectV3Check,
+.appShellV4 .selectV3ChevronOpen {
+  color: #cf8f1f !important;
+}
