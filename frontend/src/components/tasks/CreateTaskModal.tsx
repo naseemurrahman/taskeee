@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { Modal } from '../Modal'
@@ -7,7 +7,7 @@ import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
 
 type Project = { id: string; name: string; color?: string | null }
-type UserRow = { id: string; email: string; full_name?: string | null; role: string; department?: string | null }
+type UserRow = { id: string; email: string; name?: string | null; full_name?: string | null; role: string; department?: string | null }
 type CreateTaskInput = {
   title: string; description?: string; assignedTo: string
   categoryId?: string; priority?: string; dueDate?: string; department?: string
@@ -18,9 +18,16 @@ async function fetchProjects() {
   return d.projects || []
 }
 async function fetchUsers() {
-  // Use workspace accounts (org users) since HRIS employees may be empty
-  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/users?page=1&limit=100')
+  const d = await apiFetch<{ users: UserRow[] }>('/api/v1/tasks/assignable-users')
   return d.users || []
+}
+async function fetchUsersByDepartment(department: string) {
+  const d = await apiFetch<{ users: UserRow[] }>(`/api/v1/tasks/assignable-users?department=${encodeURIComponent(department)}`)
+  return d.users || []
+}
+async function fetchDepartments() {
+  const d = await apiFetch<{ departments: string[] }>('/api/v1/tasks/departments')
+  return d.departments || []
 }
 
 function roleRank(r?: string) {
@@ -39,19 +46,20 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   const [projectId, setProjectId] = useState(props.defaultProjectId || '')
   const [error, setError] = useState<string | null>(null)
 
+  const departmentsQ = useQuery({
+    queryKey: ['tasks', 'departments'],
+    queryFn: fetchDepartments,
+    enabled: props.open && canAssign,
+  })
   const usersQ = useQuery({
-    queryKey: ['team', 'users'],
-    queryFn: fetchUsers,
+    queryKey: ['tasks', 'assignable-users', dept || 'all'],
+    queryFn: () => (dept ? fetchUsersByDepartment(dept) : fetchUsers()),
     enabled: props.open && canAssign,
   })
 
   const projects = projectsQ.data || []
   const assignees = usersQ.data || []
-  const departments = useMemo(
-    () => [...new Set(assignees.filter(u => u.department?.trim()).map(u => u.department as string))],
-    [assignees]
-  )
-  const filteredAssignees = dept ? assignees.filter(u => u.department?.trim() === dept) : assignees
+  const departments = departmentsQ.data || []
 
   const m = useMutation({
     mutationFn: (input: CreateTaskInput) => apiFetch('/api/v1/tasks', { method: 'POST', json: input }),
@@ -181,9 +189,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
             onChange={setAssignedTo}
             options={[
               { value: '', label: 'Select employee…' },
-              ...filteredAssignees.map(u => ({
+              ...assignees.map(u => ({
                 value: u.id,
-                label: u.full_name || u.email,
+                label: u.full_name || u.name || u.email,
                 description: u.department || u.role,
               })),
             ]}

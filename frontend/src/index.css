@@ -6934,3 +6934,18 @@ select.input {
 .appShellV4 .selectV3ChevronOpen {
   color: #cf8f1f !important;
 }
+
+/* Keep native select controls aligned with the standard dropdown design */
+select.input,
+.mktLang {
+  border-radius: 999px !important;
+  border: 1.5px solid #cfd5e3 !important;
+  background-color: #ffffff !important;
+  color: #2b3244 !important;
+}
+select.input:focus,
+.mktLang:focus {
+  border-color: rgba(226,171,65,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.15) !important;
+  outline: none;
+}
