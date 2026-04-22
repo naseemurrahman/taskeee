@@ -63,7 +63,10 @@ export function Modal(props: {
         </div>
 
         {/* Body */}
-        <div className={`modalV2Body ${props.bodyClassName || ''}`.trim()}>{props.children}</div>
+        <div
+          className={`modalV2Body ${props.bodyClassName || ''}`.trim()}
+          style={{ overflowY: 'visible', overflowX: 'visible' }}
+        >{props.children}</div>
 
         {/* Footer */}
         {props.footer && <div className="modalV2Foot">{props.footer}</div>}

@@ -7436,3 +7436,53 @@ tr:hover .inlineEditBtn {
 .roleBadgeEmployee { background: rgba(34,197,94,0.10);   color: #22c55e; border: 1px solid rgba(34,197,94,0.20); }
 .roleBadgeHr       { background: rgba(226,171,65,0.12);  color: #e2ab41; border: 1px solid rgba(226,171,65,0.22); }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL — no scrollbar, natural height
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Remove max-height constraint so modal grows to fit content */
+.modalCardV2 {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Body must NOT scroll — the overlay handles centering */
+.modalV2Body {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Overlay: allow scrolling the page behind if modal is taller than viewport */
+.modalOverlayV2 {
+  align-items: flex-start !important;
+  padding: 24px 20px !important;
+  overflow-y: auto !important;
+}
+
+/* Ensure modal stays reasonably wide */
+.modalCardV2 {
+  width: min(520px, 96vw) !important;
+  margin: auto;
+}
+.modalCardV2Wide {
+  width: min(720px, 96vw) !important;
+}
+
+/* Compact modal form gap */
+.modalV2Body {
+  padding: 18px 22px !important;
+}
+.modalV2Head {
+  padding: 16px 22px 14px !important;
+}
+.modalV2Foot {
+  padding: 12px 22px !important;
+}
+
+/* Create Task specific — tighter form */
+#createTaskForm {
+  gap: 12px !important;
+}
+
