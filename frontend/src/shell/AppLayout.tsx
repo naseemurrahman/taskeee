@@ -220,56 +220,6 @@ export function AppLayout() {
             </>
           )}
 
-          {/* ── Theme toggle — sliding switch ── */}
-          <div style={{ marginTop: 'auto', paddingTop: 16, paddingBottom: 4 }}>
-            {!collapsed ? (
-              <button
-                type="button"
-                onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-                title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '8px 12px', borderRadius: 999,
-                  border: '1px solid var(--border)', background: 'var(--surfaceUp)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                }}
-              >
-                {/* Track */}
-                <div style={{
-                  width: 48, height: 26, borderRadius: 999, position: 'relative',
-                  background: theme === 'light' ? 'var(--brand)' : 'rgba(255,255,255,0.15)',
-                  transition: 'background 0.25s',
-                }}>
-                  {/* Thumb */}
-                  <div style={{
-                    position: 'absolute', top: 3,
-                    left: theme === 'dark' ? 3 : 'calc(100% - 23px)',
-                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                    transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
-                    display: 'grid', placeItems: 'center', fontSize: 11,
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-                  }}>
-                    {theme === 'light' ? '☀️' : '🌙'}
-                  </div>
-                </div>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-                title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
-                style={{
-                  width: '100%', height: 32, borderRadius: 999,
-                  border: '1px solid var(--brandBorder)', background: 'var(--brandDim)',
-                  color: 'var(--brand)', cursor: 'pointer', display: 'grid', placeItems: 'center',
-                  fontSize: 14,
-                }}
-              >
-                {theme === 'light' ? '☀️' : '🌙'}
-              </button>
-            )}
-          </div>
         </nav>
 
         {/* Bottom — theme toggle padding only */}
@@ -363,6 +313,15 @@ export function AppLayout() {
           {/* Right: notifications + profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
             <NotificationCenter />
+            <button
+              type="button"
+              className="topbarThemeBtn"
+              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
             <button
               type="button"
               className="topbarLangBtn"

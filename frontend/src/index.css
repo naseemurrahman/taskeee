@@ -6847,3 +6847,32 @@ select.input {
   padding-bottom: 0;
 }
 
+/* Topbar theme switch (moved from sidebar) */
+.topbarThemeBtn {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+.topbarThemeBtn:hover {
+  color: var(--brand);
+}
+
+/* Ensure select dropdown is not clipped in create task modal */
+.createTaskModalBody {
+  overflow: visible !important;
+}
+.createTaskModalBody .selectV3Wrap {
+  position: relative;
+  z-index: 2;
+}
+.createTaskModalBody .selectV3Wrap:has(.selectV3Open) {
+  z-index: 20;
+}
