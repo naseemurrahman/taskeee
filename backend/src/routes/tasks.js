@@ -495,36 +495,48 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     }
 
     const task = await withTransaction(async (client) => {
-      const insertCols = [];
-      const insertVals = [];
-      const pushCol = (col, val) => {
-        if (!taskCols.size || taskCols.has(col)) { insertCols.push(col); insertVals.push(val); }
+      const insertTaskRow = async (categoryValue) => {
+        const insertCols = [];
+        const insertVals = [];
+        const pushCol = (col, val) => {
+          if (!taskCols.size || taskCols.has(col)) { insertCols.push(col); insertVals.push(val); }
+        };
+
+        pushCol('org_id', orgId);
+        pushCol('title', title);
+        pushCol('description', description || null);
+        pushCol('assigned_to', assignedTo || null);
+        pushCol('assigned_by', req.user.id);
+        pushCol('category_id', categoryValue || null);
+        pushCol('priority', priority || 'medium');
+        pushCol('due_date', dueDate || null);
+        pushCol('location', location || null);
+        pushCol('notes', notes || null);
+        pushCol('recurrence', normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null);
+        pushCol('metadata', JSON.stringify({ approval_index: 0 }));
+        pushCol('parent_task_id', parentTaskId || null);
+        pushCol('next_run_at', nextRunAt ? nextRunAt.toISOString() : null);
+        pushCol('approval_flow', JSON.stringify(approvalFlow || []));
+        pushCol('status', 'pending');
+
+        const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
+        const { rows } = await client.query(
+          `INSERT INTO tasks (${insertCols.join(', ')})
+           VALUES (${placeholders})
+           RETURNING *`,
+          insertVals
+        );
+        return rows[0];
       };
 
-      pushCol('org_id', orgId);
-      pushCol('title', title);
-      pushCol('description', description || null);
-      pushCol('assigned_to', assignedTo || null);
-      pushCol('assigned_by', req.user.id);
-      pushCol('category_id', resolvedCategoryId || null);
-      pushCol('priority', priority || 'medium');
-      pushCol('due_date', dueDate || null);
-      pushCol('location', location || null);
-      pushCol('notes', notes || null);
-      pushCol('recurrence', normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null);
-      pushCol('metadata', JSON.stringify({ approval_index: 0 }));
-      pushCol('parent_task_id', parentTaskId || null);
-      pushCol('next_run_at', nextRunAt ? nextRunAt.toISOString() : null);
-      pushCol('approval_flow', JSON.stringify(approvalFlow || []));
-      pushCol('status', 'pending');
-
-      const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
-      const { rows } = await client.query(
-        `INSERT INTO tasks (${insertCols.join(', ')})
-         VALUES (${placeholders})
-         RETURNING *`,
-        insertVals
-      );
+      let createdTask;
+      try {
+        createdTask = await insertTaskRow(resolvedCategoryId);
+      } catch (err) {
+        const isCategoryFkIssue = err?.code === '23503' && /category_id/i.test(`${err?.message || ''} ${err?.detail || ''}`);
+        if (!isCategoryFkIssue || !resolvedCategoryId) throw err;
+        createdTask = await insertTaskRow(null);
+      }
 
       if (dependencyIds.length) {
         for (const dependencyId of dependencyIds) {
@@ -532,7 +544,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
             INSERT INTO task_dependencies (task_id, depends_on_task_id, dependency_type, created_by)
             VALUES ($1, $2, 'blocks', $3)
             ON CONFLICT (task_id, depends_on_task_id) DO NOTHING
-          `, [rows[0].id, dependencyId, req.user.id]);
+          `, [createdTask.id, dependencyId, req.user.id]);
         }
       }
 
@@ -540,13 +552,13 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
         INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, to_status, note, metadata)
         VALUES ($1, $2, 'user', 'task_created', 'pending', $3, $4)
       `, [
-        rows[0].id,
+        createdTask.id,
         req.user.id,
         `Task assigned by ${req.user.full_name}`,
         JSON.stringify({ dependencyCount: dependencyIds.length, recurring: !!normalizedRecurrence, approvalFlow })
       ]);
 
-      return rows[0];
+      return createdTask;
     });
 
     res.status(201).json({ task: { ...task, recurrence: normalizedRecurrence, approval_flow: approvalFlow } });
