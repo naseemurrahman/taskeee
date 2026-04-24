@@ -75,20 +75,32 @@ function getAllowedTransitions(fromStatus: string, role: string): string[] {
       overdue:          ['in_progress'],
       in_progress:      ['submitted', 'pending'],
       submitted:        ['in_progress'],
+      ai_reviewing:     [],
+      ai_approved:      ['completed', 'in_progress'],
+      ai_rejected:      ['pending', 'in_progress'],
       manager_approved: ['completed'],
       manager_rejected: ['in_progress'],
+      completed:        ['pending', 'in_progress'],
+      cancelled:        ['pending'],
     },
     supervisor: {
       pending: ['in_progress'], overdue: ['in_progress', 'completed', 'pending'],
       in_progress: ['submitted', 'completed', 'pending'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed'],
-      manager_approved: ['completed'], completed: ['pending', 'in_progress'],
+      ai_reviewing: ['submitted', 'ai_approved', 'ai_rejected', 'completed'],
+      ai_approved: ['completed', 'submitted'],
+      ai_rejected: ['pending', 'in_progress', 'submitted'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed', 'ai_reviewing'],
+      manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
+      completed: ['pending', 'in_progress'], cancelled: ['pending'],
     },
     manager: {
-      pending: ['in_progress', 'completed', 'cancelled'],
+      pending: ['in_progress'],
       overdue: ['in_progress', 'completed', 'pending'],
-      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      in_progress: ['submitted', 'completed', 'pending'],
+      ai_reviewing: ['submitted', 'ai_approved', 'ai_rejected', 'completed'],
+      ai_approved: ['completed', 'submitted'],
+      ai_rejected: ['pending', 'in_progress', 'submitted'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed', 'ai_reviewing'],
       manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
       completed: ['pending', 'in_progress'], cancelled: ['pending'],
     },
@@ -171,6 +183,10 @@ function InlineStatus({ task, role }: { task: Task; role: string }) {
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', 'list'] }),
+    onError: (err: any) => {
+      const message = err?.message || 'Status update failed. Transition may not be allowed.'
+      window.alert(message)
+    },
   })
 
   if (transitions.length === 0) {
@@ -372,7 +388,7 @@ export function TasksPage() {
                           ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>Unassigned</span>}
                         </td>
                       )}
-                      <td style={{ padding: '8px 10px', minWidth: 140 }}>
+                      <td style={{ padding: '8px 10px', minWidth: 140 }} onClick={e => e.stopPropagation()}>
                         <InlineStatus task={task} role={role} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
