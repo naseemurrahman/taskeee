@@ -47,14 +47,15 @@ function canSee(role: string, min: string) {
   return order.indexOf(role) >= order.indexOf(min)
 }
 
-function NavItem({ to, label, display, badge, collapsed }: {
-  to: string; label: string; display: string; badge?: number; collapsed: boolean
+function NavItem({ to, label, display, badge, collapsed, onNavigate }: {
+  to: string; label: string; display: string; badge?: number; collapsed: boolean; onNavigate?: () => void
 }) {
   const Icon = ICONS[label]
   return (
     <NavLink
       to={to}
       data-label={display}
+      onClick={onNavigate}
       className={({ isActive }) => `navItemV4 ${isActive ? 'navItemV4Active' : ''}`}
       title={collapsed ? display : undefined}
     >
@@ -90,11 +91,16 @@ export function AppLayout() {
     return s === 'true'
   })
   function toggleSidebar() {
-    setCollapsed(v => {
-      const next = !v
-      window.localStorage.setItem('tf_sidebar_collapsed', String(next))
-      return next
-    })
+    // On mobile (width <= 900px), toggle the mobile overlay; on desktop collapse sidebar
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      setMobileOpen(v => !v)
+    } else {
+      setCollapsed(v => {
+        const next = !v
+        window.localStorage.setItem('tf_sidebar_collapsed', String(next))
+        return next
+      })
+    }
   }
 
   // Mobile sidebar
@@ -192,7 +198,7 @@ export function AppLayout() {
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
           <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} />
           {/* Tasks: managers+ see all-org Tasks page; employees see Tasks page filtered to their own */}
-          <NavItem to="/app/tasks" label="Tasks" display={role === 'employee' ? 'My Tasks' : t(labelKey('Tasks'))} collapsed={collapsed} />
+          <NavItem to="/app/tasks" label="Tasks" display={role === 'employee' ? 'My Tasks' : t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} />}

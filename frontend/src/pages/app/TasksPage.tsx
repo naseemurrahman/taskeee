@@ -180,9 +180,9 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
           }),
         ]}
       />
-      {errorMsg && (
+      {m.isError && (
         <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, fontSize: 10, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          {errorMsg}
+          Failed to update
         </div>
       )}
     </div>

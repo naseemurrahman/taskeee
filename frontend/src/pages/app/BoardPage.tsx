@@ -73,7 +73,7 @@ export function BoardPage() {
   }, [tasks])
 
   function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
-    if (!canMoveStatus) return
+    if (!canDrag) return
     dragTask.current = task
     setDragging({ id: task.id, fromCol: colKey })
     e.dataTransfer.effectAllowed = 'move'
@@ -81,14 +81,14 @@ export function BoardPage() {
   }
 
   function onDragOver(e: React.DragEvent, colKey: string) {
-    if (!canMoveStatus) return
+    if (!canDrag) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOver(colKey)
   }
 
   function onDrop(e: React.DragEvent, toColKey: string) {
-    if (!canMoveStatus) return
+    if (!canDrag) return
     e.preventDefault()
     setDragOver(null)
     if (!dragTask.current || dragging?.fromCol === toColKey) { setDragging(null); return }
@@ -205,7 +205,7 @@ export function BoardPage() {
                   {/* Empty state per column */}
                   {colTasks.length === 0 && (
                     <div style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 12, color: 'var(--muted)', fontSize: 11 }}>
-                      {canMoveStatus ? 'Drop here' : 'No tasks'}
+                      {canDrag ? 'Drop here' : 'No tasks'}
                     </div>
                   )}
                 </div>

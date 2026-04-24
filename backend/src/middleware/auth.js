@@ -83,6 +83,11 @@ function sameOrg(req, res, next) {
 }
 
 async function canManage(req, res, next) {
+  // Org-wide roles (admin, hr, director) can manage any user
+  if (isOrgWideRole(req.user.role)) return next();
+  // Managers can also assign tasks to anyone in their org without strict hierarchy
+  if (['manager', 'supervisor'].includes(req.user.role)) return next();
+
   const targetUserId = req.params.userId || req.body.assignedTo;
   if (!targetUserId) return next();
   if (targetUserId === req.user.id) return next();
@@ -92,7 +97,7 @@ async function canManage(req, res, next) {
     [req.user.id, targetUserId]
   );
 
-  if (!rows.length && !isOrgWideRole(req.user.role))
+  if (!rows.length)
     return res.status(403).json({ error: 'You can only manage your direct reports' });
 
   next();

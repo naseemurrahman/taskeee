@@ -7762,3 +7762,156 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
   /* Drawer becomes full-screen on small screens */
   [style*="width: min(520px"] { width: 100% !important; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MARKETING PAGE — full-screen, no max-width constraint
+   ═══════════════════════════════════════════════════════════════ */
+.mktShell {
+  background: #0a0a10 !important;
+  min-height: 100vh;
+  color: #fff;
+}
+.mktMain {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.mktTopbar {
+  position: fixed !important;
+  top: 0;
+  z-index: 1000;
+}
+/* Hero section needs top padding for fixed nav */
+.mktMain > div > section:first-child,
+.mktMain section:first-child {
+  padding-top: 80px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL — remove ghost inner containers
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Remove any ghost border/background from modal body wrappers */
+.modalV2Body > div:only-child:not([class]) {
+  /* naked div wrapping form — no extra styling */
+}
+
+/* Modal card clean borders */
+.modalCardV2 {
+  border: 1px solid var(--border) !important;
+  overflow: visible !important;
+}
+.appShellV4Light .modalCardV2 {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.06) !important;
+}
+.appShellV4Dark .modalCardV2 {
+  background: #1a1d28 !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+/* Modal overlay cleaner */
+.modalOverlayV2 {
+  background: rgba(0,0,0,0.60) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+@media (max-width: 640px) {
+  .modalOverlayV2 {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modalCardV2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 94vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR MOBILE — reliable overlay behavior
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Content doesn't shift when sidebar opens */
+  .appShellV4Main { margin-left: 0 !important; }
+  .mainV4 { margin-left: 0 !important; }
+
+  /* Sidebar slides in from left */
+  .sidebarV4 {
+    position: fixed !important;
+    left: -280px !important;
+    top: 0 !important; bottom: 0 !important;
+    width: 260px !important;
+    z-index: 600 !important;
+    transition: left 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+    box-shadow: none !important;
+    border-right: 1px solid var(--border) !important;
+  }
+  .sidebarMobileOpen .sidebarV4 {
+    left: 0 !important;
+    box-shadow: 8px 0 40px rgba(0,0,0,0.5) !important;
+  }
+
+  /* Scrim */
+  .sidebarScrim {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 599;
+    backdrop-filter: blur(3px);
+  }
+  .sidebarMobileOpen .sidebarScrim {
+    display: block !important;
+  }
+
+  /* Topbar always full width */
+  .topbarV4 {
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Page content padding */
+  .appV4PageWrap, .pageContentV4 {
+    padding: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL RELIABILITY — no crashes, better fallbacks
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Prevent layout break on very small screens */
+@media (max-width: 360px) {
+  body { font-size: 14px !important; }
+  .btn { padding: 0 12px !important; font-size: 12px !important; }
+  .pageHeaderCardTitle { font-size: 16px !important; }
+}
+
+/* Better focus outlines for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--brand, #e2ab41) !important;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .sidebarV4, .topbarV4, .modalOverlayV2 { display: none !important; }
+  .mainV4 { margin: 0 !important; }
+}
+
+/* Auth pages responsive */
+@media (max-width: 768px) {
+  .authGrid, .suGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+

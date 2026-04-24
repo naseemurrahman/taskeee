@@ -126,14 +126,22 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
       });
     }
 
+    // Notify the task creator (assigned_by) AND the employee's manager
+    const notifySet = new Set();
+    if (task.assigned_by && task.assigned_by !== req.user.id) {
+      notifySet.add(task.assigned_by);
+    }
     const { rows: mgrRow } = await query(`SELECT manager_id FROM users WHERE id = $1`, [req.user.id]);
-    if (mgrRow[0]?.manager_id) {
-      await emitNotification(mgrRow[0].manager_id, {
+    const mgrId = mgrRow[0]?.manager_id;
+    if (mgrId && mgrId !== req.user.id) notifySet.add(mgrId);
+
+    for (const recipientId of notifySet) {
+      await emitNotification(recipientId, {
         type: 'task_evidence_uploaded',
-        title: 'Task evidence uploaded',
+        title: 'Task evidence submitted',
         body: `${req.file.originalname} — ${task.title}`,
         data: { taskId }
-      });
+      }).catch(() => {});
     }
 
     return res.status(201).json({
