@@ -303,8 +303,8 @@ export function AssigneeScoreChart(props: {
   if (!data.length) return <EmptyChart icon="🏆" title="No performance data yet" />
 
   return (
-    <Shell height={Math.max(H, data.length * 42)}>
-      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 4, bottom: 0 }}>
+    <Shell height={Math.max(H, data.length * 48)}>
+      <BarChart data={data} layout="vertical" barCategoryGap="34%" margin={{ top: 8, right: 18, left: 4, bottom: 0 }}>
         <defs>
           <linearGradient id="gradScore" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#6366f1" stopOpacity={0.88} />
@@ -333,9 +333,10 @@ export function AssigneeScoreChart(props: {
         <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
         <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 8 }} />
-        <Bar dataKey="score" xAxisId="score" name="Score %" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={10} />
-        <Bar dataKey="done" xAxisId="count" name="Done" fill="url(#gradDone)" radius={[0, 8, 8, 0]} barSize={10} />
-        <Bar dataKey="active" xAxisId="count" name="Active" fill="url(#gradActive)" radius={[0, 8, 8, 0]} barSize={10} />
+        <Bar dataKey="score" xAxisId="score" name="Score %" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={12}
+          label={{ position: 'right', fill: 'var(--chart-tick2)', fontSize: 10, formatter: (v: any) => `${Number(v || 0)}%` }} />
+        <Bar dataKey="done" xAxisId="count" name="Done" fill="url(#gradDone)" radius={[0, 8, 8, 0]} barSize={8} />
+        <Bar dataKey="active" xAxisId="count" name="Active" fill="url(#gradActive)" radius={[0, 8, 8, 0]} barSize={8} />
       </BarChart>
     </Shell>
   )

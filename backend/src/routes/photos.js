@@ -118,8 +118,14 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
 
     const notifyIds = new Set();
     if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
-    const { rows: mgrRow } = await query(`SELECT manager_id FROM users WHERE id = $1`, [req.user.id]);
-    if (mgrRow[0]?.manager_id && mgrRow[0].manager_id !== req.user.id) notifyIds.add(mgrRow[0].manager_id);
+
+    const { rows: managerRows } = await query(
+      `SELECT id, manager_id FROM users WHERE id = ANY($1::uuid[])`,
+      [[req.user.id, task.assigned_to].filter(Boolean)]
+    );
+    for (const row of managerRows) {
+      if (row?.manager_id && row.manager_id !== req.user.id) notifyIds.add(row.manager_id);
+    }
 
     if (isImage) {
       triggerAIReview(photo.id, taskId, storageKey, task.category_id).catch(
