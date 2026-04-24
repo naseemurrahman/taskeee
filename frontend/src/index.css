@@ -8045,6 +8045,6 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
     width: 100% !important;
     max-width: 100% !important;
     max-height: min(94vh, calc(100dvh - 8px)) !important;
-    border-radius: 18px 18px 0 0 !important;
+    border-radius: 18px !important;
   }
 }
