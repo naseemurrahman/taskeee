@@ -205,7 +205,12 @@ router.get('/', authenticate, async (req, res, next) => {
       targetUserIds = [userId];
     }
 
-    const conditions = [`t.assigned_to = ANY($1)`, `t.org_id = $2`];
+    const includeUnassigned = isOrgWideRole(user.role) && String(mine || '') !== 'true' && !userId;
+    const assigneeCondition = includeUnassigned
+      ? `(t.assigned_to = ANY($1) OR t.assigned_to IS NULL)`
+      : `t.assigned_to = ANY($1)`;
+
+    const conditions = [assigneeCondition, `t.org_id = $2`];
     const params = [targetUserIds, orgId];
     let p = 3;
 
