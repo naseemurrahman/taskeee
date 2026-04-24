@@ -14,6 +14,9 @@ type Task = {
   created_at?: string; updated_at?: string
 }
 type Message = { id: string; body: string; created_at: string; sender_name?: string | null; sender_id: string }
+type TimelineItem = { id: string; event_type: string; note?: string | null; actor_name?: string | null; created_at: string }
+type TaskPhoto = { id: string; file_url?: string | null; photo_url?: string | null; created_at: string; uploaded_by_name?: string | null }
+type AssignableUser = { id: string; name: string; role?: string }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending:          { label: 'Pending',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
@@ -66,11 +69,20 @@ export function TaskDetailDrawer({
 
   const taskQ = useQuery({
     queryKey: ['task-detail', taskId],
-    queryFn: () => apiFetch<{ task: Task; timeline?: any[] }>(`/api/v1/tasks/${taskId}`).then(d => d.task),
+    queryFn: () => apiFetch<{ task: Task; timeline?: TimelineItem[]; photos?: TaskPhoto[] }>(`/api/v1/tasks/${taskId}`),
     enabled: !!taskId,
     staleTime: 30_000,
   })
-  const task = taskQ.data
+  const task = taskQ.data?.task
+  const timeline = taskQ.data?.timeline || []
+  const photos = taskQ.data?.photos || []
+
+  const assigneesQ = useQuery({
+    queryKey: ['tasks', 'assignable-users'],
+    queryFn: () => apiFetch<{ users: AssignableUser[] }>('/api/v1/tasks/assignable-users').then(d => d.users || []),
+    enabled: !!taskId && canManage,
+    staleTime: 60_000,
+  })
 
   const messagesQ = useQuery({
     queryKey: ['task-messages', taskId],
@@ -99,6 +111,16 @@ export function TaskDetailDrawer({
 
   const statusM = useMutation({
     mutationFn: (status: string) => apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+
+  const detailsM = useMutation({
+    mutationFn: (payload: { assignedTo?: string | null; dueDate?: string | null }) =>
+      apiFetch(`/api/v1/tasks/${taskId}/details`, { method: 'PATCH', json: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
@@ -224,6 +246,35 @@ export function TaskDetailDrawer({
                 </div>
               </div>
 
+              {canManage && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Change Assignee</div>
+                    <select
+                      value={task?.assigned_to || ''}
+                      onChange={e => detailsM.mutate({ assignedTo: e.target.value || null })}
+                      disabled={detailsM.isPending || assigneesQ.isLoading}
+                      style={{ width: '100%', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text)', padding: '8px 10px' }}
+                    >
+                      <option value="">Unassigned</option>
+                      {(assigneesQ.data || []).map(u => (
+                        <option key={u.id} value={u.id}>{u.name}{u.role ? ` (${u.role})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Change Due Date</div>
+                    <input
+                      type="date"
+                      value={task?.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : ''}
+                      onChange={e => detailsM.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T12:00:00Z`).toISOString() : null })}
+                      disabled={detailsM.isPending}
+                      style={{ width: '100%', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text)', padding: '8px 10px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Description</div>
@@ -276,6 +327,43 @@ export function TaskDetailDrawer({
                   ))}
                 </div>
               )}
+
+              {/* Attachments */}
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Attachments</div>
+                {photos.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>No attachments uploaded yet.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {photos.map(photo => {
+                      const url = photo.file_url || photo.photo_url
+                      return (
+                        <a key={photo.id} href={url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text2)' }}>
+                          <span style={{ fontSize: 12 }}>{photo.uploaded_by_name || 'Unknown'} · {timeAgo(photo.created_at)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800 }}>Open</span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Status Timeline */}
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Status History Timeline</div>
+                {timeline.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>No timeline events yet.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {timeline.slice().reverse().map(item => (
+                      <div key={item.id} style={{ borderLeft: '2px solid var(--border)', paddingLeft: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)' }}>{item.note || item.event_type.replace(/_/g, ' ')}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.actor_name || 'System'} · {timeAgo(item.created_at)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Comments Tab */

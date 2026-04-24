@@ -8,7 +8,7 @@ import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 
-type Project = { id: string; name: string; description?: string | null; color?: string | null }
+type Project = { id: string; name: string; description?: string | null; color?: string | null; status?: 'active' | 'paused' | 'completed' }
 
 async function fetchProjects() {
   const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
@@ -19,6 +19,9 @@ async function createProject(input: { name: string; description?: string; color?
 }
 async function renameProject(id: string, name: string) {
   return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { name } })
+}
+async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed') {
+  return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { status } })
 }
 
 const PROJECT_PALETTE = [
@@ -121,6 +124,31 @@ function InlineProjectName({ project, canEdit }: { project: Project; canEdit: bo
         </button>
       )}
     </div>
+  )
+}
+
+function InlineProjectStatus({ project, canEdit }: { project: Project; canEdit: boolean }) {
+  const qc = useQueryClient()
+  const m = useMutation({
+    mutationFn: (status: 'active' | 'paused' | 'completed') => changeProjectStatus(project.id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
+  })
+  const value = project.status || 'active'
+  if (!canEdit) {
+    return <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'capitalize' }}>{value}</span>
+  }
+  return (
+    <select
+      value={value}
+      onChange={e => m.mutate(e.target.value as 'active' | 'paused' | 'completed')}
+      disabled={m.isPending}
+      onClick={e => e.stopPropagation()}
+      style={{ borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text2)', fontSize: 11, padding: '3px 6px' }}
+    >
+      <option value="active">Active</option>
+      <option value="paused">Paused</option>
+      <option value="completed">Completed</option>
+    </select>
   )
 }
 
@@ -264,7 +292,10 @@ export function ProjectsPage() {
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <InlineProjectName project={p} canEdit={canCreate} />
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{p.description || 'No description'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description || 'No description'}</div>
+                      <InlineProjectStatus project={p} canEdit={canCreate} />
+                    </div>
                   </div>
                 </button>
               ))}

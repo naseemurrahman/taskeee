@@ -70,6 +70,7 @@ function categorySelectSql(cols) {
            description,
            ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
            ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+           ${cols.has('status') ? 'status' : (cols.has('is_active') ? "CASE WHEN is_active THEN 'active' ELSE 'completed' END" : "'active'") + ' AS status'},
            ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
            created_at
       FROM task_categories
@@ -83,6 +84,7 @@ function legacyProjectSelectSql() {
            description,
            NULL::text AS icon,
            NULL::text AS color,
+           COALESCE(status, 'active') AS status,
            TRUE AS is_active,
            created_at
       FROM projects
@@ -187,6 +189,7 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
          RETURNING id, name, description,
                    ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
                    ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+                   ${cols.has('status') ? 'status' : (cols.has('is_active') ? "CASE WHEN is_active THEN 'active' ELSE 'completed' END" : "'active'") + ' AS status'},
                    ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
                    created_at`,
         values
@@ -202,7 +205,7 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
       const { rows } = await query(
         `INSERT INTO projects (${insertColumns.join(', ')})
          VALUES (${placeholders})
-         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, TRUE AS is_active, created_at`,
+         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, TRUE AS is_active, created_at`,
         values
       );
       created = rows[0];
@@ -260,6 +263,13 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       if (cols.has('icon') && typeof req.body?.icon === 'string') { values.push(req.body.icon.trim() || null); sets.push(`icon = $${values.length}`); }
       if (cols.has('color') && typeof req.body?.color === 'string') { values.push(normalizeColor(req.body.color)); sets.push(`color = $${values.length}`); }
       if (cols.has('is_active') && typeof req.body?.is_active === 'boolean') { values.push(req.body.is_active); sets.push(`is_active = $${values.length}`); }
+      if (typeof req.body?.status === 'string') {
+        const allowed = new Set(['active', 'paused', 'completed']);
+        const status = req.body.status.trim().toLowerCase();
+        if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
+        if (cols.has('status')) { values.push(status); sets.push(`status = $${values.length}`); }
+        if (cols.has('is_active')) { values.push(status === 'active'); sets.push(`is_active = $${values.length}`); }
+      }
 
       if (!sets.length) return res.status(400).json({ error: 'No valid fields provided for update' });
       values.push(orgId, projectId);
@@ -270,6 +280,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
           RETURNING id, name, description,
                     ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
                     ${cols.has('color') ? 'color' : 'NULL::text AS color'},
+                    ${cols.has('status') ? 'status' : (cols.has('is_active') ? "CASE WHEN is_active THEN 'active' ELSE 'completed' END" : "'active'") + ' AS status'},
                     ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
                     created_at`,
         values
@@ -283,6 +294,13 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       values.push(req.body.is_active ? 'active' : 'archived');
       sets.push(`status = $${values.length}`);
     }
+    if (cols.has('status') && typeof req.body?.status === 'string') {
+      const allowed = new Set(['active', 'paused', 'completed']);
+      const status = req.body.status.trim().toLowerCase();
+      if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
+      values.push(status);
+      sets.push(`status = $${values.length}`);
+    }
 
     if (!sets.length) return res.status(400).json({ error: 'No valid fields provided for update' });
     values.push(orgId, projectId);
@@ -290,7 +308,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const { rows } = await query(
       `UPDATE projects SET ${sets.join(', ')}
         WHERE org_id = $${values.length - 1} AND id = $${values.length}
-        RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, TRUE AS is_active, created_at`,
+        RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, TRUE AS is_active, created_at`,
       values
     );
 

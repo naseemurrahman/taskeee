@@ -970,6 +970,90 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
   } catch (err) { next(err); }
 });
 
+// PATCH /tasks/:id/details - update due date and assignee (manager+)
+router.patch('/:id/details', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const taskId = req.params.id;
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { assignedTo, dueDate } = req.body || {};
+
+    const { rows: existingRows } = await query(
+      `SELECT id, org_id, title, assigned_to, due_date FROM tasks WHERE id = $1 AND org_id = $2`,
+      [taskId, orgId]
+    );
+    if (!existingRows.length) return res.status(404).json({ error: 'Task not found' });
+    const task = existingRows[0];
+
+    const updates = [];
+    const params = [];
+    let p = 1;
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedTo')) {
+      if (assignedTo) {
+        const { rows: u } = await query(
+          `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND is_active = TRUE LIMIT 1`,
+          [assignedTo, orgId]
+        );
+        if (!u.length) return res.status(400).json({ error: 'Invalid assignee for this organization' });
+      }
+      updates.push(`assigned_to = $${p++}`);
+      params.push(assignedTo || null);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'dueDate')) {
+      const normalizedDueDate = dueDate ? new Date(dueDate) : null;
+      if (dueDate && Number.isNaN(normalizedDueDate?.getTime())) {
+        return res.status(400).json({ error: 'Invalid due date' });
+      }
+      updates.push(`due_date = $${p++}`);
+      params.push(normalizedDueDate ? normalizedDueDate.toISOString() : null);
+    }
+
+    if (!updates.length) return res.status(400).json({ error: 'No valid fields to update' });
+    updates.push(`updated_at = NOW()`);
+    params.push(taskId, orgId);
+
+    const { rows: updatedRows } = await query(
+      `UPDATE tasks
+          SET ${updates.join(', ')}
+        WHERE id = $${p++} AND org_id = $${p++}
+      RETURNING *`,
+      params
+    );
+    const updated = updatedRows[0];
+
+    const timelineNotes = [];
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedTo') && String(task.assigned_to || '') !== String(updated.assigned_to || '')) {
+      timelineNotes.push('assignee_updated');
+      await query(
+        `INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, note, metadata)
+         VALUES ($1,$2,'user','assignee_updated',$3,$4)`,
+        [taskId, req.user.id, 'Task assignee changed', JSON.stringify({ from: task.assigned_to, to: updated.assigned_to })]
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'dueDate') && String(task.due_date || '') !== String(updated.due_date || '')) {
+      timelineNotes.push('due_date_updated');
+      await query(
+        `INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, note, metadata)
+         VALUES ($1,$2,'user','due_date_updated',$3,$4)`,
+        [taskId, req.user.id, 'Task due date changed', JSON.stringify({ from: task.due_date, to: updated.due_date })]
+      );
+    }
+
+    const { rows: joinedRows } = await query(
+      `SELECT t.*, u.full_name AS assigned_to_name
+       FROM tasks t
+       LEFT JOIN users u ON u.id = t.assigned_to
+       WHERE t.id = $1 AND t.org_id = $2`,
+      [taskId, orgId]
+    );
+
+    res.json({ task: joinedRows[0], updatedFields: timelineNotes });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /tasks/:id/ai-review — submit a task for AI approval (text-based)
 router.post('/:id/ai-review', authenticate, async (req, res, next) => {
   try {
