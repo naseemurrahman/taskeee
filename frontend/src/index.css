@@ -7704,3 +7704,22 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
   .modalV2Body { max-height: none !important; }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK DETAIL DRAWER — slide-in animation
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Board drag-and-drop */
+[draggable="true"] { user-select: none; }
+[draggable="true"]:active { cursor: grabbing !important; }
+
+/* Drawer responsive */
+@media (max-width: 640px) {
+  /* Drawer becomes full-screen on small screens */
+  [style*="width: min(520px"] { width: 100% !important; }
+}
+

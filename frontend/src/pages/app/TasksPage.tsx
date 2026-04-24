@@ -4,6 +4,7 @@ import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 
@@ -205,6 +206,7 @@ export function TasksPage() {
   const [priority, setPriority] = useState('all')
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const q = useQuery({
     queryKey: ['tasks', 'list', status, priority, search, isEmployee],
@@ -333,10 +335,11 @@ export function TasksPage() {
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
                   const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
                   return (
-                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s' }}
+                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s', cursor: 'pointer' }}
+                      onClick={() => setSelectedTaskId(task.id)}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <td style={{ padding: 0, width: 4 }}>
+                      <td style={{ padding: 0, width: 4 }} onClick={e => e.stopPropagation()}>
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
                       <td style={{ padding: '10px 14px', maxWidth: 260 }}>
@@ -381,6 +384,7 @@ export function TasksPage() {
       </div>
 
       {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
+      <TaskDetailDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
     </div>
   )
 }

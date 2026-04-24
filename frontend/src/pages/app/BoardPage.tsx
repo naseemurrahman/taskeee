@@ -1,141 +1,221 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiFetch, ApiError } from '../../lib/api'
-import { getAllowedNextStatuses } from '../../lib/taskStatusTransitions'
+import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
+import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 
 type Task = {
-  id: string
-  title: string
-  status: string
-  priority?: string
-  category_name?: string | null
+  id: string; title: string; status: string; priority?: string | null
+  category_name?: string | null; category_color?: string | null
+  assigned_to_name?: string | null; due_date?: string | null
 }
-
-type TasksResponse = { tasks?: Task[]; rows?: Task[] }
 
 async function fetchTasks() {
-  const data = await apiFetch<TasksResponse>(`/api/v1/tasks?limit=200&page=1`)
-  return (data.tasks || data.rows || []) as Task[]
+  const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>('/api/v1/tasks?limit=300&page=1')
+  return (d.tasks || d.rows || []) as Task[]
+}
+async function patchStatus(taskId: string, status: string) {
+  return apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } })
 }
 
-async function updateStatus(input: { taskId: string; status: string }) {
-  return await apiFetch(`/api/v1/tasks/${encodeURIComponent(input.taskId)}/status`, {
-    method: 'PATCH',
-    json: { status: input.status },
-  })
-}
-
-const COLUMNS: Array<{ key: string; title: string }> = [
-  { key: 'pending', title: 'To do' },
-  { key: 'in_progress', title: 'In progress' },
-  { key: 'submitted', title: 'Submitted' },
-  { key: 'completed', title: 'Done' },
+const COLUMNS = [
+  { key: 'pending',          label: 'To Do',       color: '#f59e0b', icon: '○' },
+  { key: 'in_progress',      label: 'In Progress',  color: '#8B5CF6', icon: '◑' },
+  { key: 'submitted',        label: 'Submitted',    color: '#38bdf8', icon: '◉' },
+  { key: 'manager_approved', label: 'Approved',     color: '#22c55e', icon: '✓' },
+  { key: 'completed',        label: 'Done',         color: '#22c55e', icon: '●' },
+  { key: 'overdue',          label: 'Overdue',      color: '#ef4444', icon: '⚠' },
 ]
 
-/** Map workflow statuses to the board column used for grouping and move targets */
-function boardColumnKey(status: string): string {
-  if (COLUMNS.some((c) => c.key === status)) return status
-  return 'pending'
+const PRIORITY_COLOR: Record<string, string> = { low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444' }
+
+function hashColor(s: string) {
+  let h = 0; for (const c of s) h = (h << 5) - h + c.charCodeAt(0)
+  return `hsl(${Math.abs(h) % 360},55%,55%)`
+}
+
+function DueLabel({ iso }: { iso?: string | null }) {
+  if (!iso) return null
+  const d = new Date(iso); const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0)
+  const days = Math.round((d.getTime() - today.getTime()) / 86400000)
+  const color = days < 0 ? '#ef4444' : days <= 1 ? '#f59e0b' : '#9ca3af'
+  const label = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return <span style={{ fontSize: 10, fontWeight: 700, color }}>{label}</span>
 }
 
 export function BoardPage() {
   const me = getUser()
+  const canManage = canCreateTasksAndProjects(me?.role)
   const qc = useQueryClient()
-  const q = useQuery({ queryKey: ['tasks', 'board'], queryFn: fetchTasks })
-  const tasks = useMemo(() => q.data || [], [q.data])
-  const [error, setError] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [dragging, setDragging] = useState<{ id: string; fromCol: string } | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+  const dragTask = useRef<Task | null>(null)
+
+  const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board'], queryFn: fetchTasks, staleTime: 30_000, refetchInterval: 60_000 })
+  const tasks = data || []
 
   const m = useMutation({
-    mutationFn: updateStatus,
-    onSuccess: async () => {
-      setError(null)
-      await qc.invalidateQueries({ queryKey: ['tasks'] })
-    },
-    onError: (err) => {
-      if (err instanceof ApiError) setError(err.message)
-      else setError('Failed to update task.')
-    },
+    mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 
-  const grouped = useMemo(() => {
+  // Group tasks by column key
+  const byCol = useMemo(() => {
     const map: Record<string, Task[]> = {}
-    for (const c of COLUMNS) map[c.key] = []
+    for (const col of COLUMNS) map[col.key] = []
     for (const t of tasks) {
-      const k = boardColumnKey(t.status)
-      map[k].push(t)
+      const key = COLUMNS.find(c => c.key === t.status)?.key || 'pending'
+      map[key].push(t)
     }
     return map
   }, [tasks])
 
+  function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
+    dragTask.current = task
+    setDragging({ id: task.id, fromCol: colKey })
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', task.id)
+  }
+
+  function onDragOver(e: React.DragEvent, colKey: string) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOver(colKey)
+  }
+
+  function onDrop(e: React.DragEvent, toColKey: string) {
+    e.preventDefault()
+    setDragOver(null)
+    if (!dragTask.current || dragging?.fromCol === toColKey) { setDragging(null); return }
+    m.mutate({ id: dragTask.current.id, status: toColKey })
+    dragTask.current = null
+    setDragging(null)
+  }
+
+  function onDragEnd() { setDragging(null); setDragOver(null); dragTask.current = null }
+
   return (
-    <div className="boardShell">
-      {/* Page header card */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
+      {/* Header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="16" rx="1"/></svg>
               Board
             </div>
-            <div className="pageHeaderCardSub">Kanban-style task board. Drag tasks between columns (Pending → In Progress → Submitted → Approved → Completed) to update their status.</div>
+            <div className="pageHeaderCardSub">Drag tasks between columns to update status. Click a card to view details.</div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗂️</span> Kanban view</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔄</span> Drag to move status</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚡</span> Real-time updates</span>
+              <span className="pageHeaderCardTag">{tasks.length} tasks</span>
+              {byCol.overdue?.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {byCol.overdue.length} overdue</span>}
             </div>
           </div>
+          {canManage && (
+            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Task
+            </button>
+          )}
         </div>
       </div>
 
-      {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
-      {q.isLoading ? <div style={{ color: 'var(--text2)', padding: '8px 0' }}>Loading…</div> : null}
-      {q.isError ? <div className="alertV4 alertV4Error">Failed to load tasks.</div> : null}
-
-      <div className="boardGrid">
-        {COLUMNS.map((col) => (
-          <div key={col.key} className="boardCol">
-            <div className="boardColHead">
-              <div className="boardColTitle">{col.title}</div>
-              <div className="boardColCount">{grouped[col.key]?.length || 0}</div>
+      {/* Board */}
+      {isLoading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+          {COLUMNS.map(col => (
+            <div key={col.key} style={{ background: 'var(--bg2)', borderRadius: 16, padding: 14, minHeight: 400 }}>
+              <div className="skeleton" style={{ height: 20, width: '60%', borderRadius: 8, marginBottom: 12 }} />
+              {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12, marginBottom: 8 }} />)}
             </div>
-
-            <div className="boardColBody">
-              {(grouped[col.key] || []).map((t) => (
-                <div key={t.id} className="boardCard">
-                  <div className="boardCardTitle">{t.title}</div>
-                  <div className="boardCardMeta">
-                    {t.category_name ? <span className="pill pillMuted">{t.category_name}</span> : null}
-                    <span className="pill">{t.status}</span>
-                  </div>
-                  <div className="boardCardActions">
-                    {(() => {
-                      const allowed = new Set(getAllowedNextStatuses(me?.role, t.status))
-                      const colKey = boardColumnKey(t.status)
-                      const moveCols = COLUMNS.filter((c) => c.key !== colKey && allowed.has(c.key)).slice(0, 2)
-                      return moveCols.map((c) => (
-                        <button
-                          key={c.key}
-                          className="btn btnGhost"
-                          style={{ height: 36 }}
-                          disabled={m.isPending}
-                          onClick={() => m.mutate({ taskId: t.id, status: c.key })}
-                        >
-                          Move to {c.title}
-                        </button>
-                      ))
-                    })()}
-                  </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', flex: 1, alignItems: 'start' }}>
+          {COLUMNS.map(col => {
+            const colTasks = byCol[col.key] || []
+            const isOver = dragOver === col.key
+            return (
+              <div key={col.key}
+                onDragOver={e => onDragOver(e, col.key)}
+                onDrop={e => onDrop(e, col.key)}
+                onDragLeave={() => setDragOver(null)}
+                style={{
+                  background: isOver ? (col.color + '10') : 'var(--bg2)',
+                  borderRadius: 16, padding: 14, minHeight: 200,
+                  border: `2px solid ${isOver ? col.color + '60' : 'transparent'}`,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {/* Column header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 16, color: col.color }}>{col.icon}</span>
+                  <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text)' }}>{col.label}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 900, padding: '1px 8px', borderRadius: 999, background: col.color + '18', color: col.color }}>{colTasks.length}</span>
                 </div>
-              ))}
-              {!q.isLoading && (grouped[col.key] || []).length === 0 ? (
-                <div className="boardEmpty">No tasks.</div>
-              ) : null}
-            </div>
-          </div>
-        ))}
-      </div>
+
+                {/* Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {colTasks.map(task => {
+                    const pColor = PRIORITY_COLOR[task.priority || ''] || 'transparent'
+                    const isDragging = dragging?.id === task.id
+                    return (
+                      <div key={task.id}
+                        draggable
+                        onDragStart={e => onDragStart(e, task, col.key)}
+                        onDragEnd={onDragEnd}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        style={{
+                          background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
+                          border: '1px solid var(--border)', cursor: 'grab',
+                          opacity: isDragging ? 0.4 : 1, transition: 'all 0.12s',
+                          position: 'relative', overflow: 'hidden',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = col.color + '60'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${col.color}18` }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '' }}
+                      >
+                        {/* Priority stripe */}
+                        {task.priority && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, background: pColor }} />}
+
+                        <div style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.4, color: 'var(--text)', marginTop: 4, marginBottom: 6 }}>{task.title}</div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {task.category_name && (
+                            <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 999, background: (task.category_color || '#818cf8') + '20', color: task.category_color || '#818cf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{task.category_name}</span>
+                          )}
+                          <DueLabel iso={task.due_date} />
+                        </div>
+
+                        {task.assigned_to_name && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: 6, background: hashColor(task.assigned_to_name) + '30', color: hashColor(task.assigned_to_name), display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 900, flexShrink: 0 }}>
+                              {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.assigned_to_name}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+
+                  {/* Empty state per column */}
+                  {colTasks.length === 0 && (
+                    <div style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 12, color: 'var(--muted)', fontSize: 11 }}>
+                      Drop here
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {canManage && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
+      <TaskDetailDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
     </div>
   )
 }
-
