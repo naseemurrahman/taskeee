@@ -147,17 +147,6 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
         data: { taskId, uploadedBy: req.user.id }
       });
     }
-        type: 'task_evidence_uploaded',
-        title: 'Task evidence submitted',
-        body: `${req.file.originalname} — ${task.title}`,
-<<<<<<< HEAD
-        data: { taskId }
-      }).catch(() => {});
-=======
-        data: { taskId, uploadedBy: req.user.id }
-      });
->>>>>>> 412c461 (fix(marketing+notifications): mobile nav visibility and task event alerts)
-    }
 
     return res.status(201).json({
       photo: { id: photo.id, taskId, status: 'submitted' },
