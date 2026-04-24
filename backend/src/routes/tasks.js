@@ -547,42 +547,48 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
       return rows[0];
     });
 
-    // Only send notifications if task is assigned to someone.
-    // Never block task creation on notification channel failures/timeouts.
-    if (assignedTo) {
-      const notifyPromises = [emitNotification(assignedTo, {
-        type: 'task_assigned',
-        title: 'New task assigned',
-        body: title,
-        data: { taskId: task.id }
-      })];
-
-      const { rows: assigneeMeta } = await query(
-        `SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`,
-        [assignedTo, orgId]
-      );
-      const mgrId = assigneeMeta[0]?.manager_id;
-      if (mgrId && mgrId !== req.user.id && mgrId !== assignedTo) {
-        notifyPromises.push(emitNotification(mgrId, {
-          type: 'task_assigned_report',
-          title: 'Your direct report was assigned a task',
-          body: title,
-          data: { taskId: task.id, assigneeId: assignedTo }
-        }));
-      }
-
-      await Promise.allSettled(notifyPromises.map(p => settleWithTimeout(p)));
-    }
-
-    await logUserActivity({
-      orgId,
-      userId: req.user.id,
-      taskId: task.id,
-      activityType: 'task_created',
-      metadata: { assignedTo, dependencyCount: dependencyIds.length }
-    });
-
     res.status(201).json({ task: { ...task, recurrence: normalizedRecurrence, approval_flow: approvalFlow } });
+
+    // Run side-effects after response so task creation UX is never blocked by
+    // notification channels or activity log latency.
+    (async () => {
+      try {
+        if (assignedTo) {
+          const notifyPromises = [emitNotification(assignedTo, {
+            type: 'task_assigned',
+            title: 'New task assigned',
+            body: title,
+            data: { taskId: task.id }
+          })];
+
+          const { rows: assigneeMeta } = await query(
+            `SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`,
+            [assignedTo, orgId]
+          );
+          const mgrId = assigneeMeta[0]?.manager_id;
+          if (mgrId && mgrId !== req.user.id && mgrId !== assignedTo) {
+            notifyPromises.push(emitNotification(mgrId, {
+              type: 'task_assigned_report',
+              title: 'Your direct report was assigned a task',
+              body: title,
+              data: { taskId: task.id, assigneeId: assignedTo }
+            }));
+          }
+
+          await Promise.allSettled(notifyPromises.map(p => settleWithTimeout(p)));
+        }
+
+        await logUserActivity({
+          orgId,
+          userId: req.user.id,
+          taskId: task.id,
+          activityType: 'task_created',
+          metadata: { assignedTo, dependencyCount: dependencyIds.length }
+        });
+      } catch (sideEffectErr) {
+        console.warn('Task creation side-effects failed:', sideEffectErr?.message || sideEffectErr);
+      }
+    })();
   } catch (err) { next(err); }
 });
 
