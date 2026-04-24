@@ -44,7 +44,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const role = getUser()?.role || 'employee'
-  const tasksHome = role === 'employee' ? <MyTasksPage /> : <TasksPage />
+  const tasksHome = ['employee', 'supervisor'].includes(role) ? <MyTasksPage /> : <TasksPage />
 
   return (
     <Routes>
