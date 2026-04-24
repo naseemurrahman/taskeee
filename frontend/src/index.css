@@ -7935,3 +7935,16 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
   }
 }
 
+
+/* Hotfix: mobile hamburger/sidebar open reliability */
+@media (max-width: 900px) {
+  .topbarV4MenuBtn { display: grid !important; }
+  .sidebarV4 {
+    transform: none !important;
+    left: -280px !important;
+  }
+  .sidebarMobileOpen .sidebarV4 {
+    left: 0 !important;
+    transform: none !important;
+  }
+}
