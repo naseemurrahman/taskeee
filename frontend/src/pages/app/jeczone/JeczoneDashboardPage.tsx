@@ -17,6 +17,7 @@ import {
   TaskSampleTable,
 } from '../../../components/insight/InsightBodies'
 import { EmployeeDetailModal } from '../../../components/employees/EmployeeDetailModal'
+import { AiAssistant } from '../../../components/ai/AiAssistant'
 import { ProjectDetailModal } from '../../../components/projects/ProjectDetailModal'
 
 type Project = {
@@ -415,6 +416,10 @@ export function JeczoneDashboardPage() {
             ))}
           </div>
         </div>
+      ) : null}
+
+      {tab === 'ai' ? (
+        <AiAssistant />
       ) : null}
 
       <Modal
