@@ -294,9 +294,9 @@ export function MyTasksPage() {
                   Photos &amp; ML review
                 </div>
                 <p style={{ margin: 0, color: 'var(--text2)', fontSize: 13, lineHeight: 1.45 }}>
-                  Upload an image while the task is actionable. The vision model scores it against the project threshold; the task moves to{' '}
-                  <strong>ai_reviewing</strong>, then <strong>ai_approved</strong> / <strong>ai_rejected</strong> (or manual follow-up). PDFs
-                  upload as evidence without vision review.
+                  Upload image or document evidence while the task is actionable. Images go through AI review and move the task to{' '}
+                  <strong>ai_reviewing</strong>, then <strong>ai_approved</strong> / <strong>ai_rejected</strong>. CSV/PDF/XLS/XLSX files are
+                  stored as evidence without vision review; executable or script files are blocked.
                 </p>
                 {isAssignee ? (
                   <label className="btn btnGhost" style={{ width: 'fit-content' }}>
