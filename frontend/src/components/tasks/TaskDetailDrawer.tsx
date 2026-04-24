@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, MessageCircle } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -25,11 +26,11 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   cancelled:        { label: 'Cancelled',   color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
 }
 
-const PRIORITY_META: Record<string, { color: string; icon: string }> = {
-  low:      { color: '#38bdf8', icon: '↓' },
-  medium:   { color: '#8B5CF6', icon: '→' },
-  high:     { color: '#f97316', icon: '↑' },
-  critical: { color: '#ef4444', icon: '⚡' },
+const PRIORITY_META: Record<string, { color: string; icon: ReactNode }> = {
+  low:      { color: '#38bdf8', icon: <ArrowDown size={12} /> },
+  medium:   { color: '#8B5CF6', icon: <ArrowRight size={12} /> },
+  high:     { color: '#f97316', icon: <ArrowUp size={12} /> },
+  critical: { color: '#ef4444', icon: <AlertTriangle size={12} /> },
 }
 
 function timeAgo(iso: string) {
@@ -50,12 +51,16 @@ function hashColor(s: string) {
   return `hsl(${Math.abs(h) % 360},55%,55%)`
 }
 
-export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+export function TaskDetailDrawer({
+  taskId,
+  onClose,
+  initialTab = 'details',
+}: { taskId: string | null; onClose: () => void; initialTab?: 'details' | 'comments' }) {
   const me = getUser()
   const qc = useQueryClient()
   const canManage = canCreateTasksAndProjects(me?.role)
   const [comment, setComment] = useState('')
-  const [activeTab, setActiveTab] = useState<'details' | 'comments'>('details')
+  const [activeTab, setActiveTab] = useState<'details' | 'comments'>(initialTab)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
 
@@ -78,6 +83,10 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
   useEffect(() => {
     if (activeTab === 'comments') setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }, [messages, activeTab])
+
+  useEffect(() => {
+    if (taskId) setActiveTab(initialTab)
+  }, [taskId, initialTab])
 
   const commentM = useMutation({
     mutationFn: (body: string) => apiFetch(`/api/v1/tasks/${taskId}/messages`, { method: 'POST', json: { body } }),
@@ -277,7 +286,9 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
                 </div>
               ) : messages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+                  <div style={{ marginBottom: 8, display: 'grid', placeItems: 'center' }}>
+                    <MessageCircle size={24} />
+                  </div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text2)' }}>No comments yet</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Start the conversation below</div>
                 </div>

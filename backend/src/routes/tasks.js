@@ -188,8 +188,11 @@ router.get('/', authenticate, async (req, res, next) => {
     const orgId = user.org_id ?? user.orgId;
     let targetUserIds = await getScopedTargetUserIds(user);
 
-    /** Only tasks assigned to the signed-in user (My Tasks page for managers/employees). */
-    if (String(mine || '') === 'true') {
+    /** Employees are always scoped to their own tasks, regardless of query params. */
+    if (user.role === 'employee') {
+      targetUserIds = [user.id];
+    } else if (String(mine || '') === 'true') {
+      /** Only tasks assigned to the signed-in user (My Tasks page for managers/supervisors). */
       targetUserIds = [user.id];
     } else if (userId && targetUserIds.includes(userId)) {
       targetUserIds = [userId];
@@ -210,13 +213,15 @@ router.get('/', authenticate, async (req, res, next) => {
         u_by.full_name AS assigned_by_name,
         cat.name AS category_name,
         cat.color AS category_color,
-        COUNT(tp.id) AS photo_count,
+        COUNT(DISTINCT tp.id) AS photo_count,
+        COUNT(DISTINCT tm.id) AS message_count,
         COUNT(*) OVER() AS total_count
       FROM tasks t
       LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to
       LEFT JOIN users u_by ON u_by.id = t.assigned_by
       LEFT JOIN task_categories cat ON cat.id = t.category_id
       LEFT JOIN task_photos tp ON tp.task_id = t.id
+      LEFT JOIN task_messages tm ON tm.task_id = t.id
       WHERE ${conditions.join(' AND ')}
       GROUP BY t.id, u_assigned.full_name, u_assigned.email, u_by.full_name, cat.name, cat.color
       ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC

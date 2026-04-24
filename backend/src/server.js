@@ -258,7 +258,24 @@ app.get('/health', async (_req, res) => {
 });
 
 app.get('/api/v1/health', async (_req, res) => {
-  res.redirect('/health');
+  const start = Date.now();
+  const checks = { db: 'unknown', redis: 'unknown' };
+  try {
+    await query('SELECT 1');
+    checks.db = 'ok';
+  } catch { checks.db = 'error'; }
+  try {
+    const { getRedis } = require('./utils/redis');
+    const rc = getRedis();
+    if (rc) { await rc.ping(); checks.redis = 'ok'; } else { checks.redis = 'unconfigured'; }
+  } catch { checks.redis = 'error'; }
+  res.status(200).json({
+    status: checks.db === 'ok' ? 'ok' : 'starting',
+    uptime: Math.floor(process.uptime()),
+    latencyMs: Date.now() - start,
+    checks,
+    timestamp: new Date().toISOString(),
+  });
 });
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
