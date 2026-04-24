@@ -99,14 +99,12 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
 
   const m = useMutation({
     mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks', { method: 'POST', json: input }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setError(null)
-      // Invalidate all task-related queries
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ['dashboard'] }),
-        qc.invalidateQueries({ queryKey: ['tasks'] }),
-        qc.invalidateQueries({ queryKey: ['performance'] }),
-      ])
+      // Fire-and-forget invalidations so button doesn't get stuck in "Creating…"
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['performance'] })
       handleClose()
     },
     onError: (err) => {

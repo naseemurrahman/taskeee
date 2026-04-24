@@ -6279,6 +6279,33 @@ select.input option { background: #1a1d2e; color: white; }
   color: var(--brand) !important;
 }
 
+/* Dark-mode contrast guardrails */
+.appShell:not(.appShellLight) .selectV3Label,
+.appShellV4Dark .selectV3Label,
+.appShell:not(.appShellLight) .pageHeaderCardSub,
+.appShellV4Dark .pageHeaderCardSub {
+  color: rgba(226, 231, 242, 0.88) !important;
+}
+
+.appShell:not(.appShellLight) th,
+.appShellV4Dark th {
+  color: rgba(193, 201, 218, 0.92) !important;
+}
+
+.appShell:not(.appShellLight) .btnGhost,
+.appShellV4Dark .btnGhost {
+  color: rgba(234, 239, 250, 0.94) !important;
+  border-color: rgba(154, 164, 186, 0.35) !important;
+  background: rgba(63, 74, 96, 0.28) !important;
+}
+
+.appShell:not(.appShellLight) .btnGhost:hover,
+.appShellV4Dark .btnGhost:hover {
+  color: #fff !important;
+  border-color: rgba(186, 199, 230, 0.45) !important;
+  background: rgba(95, 109, 136, 0.35) !important;
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
    DESIGN SYSTEM UNIFICATION — v5 final pass
