@@ -468,28 +468,30 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     // task creation.
     let resolvedCategoryId = categoryId || null;
     if (categoryId) {
-      let found = false;
+      let foundInTaskCategories = false;
       try {
         const { rows: categoryCheck } = await query(
           'SELECT id FROM task_categories WHERE id = $1 AND org_id = $2',
           [categoryId, orgId]
         );
-        found = categoryCheck.length > 0;
+        foundInTaskCategories = categoryCheck.length > 0;
       } catch (err) {
         if (err.code !== '42P01') throw err;
       }
-      if (!found) {
+
+      // If this ID only exists in legacy projects (not in task_categories),
+      // don't persist it into tasks.category_id to avoid FK violations.
+      if (!foundInTaskCategories) {
         try {
-          const { rows: legacyProjectCheck } = await query(
-            'SELECT id FROM projects WHERE id = $1 AND org_id = $2',
+          await query(
+            'SELECT id FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1',
             [categoryId, orgId]
           );
-          found = legacyProjectCheck.length > 0;
         } catch (err) {
           if (err.code !== '42P01') throw err;
         }
+        resolvedCategoryId = null;
       }
-      if (!found) resolvedCategoryId = null;
     }
 
     const task = await withTransaction(async (client) => {
