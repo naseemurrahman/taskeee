@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
+import { ChevronRight, MessageCircleMore } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
@@ -13,6 +14,7 @@ type Task = {
   id: string; title?: string; status: string; priority?: string | null
   due_date?: string | null; category_id?: string | null; category_name?: string | null
   category_color?: string | null; assigned_to?: string | null; assigned_to_name?: string | null
+  message_count?: number
 }
 
 function fetchTasks(status: string, priority: string, search: string, mine: boolean) {
@@ -60,39 +62,15 @@ const STATUS_OPTIONS: Record<string, { label: string; color: string; bg: string 
   submitted:        { label: 'Submitted',        color: '#f9e6a2', bg: 'rgba(226,171,65,0.12)'  },
   manager_approved: { label: 'Approved',         color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
   manager_rejected: { label: 'Rejected',         color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
-  completed:        { label: 'Completed',        color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  completed:        { label: 'Done',             color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
   overdue:          { label: 'Overdue',          color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
   cancelled:        { label: 'Cancelled',        color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
 }
 
 // Allowed status transitions per role (mirrors backend)
 function getAllowedTransitions(fromStatus: string, role: string): string[] {
-  const map: Record<string, Record<string, string[]>> = {
-    employee: {
-      pending:          ['in_progress'],
-      overdue:          ['in_progress'],
-      in_progress:      ['submitted', 'pending'],
-      submitted:        ['in_progress'],
-      manager_approved: ['completed'],
-      manager_rejected: ['in_progress'],
-    },
-    supervisor: {
-      pending: ['in_progress'], overdue: ['in_progress', 'completed', 'pending'],
-      in_progress: ['submitted', 'completed', 'pending'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed'],
-      manager_approved: ['completed'], completed: ['pending', 'in_progress'],
-    },
-    manager: {
-      pending: ['in_progress', 'completed', 'cancelled'],
-      overdue: ['in_progress', 'completed', 'pending'],
-      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed'],
-      manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
-      completed: ['pending', 'in_progress'], cancelled: ['pending'],
-    },
-  }
-  const roleMap = map[role] || map['manager']
-  return roleMap[fromStatus] || []
+  if (role === 'employee') return []
+  return ['pending', 'in_progress', 'completed', 'overdue'].filter(s => s !== fromStatus)
 }
 
 const PRIORITY_OPTS = [
@@ -202,6 +180,11 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
           }),
         ]}
       />
+      {errorMsg && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, fontSize: 10, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {errorMsg}
+        </div>
+      )}
     </div>
   )
 }
@@ -219,6 +202,7 @@ export function TasksPage() {
   const location = useLocation()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>((location.state as any)?.openTaskId || null)
+  const [drawerTab, setDrawerTab] = useState<'details' | 'comments'>('details')
 
   const q = useQuery({
     queryKey: ['tasks', 'list', status, priority, search, isEmployee],
@@ -253,7 +237,7 @@ export function TasksPage() {
               {isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>My Tasks</span>}
             </div>
             <div className="pageHeaderCardSub">
-              {isEmployee ? 'Tasks assigned to you. Start, submit, or track your work.' : 'Create, assign, and track tasks. Click a status badge to change it inline.'}
+              {isEmployee ? 'Tasks assigned to you. Track your work and collaborate through comments/attachments.' : 'Create, assign, and track tasks. Click a status badge to change it inline.'}
             </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} total</span>
@@ -339,6 +323,7 @@ export function TasksPage() {
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Priority</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Due</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Comments</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,9 +331,10 @@ export function TasksPage() {
                   const due = dueStat(task.due_date)
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
                   const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
+                  const commentCount = Number(task.message_count || 0)
                   return (
                     <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s', cursor: 'pointer' }}
-                      onClick={() => setSelectedTaskId(task.id)}
+                      onClick={() => { setDrawerTab('details'); setSelectedTaskId(task.id) }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: 0, width: 4 }} onClick={e => e.stopPropagation()}>
@@ -384,7 +370,35 @@ export function TasksPage() {
                         {task.priority ? <span style={{ fontSize: 12, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>{task.priority}</span> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: dueColor }}>{due.tone === 'danger' && '⚠ '}{due.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: dueColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {due.tone === 'danger' && <span aria-hidden="true">!</span>}
+                          {due.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => { setDrawerTab('comments'); setSelectedTaskId(task.id) }}
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg2)',
+                            color: 'var(--text2)',
+                            borderRadius: 10,
+                            padding: '5px 8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                          title="Open task comments"
+                          aria-label="Open task comments"
+                        >
+                          <MessageCircleMore size={14} />
+                          <span>{commentCount}</span>
+                          <ChevronRight size={14} />
+                        </button>
                       </td>
                     </tr>
                   )
@@ -396,7 +410,7 @@ export function TasksPage() {
       </div>
 
       {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
-      <TaskDetailDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+      <TaskDetailDrawer taskId={selectedTaskId} initialTab={drawerTab} onClose={() => setSelectedTaskId(null)} />
     </div>
   )
 }

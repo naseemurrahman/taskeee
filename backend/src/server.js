@@ -234,7 +234,7 @@ app.get('/', (_req, res) => {
 
 // Rich health check — always returns 200 so Railway healthcheck passes
 // DB/Redis status is in the response body for debugging
-app.get('/health', async (_req, res) => {
+async function buildHealthPayload() {
   const start = Date.now();
   const checks = { db: 'unknown', redis: 'unknown' };
   try {
@@ -248,17 +248,23 @@ app.get('/health', async (_req, res) => {
   } catch { checks.redis = 'error'; }
   // Always 200 — Railway healthcheck only cares about HTTP status code
   // DB errors don't mean the server is unhealthy at the network level
-  res.status(200).json({
+  return {
     status: checks.db === 'ok' ? 'ok' : 'starting',
     uptime: Math.floor(process.uptime()),
     latencyMs: Date.now() - start,
     checks,
     timestamp: new Date().toISOString(),
-  });
+  };
+}
+
+app.get('/health', async (_req, res) => {
+  const payload = await buildHealthPayload();
+  res.status(200).json(payload);
 });
 
 app.get('/api/v1/health', async (_req, res) => {
-  res.redirect('/health');
+  const payload = await buildHealthPayload();
+  res.status(200).json(payload);
 });
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);

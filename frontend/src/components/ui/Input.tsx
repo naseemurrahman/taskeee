@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, type ReactNode, useState } from 'react'
+import { type InputHTMLAttributes, type ReactNode, useRef, useState } from 'react'
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'suffix'> {
   label?: string
@@ -11,7 +11,9 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
 
 export function Input({ label, error, hint, prefix, suffix, icon, className, ...props }: InputProps) {
   const [showPwd, setShowPwd] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const isPassword = props.type === 'password'
+  const isDate = props.type === 'date'
   const inputType = isPassword ? (showPwd ? 'text' : 'password') : props.type
   return (
     <div className="inputV3Wrap">
@@ -25,10 +27,29 @@ export function Input({ label, error, hint, prefix, suffix, icon, className, ...
         {prefix && <span className="inputV3Prefix">{prefix}</span>}
         <input
           {...props}
+          ref={inputRef}
           type={inputType}
           className={`inputV3Native ${className || ''}`}
           style={{ paddingLeft: icon ? 36 : prefix ? undefined : 14 }}
         />
+        {isDate && (
+          <button
+            type="button"
+            className="inputV3Suffix"
+            onClick={() => {
+              const el = inputRef.current
+              if (!el) return
+              ;(el as any).showPicker?.()
+              el.focus()
+            }}
+            aria-label="Open date picker"
+            tabIndex={-1}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </button>
+        )}
         {isPassword && (
           <button
             type="button"

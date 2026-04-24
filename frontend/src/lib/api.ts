@@ -10,6 +10,7 @@ const getApiBase = (): string => {
   return ''
 }
 const API_BASE = getApiBase()
+const REQUEST_TIMEOUT_MS = 20_000
 
 export class ApiError extends Error {
   status: number
@@ -81,7 +82,7 @@ async function tryRefreshToken(): Promise<string | null> {
   return refreshPromise
 }
 
-async function doFetch<T>(path: string, init?: RequestInit & { json?: Json }, retried = false): Promise<T> {
+async function doFetch<T>(path: string, init?: RequestInit & { json?: Json; timeoutMs?: number }, retried = false): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(init?.headers ? (init.headers as Record<string, string>) : {}),
@@ -96,11 +97,30 @@ async function doFetch<T>(path: string, init?: RequestInit & { json?: Json }, re
     body = JSON.stringify(init.json)
   }
 
-  const res = await fetch(buildUrl(path), {
-    ...init,
-    headers,
-    body,
-  })
+  const timeoutMs = typeof init?.timeoutMs === 'number' && init.timeoutMs > 0 ? init.timeoutMs : REQUEST_TIMEOUT_MS
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+  const signal = init?.signal
+    ? ((AbortSignal as any).any ? (AbortSignal as any).any([init.signal, timeoutController.signal]) : timeoutController.signal)
+    : timeoutController.signal
+
+  let res: Response
+  try {
+    const { timeoutMs: _omitTimeout, ...restInit } = (init || {}) as RequestInit & { timeoutMs?: number }
+    res = await fetch(buildUrl(path), {
+      ...restInit,
+      headers,
+      body,
+      signal,
+    })
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new ApiError('Request timed out. Please try again.', 408, null)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const data = await parseResponse(res)
 
@@ -121,7 +141,7 @@ async function doFetch<T>(path: string, init?: RequestInit & { json?: Json }, re
   return data as T
 }
 
-export async function apiFetch<T = unknown>(path: string, init?: RequestInit & { json?: Json }): Promise<T> {
+export async function apiFetch<T = unknown>(path: string, init?: RequestInit & { json?: Json; timeoutMs?: number }): Promise<T> {
   return doFetch<T>(path, init)
 }
 
@@ -133,7 +153,23 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
   const token = getAccessToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(buildUrl(path), { ...init, method: init?.method || 'POST', headers, body: formData })
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS)
+  const signal = init?.signal
+    ? ((AbortSignal as any).any ? (AbortSignal as any).any([init.signal, timeoutController.signal]) : timeoutController.signal)
+    : timeoutController.signal
+
+  let res: Response
+  try {
+    res = await fetch(buildUrl(path), { ...init, method: init?.method || 'POST', headers, body: formData, signal })
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new ApiError('Upload timed out. Please try again.', 408, null)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
   const data = await parseResponse(res)
 
   if (!res.ok) {

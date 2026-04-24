@@ -22,6 +22,21 @@ async function generateReport(reportType: string) {
   return await apiFetch(`/api/v1/reports/generate`, { method: 'POST', json: { reportType } })
 }
 
+function downloadReportCsv(rows: ReportRow[]) {
+  const csvRows = [
+    ['Report Type', 'Scope', 'Period Start', 'Period End', 'Emailed', 'Created At'],
+    ...rows.map(r => [r.report_type, r.scope_type, r.period_start || '', r.period_end || '', String(r.email_sent), r.created_at]),
+  ]
+  const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `reports-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function ReportsPage() {
   const qc = useQueryClient()
   const q = useQuery({
@@ -63,12 +78,21 @@ export function ReportsPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('on_demand')}>
-              {m.isPending ? 'Generating…' : 'Generate'}
+            <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('task_completion')}>
+              {m.isPending ? 'Generating…' : 'Task Completion'}
             </button>
-            <a className="btn btnGhost" style={{ height: 40, display: 'grid', placeItems: 'center', padding: '0 12px' }} href="/api/v1/reports" onClick={(e) => e.preventDefault()}>
-              History
-            </a>
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('employee_performance')}>
+              Employee Performance
+            </button>
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('project_summary')}>
+              Project Summary
+            </button>
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => downloadReportCsv(q.data?.reports || [])}>
+              Export CSV
+            </button>
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => window.print()}>
+              Export PDF
+            </button>
           </div>
         </div>
       </div>

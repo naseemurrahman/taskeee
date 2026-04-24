@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, MessageCircle } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -13,6 +14,9 @@ type Task = {
   created_at?: string; updated_at?: string
 }
 type Message = { id: string; body: string; created_at: string; sender_name?: string | null; sender_id: string }
+type TimelineItem = { id: string; event_type: string; note?: string | null; actor_name?: string | null; created_at: string }
+type TaskPhoto = { id: string; file_url?: string | null; photo_url?: string | null; created_at: string; uploaded_by_name?: string | null }
+type AssignableUser = { id: string; name: string; role?: string }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending:          { label: 'Pending',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
@@ -25,11 +29,11 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   cancelled:        { label: 'Cancelled',   color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
 }
 
-const PRIORITY_META: Record<string, { color: string; icon: string }> = {
-  low:      { color: '#38bdf8', icon: '↓' },
-  medium:   { color: '#8B5CF6', icon: '→' },
-  high:     { color: '#f97316', icon: '↑' },
-  critical: { color: '#ef4444', icon: '⚡' },
+const PRIORITY_META: Record<string, { color: string; icon: ReactNode }> = {
+  low:      { color: '#38bdf8', icon: <ArrowDown size={12} /> },
+  medium:   { color: '#8B5CF6', icon: <ArrowRight size={12} /> },
+  high:     { color: '#f97316', icon: <ArrowUp size={12} /> },
+  critical: { color: '#ef4444', icon: <AlertTriangle size={12} /> },
 }
 
 function timeAgo(iso: string) {
@@ -50,22 +54,35 @@ function hashColor(s: string) {
   return `hsl(${Math.abs(h) % 360},55%,55%)`
 }
 
-export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+export function TaskDetailDrawer({
+  taskId,
+  onClose,
+  initialTab = 'details',
+}: { taskId: string | null; onClose: () => void; initialTab?: 'details' | 'comments' }) {
   const me = getUser()
   const qc = useQueryClient()
   const canManage = canCreateTasksAndProjects(me?.role)
   const [comment, setComment] = useState('')
-  const [activeTab, setActiveTab] = useState<'details' | 'comments'>('details')
+  const [activeTab, setActiveTab] = useState<'details' | 'comments'>(initialTab)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
 
   const taskQ = useQuery({
     queryKey: ['task-detail', taskId],
-    queryFn: () => apiFetch<{ task: Task; timeline?: any[] }>(`/api/v1/tasks/${taskId}`).then(d => d.task),
+    queryFn: () => apiFetch<{ task: Task; timeline?: TimelineItem[]; photos?: TaskPhoto[] }>(`/api/v1/tasks/${taskId}`),
     enabled: !!taskId,
     staleTime: 30_000,
   })
-  const task = taskQ.data
+  const task = taskQ.data?.task
+  const timeline = taskQ.data?.timeline || []
+  const photos = taskQ.data?.photos || []
+
+  const assigneesQ = useQuery({
+    queryKey: ['tasks', 'assignable-users'],
+    queryFn: () => apiFetch<{ users: AssignableUser[] }>('/api/v1/tasks/assignable-users').then(d => d.users || []),
+    enabled: !!taskId && canManage,
+    staleTime: 60_000,
+  })
 
   const messagesQ = useQuery({
     queryKey: ['task-messages', taskId],
@@ -79,6 +96,10 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
     if (activeTab === 'comments') setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }, [messages, activeTab])
 
+  useEffect(() => {
+    if (taskId) setActiveTab(initialTab)
+  }, [taskId, initialTab])
+
   const commentM = useMutation({
     mutationFn: (body: string) => apiFetch(`/api/v1/tasks/${taskId}/messages`, { method: 'POST', json: { body } }),
     onSuccess: () => {
@@ -90,6 +111,16 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
 
   const statusM = useMutation({
     mutationFn: (status: string) => apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+
+  const detailsM = useMutation({
+    mutationFn: (payload: { assignedTo?: string | null; dueDate?: string | null }) =>
+      apiFetch(`/api/v1/tasks/${taskId}/details`, { method: 'PATCH', json: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
@@ -215,6 +246,35 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
                 </div>
               </div>
 
+              {canManage && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Change Assignee</div>
+                    <select
+                      value={task?.assigned_to || ''}
+                      onChange={e => detailsM.mutate({ assignedTo: e.target.value || null })}
+                      disabled={detailsM.isPending || assigneesQ.isLoading}
+                      style={{ width: '100%', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text)', padding: '8px 10px' }}
+                    >
+                      <option value="">Unassigned</option>
+                      {(assigneesQ.data || []).map(u => (
+                        <option key={u.id} value={u.id}>{u.name}{u.role ? ` (${u.role})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Change Due Date</div>
+                    <input
+                      type="date"
+                      value={task?.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : ''}
+                      onChange={e => detailsM.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T12:00:00Z`).toISOString() : null })}
+                      disabled={detailsM.isPending}
+                      style={{ width: '100%', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'var(--text)', padding: '8px 10px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Description</div>
@@ -267,6 +327,43 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
                   ))}
                 </div>
               )}
+
+              {/* Attachments */}
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Attachments</div>
+                {photos.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>No attachments uploaded yet.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {photos.map(photo => {
+                      const url = photo.file_url || photo.photo_url
+                      return (
+                        <a key={photo.id} href={url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text2)' }}>
+                          <span style={{ fontSize: 12 }}>{photo.uploaded_by_name || 'Unknown'} · {timeAgo(photo.created_at)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800 }}>Open</span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Status Timeline */}
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Status History Timeline</div>
+                {timeline.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>No timeline events yet.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {timeline.slice().reverse().map(item => (
+                      <div key={item.id} style={{ borderLeft: '2px solid var(--border)', paddingLeft: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)' }}>{item.note || item.event_type.replace(/_/g, ' ')}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.actor_name || 'System'} · {timeAgo(item.created_at)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Comments Tab */
@@ -277,7 +374,9 @@ export function TaskDetailDrawer({ taskId, onClose }: { taskId: string | null; o
                 </div>
               ) : messages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+                  <div style={{ marginBottom: 8, display: 'grid', placeItems: 'center' }}>
+                    <MessageCircle size={24} />
+                  </div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text2)' }}>No comments yet</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Start the conversation below</div>
                 </div>

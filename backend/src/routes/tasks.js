@@ -122,6 +122,13 @@ async function updateTaskMetadata(taskId, metadata) {
   return rows[0]?.metadata || metadata;
 }
 
+function settleWithTimeout(promise, ms = 1500) {
+  return Promise.race([
+    Promise.resolve(promise).catch(() => null),
+    new Promise(resolve => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 function buildApprovalState(task) {
   const flow = Array.isArray(task.approval_flow) ? task.approval_flow : [];
   const metadata = task.metadata || {};
@@ -188,8 +195,11 @@ router.get('/', authenticate, async (req, res, next) => {
     const orgId = user.org_id ?? user.orgId;
     let targetUserIds = await getScopedTargetUserIds(user);
 
-    /** Only tasks assigned to the signed-in user (My Tasks page for managers/employees). */
-    if (String(mine || '') === 'true') {
+    /** Employees are always scoped to their own tasks, regardless of query params. */
+    if (user.role === 'employee') {
+      targetUserIds = [user.id];
+    } else if (String(mine || '') === 'true') {
+      /** Only tasks assigned to the signed-in user (My Tasks page for managers/supervisors). */
       targetUserIds = [user.id];
     } else if (userId && targetUserIds.includes(userId)) {
       targetUserIds = [userId];
@@ -210,13 +220,15 @@ router.get('/', authenticate, async (req, res, next) => {
         u_by.full_name AS assigned_by_name,
         cat.name AS category_name,
         cat.color AS category_color,
-        COUNT(tp.id) AS photo_count,
+        COUNT(DISTINCT tp.id) AS photo_count,
+        COUNT(DISTINCT tm.id) AS message_count,
         COUNT(*) OVER() AS total_count
       FROM tasks t
       LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to
       LEFT JOIN users u_by ON u_by.id = t.assigned_by
       LEFT JOIN task_categories cat ON cat.id = t.category_id
       LEFT JOIN task_photos tp ON tp.task_id = t.id
+      LEFT JOIN task_messages tm ON tm.task_id = t.id
       WHERE ${conditions.join(' AND ')}
       GROUP BY t.id, u_assigned.full_name, u_assigned.email, u_by.full_name, cat.name, cat.color
       ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
@@ -456,61 +468,79 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     // task creation.
     let resolvedCategoryId = categoryId || null;
     if (categoryId) {
-      let found = false;
+      let foundInTaskCategories = false;
       try {
         const { rows: categoryCheck } = await query(
           'SELECT id FROM task_categories WHERE id = $1 AND org_id = $2',
           [categoryId, orgId]
         );
-        found = categoryCheck.length > 0;
+        foundInTaskCategories = categoryCheck.length > 0;
       } catch (err) {
         if (err.code !== '42P01') throw err;
       }
-      if (!found) {
+
+      // If this ID only exists in legacy projects (not in task_categories),
+      // don't persist it into tasks.category_id to avoid FK violations.
+      if (!foundInTaskCategories) {
         try {
-          const { rows: legacyProjectCheck } = await query(
-            'SELECT id FROM projects WHERE id = $1 AND org_id = $2',
+          await query(
+            'SELECT id FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1',
             [categoryId, orgId]
           );
-          found = legacyProjectCheck.length > 0;
         } catch (err) {
           if (err.code !== '42P01') throw err;
         }
+        resolvedCategoryId = null;
       }
-      if (!found) resolvedCategoryId = null;
     }
 
     const task = await withTransaction(async (client) => {
-      const insertCols = [];
-      const insertVals = [];
-      const pushCol = (col, val) => {
-        if (!taskCols.size || taskCols.has(col)) { insertCols.push(col); insertVals.push(val); }
+      const insertTaskRow = async (categoryValue) => {
+        const insertCols = [];
+        const insertVals = [];
+        const pushCol = (col, val) => {
+          if (!taskCols.size || taskCols.has(col)) { insertCols.push(col); insertVals.push(val); }
+        };
+
+        pushCol('org_id', orgId);
+        pushCol('title', title);
+        pushCol('description', description || null);
+        pushCol('assigned_to', assignedTo || null);
+        pushCol('assigned_by', req.user.id);
+        pushCol('category_id', categoryValue || null);
+        pushCol('priority', priority || 'medium');
+        pushCol('due_date', dueDate || null);
+        pushCol('location', location || null);
+        pushCol('notes', notes || null);
+        pushCol('recurrence', normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null);
+        pushCol('metadata', JSON.stringify({ approval_index: 0 }));
+        pushCol('parent_task_id', parentTaskId || null);
+        pushCol('next_run_at', nextRunAt ? nextRunAt.toISOString() : null);
+        pushCol('approval_flow', JSON.stringify(approvalFlow || []));
+        pushCol('status', 'pending');
+
+        const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
+        const { rows } = await client.query(
+          `INSERT INTO tasks (${insertCols.join(', ')})
+           VALUES (${placeholders})
+           RETURNING *`,
+          insertVals
+        );
+        return rows[0];
       };
 
-      pushCol('org_id', orgId);
-      pushCol('title', title);
-      pushCol('description', description || null);
-      pushCol('assigned_to', assignedTo || null);
-      pushCol('assigned_by', req.user.id);
-      pushCol('category_id', resolvedCategoryId || null);
-      pushCol('priority', priority || 'medium');
-      pushCol('due_date', dueDate || null);
-      pushCol('location', location || null);
-      pushCol('notes', notes || null);
-      pushCol('recurrence', normalizedRecurrence ? JSON.stringify(normalizedRecurrence) : null);
-      pushCol('metadata', JSON.stringify({ approval_index: 0 }));
-      pushCol('parent_task_id', parentTaskId || null);
-      pushCol('next_run_at', nextRunAt ? nextRunAt.toISOString() : null);
-      pushCol('approval_flow', JSON.stringify(approvalFlow || []));
-      pushCol('status', 'pending');
-
-      const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(', ');
-      const { rows } = await client.query(
-        `INSERT INTO tasks (${insertCols.join(', ')})
-         VALUES (${placeholders})
-         RETURNING *`,
-        insertVals
-      );
+      let createdTask;
+      await client.query('SAVEPOINT task_insert_sp');
+      try {
+        createdTask = await insertTaskRow(resolvedCategoryId);
+      } catch (err) {
+        const isCategoryFkIssue = err?.code === '23503' && /category_id/i.test(`${err?.message || ''} ${err?.detail || ''}`);
+        if (!isCategoryFkIssue || !resolvedCategoryId) throw err;
+        await client.query('ROLLBACK TO SAVEPOINT task_insert_sp');
+        createdTask = await insertTaskRow(null);
+      } finally {
+        await client.query('RELEASE SAVEPOINT task_insert_sp').catch(() => {});
+      }
 
       if (dependencyIds.length) {
         for (const dependencyId of dependencyIds) {
@@ -518,7 +548,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
             INSERT INTO task_dependencies (task_id, depends_on_task_id, dependency_type, created_by)
             VALUES ($1, $2, 'blocks', $3)
             ON CONFLICT (task_id, depends_on_task_id) DO NOTHING
-          `, [rows[0].id, dependencyId, req.user.id]);
+          `, [createdTask.id, dependencyId, req.user.id]);
         }
       }
 
@@ -526,48 +556,57 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
         INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, to_status, note, metadata)
         VALUES ($1, $2, 'user', 'task_created', 'pending', $3, $4)
       `, [
-        rows[0].id,
+        createdTask.id,
         req.user.id,
         `Task assigned by ${req.user.full_name}`,
         JSON.stringify({ dependencyCount: dependencyIds.length, recurring: !!normalizedRecurrence, approvalFlow })
       ]);
 
-      return rows[0];
-    });
-
-    // Only send notifications if task is assigned to someone
-    if (assignedTo) {
-      await emitNotification(assignedTo, {
-        type: 'task_assigned',
-        title: 'New task assigned',
-        body: title,
-        data: { taskId: task.id }
-      });
-
-      const { rows: assigneeMeta } = await query(
-        `SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`,
-        [assignedTo, orgId]
-      );
-      const mgrId = assigneeMeta[0]?.manager_id;
-      if (mgrId && mgrId !== req.user.id && mgrId !== assignedTo) {
-        await emitNotification(mgrId, {
-          type: 'task_assigned_report',
-          title: 'Your direct report was assigned a task',
-          body: title,
-          data: { taskId: task.id, assigneeId: assignedTo }
-        });
-      }
-    }
-
-    await logUserActivity({
-      orgId,
-      userId: req.user.id,
-      taskId: task.id,
-      activityType: 'task_created',
-      metadata: { assignedTo, dependencyCount: dependencyIds.length }
+      return createdTask;
     });
 
     res.status(201).json({ task: { ...task, recurrence: normalizedRecurrence, approval_flow: approvalFlow } });
+
+    // Run side-effects after response so task creation UX is never blocked by
+    // notification channels or activity log latency.
+    (async () => {
+      try {
+        if (assignedTo) {
+          const notifyPromises = [emitNotification(assignedTo, {
+            type: 'task_assigned',
+            title: 'New task assigned',
+            body: title,
+            data: { taskId: task.id }
+          })];
+
+          const { rows: assigneeMeta } = await query(
+            `SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`,
+            [assignedTo, orgId]
+          );
+          const mgrId = assigneeMeta[0]?.manager_id;
+          if (mgrId && mgrId !== req.user.id && mgrId !== assignedTo) {
+            notifyPromises.push(emitNotification(mgrId, {
+              type: 'task_assigned_report',
+              title: 'Your direct report was assigned a task',
+              body: title,
+              data: { taskId: task.id, assigneeId: assignedTo }
+            }));
+          }
+
+          await Promise.allSettled(notifyPromises.map(p => settleWithTimeout(p)));
+        }
+
+        await logUserActivity({
+          orgId,
+          userId: req.user.id,
+          taskId: task.id,
+          activityType: 'task_created',
+          metadata: { assignedTo, dependencyCount: dependencyIds.length }
+        });
+      } catch (sideEffectErr) {
+        console.warn('Task creation side-effects failed:', sideEffectErr?.message || sideEffectErr);
+      }
+    })();
   } catch (err) { next(err); }
 });
 
@@ -830,8 +869,8 @@ router.patch('/:id/rename', authenticate, requireAnyRole('supervisor','manager',
 // PATCH /tasks/:id/status
 router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res, next) => {
   try {
-    if (req.user.role === 'hr')
-      return res.status(403).json({ error: 'HR role cannot change task status' });
+    if (['employee', 'hr'].includes(req.user.role))
+      return res.status(403).json({ error: 'Your role cannot change task status' });
 
     const { status, note } = req.body;
     const allowedTransitions = {
@@ -906,7 +945,10 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    if (!['director', 'admin'].includes(role)) {
+    const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue']);
+    const boardRoleBypass = ['supervisor', 'manager', 'director', 'admin'].includes(role) && boardStatuses.has(status);
+
+    if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
         if (!allowed[task.status]?.includes(status)) {
           return res.status(400).json({ error: `Cannot transition from ${task.status} to ${status}` });
@@ -914,17 +956,25 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    const timestampField = status === 'in_progress' ? ', started_at = NOW()'
-      : status === 'submitted' ? ', submitted_at = NOW()'
-      : status === 'completed' ? ', completed_at = NOW()'
-      : '';
+    const taskCols = await getTableColumns('tasks');
+    const setClauses = ['status = $1'];
+    const params = [status, task.id];
+
+    if (taskCols.has('rejection_reason')) {
+      setClauses.push(`rejection_reason = $${params.length + 1}`);
+      params.push(status.includes('rejected') ? note : null);
+    }
+
+    if (status === 'in_progress' && taskCols.has('started_at')) setClauses.push('started_at = NOW()');
+    if (status === 'submitted' && taskCols.has('submitted_at')) setClauses.push('submitted_at = NOW()');
+    if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
 
     let generatedTask = null;
     await withTransaction(async (client) => {
       await client.query(`
-        UPDATE tasks SET status = $1, rejection_reason = $3${timestampField}
+        UPDATE tasks SET ${setClauses.join(', ')}
         WHERE id = $2
-      `, [status, task.id, status.includes('rejected') ? note : null]);
+      `, params);
 
       await client.query(`
         INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
@@ -963,6 +1013,90 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
 
     res.json({ message: 'Status updated', taskId: task.id, status, generatedTask });
   } catch (err) { next(err); }
+});
+
+// PATCH /tasks/:id/details - update due date and assignee (manager+)
+router.patch('/:id/details', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const taskId = req.params.id;
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { assignedTo, dueDate } = req.body || {};
+
+    const { rows: existingRows } = await query(
+      `SELECT id, org_id, title, assigned_to, due_date FROM tasks WHERE id = $1 AND org_id = $2`,
+      [taskId, orgId]
+    );
+    if (!existingRows.length) return res.status(404).json({ error: 'Task not found' });
+    const task = existingRows[0];
+
+    const updates = [];
+    const params = [];
+    let p = 1;
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedTo')) {
+      if (assignedTo) {
+        const { rows: u } = await query(
+          `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND is_active = TRUE LIMIT 1`,
+          [assignedTo, orgId]
+        );
+        if (!u.length) return res.status(400).json({ error: 'Invalid assignee for this organization' });
+      }
+      updates.push(`assigned_to = $${p++}`);
+      params.push(assignedTo || null);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'dueDate')) {
+      const normalizedDueDate = dueDate ? new Date(dueDate) : null;
+      if (dueDate && Number.isNaN(normalizedDueDate?.getTime())) {
+        return res.status(400).json({ error: 'Invalid due date' });
+      }
+      updates.push(`due_date = $${p++}`);
+      params.push(normalizedDueDate ? normalizedDueDate.toISOString() : null);
+    }
+
+    if (!updates.length) return res.status(400).json({ error: 'No valid fields to update' });
+    updates.push(`updated_at = NOW()`);
+    params.push(taskId, orgId);
+
+    const { rows: updatedRows } = await query(
+      `UPDATE tasks
+          SET ${updates.join(', ')}
+        WHERE id = $${p++} AND org_id = $${p++}
+      RETURNING *`,
+      params
+    );
+    const updated = updatedRows[0];
+
+    const timelineNotes = [];
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedTo') && String(task.assigned_to || '') !== String(updated.assigned_to || '')) {
+      timelineNotes.push('assignee_updated');
+      await query(
+        `INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, note, metadata)
+         VALUES ($1,$2,'user','assignee_updated',$3,$4)`,
+        [taskId, req.user.id, 'Task assignee changed', JSON.stringify({ from: task.assigned_to, to: updated.assigned_to })]
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'dueDate') && String(task.due_date || '') !== String(updated.due_date || '')) {
+      timelineNotes.push('due_date_updated');
+      await query(
+        `INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, note, metadata)
+         VALUES ($1,$2,'user','due_date_updated',$3,$4)`,
+        [taskId, req.user.id, 'Task due date changed', JSON.stringify({ from: task.due_date, to: updated.due_date })]
+      );
+    }
+
+    const { rows: joinedRows } = await query(
+      `SELECT t.*, u.full_name AS assigned_to_name
+       FROM tasks t
+       LEFT JOIN users u ON u.id = t.assigned_to
+       WHERE t.id = $1 AND t.org_id = $2`,
+      [taskId, orgId]
+    );
+
+    res.json({ task: joinedRows[0], updatedFields: timelineNotes });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /tasks/:id/ai-review — submit a task for AI approval (text-based)
