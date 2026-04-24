@@ -530,12 +530,16 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
       };
 
       let createdTask;
+      await client.query('SAVEPOINT task_insert_sp');
       try {
         createdTask = await insertTaskRow(resolvedCategoryId);
       } catch (err) {
         const isCategoryFkIssue = err?.code === '23503' && /category_id/i.test(`${err?.message || ''} ${err?.detail || ''}`);
         if (!isCategoryFkIssue || !resolvedCategoryId) throw err;
+        await client.query('ROLLBACK TO SAVEPOINT task_insert_sp');
         createdTask = await insertTaskRow(null);
+      } finally {
+        await client.query('RELEASE SAVEPOINT task_insert_sp').catch(() => {});
       }
 
       if (dependencyIds.length) {

@@ -300,10 +300,10 @@ export function MyTasksPage() {
                 </p>
                 {isAssignee ? (
                   <label className="btn btnGhost" style={{ width: 'fit-content' }}>
-                    {uploadM.isPending ? 'Uploading…' : 'Upload photo'}
+                    {uploadM.isPending ? 'Uploading…' : 'Upload attachment'}
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/jpg"
+                      accept=".csv,.pdf,.xls,.xlsx,.png,.jpg,.jpeg,text/csv,application/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg"
                       style={{ display: 'none' }}
                       disabled={uploadM.isPending}
                       onChange={(ev) => {
