@@ -62,51 +62,23 @@ const STATUS_OPTIONS: Record<string, { label: string; color: string; bg: string 
   submitted:        { label: 'Submitted',        color: '#f9e6a2', bg: 'rgba(226,171,65,0.12)'  },
   manager_approved: { label: 'Approved',         color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
   manager_rejected: { label: 'Rejected',         color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
-  completed:        { label: 'Completed',        color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  completed:        { label: 'Done',             color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
   overdue:          { label: 'Overdue',          color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
   cancelled:        { label: 'Cancelled',        color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
 }
 
 // Allowed status transitions per role (mirrors backend)
 function getAllowedTransitions(fromStatus: string, role: string): string[] {
-  const map: Record<string, Record<string, string[]>> = {
-    employee: {
-      pending:          ['in_progress'],
-      overdue:          ['in_progress'],
-      in_progress:      ['submitted', 'pending'],
-      submitted:        ['in_progress'],
-      ai_reviewing:     [],
-      ai_approved:      ['completed', 'in_progress'],
-      ai_rejected:      ['pending', 'in_progress'],
-      manager_approved: ['completed'],
-      manager_rejected: ['in_progress'],
-      completed:        ['pending', 'in_progress'],
-      cancelled:        ['pending'],
-    },
-    supervisor: {
-      pending: ['in_progress'], overdue: ['in_progress', 'completed', 'pending'],
-      in_progress: ['submitted', 'completed', 'pending'],
-      ai_reviewing: ['submitted', 'ai_approved', 'ai_rejected', 'completed'],
-      ai_approved: ['completed', 'submitted'],
-      ai_rejected: ['pending', 'in_progress', 'submitted'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed', 'ai_reviewing'],
-      manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
-      completed: ['pending', 'in_progress'], cancelled: ['pending'],
-    },
-    manager: {
+  if (role === 'employee') {
+    const map: Record<string, string[]> = {
       pending: ['in_progress'],
-      overdue: ['in_progress', 'completed', 'pending'],
-      in_progress: ['submitted', 'completed', 'pending'],
-      ai_reviewing: ['submitted', 'ai_approved', 'ai_rejected', 'completed'],
-      ai_approved: ['completed', 'submitted'],
-      ai_rejected: ['pending', 'in_progress', 'submitted'],
-      submitted: ['manager_approved', 'manager_rejected', 'completed', 'ai_reviewing'],
-      manager_approved: ['completed'], manager_rejected: ['pending', 'in_progress'],
-      completed: ['pending', 'in_progress'], cancelled: ['pending'],
-    },
+      in_progress: ['pending', 'completed'],
+      completed: ['in_progress'],
+      overdue: ['in_progress'],
+    }
+    return map[fromStatus] || []
   }
-  const roleMap = map[role] || map['manager']
-  return roleMap[fromStatus] || []
+  return ['pending', 'in_progress', 'completed', 'overdue'].filter(s => s !== fromStatus)
 }
 
 const PRIORITY_OPTS = [

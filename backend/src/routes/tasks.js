@@ -911,7 +911,10 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    if (!['director', 'admin'].includes(role)) {
+    const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue']);
+    const boardRoleBypass = ['supervisor', 'manager', 'director', 'admin'].includes(role) && boardStatuses.has(status);
+
+    if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
         if (!allowed[task.status]?.includes(status)) {
           return res.status(400).json({ error: `Cannot transition from ${task.status} to ${status}` });
