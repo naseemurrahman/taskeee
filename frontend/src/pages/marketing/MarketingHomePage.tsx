@@ -1,5 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
-import { CheckCircle2, Sparkles } from 'lucide-react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
+import {
+  BarChart3,
+  Bot,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  Heart,
+  LineChart,
+  MessageSquareText,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 // ── Animated counter ──────────────────────────────────────────────
@@ -45,7 +58,7 @@ function Typewriter() {
 }
 
 // ── Feature card ──────────────────────────────────────────────────
-function Feature({ icon, title, desc, color }: { icon: string; title: string; desc: string; color: string }) {
+function Feature({ icon, title, desc, color }: { icon: ReactNode; title: string; desc: string; color: string }) {
   return (
     <div style={{ padding: '28px 24px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', transition: 'all 0.2s', cursor: 'default' }}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = color + '08'; (e.currentTarget as HTMLDivElement).style.borderColor = color + '40'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)' }}
@@ -75,7 +88,7 @@ function PricingCard({ plan, price, period, features, cta, highlight, color }: {
       <div style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
         {features.map(f => (
           <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>
-            <span style={{ color, fontWeight: 900, flexShrink: 0 }}>✓</span> {f}
+            <CheckCircle2 size={14} style={{ color, flexShrink: 0, marginTop: 2 }} /> {f}
           </div>
         ))}
       </div>
@@ -210,10 +223,16 @@ export function MarketingHomePage() {
             </div>
             {/* Floating badge */}
             <div style={{ position: 'absolute', top: -20, right: -20, background: '#22c55e', borderRadius: 14, padding: '10px 16px', fontSize: 12, fontWeight: 900, color: '#fff', boxShadow: '0 8px 24px rgba(34,197,94,0.4)', animation: 'float 4s ease-in-out infinite' }}>
-              ✓ 89% completion rate
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={14} />
+                89% completion rate
+              </span>
             </div>
             <div style={{ position: 'absolute', bottom: -16, left: -16, background: '#8B5CF6', borderRadius: 14, padding: '10px 16px', fontSize: 12, fontWeight: 900, color: '#fff', boxShadow: '0 8px 24px rgba(139,92,246,0.4)', animation: 'float 5s ease-in-out infinite 1s' }}>
-              🤖 AI analysis ready
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Bot size={14} />
+                AI analysis ready
+              </span>
             </div>
           </div>
         </div>
@@ -252,15 +271,15 @@ export function MarketingHomePage() {
           </p>
         </div>
         <div className="featGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          <Feature icon="🤖" color="#e2ab41" title="AI Task Intelligence" desc="JecZone AI analyzes your team's performance in real time, suggests status changes, and identifies bottlenecks before they become crises." />
-          <Feature icon="📊" color="#8B5CF6" title="Real-Time Analytics" desc="10+ live charts — task velocity, completion rates, project timelines, employee leaderboards — all refreshed every 60 seconds." />
-          <Feature icon="🔐" color="#38bdf8" title="Role-Based Access" desc="Granular permissions for Admins, HR, Managers, Supervisors, and Employees. Everyone sees exactly what they need — nothing more." />
-          <Feature icon="💬" color="#22c55e" title="Task Comments & Chat" desc="Every task has a threaded comment section. Assignees and managers discuss, mention teammates, and track decisions in context." />
-          <Feature icon="🗂" color="#f97316" title="Kanban + List + Calendar" desc="Switch between Board, Table, and Calendar views. Drag tasks between status columns. Visualize deadlines on a monthly grid." />
-          <Feature icon="📱" color="#ec4899" title="Works Everywhere" desc="Fully responsive on any device. Optimized for mobile, tablet, and desktop — dark and light themes included out of the box." />
-          <Feature icon="📧" color="#14b8a6" title="WhatsApp & Email Alerts" desc="Instant notifications when tasks are assigned, deadlines approach, or approvals are needed — delivered right where your team communicates." />
-          <Feature icon="🏢" color="#a78bfa" title="Multi-Org Ready" desc="Isolated data per organization. Perfect for agencies managing multiple clients, or enterprises with regional divisions." />
-          <Feature icon="📈" color="#fbbf24" title="Performance Scores" desc="Each employee gets a composite performance score based on completion rate, on-time delivery, and active workload balance." />
+          <Feature icon={<Bot size={21} />} color="#e2ab41" title="AI Task Intelligence" desc="JecZone AI analyzes your team's performance in real time, suggests status changes, and identifies bottlenecks before they become crises." />
+          <Feature icon={<BarChart3 size={21} />} color="#8B5CF6" title="Real-Time Analytics" desc="10+ live charts — task velocity, completion rates, project timelines, employee leaderboards — all refreshed every 60 seconds." />
+          <Feature icon={<ShieldCheck size={21} />} color="#38bdf8" title="Role-Based Access" desc="Granular permissions for Admins, HR, Managers, Supervisors, and Employees. Everyone sees exactly what they need — nothing more." />
+          <Feature icon={<MessageSquareText size={21} />} color="#22c55e" title="Task Comments & Chat" desc="Every task has a threaded comment section. Assignees and managers discuss, mention teammates, and track decisions in context." />
+          <Feature icon={<CalendarDays size={21} />} color="#f97316" title="Kanban + List + Calendar" desc="Switch between Board, Table, and Calendar views. Drag tasks between status columns. Visualize deadlines on a monthly grid." />
+          <Feature icon={<Smartphone size={21} />} color="#ec4899" title="Works Everywhere" desc="Fully responsive on any device. Optimized for mobile, tablet, and desktop — dark and light themes included out of the box." />
+          <Feature icon={<Briefcase size={21} />} color="#14b8a6" title="WhatsApp & Email Alerts" desc="Instant notifications when tasks are assigned, deadlines approach, or approvals are needed — delivered right where your team communicates." />
+          <Feature icon={<Building2 size={21} />} color="#a78bfa" title="Multi-Org Ready" desc="Isolated data per organization. Perfect for agencies managing multiple clients, or enterprises with regional divisions." />
+          <Feature icon={<LineChart size={21} />} color="#fbbf24" title="Performance Scores" desc="Each employee gets a composite performance score based on completion rate, on-time delivery, and active workload balance." />
         </div>
       </section>
 
@@ -331,7 +350,9 @@ export function MarketingHomePage() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>© 2026 TaskFlow Pro. All rights reserved.</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Built with ❤️ for high-performance teams</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Built with <Heart size={14} /> for high-performance teams
+          </div>
         </div>
       </footer>
     </div>
