@@ -922,17 +922,25 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    const timestampField = status === 'in_progress' ? ', started_at = NOW()'
-      : status === 'submitted' ? ', submitted_at = NOW()'
-      : status === 'completed' ? ', completed_at = NOW()'
-      : '';
+    const taskCols = await getTableColumns('tasks');
+    const setClauses = ['status = $1'];
+    const params = [status, task.id];
+
+    if (taskCols.has('rejection_reason')) {
+      setClauses.push(`rejection_reason = $${params.length + 1}`);
+      params.push(status.includes('rejected') ? note : null);
+    }
+
+    if (status === 'in_progress' && taskCols.has('started_at')) setClauses.push('started_at = NOW()');
+    if (status === 'submitted' && taskCols.has('submitted_at')) setClauses.push('submitted_at = NOW()');
+    if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
 
     let generatedTask = null;
     await withTransaction(async (client) => {
       await client.query(`
-        UPDATE tasks SET status = $1, rejection_reason = $3${timestampField}
+        UPDATE tasks SET ${setClauses.join(', ')}
         WHERE id = $2
-      `, [status, task.id, status.includes('rejected') ? note : null]);
+      `, params);
 
       await client.query(`
         INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
