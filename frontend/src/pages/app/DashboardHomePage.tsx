@@ -94,7 +94,7 @@ function KpiCard({ label, value, sub, color, icon, trend }: { label: string; val
 // ─── Chart Container ─────────────────────────────────────────────
 function ChartBox({ title, subtitle, children, span = 1, action }: { title: string; subtitle?: string; children: React.ReactNode; span?: number; action?: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 22px', gridColumn: `span ${span}` }}>
+    <div className="dashboardChartBox" style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 22px', gridColumn: `span ${span}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 8 }}>
         <div>
           <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: '-0.3px', color: 'var(--text)' }}>{title}</div>
@@ -194,7 +194,7 @@ export function DashboardHomePage() {
   )
 
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    <div className="dashboardHomePage" style={{ display: 'grid', gap: 18 }}>
       {/* ── Header ── */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">

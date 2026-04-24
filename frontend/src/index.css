@@ -7967,3 +7967,23 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
     gap: 6px !important;
   }
 }
+
+/* Dashboard responsiveness hardening */
+.dashboardHomePage,
+.dashboardHomePage > *,
+.dashboardHomePage .dashResponsiveGrid,
+.dashboardHomePage .dashResponsiveGrid > *,
+.dashboardChartBox {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboardHomePage .recharts-responsive-container {
+  max-width: 100% !important;
+}
+
+@media (max-width: 900px) {
+  .dashboardChartBox {
+    padding: 16px !important;
+  }
+}
