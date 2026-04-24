@@ -105,6 +105,9 @@ export function AppLayout() {
 
   // Mobile sidebar
   const [mobileOpen, setMobileOpen] = useState(false)
+  const closeMobileNav = () => setMobileOpen(false)
+  const sidebarRef = useRef<HTMLElement>(null)
+  const mobileMenuBtnRef = useRef<HTMLButtonElement>(null)
 
   // Global search
   const [search, setSearch] = useState('')
@@ -150,6 +153,19 @@ export function AppLayout() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Close mobile sidebar when clicking outside of sidebar/menu button
+  useEffect(() => {
+    if (!mobileOpen) return
+    function handleOutsideClick(e: MouseEvent) {
+      const target = e.target as Node
+      if (sidebarRef.current?.contains(target)) return
+      if (mobileMenuBtnRef.current?.contains(target)) return
+      setMobileOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [mobileOpen])
+
   const [avatarBroken, setAvatarBroken] = useState(false)
   useEffect(() => setAvatarBroken(false), [avatarSrc])
 
@@ -165,7 +181,7 @@ export function AppLayout() {
       <div className="sidebarScrim" onClick={() => setMobileOpen(false)} />
 
       {/* ── Sidebar ── */}
-      <aside className="sidebarV4">
+      <aside className="sidebarV4" ref={sidebarRef}>
 
         {/* Logo + collapse toggle */}
         <div className="sidebarV4Logo">
@@ -196,33 +212,33 @@ export function AppLayout() {
         {/* Nav */}
         <nav className="sidebarV4Nav">
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
-          <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} />
+          <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} onNavigate={closeMobileNav} />
           {/* Tasks: managers+ see all-org Tasks page; employees see Tasks page filtered to their own */}
-          <NavItem to="/app/tasks" label="Tasks" display={role === 'employee' ? 'My Tasks' : t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
-          {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} />}
-          {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} />}
-          {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} />}
+          <NavItem to="/app/tasks" label="Tasks" display={role === 'employee' ? 'My Tasks' : t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+          {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
 
           {canSee(role, 'manager') && (
             <>
               {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Management</div>}
-              {canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={collapsed} />}
-              {canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={collapsed} />}
-              {canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} />}
-              {canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} />}
-              {canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} />}
+              {canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
             </>
           )}
 
           {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Other</div>}
-          {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={collapsed} />}
-          <NavItem to="/app/jeczone" label="Jeczone" display="JecZone AI" collapsed={collapsed} />
+          {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          <NavItem to="/app/jeczone" label="Jeczone" display="JecZone AI" collapsed={collapsed} onNavigate={closeMobileNav} />
           {canSee(role, 'director') && (
             <>
-              <NavItem to="/app/crm/leads" label="Leads" display={t(labelKey('Leads'))} collapsed={collapsed} />
-              <NavItem to="/app/crm/pipeline" label="Pipeline" display={t(labelKey('Pipeline'))} collapsed={collapsed} />
-              <NavItem to="/app/audit" label="Audit" display={t(labelKey('Audit'))} collapsed={collapsed} />
-              <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} collapsed={collapsed} />
+              <NavItem to="/app/crm/leads" label="Leads" display={t(labelKey('Leads'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+              <NavItem to="/app/crm/pipeline" label="Pipeline" display={t(labelKey('Pipeline'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+              <NavItem to="/app/audit" label="Audit" display={t(labelKey('Audit'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+              <NavItem to="/app/logs" label="Logs" display={t(labelKey('Logs'))} collapsed={collapsed} onNavigate={closeMobileNav} />
             </>
           )}
 
@@ -241,6 +257,7 @@ export function AppLayout() {
           <button
             type="button"
             className="topbarV4MenuBtn"
+            ref={mobileMenuBtnRef}
             onClick={() => setMobileOpen(v => !v)}
             aria-label="Menu"
           >

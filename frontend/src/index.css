@@ -7947,4 +7947,23 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
     left: 0 !important;
     transform: none !important;
   }
+  .sidebarMobileOpen .sidebarScrim {
+    display: block !important;
+    pointer-events: auto !important;
+  }
+
+  /* Dashboard chart/cards: prevent mobile overflow by collapsing dense grids */
+  .dashResponsiveGrid,
+  .dashResponsiveGrid--2-1,
+  .dashResponsiveGrid--2,
+  .dashResponsiveGrid--1-2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashTimelineRow {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
 }

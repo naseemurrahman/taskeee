@@ -241,7 +241,7 @@ export function DashboardHomePage() {
       </div>
 
       {/* ── Row 1: Trend + Status Donut ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+      <div className="dashResponsiveGrid dashResponsiveGrid--2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
         <ChartBox title="Task Activity — Last 14 Days" subtitle="Created · Completed · Overdue by day">
           <ResponsiveContainer width="100%" height={240}>
             <ComposedChart data={recentTrend}>
@@ -293,7 +293,7 @@ export function DashboardHomePage() {
       </div>
 
       {/* ── Row 2: Project Progress + Velocity ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="dashResponsiveGrid dashResponsiveGrid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <ChartBox title="Project Progress" subtitle="Completion % per project">
           {projectBars.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
@@ -332,7 +332,7 @@ export function DashboardHomePage() {
       <ChartBox title="Employee Performance Leaderboard" subtitle="Completion rate & task score per team member" span={1}
         action={<Link to="/app/analytics" className="btn btnGhost btnSm" style={{ fontSize: 11 }}>Full Analytics →</Link>}>
         {employeeBar.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="dashResponsiveGrid dashResponsiveGrid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={employeeBar} margin={{ left: 0, right: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -370,7 +370,7 @@ export function DashboardHomePage() {
       </ChartBox>
 
       {/* ── Row 4: Priority + Project Status Stack + Gantt ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
+      <div className="dashResponsiveGrid dashResponsiveGrid--1-2" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
         <ChartBox title="Priority Breakdown" subtitle="Tasks by urgency level">
           {priorityPie.length > 0 ? (
             <>
@@ -425,7 +425,7 @@ export function DashboardHomePage() {
               const color = p.color || PLAYER_COLORS[i % PLAYER_COLORS.length]
               const overdueClass = p.overdue > 0
               return (
-                <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 60px', gap: 10, alignItems: 'center' }}>
+                <div key={p.id} className="dashTimelineRow" style={{ display: 'grid', gridTemplateColumns: '140px 1fr 60px', gap: 10, alignItems: 'center' }}>
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800, color: 'var(--text)' }} title={p.name}>{p.name}</div>
                   <div style={{ height: 24, background: 'var(--bg2)', borderRadius: 999, position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, bottom: 0, left: leftPct + '%', width: Math.max(widthPct, 4) + '%', background: color + '40', borderRadius: 999, border: `1.5px solid ${color}60` }} />
