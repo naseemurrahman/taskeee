@@ -289,12 +289,16 @@ export function AssigneeScoreChart(props: {
   rows: Array<{ name: string; active: number; completed: number; performanceScore: number }>
   fillHeight?: boolean
 }) {
-  const data = (props.rows || []).slice(0, 8).map(r => ({
+  const data = (props.rows || [])
+    .slice(0, 8)
+    .sort((a, b) => (b.performanceScore || 0) - (a.performanceScore || 0))
+    .map(r => ({
     name: r.name.split(' ').slice(0, 2).join(' ').slice(0, 16),
     score: Math.round(r.performanceScore),
     active: r.active,
     done: r.completed,
   }))
+  const maxCount = Math.max(1, ...data.map(d => Math.max(d.active, d.done)))
 
   if (!data.length) return <EmptyChart icon="🏆" title="No performance data yet" />
 
@@ -316,13 +320,22 @@ export function AssigneeScoreChart(props: {
           </linearGradient>
         </defs>
         <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="4 4" horizontal={false} />
-        <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} />
+        <XAxis
+          xAxisId="score"
+          type="number"
+          domain={[0, 100]}
+          tick={AXIS}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `${v}%`}
+        />
+        <XAxis xAxisId="count" type="number" domain={[0, maxCount]} hide />
         <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
         <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 8 }} />
-        <Bar dataKey="score" name="Score" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={10} />
-        <Bar dataKey="done" name="Done" fill="url(#gradDone)" radius={[0, 8, 8, 0]} barSize={10} />
-        <Bar dataKey="active" name="Active" fill="url(#gradActive)" radius={[0, 8, 8, 0]} barSize={10} />
+        <Bar dataKey="score" xAxisId="score" name="Score %" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={10} />
+        <Bar dataKey="done" xAxisId="count" name="Done" fill="url(#gradDone)" radius={[0, 8, 8, 0]} barSize={10} />
+        <Bar dataKey="active" xAxisId="count" name="Active" fill="url(#gradActive)" radius={[0, 8, 8, 0]} barSize={10} />
       </BarChart>
     </Shell>
   )
