@@ -192,7 +192,6 @@ export function AppLayout() {
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
           <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} />
           {canSeeItem(role, 'Tasks') && <NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} />}
-          {<NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} />}
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} />}

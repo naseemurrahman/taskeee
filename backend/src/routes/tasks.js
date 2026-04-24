@@ -869,8 +869,8 @@ router.patch('/:id/rename', authenticate, requireAnyRole('supervisor','manager',
 // PATCH /tasks/:id/status
 router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res, next) => {
   try {
-    if (req.user.role === 'hr')
-      return res.status(403).json({ error: 'HR role cannot change task status' });
+    if (['employee', 'hr'].includes(req.user.role))
+      return res.status(403).json({ error: 'Your role cannot change task status' });
 
     const { status, note } = req.body;
     const allowedTransitions = {

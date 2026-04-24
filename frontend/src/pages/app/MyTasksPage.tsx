@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, apiUpload, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { Camera, MessageCircle } from 'lucide-react'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
@@ -226,9 +226,6 @@ export function MyTasksPage() {
               Work assigned to you by project (category). Upload photos for ML review, discuss with your team, and track status.
             </div>
           </div>
-          <Link className="btn btnGhost" to="/app/tasks" style={{ textDecoration: 'none' }}>
-            All org tasks
-          </Link>
         </div>
         <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 900 }}>STATUS</span>

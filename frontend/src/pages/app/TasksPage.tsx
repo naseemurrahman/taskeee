@@ -69,15 +69,7 @@ const STATUS_OPTIONS: Record<string, { label: string; color: string; bg: string 
 
 // Allowed status transitions per role (mirrors backend)
 function getAllowedTransitions(fromStatus: string, role: string): string[] {
-  if (role === 'employee') {
-    const map: Record<string, string[]> = {
-      pending: ['in_progress'],
-      in_progress: ['pending', 'completed'],
-      completed: ['in_progress'],
-      overdue: ['in_progress'],
-    }
-    return map[fromStatus] || []
-  }
+  if (role === 'employee') return []
   return ['pending', 'in_progress', 'completed', 'overdue'].filter(s => s !== fromStatus)
 }
 
@@ -240,7 +232,7 @@ export function TasksPage() {
               {isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>My Tasks</span>}
             </div>
             <div className="pageHeaderCardSub">
-              {isEmployee ? 'Tasks assigned to you. Start, submit, or track your work.' : 'Create, assign, and track tasks. Click a status badge to change it inline.'}
+              {isEmployee ? 'Tasks assigned to you. Track your work and collaborate through comments/attachments.' : 'Create, assign, and track tasks. Click a status badge to change it inline.'}
             </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} total</span>

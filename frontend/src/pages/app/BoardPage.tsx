@@ -48,6 +48,7 @@ function DueLabel({ iso }: { iso?: string | null }) {
 export function BoardPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
+  const canMoveStatus = ['supervisor', 'manager', 'director', 'admin'].includes(me?.role || '')
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -75,6 +76,7 @@ export function BoardPage() {
   }, [tasks])
 
   function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
+    if (!canMoveStatus) return
     dragTask.current = task
     setDragging({ id: task.id, fromCol: colKey })
     e.dataTransfer.effectAllowed = 'move'
@@ -82,12 +84,14 @@ export function BoardPage() {
   }
 
   function onDragOver(e: React.DragEvent, colKey: string) {
+    if (!canMoveStatus) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDragOver(colKey)
   }
 
   function onDrop(e: React.DragEvent, toColKey: string) {
+    if (!canMoveStatus) return
     e.preventDefault()
     setDragOver(null)
     if (!dragTask.current || dragging?.fromCol === toColKey) { setDragging(null); return }
@@ -108,7 +112,7 @@ export function BoardPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="16" rx="1"/></svg>
               Board
             </div>
-            <div className="pageHeaderCardSub">Drag tasks between columns to update status. Click a card to view details.</div>
+            <div className="pageHeaderCardSub">{canMoveStatus ? 'Drag tasks between columns to update status. Click a card to view details.' : 'Board is read-only for your role. Click a card to view details.'}</div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
               {byCol.overdue?.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {byCol.overdue.length} overdue</span>}
@@ -164,13 +168,13 @@ export function BoardPage() {
                     const isDragging = dragging?.id === task.id
                     return (
                       <div key={task.id}
-                        draggable
+                        draggable={canMoveStatus}
                         onDragStart={e => onDragStart(e, task, col.key)}
                         onDragEnd={onDragEnd}
                         onClick={() => setSelectedTaskId(task.id)}
                         style={{
                           background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
-                          border: '1px solid var(--border)', cursor: 'grab',
+                          border: '1px solid var(--border)', cursor: canMoveStatus ? 'grab' : 'default',
                           opacity: isDragging ? 0.4 : 1, transition: 'all 0.12s',
                           position: 'relative', overflow: 'hidden',
                         }}
@@ -204,7 +208,7 @@ export function BoardPage() {
                   {/* Empty state per column */}
                   {colTasks.length === 0 && (
                     <div style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 12, color: 'var(--muted)', fontSize: 11 }}>
-                      Drop here
+                      {canMoveStatus ? 'Drop here' : 'No tasks'}
                     </div>
                   )}
                 </div>

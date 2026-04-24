@@ -7,7 +7,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AppLayout } from './shell/AppLayout'
 import { DashboardHomePage } from './pages/app/DashboardHomePage'
-import { isAuthed } from './state/auth'
+import { getUser, isAuthed } from './state/auth'
 import { TasksPage } from './pages/app/TasksPage'
 import { MyTasksPage } from './pages/app/MyTasksPage'
 import { ProjectsPage } from './pages/app/ProjectsPage'
@@ -43,6 +43,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const role = getUser()?.role || 'employee'
+  const tasksHome = role === 'employee' ? <MyTasksPage /> : <TasksPage />
+
   return (
     <Routes>
       <Route element={<MarketingLayout />}>
@@ -60,8 +63,8 @@ export default function App() {
       <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardHomePage />} />
-        <Route path="tasks" element={<TasksPage />} />
-        <Route path="my-tasks" element={<MyTasksPage />} />
+        <Route path="tasks" element={tasksHome} />
+        <Route path="my-tasks" element={<Navigate to="/app/tasks" replace />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="board" element={<BoardPage />} />
         <Route path="calendar" element={<CalendarPage />} />
