@@ -166,8 +166,8 @@ export function AppLayout() {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [mobileOpen])
 
-  const [avatarBroken, setAvatarBroken] = useState(false)
-  useEffect(() => setAvatarBroken(false), [avatarSrc])
+  const [failedAvatarSrc, setFailedAvatarSrc] = useState<string | null>(null)
+  const avatarBroken = !!avatarSrc && failedAvatarSrc === avatarSrc
 
   const hasResults = searchResults && (
     (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) > 0
@@ -360,7 +360,7 @@ export function AppLayout() {
                 title={displayName}
               >
                 {avatarSrc && !avatarBroken ? (
-                  <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} className="topbarV4AvatarImg" />
+                  <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} className="topbarV4AvatarImg" />
                 ) : <UserRound size={15} />}
               </button>
 
@@ -369,7 +369,7 @@ export function AppLayout() {
                   <div className="profileDropdownHead">
                     <div className="profileDropdownAvatar">
                       {avatarSrc && !avatarBroken
-                        ? <img src={avatarSrc} alt="" onError={() => setAvatarBroken(true)} />
+                        ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} />
                         : (displayName.charAt(0) || '?').toUpperCase()}
                     </div>
                     <div style={{ minWidth: 0 }}>
