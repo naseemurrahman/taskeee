@@ -1002,6 +1002,23 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
         data: { taskId: task.id }
       });
     }
+
+    if (status === 'submitted') {
+      const notifyIds = new Set();
+      if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
+      const { rows: assigneeMeta } = await query(`SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`, [task.assigned_to, req.user.org_id ?? req.user.orgId]);
+      const mgrId = assigneeMeta[0]?.manager_id;
+      if (mgrId && mgrId !== req.user.id) notifyIds.add(mgrId);
+
+      for (const uid of notifyIds) {
+        await emitNotification(uid, {
+          type: 'task_submitted',
+          title: 'Task submitted for review',
+          body: task.title,
+          data: { taskId: task.id, submittedBy: req.user.id }
+        });
+      }
+    }
     if (generatedTask) {
       await emitNotification(task.assigned_to, {
         type: 'task_recurring_generated',

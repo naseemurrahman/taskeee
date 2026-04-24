@@ -116,37 +116,52 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
       return photoRows[0];
     });
 
+    const notifyIds = new Set();
+    if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
+    const { rows: mgrRow } = await query(`SELECT manager_id FROM users WHERE id = $1`, [req.user.id]);
+    if (mgrRow[0]?.manager_id && mgrRow[0].manager_id !== req.user.id) notifyIds.add(mgrRow[0].manager_id);
+
     if (isImage) {
       triggerAIReview(photo.id, taskId, storageKey, task.category_id).catch(
         err => console.error('AI review trigger failed:', err)
       );
+      for (const uid of notifyIds) {
+        await emitNotification(uid, {
+          type: 'task_attachment_uploaded',
+          title: 'Task attachment uploaded',
+          body: `${req.file.originalname} — ${task.title}`,
+          data: { taskId, uploadedBy: req.user.id, kind: 'image' }
+        });
+      }
       return res.status(201).json({
         photo: { id: photo.id, taskId, status: 'ai_reviewing' },
         message: 'Photo uploaded. AI review in progress.'
       });
     }
 
-    // Notify the task creator (assigned_by) AND the employee's manager
-    const notifySet = new Set();
-    if (task.assigned_by && task.assigned_by !== req.user.id) {
-      notifySet.add(task.assigned_by);
-    }
-    const { rows: mgrRow } = await query(`SELECT manager_id FROM users WHERE id = $1`, [req.user.id]);
-    const mgrId = mgrRow[0]?.manager_id;
-    if (mgrId && mgrId !== req.user.id) notifySet.add(mgrId);
-
-    for (const recipientId of notifySet) {
-      await emitNotification(recipientId, {
+    for (const uid of notifyIds) {
+      await emitNotification(uid, {
         type: 'task_evidence_uploaded',
         title: 'Task evidence submitted',
         body: `${req.file.originalname} — ${task.title}`,
+        data: { taskId, uploadedBy: req.user.id }
+      });
+    }
+        type: 'task_evidence_uploaded',
+        title: 'Task evidence submitted',
+        body: `${req.file.originalname} — ${task.title}`,
+<<<<<<< HEAD
         data: { taskId }
       }).catch(() => {});
+=======
+        data: { taskId, uploadedBy: req.user.id }
+      });
+>>>>>>> 412c461 (fix(marketing+notifications): mobile nav visibility and task event alerts)
     }
 
     return res.status(201).json({
       photo: { id: photo.id, taskId, status: 'submitted' },
-      message: 'Document stored. Manager will be notified.'
+      message: 'Document stored. Relevant reviewers were notified.'
     });
   } catch (err) { next(err); }
 });
