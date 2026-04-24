@@ -5372,13 +5372,21 @@ select.input option { background: #1a1d2e; color: white; }
 
 /* Profile button */
 .topbarV4ProfileBtn {
-  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0;
   background: var(--brandDim); border: 1.5px solid var(--brandBorder);
   color: var(--brand); cursor: pointer; display: grid; place-items: center;
+  padding: 0;
   transition: all 0.15s; overflow: hidden;
 }
 .topbarV4ProfileBtn:hover { box-shadow: 0 0 0 3px var(--brandDim); }
-.topbarV4AvatarImg { width: 100%; height: 100%; object-fit: cover; }
+.topbarV4AvatarImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
 
 /* ── Content area ──────────────────────────────────────────────── */
 .contentV4 {
@@ -6665,12 +6673,19 @@ button.btnPrimary,
   border-color: #f0f0f6;
 }
 .profileDropdownAvatar {
-  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 999px; flex-shrink: 0;
   background: var(--brandDim); border: 1.5px solid var(--brandBorder);
   display: grid; place-items: center; overflow: hidden;
   color: var(--brand); font-weight: 900; font-size: 13px;
 }
-.profileDropdownAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.profileDropdownAvatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
 .profileDropdownName {
   font-size: 13px; font-weight: 800; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
