@@ -122,6 +122,13 @@ async function updateTaskMetadata(taskId, metadata) {
   return rows[0]?.metadata || metadata;
 }
 
+function settleWithTimeout(promise, ms = 1500) {
+  return Promise.race([
+    Promise.resolve(promise).catch(() => null),
+    new Promise(resolve => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 function buildApprovalState(task) {
   const flow = Array.isArray(task.approval_flow) ? task.approval_flow : [];
   const metadata = task.metadata || {};
@@ -564,7 +571,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
         }));
       }
 
-      await Promise.allSettled(notifyPromises);
+      await Promise.allSettled(notifyPromises.map(p => settleWithTimeout(p)));
     }
 
     await logUserActivity({

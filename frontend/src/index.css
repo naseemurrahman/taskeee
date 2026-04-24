@@ -4778,6 +4778,15 @@ button.projectCard {
   color: var(--text); font-size: 14px; font-weight: 600;
   width: 100%; min-width: 0;
 }
+.inputV3Native[type="date"] {
+  color: var(--text);
+  color-scheme: dark;
+}
+.appShellLight .inputV3Native[type="date"] { color-scheme: light; }
+.inputV3Native[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  pointer-events: none;
+}
 .inputV3Native::placeholder { color: var(--muted); font-weight: 500; }
 .inputV3Suffix {
   padding: 0 14px 0 8px; color: var(--muted); flex-shrink: 0;
