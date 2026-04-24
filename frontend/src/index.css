@@ -8002,3 +8002,49 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
     padding: 16px !important;
   }
 }
+
+/* ── Popup reliability hardening (no overlap / no viewport overflow) ── */
+.modalOverlay,
+.modalOverlayV2 {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 12000 !important;
+  padding: clamp(10px, 3vw, 24px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.modalCard,
+.modalCardV2 {
+  position: relative;
+  z-index: 12001;
+  width: min(100%, 920px) !important;
+  max-width: min(100%, 920px) !important;
+  max-height: min(92vh, calc(100dvh - 20px)) !important;
+  margin: auto !important;
+  overflow: hidden !important;
+}
+
+.modalV2Body,
+.modalCard .cardBody,
+.modalCardBody {
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+@media (max-width: 640px) {
+  .modalOverlay,
+  .modalOverlayV2 {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modalCard,
+  .modalCardV2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: min(94vh, calc(100dvh - 8px)) !important;
+    border-radius: 18px 18px 0 0 !important;
+  }
+}
