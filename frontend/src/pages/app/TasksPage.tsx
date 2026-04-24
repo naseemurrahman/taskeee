@@ -149,15 +149,16 @@ function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean;
 /** Inline status badge — click to change */
 function InlineStatus({ task, role }: { task: Task; role: string }) {
   const qc = useQueryClient()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const transitions = getAllowedTransitions(task.status, role)
   const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
 
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', 'list'] }),
+    onSuccess: () => { setErrorMsg(null); qc.invalidateQueries({ queryKey: ['tasks', 'list'] }) },
     onError: (err: any) => {
       const message = err?.message || 'Status update failed. Transition may not be allowed.'
-      window.alert(message)
+      setErrorMsg(message)
     },
   })
 
@@ -183,6 +184,11 @@ function InlineStatus({ task, role }: { task: Task; role: string }) {
           }),
         ]}
       />
+      {errorMsg && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, fontSize: 10, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {errorMsg}
+        </div>
+      )}
     </div>
   )
 }
