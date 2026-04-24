@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
@@ -160,28 +160,37 @@ function InlineTitle({ task, canEdit, onSaved }: { task: Task; canEdit: boolean;
   )
 }
 
-/** Inline status badge — click to change */
-function InlineStatus({ task, role }: { task: Task; role: string }) {
+/** Static status badge — no interaction */
+function StatusBadge({ status }: { status: string }) {
+  const meta = STATUS_OPTIONS[status] || { label: status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33`, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
+      {meta.label}
+    </span>
+  )
+}
+
+/** Inline status — shows Select for managers+, static badge for employees */
+function InlineStatus({ task, role, canChange }: { task: Task; role: string; canChange: boolean }) {
   const qc = useQueryClient()
-  const transitions = getAllowedTransitions(task.status, role)
+  const transitions = canChange ? getAllowedTransitions(task.status, role) : []
   const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
 
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', 'list'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 
-  if (transitions.length === 0) {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}>
-        <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color }} />
-        {meta.label}
-      </span>
-    )
+  if (!canChange || transitions.length === 0) {
+    return <StatusBadge status={task.status} />
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', minWidth: 130 }}>
       <Select
         value={task.status}
         onChange={s => m.mutate(s)}
@@ -200,7 +209,8 @@ function InlineStatus({ task, role }: { task: Task; role: string }) {
 export function TasksPage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
-  const isEmployee = me?.role === 'employee'
+  const isEmployee = isEmployeeRole(me?.role)
+  const canChangeStatus = canChangeTaskStatus(me?.role)
   const role = me?.role || 'employee'
 
   const [status, setStatus] = useState('all')
@@ -368,7 +378,7 @@ export function TasksPage() {
                         </td>
                       )}
                       <td style={{ padding: '8px 10px', minWidth: 140 }}>
-                        <InlineStatus task={task} role={role} />
+                        <InlineStatus task={task} role={role} canChange={canChangeStatus} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {task.priority ? <span style={{ fontSize: 12, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>{task.priority}</span> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}

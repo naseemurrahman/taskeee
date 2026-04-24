@@ -331,7 +331,7 @@
   color: #fff;
 }
 .mktBtnGhost { background: rgba(255,255,255,0.04); }
-.mktMain { max-width: 1160px; margin: 0 auto; padding: 0 18px 34px; }
+.mktMain { width: 100%; padding: 0; }
 .mktPage { padding: 22px 0 40px; }
 .mktHero { padding: 26px 0 6px; }
 .mktHeroGrid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; align-items: start; }

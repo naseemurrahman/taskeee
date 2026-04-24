@@ -2,7 +2,7 @@ import { useMemo, useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 
@@ -12,10 +12,6 @@ type Task = {
   assigned_to_name?: string | null; due_date?: string | null
 }
 
-async function fetchTasks() {
-  const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>('/api/v1/tasks?limit=300&page=1')
-  return (d.tasks || d.rows || []) as Task[]
-}
 async function patchStatus(taskId: string, status: string) {
   return apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } })
 }
@@ -48,6 +44,8 @@ function DueLabel({ iso }: { iso?: string | null }) {
 export function BoardPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
+  const canDrag = canChangeTaskStatus(me?.role)  // employees cannot drag/change status
+  const isEmployee = isEmployeeRole(me?.role)
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -55,7 +53,7 @@ export function BoardPage() {
   const [dragOver, setDragOver] = useState<string | null>(null)
   const dragTask = useRef<Task | null>(null)
 
-  const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board'], queryFn: fetchTasks, staleTime: 30_000, refetchInterval: 60_000 })
+  const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board', isEmployee], queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]), staleTime: 30_000, refetchInterval: 60_000 })
   const tasks = data || []
 
   const m = useMutation({
@@ -108,7 +106,7 @@ export function BoardPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="16" rx="1"/></svg>
               Board
             </div>
-            <div className="pageHeaderCardSub">Drag tasks between columns to update status. Click a card to view details.</div>
+            <div className="pageHeaderCardSub">{isEmployee ? 'Your assigned tasks by status. Click a card to view details and add comments.' : 'Drag tasks between columns to update status. Click a card to view details.'}</div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
               {byCol.overdue?.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {byCol.overdue.length} overdue</span>}
@@ -164,13 +162,13 @@ export function BoardPage() {
                     const isDragging = dragging?.id === task.id
                     return (
                       <div key={task.id}
-                        draggable
-                        onDragStart={e => onDragStart(e, task, col.key)}
-                        onDragEnd={onDragEnd}
+                        draggable={canDrag}
+                        onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
+                        onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => setSelectedTaskId(task.id)}
                         style={{
                           background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
-                          border: '1px solid var(--border)', cursor: 'grab',
+                          border: '1px solid var(--border)', cursor: canDrag ? 'grab' : 'pointer',
                           opacity: isDragging ? 0.4 : 1, transition: 'all 0.12s',
                           position: 'relative', overflow: 'hidden',
                         }}

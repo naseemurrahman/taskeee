@@ -104,49 +104,6 @@ function Testimonial({ quote, name, role, company, avatar }: { quote: string; na
   )
 }
 
-// ── Nav ───────────────────────────────────────────────────────────
-function Nav() {
-  const [scrolled, setScrolled] = useState(false)
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', h)
-    return () => window.removeEventListener('scroll', h)
-  }, [])
-  return (
-    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled ? 'rgba(10,10,16,0.85)' : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'none', borderBottom: scrolled ? '1px solid rgba(255,255,255,0.08)' : 'none', transition: 'all 0.3s', padding: '0 max(24px, calc(50vw - 600px))' }}>
-      <div style={{ display: 'flex', alignItems: 'center', height: 64, gap: 32 }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          </div>
-          <span style={{ fontWeight: 950, fontSize: 18, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
-        </Link>
-        <div className="navLinks" style={{ display: 'flex', gap: 4, flex: 1, justifyContent: 'center' }}>
-          {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#testimonials', 'Reviews'], ['/app/dashboard', 'Demo']].map(([href, label]) => (
-            <a key={href} href={href} style={{ padding: '6px 14px', borderRadius: 999, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', transition: 'all 0.15s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#fff'; (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.08)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)'; (e.currentTarget as HTMLAnchorElement).style.background = '' }}>
-              {label}
-            </a>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link to="/signin" style={{ padding: '8px 18px', borderRadius: 999, fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.15)', transition: 'all 0.15s' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLAnchorElement).style.color = '#fff' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.15)'; (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.8)' }}>
-            Sign In
-          </Link>
-          <Link to="/signup" style={{ padding: '8px 20px', borderRadius: 999, fontSize: 14, fontWeight: 800, background: '#e2ab41', color: '#000', textDecoration: 'none', transition: 'all 0.15s' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#f0bc52'; (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.03)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#e2ab41'; (e.currentTarget as HTMLAnchorElement).style.transform = '' }}>
-            Get Started Free
-          </Link>
-        </div>
-      </div>
-    </nav>
-  )
-}
-
 // ── Main ──────────────────────────────────────────────────────────
 export function MarketingHomePage() {
   return (
@@ -167,8 +124,6 @@ export function MarketingHomePage() {
           .navLinks{display:none!important}
         }
       `}</style>
-
-      <Nav />
 
       {/* ── Hero ── */}
       <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '100px max(24px, calc(50vw - 600px)) 80px', position: 'relative', overflow: 'hidden' }}>

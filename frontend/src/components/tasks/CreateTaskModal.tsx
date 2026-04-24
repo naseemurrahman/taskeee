@@ -61,7 +61,8 @@ async function fetchAllUsers(): Promise<UserRow[]> {
 }
 
 function roleRank(r?: string) {
-  return ({ admin: 100, director: 90, hr: 80, manager: 70, supervisor: 60 }[r || '']) ?? 50
+  const ranks: Record<string, number> = { admin: 100, director: 90, hr: 80, manager: 70, supervisor: 60 }
+  return ranks[r || ''] ?? 0
 }
 
 const PRIORITIES = [
@@ -74,7 +75,7 @@ const PRIORITIES = [
 export function CreateTaskModal(props: { open: boolean; onClose: () => void; defaultProjectId?: string | null }) {
   const qc = useQueryClient()
   const me = getUser()
-  const canAssign = roleRank(me?.role) >= 60
+  const canAssign = roleRank(me?.role) >= 60 // supervisor, manager, hr, director, admin
 
   const [dept, setDept] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
@@ -137,7 +138,12 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
       {/* Role guard */}
       {!canAssign && (
         <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>
-          Your role ({me?.role}) cannot assign tasks. Contact an admin or manager.
+          Your role ({me?.role}) cannot assign tasks. Only supervisors, managers, HR, and admins can create tasks.
+        </div>
+      )}
+      {canAssign && !usersQ.isLoading && allUsers.length === 0 && (
+        <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 6, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', fontSize: 13, fontWeight: 700 }}>
+          ⚠ No team members found. Go to <strong>HR → Employees</strong> to add employees before creating tasks.
         </div>
       )}
 
@@ -186,7 +192,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
           <Select
             label="Assign To" required value={assignedTo} onChange={setAssignedTo} searchable
             options={[
-              { value: '', label: usersQ.isLoading ? 'Loading employees…' : allUsers.length === 0 ? 'No employees found' : `Select employee… (${filteredAssignees.length})` },
+              { value: '', label: usersQ.isLoading ? 'Loading employees…' : allUsers.length === 0 ? 'No team members — add employees first' : `Select employee… (${filteredAssignees.length})` },
               ...filteredAssignees.map(u => ({
                 value: u.id,
                 label: u.full_name || u.name || u.email,
