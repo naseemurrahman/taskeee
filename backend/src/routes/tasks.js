@@ -540,14 +540,15 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
       return rows[0];
     });
 
-    // Only send notifications if task is assigned to someone
+    // Only send notifications if task is assigned to someone.
+    // Never block task creation on notification channel failures/timeouts.
     if (assignedTo) {
-      await emitNotification(assignedTo, {
+      const notifyPromises = [emitNotification(assignedTo, {
         type: 'task_assigned',
         title: 'New task assigned',
         body: title,
         data: { taskId: task.id }
-      });
+      })];
 
       const { rows: assigneeMeta } = await query(
         `SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`,
@@ -555,13 +556,15 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
       );
       const mgrId = assigneeMeta[0]?.manager_id;
       if (mgrId && mgrId !== req.user.id && mgrId !== assignedTo) {
-        await emitNotification(mgrId, {
+        notifyPromises.push(emitNotification(mgrId, {
           type: 'task_assigned_report',
           title: 'Your direct report was assigned a task',
           body: title,
           data: { taskId: task.id, assigneeId: assignedTo }
-        });
+        }));
       }
+
+      await Promise.allSettled(notifyPromises);
     }
 
     await logUserActivity({
