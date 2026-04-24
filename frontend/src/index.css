@@ -7537,3 +7537,170 @@ tr:hover .inlineEditBtn {
 .textareaField textarea {
   border-radius: 14px !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — full mobile/tablet/desktop support
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Spin animation for loading states */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-rotate, [style*="animation: spin"] { animation: spin 1s linear infinite; }
+
+/* ── Base mobile fixes ── */
+@media (max-width: 768px) {
+  /* Sidebar collapses to bottom nav on mobile */
+  .sidebarV4 { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .sidebarV4.sidebarOpen { transform: translateX(0); }
+
+  /* Main content full width */
+  .appShellV4Main { margin-left: 0 !important; }
+
+  /* Page header stacks on small screens */
+  .pageHeaderCardInner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+
+  /* KPI strip wraps */
+  .kpiStrip, [class*="kpiStrip"] { flex-wrap: wrap !important; }
+
+  /* Dashboard grid collapses */
+  [style*="grid-template-columns: 2fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 2fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tables scroll horizontally */
+  .employeeTableV3, table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Modals full screen on mobile */
+  .modalOverlayV2 { padding: 0 !important; align-items: flex-end !important; }
+  .modalCardV2 { width: 100% !important; max-width: 100% !important; border-radius: 24px 24px 0 0 !important; margin: 0 !important; max-height: 92vh !important; overflow-y: auto !important; }
+  .modalCardV2Wide { width: 100% !important; max-width: 100% !important; }
+  .modalV2Body { overflow-y: auto !important; }
+
+  /* Create task modal: single column form */
+  #createTaskForm [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+
+  /* Topbar */
+  .topbarV4 { padding: 0 12px !important; }
+
+  /* Gantt and charts */
+  [style*="gridTemplateColumns: 140px 1fr 60px"] { grid-template-columns: 80px 1fr 45px !important; }
+}
+
+@media (max-width: 480px) {
+  .pageHeaderCardTitle { font-size: 18px !important; }
+  .pageHeaderCardSub { font-size: 12px !important; }
+  .chartV3, .formCardV3, .card { padding: 14px !important; }
+  .modalV2Head, .modalV2Body, .modalV2Foot { padding: 14px 16px !important; }
+}
+
+/* ── Tablet ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  [style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+  [style*="gridTemplateColumns: '1fr 1fr 1fr'"] { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ── Error boundaries ── */
+.errorBoundaryFallback {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 40px 24px;
+  border: 1.5px dashed var(--border);
+  border-radius: 16px;
+  color: var(--muted);
+}
+.errorBoundaryFallback h3 { color: #ef4444; margin: 0 0 8px; font-size: 16px; }
+.errorBoundaryFallback p { margin: 0 0 16px; font-size: 13px; }
+
+/* ── Empty states ── */
+.emptyStateV3 { text-align: center; padding: 48px 24px; color: var(--muted); }
+.emptyStateV3Icon { font-size: 40px; margin-bottom: 12px; }
+.emptyStateV3Title { font-size: 16px; font-weight: 900; color: var(--text); margin-bottom: 6px; }
+.emptyStateV3Body { font-size: 13px; color: var(--text2); max-width: 320px; margin: 0 auto 16px; line-height: 1.5; }
+
+/* ── Toast notifications ── */
+.toastV3 {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999998;
+  min-width: 280px; max-width: 400px;
+  padding: 14px 18px; border-radius: 14px;
+  background: var(--bg1); border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  display: flex; align-items: flex-start; gap: 12px;
+  animation: slideInRight 0.25s ease;
+}
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toastV3Success { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+.toastV3Error { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+
+/* ── Loading skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg2) 25%, var(--surfaceUp) 50%, var(--bg2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* ── Focus visible for accessibility ── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+button:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Modal body can scroll on mobile ── */
+.modalV2Body {
+  max-height: min(70vh, 600px);
+  overflow-y: auto;
+}
+
+/* ── Landing / marketing page responsive ── */
+@media (max-width: 768px) {
+  .heroSection { padding: 60px 20px 40px !important; }
+  .heroContent { text-align: center !important; }
+  .heroTitle { font-size: clamp(28px, 8vw, 56px) !important; }
+  .heroSubtitle { font-size: clamp(14px, 4vw, 20px) !important; }
+  .heroButtons { flex-direction: column !important; align-items: center !important; gap: 10px !important; }
+  .heroButtons .btn { width: 100% !important; max-width: 280px !important; justify-content: center !important; }
+  .heroVisual { display: none !important; }
+  .featuresGrid { grid-template-columns: 1fr !important; }
+  .pricingGrid { grid-template-columns: 1fr !important; }
+  .statsBar { flex-direction: column !important; gap: 24px !important; }
+  .navLinks { display: none !important; }
+  .navMobileMenu { display: flex !important; }
+  .footerGrid { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .heroTitle { font-size: clamp(36px, 6vw, 64px) !important; }
+  .featuresGrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .pricingGrid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ── Charts responsive ── */
+.recharts-wrapper { overflow: visible !important; }
+.recharts-surface { overflow: visible !important; }
+
+/* ── Button states ── */
+.btn:disabled { opacity: 0.5 !important; cursor: not-allowed !important; pointer-events: none !important; }
+.btn:active:not(:disabled) { transform: scale(0.97) !important; }
+
+/* ── Form accessibility ── */
+input:invalid { border-color: rgba(239,68,68,0.5) !important; }
+input:required:valid { border-color: rgba(34,197,94,0.3); }
+
+/* ── Modal scroll for long forms ── */
+@media (max-height: 700px) {
+  .modalCardV2 { max-height: 95vh !important; overflow-y: auto !important; }
+  .modalV2Body { max-height: none !important; }
+}
+

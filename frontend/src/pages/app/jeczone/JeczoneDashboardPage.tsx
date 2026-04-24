@@ -83,18 +83,6 @@ export function JeczoneDashboardPage() {
 
   // Debug logging for chart data
   useMemo(() => {
-    console.log('=== JECZONE CHART DATA DEBUG ===')
-    console.log('Perf loading:', perfQ.isLoading)
-    console.log('Perf error:', perfQ.isError, perfQ.error)
-    console.log('Perf data:', perf)
-    console.log('Tasks loading:', tasksQ.isLoading)
-    console.log('Tasks error:', tasksQ.isError, tasksQ.error)
-    console.log('Tasks count:', tasks.length)
-    console.log('Projects count:', projects.length)
-    console.log('Filtered tasks count:', filteredTasks.length)
-    console.log('ByStatus:', perf?.byStatus)
-    console.log('Leaderboard:', perf?.assigneeLeaderboard?.length)
-    console.log('=================================')
   }, [perfQ.isLoading, perfQ.isError, perfQ.data, tasksQ.isLoading, tasksQ.isError, tasksQ.data, tasks.length, projects.length, filteredTasks.length, perf])
 
   const byStatus = perf?.byStatus || {}
