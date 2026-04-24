@@ -48,58 +48,58 @@ export function SignInPage() {
       `}</style>
 
       {/* Left — branding panel */}
-      <div className="authLeft" style={{ padding: '48px 52px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+      <div className="authLeft" style={{ padding: '48px 52px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
         {/* Glow */}
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(226,171,65,0.12) 0%, transparent 70%)', top: -100, right: -100, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%)', bottom: 0, left: -80, pointerEvents: 'none' }} />
 
-        {/* Brand */}
-        <div>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 16px rgba(226,171,65,0.35)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <span style={{ fontWeight: 950, fontSize: 20, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
-          </Link>
-        </div>
+        <div style={{ width: '100%', maxWidth: 520, margin: '0 auto', display: 'grid', gap: 34 }}>
+          {/* Brand */}
+          <div>
+            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 16px rgba(226,171,65,0.35)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <span style={{ fontWeight: 950, fontSize: 20, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
+            </Link>
+          </div>
 
-        {/* Center content */}
-        <div style={{ animation: 'fadeIn 0.6s ease' }}>
-          <h1 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 950, letterSpacing: '-1.5px', color: '#fff', lineHeight: 1.1, margin: '0 0 16px' }}>
-            Every team.<br />Every deadline.<br /><span style={{ color: '#e2ab41' }}>Delivered.</span>
-          </h1>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, maxWidth: 360, margin: '0 0 40px' }}>
-            AI-powered task management with role-based access, real-time analytics, and smart approvals — built for organizations that demand accountability.
-          </p>
-          {/* Feature pills */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { color: '#e2ab41', icon: '🤖', text: 'AI-assisted task approvals & analysis' },
-              { color: '#22c55e', icon: '📊', text: 'Real-time dashboards with live charts' },
-              { color: '#8B5CF6', icon: '🔐', text: 'Role-based access for every team member' },
-              { color: '#38bdf8', icon: '💬', text: 'Task comments & WhatsApp notifications' },
-            ].map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: f.color + '18', border: `1px solid ${f.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, flexShrink: 0 }}>{f.icon}</div>
-                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>{f.text}</span>
+          {/* Center content */}
+          <div style={{ animation: 'fadeIn 0.6s ease' }}>
+            <h1 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 950, letterSpacing: '-1.5px', color: '#fff', lineHeight: 1.1, margin: '0 0 16px' }}>
+              Every team.<br />Every deadline.<br /><span style={{ color: '#e2ab41' }}>Delivered.</span>
+            </h1>
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, maxWidth: 360, margin: '0 0 40px' }}>
+              AI-powered task management with role-based access, real-time analytics, and smart approvals — built for organizations that demand accountability.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { color: '#e2ab41', icon: '🤖', text: 'AI-assisted task approvals & analysis' },
+                { color: '#22c55e', icon: '📊', text: 'Real-time dashboards with live charts' },
+                { color: '#8B5CF6', icon: '🔐', text: 'Role-based access for every team member' },
+                { color: '#38bdf8', icon: '💬', text: 'Task comments & WhatsApp notifications' },
+              ].map(f => (
+                <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: f.color + '18', border: `1px solid ${f.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, flexShrink: 0 }}>{f.icon}</div>
+                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>{f.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 32 }}>
+            {[['500+', 'Organizations'], ['98%', 'Uptime'], ['10K+', 'Daily tasks']].map(([v, l]) => (
+              <div key={l}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#e2ab41', letterSpacing: '-0.5px' }}>{v}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: 600 }}>{l}</div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: 32 }}>
-          {[['500+', 'Organizations'], ['98%', 'Uptime'], ['10K+', 'Daily tasks']].map(([v, l]) => (
-            <div key={l}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#e2ab41', letterSpacing: '-0.5px' }}>{v}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: 600 }}>{l}</div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Right — form */}
-      <div className="authRight" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, padding: '48px 60px' }}>
+      <div className="authRight" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 60px' }}>
         <div style={{ width: '100%', maxWidth: 400, animation: 'fadeIn 0.4s ease' }}>
           <div style={{ marginBottom: 36 }}>
             <h2 style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.8px', margin: '0 0 8px' }}>Welcome back</h2>
