@@ -70,7 +70,7 @@ export function SignUpPage() {
   const STEP_LABELS = ['Your Account', 'Your Organization', 'Choose Plan']
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#0a0a10' }}>
+    <div className="suGrid" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#0a0a10' }}>
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         .authInput{width:100%;padding:13px 44px 13px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:15px;outline:none;transition:all 0.15s;box-sizing:border-box}
@@ -79,7 +79,7 @@ export function SignUpPage() {
         .authSubmit{width:100%;padding:14px;border-radius:12px;border:none;background:#e2ab41;color:#000;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.15s}
         .authSubmit:hover:not(:disabled){background:#f0bc52;transform:translateY(-1px);box-shadow:0 8px 24px rgba(226,171,65,0.35)}
         .authSubmit:disabled{opacity:0.6;cursor:not-allowed}
-        @media(max-width:768px){.suGrid{grid-template-columns:1fr!important}.suLeft{display:none!important}.suRight{padding:24px 20px!important}}
+        @media(max-width:980px){.suGrid{grid-template-columns:1fr!important}.suLeft{display:none!important}.suRight{padding:24px 20px!important;min-height:100vh}}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       `}</style>
 

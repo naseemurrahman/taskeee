@@ -34,7 +34,7 @@ export function SignInPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#0a0a10' }}>
+    <div className="authGrid" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#0a0a10' }}>
       <style>{`
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -44,7 +44,7 @@ export function SignInPage() {
         .authSubmit{width:100%;padding:14px;border-radius:12px;border:none;background:#e2ab41;color:#000;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.15s}
         .authSubmit:hover:not(:disabled){background:#f0bc52;transform:translateY(-1px);box-shadow:0 8px 24px rgba(226,171,65,0.35)}
         .authSubmit:disabled{opacity:0.6;cursor:not-allowed}
-        @media(max-width:768px){.authGrid{grid-template-columns:1fr!important}.authLeft{display:none!important}.authRight{padding:32px 20px!important}}
+        @media(max-width:980px){.authGrid{grid-template-columns:1fr!important}.authLeft{display:none!important}.authRight{padding:32px 20px!important;min-height:100vh}}
       `}</style>
 
       {/* Left — branding panel */}
