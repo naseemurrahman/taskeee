@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
@@ -205,8 +206,9 @@ export function TasksPage() {
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
   const [search, setSearch] = useState('')
+  const location = useLocation()
   const [createOpen, setCreateOpen] = useState(false)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>((location.state as any)?.openTaskId || null)
 
   const q = useQuery({
     queryKey: ['tasks', 'list', status, priority, search, isEmployee],

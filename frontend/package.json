@@ -19,6 +19,7 @@
     "react-router-dom": "^7.14.0",
     "react-window": "^1.8.11",
     "recharts": "^3.2.1",
+    "socket.io-client": "^4.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

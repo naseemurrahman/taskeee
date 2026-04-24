@@ -275,7 +275,7 @@ export function AppLayout() {
                       <div className="topbarV4SearchGroup">
                         <div className="topbarV4SearchGroupTitle">Tasks</div>
                         {searchResults.tasks.map((t: any) => (
-                          <button key={t.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/tasks') }}>
+                          <button key={t.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/tasks', { state: { openTaskId: t.id } }) }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
                             <div><div className="topbarV4SearchItemTitle">{t.title}</div><div className="topbarV4SearchItemSub">{t.status?.replace(/_/g, ' ')}</div></div>
                           </button>

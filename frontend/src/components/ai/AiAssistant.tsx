@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 
@@ -24,23 +24,29 @@ async function callAI(messages: Message[], context: any): Promise<string> {
     else if (t.status === 'in_progress') counts.in_progress++
     else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++
   }
-  const overdueList = (context.tasks || []).filter((t: Task) => t.status === 'overdue').slice(0, 5).map((t: Task) => `"${t.title}" assigned to ${t.assigned_to_name || 'nobody'}`).join('; ')
-  const systemPrompt = `You are JecZone AI, the intelligent assistant for TaskFlow Pro — an HR + task management platform. You have live data about the organization.
+  const overdueList = (context.tasks || []).filter((t: Task) => t.status === 'overdue').slice(0, 5).map((t: Task) => `"${t.title}" (${t.assigned_to_name || 'unassigned'}) [ID:${t.id.slice(0,8)}]`).join('; ')
 
-LIVE ORG DATA:
+  const systemPrompt = `You are JecZone AI, the intelligent assistant for TaskFlow Pro. You have live organization data.
+
+LIVE DATA:
 Tasks: ${counts.total} total | ${counts.overdue} overdue | ${counts.pending} pending | ${counts.in_progress} in-progress | ${counts.completed} completed
 Projects: ${context.projects?.map((p: any) => p.name).join(', ') || 'none'}
 Overdue tasks: ${overdueList || 'none'}
-Top performers: ${context.perf?.assigneeLeaderboard?.slice(0, 3).map((u: any) => u.name + ' (score: ' + u.performanceScore + ')').join(', ') || 'no data'}
+Top performers: ${context.perf?.assigneeLeaderboard?.slice(0, 3).map((u: any) => u.name + ' (score:' + u.performanceScore + ')').join(', ') || 'no data'}
 
-Be concise, data-driven, actionable. Suggest specific status changes by task title when relevant.`
+When suggesting status changes, use this exact format so they can be applied:
+[ACTION: CHANGE_STATUS task_id="<8-char-id>" to="<status>"]
+
+Valid statuses: pending, in_progress, submitted, manager_approved, manager_rejected, completed, cancelled
+
+Be concise, data-driven, and actionable. Always show task names when referencing them.`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 1200,
       system: systemPrompt,
       messages: messages.map(m => ({ role: m.role, content: m.content })),
     }),
@@ -48,6 +54,22 @@ Be concise, data-driven, actionable. Suggest specific status changes by task tit
   const data = await response.json()
   if (data.error) throw new Error(data.error.message)
   return data.content?.[0]?.text || 'No response.'
+}
+
+function renderMessage(text: string, onApply: (taskId: string, status: string) => void) {
+  const parts = text.split(/(\[ACTION:[^\]]+\])/g)
+  return parts.map((part, i) => {
+    const match = part.match(/\[ACTION:\s*CHANGE_STATUS\s+task_id="([^"]+)"\s+to="([^"]+)"\]/)
+    if (match) {
+      return (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 11, fontWeight: 800, margin: '2px 0', cursor: 'pointer' }}
+          onClick={() => onApply(match[1], match[2])}>
+          ⚡ Apply: set to {match[2]}
+        </span>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
 }
 
 const QUICK_PROMPTS = [
@@ -61,6 +83,7 @@ const QUICK_PROMPTS = [
 
 export function AiAssistant() {
   const me = getUser()
+  const qc = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
     content: 'Hi ' + (me?.fullName?.split(' ')[0] || 'there') + '! I\'m JecZone AI. I have live access to your organization\'s tasks, projects, and team performance.\n\nAsk me anything — I can identify bottlenecks, suggest status changes, analyze workload, or write a status report.',
@@ -81,6 +104,21 @@ export function AiAssistant() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const applyM = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: string }) =>
+      apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Done — task status updated to "${vars.status}".`, ts: Date.now() }])
+    },
+    onError: () => setMessages(prev => [...prev, { role: 'assistant', content: '❌ Failed to apply status change. Check task permissions.', ts: Date.now() }]),
+  })
+
+  function handleApply(taskId: string, status: string) {
+    if (window.confirm(`Apply status change to "${status}"?`)) applyM.mutate({ taskId, status })
+  }
 
   async function send(text: string) {
     const msg = text.trim()
@@ -142,8 +180,8 @@ export function AiAssistant() {
                 {m.role === 'assistant' ? '🤖' : (me?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               <div style={{ maxWidth: '78%' }}>
-                <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: m.role === 'user' ? 'var(--brandDim)' : 'var(--surfaceUp)', border: '1px solid ' + (m.role === 'user' ? 'var(--brandBorder)' : 'var(--border)'), fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {m.content}
+                <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: m.role === 'user' ? 'var(--brandDim)' : 'var(--surfaceUp)', border: '1px solid ' + (m.role === 'user' ? 'var(--brandBorder)' : 'var(--border)'), fontSize: 13, lineHeight: 1.6, color: 'var(--text)', wordBreak: 'break-word' }}>
+                  {m.role === 'assistant' ? renderMessage(m.content, handleApply) : m.content}
                 </div>
               </div>
             </div>

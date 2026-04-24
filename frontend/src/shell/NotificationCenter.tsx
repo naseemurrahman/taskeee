@@ -31,6 +31,8 @@ function taskIdFromData(data: unknown): string | undefined {
   return undefined
 }
 
+import { subscribeToOrg } from '../lib/socket'
+
 export function NotificationCenter() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -44,6 +46,25 @@ export function NotificationCenter() {
     staleTime: 15_000,
     refetchInterval: open ? 20_000 : 45_000,
   })
+
+  // Real-time: socket push invalidates notification + task queries immediately
+  useEffect(() => {
+    const unsub = subscribeToOrg({
+      onNotification: () => {
+        qc.invalidateQueries({ queryKey: ['notifications'] })
+      },
+      onTaskUpdated: () => {
+        qc.invalidateQueries({ queryKey: ['tasks'] })
+        qc.invalidateQueries({ queryKey: ['dashboard'] })
+      },
+      onTaskCommented: (data) => {
+        if (data?.taskId) {
+          qc.invalidateQueries({ queryKey: ['task-messages', data.taskId] })
+        }
+      },
+    })
+    return unsub
+  }, [qc])
 
   const markReadM = useMutation({
     mutationFn: (id: string) =>
