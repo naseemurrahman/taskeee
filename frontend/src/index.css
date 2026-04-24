@@ -477,6 +477,9 @@
 @media (max-width: 980px) {
   .mktNav { display: none; }
   .mktBrandSub { display: none; }
+  .mktActions .mktBtn { display: none; }
+  .mktActions .mktLang { display: none; }
+  .mktHamburger { display: grid !important; }
   .mktHeroGrid { grid-template-columns: 1fr; }
   .mktH1 { font-size: 42px; }
   .mktGrid3 { grid-template-columns: 1fr; }

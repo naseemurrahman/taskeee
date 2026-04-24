@@ -48,7 +48,7 @@ export function SignInPage() {
       `}</style>
 
       {/* Left — branding panel */}
-      <div className="authLeft" style={{ padding: '48px 52px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+      <div className="authLeft" style={{ padding: '48px 52px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
         {/* Glow */}
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(226,171,65,0.12) 0%, transparent 70%)', top: -100, right: -100, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%)', bottom: 0, left: -80, pointerEvents: 'none' }} />
@@ -99,7 +99,7 @@ export function SignInPage() {
       </div>
 
       {/* Right — form */}
-      <div className="authRight" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 60px' }}>
+      <div className="authRight" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, padding: '48px 60px' }}>
         <div style={{ width: '100%', maxWidth: 400, animation: 'fadeIn 0.4s ease' }}>
           <div style={{ marginBottom: 36 }}>
             <h2 style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.8px', margin: '0 0 8px' }}>Welcome back</h2>

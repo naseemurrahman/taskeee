@@ -84,16 +84,14 @@ export function SignUpPage() {
       `}</style>
 
       {/* Left panel */}
-      <div className="suLeft" style={{ padding: '48px 52px', background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
+      <div className="suLeft" style={{ padding: '48px 52px', width: '100%', background: 'linear-gradient(160deg, #0f1018 0%, #13111f 50%, #0f1018 100%)', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)', top: -100, right: -100 }} />
-        <div>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
             <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             </div>
             <span style={{ fontWeight: 950, fontSize: 20, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
           </Link>
-        </div>
 
         <div>
           <div style={{ fontSize: 13, color: '#e2ab41', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Trusted by 500+ organizations</div>
@@ -133,7 +131,7 @@ export function SignUpPage() {
       </div>
 
       {/* Right — form */}
-      <div className="suRight" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 60px', overflowY: 'auto' }}>
+      <div className="suRight" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 34, padding: '48px 60px', overflowY: 'auto' }}>
         <div style={{ width: '100%', maxWidth: 420, animation: 'fadeIn 0.4s ease' }}>
           {/* Steps */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 36 }}>
