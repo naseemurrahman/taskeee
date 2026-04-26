@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, apiUpload, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { Navigate } from 'react-router-dom'
 import { Camera, MessageCircle } from 'lucide-react'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
@@ -89,8 +88,6 @@ function formatDue(iso: string | null | undefined) {
 
 export function MyTasksPage() {
   const me = getUser()
-  // My Tasks is merged into Tasks page — always redirect
-  return <Navigate to="/app/tasks" replace />
   const qc = useQueryClient()
   const [status, setStatus] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)

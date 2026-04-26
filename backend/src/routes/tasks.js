@@ -912,7 +912,7 @@ router.patch('/:id/rename', authenticate, requireAnyRole('supervisor','manager',
 // PATCH /tasks/:id/status
 router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res, next) => {
   try {
-    if (['employee', 'hr'].includes(req.user.role))
+    if (['employee'].includes(req.user.role))
       return res.status(403).json({ error: 'Your role cannot change task status' });
 
     const orgId = await orgIdForSessionUser(req);
@@ -992,7 +992,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     }
 
     const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue']);
-    const boardRoleBypass = ['supervisor', 'manager', 'director', 'admin'].includes(role) && boardStatuses.has(status);
+    const boardRoleBypass = ['supervisor', 'manager', 'hr', 'director', 'admin'].includes(role) && boardStatuses.has(status);
 
     if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
