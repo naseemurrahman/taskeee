@@ -209,6 +209,19 @@ router.get('/', authenticate, async (req, res, next) => {
     if (!targetUserIds || targetUserIds.length === 0) {
       targetUserIds = [user.id];
     }
+    
+    /** For employees: also ensure their user ID is valid in this org */
+    if (user.role === 'employee' && targetUserIds.length === 1 && targetUserIds[0] === user.id) {
+      // Verify the user exists in this org (handles JWT/DB sync issues)
+      const { rows: selfCheck } = await query(
+        'SELECT id FROM users WHERE id = $1 AND (org_id = $2 OR org_id IS NULL)',
+        [user.id, orgId]
+      );
+      if (!selfCheck.length) {
+        // User not in org — return empty gracefully
+        return res.json({ tasks: [], pagination: { page: 1, limit: 200, total: 0, pages: 0 } });
+      }
+    }
 
     const includeUnassigned = isOrgWideRole(user.role) && String(mine || '') !== 'true' && !userId;
     const assigneeCondition = includeUnassigned
@@ -286,12 +299,7 @@ router.get('/', authenticate, async (req, res, next) => {
       }
     });
   } catch (err) {
-    console.error('=== TASK CREATION DETAILED ERROR ===');
-    console.error('Error message:', err.message);
-    console.error('Error stack:', err.stack);
-    console.error('Request body:', JSON.stringify(req.body, null, 2));
-    console.error('User:', req.user);
-    console.error('=== END ERROR DETAILS ==='); next(err); }
+    next(err); }
 });
 
 // GET /tasks/departments - Get available departments
@@ -873,8 +881,12 @@ router.patch('/:id/rename', authenticate, requireAnyRole('supervisor','manager',
 // PATCH /tasks/:id/status
 router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res, next) => {
   try {
-    if (['employee', 'hr'].includes(req.user.role))
-      return res.status(403).json({ error: 'Your role cannot change task status' });
+    // Only employees cannot change task status via the board/table
+    // HR, managers, supervisors, directors, admins all can change status
+    if (req.user.role === 'employee') {
+      // Employees CAN change their own task status (submit, start work etc.)
+      // but only via allowed transitions defined below
+    }
 
     const { status, note } = req.body;
     const allowedTransitions = {
@@ -919,9 +931,36 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
         completed: ['pending', 'in_progress'],
         cancelled: ['pending'],
       },
-      hr: {},
-      director: ['*'],
-      admin: ['*']
+      hr: {
+        pending: ['in_progress', 'completed', 'cancelled'],
+        overdue: ['in_progress', 'completed', 'pending', 'cancelled'],
+        in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
+        submitted: ['manager_approved', 'manager_rejected', 'completed'],
+        manager_approved: ['completed'],
+        manager_rejected: ['pending', 'in_progress'],
+        completed: ['pending', 'in_progress'],
+        cancelled: ['pending'],
+      },
+      director: {
+        pending: ['in_progress', 'submitted', 'completed', 'overdue', 'cancelled'],
+        overdue: ['in_progress', 'pending', 'completed', 'cancelled'],
+        in_progress: ['submitted', 'completed', 'pending', 'overdue', 'cancelled'],
+        submitted: ['manager_approved', 'manager_rejected', 'completed', 'in_progress'],
+        manager_approved: ['completed', 'in_progress'],
+        manager_rejected: ['pending', 'in_progress'],
+        completed: ['pending', 'in_progress'],
+        cancelled: ['pending', 'in_progress'],
+      },
+      admin: {
+        pending: ['in_progress', 'submitted', 'completed', 'overdue', 'cancelled'],
+        overdue: ['in_progress', 'pending', 'completed', 'cancelled'],
+        in_progress: ['submitted', 'completed', 'pending', 'overdue', 'cancelled'],
+        submitted: ['manager_approved', 'manager_rejected', 'completed', 'in_progress'],
+        manager_approved: ['completed', 'in_progress', 'pending'],
+        manager_rejected: ['pending', 'in_progress'],
+        completed: ['pending', 'in_progress', 'overdue'],
+        cancelled: ['pending', 'in_progress'],
+      }
     };
 
     const { rows } = await query(
@@ -949,13 +988,20 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue']);
-    const boardRoleBypass = ['supervisor', 'manager', 'director', 'admin'].includes(role) && boardStatuses.has(status);
-
-    if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
+    // Admin and director can move tasks to ANY status unconditionally
+    const isFullAdmin = ['director', 'admin'].includes(role);
+    
+    if (!isFullAdmin) {
+      // Check allowed transitions for other roles
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
-        if (!allowed[task.status]?.includes(status)) {
-          return res.status(400).json({ error: `Cannot transition from ${task.status} to ${status}` });
+        // Board bypass: supervisors/managers can move to basic board statuses freely
+        const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue', 'cancelled']);
+        const boardRoleBypass = ['supervisor', 'manager', 'hr'].includes(role) && boardStatuses.has(status);
+        
+        if (!boardRoleBypass) {
+          if (!allowed[task.status]?.includes(status)) {
+            return res.status(400).json({ error: `Cannot transition from ${task.status} to ${status}` });
+          }
         }
       }
     }

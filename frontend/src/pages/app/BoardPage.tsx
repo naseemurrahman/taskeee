@@ -10,6 +10,7 @@ type Task = {
   id: string; title: string; status: string; priority?: string | null
   category_name?: string | null; category_color?: string | null
   assigned_to_name?: string | null; due_date?: string | null
+  message_count?: number
 }
 
 async function patchStatus(taskId: string, status: string) {
@@ -44,24 +45,35 @@ function DueLabel({ iso }: { iso?: string | null }) {
 export function BoardPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
-  const canDrag = canChangeTaskStatus(me?.role)  // employees cannot drag/change status
+  const canDrag = canChangeTaskStatus(me?.role)
   const isEmployee = isEmployeeRole(me?.role)
   const qc = useQueryClient()
+
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [dragging, setDragging] = useState<{ id: string; fromCol: string } | null>(null)
-  const [dragOver, setDragOver] = useState<string | null>(null)
-  const dragTask = useRef<Task | null>(null)
 
-  const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board', isEmployee], queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]), staleTime: 30_000, refetchInterval: 60_000 })
+  // Drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [fromCol, setFromCol] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+  const dragTaskRef = useRef<Task | null>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['tasks', 'board', isEmployee],
+    queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
   const tasks = data || []
 
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 
-  // Group tasks by column key
   const byCol = useMemo(() => {
     const map: Record<string, Task[]> = {}
     for (const col of COLUMNS) map[col.key] = []
@@ -72,32 +84,59 @@ export function BoardPage() {
     return map
   }, [tasks])
 
+  // --- Drag handlers ---
   function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
-    if (!canDrag) return
-    dragTask.current = task
-    setDragging({ id: task.id, fromCol: colKey })
+    dragTaskRef.current = task
+    setDraggingId(task.id)
+    setFromCol(colKey)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id)
+    // Small delay so the drag image renders before opacity changes
+    requestAnimationFrame(() => {
+      const el = e.currentTarget as HTMLElement
+      if (el) el.style.opacity = '0.4'
+    })
   }
 
-  function onDragOver(e: React.DragEvent, colKey: string) {
-    if (!canDrag) return
+  function onDragEnd(e: React.DragEvent) {
+    const el = e.currentTarget as HTMLElement
+    if (el) el.style.opacity = '1'
+    setDraggingId(null)
+    setFromCol(null)
+    setDragOverCol(null)
+    dragTaskRef.current = null
+  }
+
+  function onColDragOver(e: React.DragEvent, colKey: string) {
+    // MUST call preventDefault to allow drop
     e.preventDefault()
+    e.stopPropagation()
     e.dataTransfer.dropEffect = 'move'
-    setDragOver(colKey)
+    setDragOverCol(colKey)
   }
 
-  function onDrop(e: React.DragEvent, toColKey: string) {
-    if (!canDrag) return
+  function onColDrop(e: React.DragEvent, toColKey: string) {
     e.preventDefault()
-    setDragOver(null)
-    if (!dragTask.current || dragging?.fromCol === toColKey) { setDragging(null); return }
-    m.mutate({ id: dragTask.current.id, status: toColKey })
-    dragTask.current = null
-    setDragging(null)
+    e.stopPropagation()
+    setDragOverCol(null)
+
+    if (!dragTaskRef.current) return
+    if (fromCol === toColKey) {
+      setDraggingId(null); setFromCol(null); dragTaskRef.current = null
+      return
+    }
+
+    m.mutate({ id: dragTaskRef.current.id, status: toColKey })
+    setDraggingId(null); setFromCol(null); dragTaskRef.current = null
   }
 
-  function onDragEnd() { setDragging(null); setDragOver(null); dragTask.current = null }
+  function onColDragLeave(e: React.DragEvent) {
+    // Only clear if leaving the column entirely (not entering a child)
+    const related = e.relatedTarget as HTMLElement | null
+    if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
+      setDragOverCol(null)
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
@@ -109,10 +148,19 @@ export function BoardPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="16" rx="1"/></svg>
               Board
             </div>
-            <div className="pageHeaderCardSub">{isEmployee ? 'Your assigned tasks by status. Click a card to view details and add comments.' : 'Drag tasks between columns to update status. Click a card to view details.'}</div>
+            <div className="pageHeaderCardSub">
+              {isEmployee
+                ? 'Your tasks by status. Click a card to view details.'
+                : 'Drag tasks between columns to change status. Click a card to view details.'}
+            </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
-              {byCol.overdue?.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {byCol.overdue.length} overdue</span>}
+              {byCol.overdue?.length > 0 && (
+                <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>
+                  ⚠ {byCol.overdue.length} overdue
+                </span>
+              )}
+              {!canDrag && <span className="pageHeaderCardTag" style={{ color: '#9ca3af' }}>Read-only view</span>}
             </div>
           </div>
           {canManage && (
@@ -124,11 +172,18 @@ export function BoardPage() {
         </div>
       </div>
 
+      {/* Mutation error */}
+      {m.isError && (
+        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>
+          ⚠ Failed to update status. {(m.error as any)?.message || 'Check your permissions.'}
+        </div>
+      )}
+
       {/* Board */}
       {isLoading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, 1fr)`, gap: 12 }}>
           {COLUMNS.map(col => (
-            <div key={col.key} style={{ background: 'var(--bg2)', borderRadius: 16, padding: 14, minHeight: 400 }}>
+            <div key={col.key} style={{ background: 'var(--bg2)', borderRadius: 16, padding: 14, minHeight: 300 }}>
               <div className="skeleton" style={{ height: 20, width: '60%', borderRadius: 8, marginBottom: 12 }} />
               {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12, marginBottom: 8 }} />)}
             </div>
@@ -138,74 +193,121 @@ export function BoardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', flex: 1, alignItems: 'start' }}>
           {COLUMNS.map(col => {
             const colTasks = byCol[col.key] || []
-            const isOver = dragOver === col.key
+            const isOver = dragOverCol === col.key
             return (
-              <div key={col.key}
-                onDragOver={e => onDragOver(e, col.key)}
-                onDrop={e => onDrop(e, col.key)}
-                onDragLeave={() => setDragOver(null)}
+              <div
+                key={col.key}
+                onDragOver={canDrag ? e => onColDragOver(e, col.key) : undefined}
+                onDrop={canDrag ? e => onColDrop(e, col.key) : undefined}
+                onDragLeave={canDrag ? onColDragLeave : undefined}
                 style={{
-                  background: isOver ? (col.color + '10') : 'var(--bg2)',
-                  borderRadius: 16, padding: 14, minHeight: 200,
-                  border: `2px solid ${isOver ? col.color + '60' : 'transparent'}`,
-                  transition: 'all 0.15s',
+                  background: isOver ? col.color + '12' : 'var(--bg2)',
+                  borderRadius: 16,
+                  padding: 14,
+                  minHeight: 200,
+                  border: `2px solid ${isOver ? col.color + '70' : 'transparent'}`,
+                  transition: 'border-color 0.15s, background 0.15s',
+                  boxSizing: 'border-box',
                 }}
               >
                 {/* Column header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 16, color: col.color }}>{col.icon}</span>
+                  <span style={{ fontSize: 14, color: col.color }}>{col.icon}</span>
                   <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--text)' }}>{col.label}</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 900, padding: '1px 8px', borderRadius: 999, background: col.color + '18', color: col.color }}>{colTasks.length}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 900, padding: '1px 8px', borderRadius: 999, background: col.color + '18', color: col.color }}>
+                    {colTasks.length}
+                  </span>
                 </div>
 
-                {/* Cards */}
+                {/* Task cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {colTasks.map(task => {
                     const pColor = PRIORITY_COLOR[task.priority || ''] || 'transparent'
-                    const isDragging = dragging?.id === task.id
+                    const isDraggingThis = draggingId === task.id
                     return (
-                      <div key={task.id}
+                      <div
+                        key={task.id}
                         draggable={canDrag}
-                        onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
+                        onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => setSelectedTaskId(task.id)}
                         style={{
-                          background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
-                          border: '1px solid var(--border)', cursor: canDrag ? 'grab' : 'pointer',
-                          opacity: isDragging ? 0.4 : 1, transition: 'all 0.12s',
-                          position: 'relative', overflow: 'hidden',
+                          background: 'var(--bg1)',
+                          borderRadius: 12,
+                          padding: '10px 12px',
+                          border: '1px solid var(--border)',
+                          cursor: canDrag ? 'grab' : 'pointer',
+                          opacity: isDraggingThis ? 0.4 : 1,
+                          transition: 'opacity 0.1s, box-shadow 0.12s, border-color 0.12s',
+                          position: 'relative',
+                          // NO overflow:hidden — it breaks drag in Firefox
+                          userSelect: 'none',
                         }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = col.color + '60'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${col.color}18` }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '' }}
+                        onMouseEnter={e => {
+                          const el = e.currentTarget as HTMLDivElement
+                          el.style.borderColor = col.color + '60'
+                          el.style.boxShadow = `0 4px 16px ${col.color}18`
+                        }}
+                        onMouseLeave={e => {
+                          const el = e.currentTarget as HTMLDivElement
+                          el.style.borderColor = 'var(--border)'
+                          el.style.boxShadow = ''
+                        }}
                       >
-                        {/* Priority stripe */}
-                        {task.priority && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, background: pColor }} />}
+                        {/* Priority stripe — use border-top instead of absolute div (no overflow:hidden needed) */}
+                        {task.priority && (
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: pColor, borderRadius: '12px 12px 0 0' }} />
+                        )}
 
-                        <div style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.4, color: 'var(--text)', marginTop: 4, marginBottom: 6 }}>{task.title}</div>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', marginTop: task.priority ? 6 : 2, marginBottom: 6, lineHeight: 1.4 }}>
+                          {task.title}
+                        </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {task.category_name && (
-                            <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 999, background: (task.category_color || '#818cf8') + '20', color: task.category_color || '#818cf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{task.category_name}</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 999, background: (task.category_color || '#818cf8') + '20', color: task.category_color || '#818cf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {task.category_name}
+                            </span>
                           )}
                           <DueLabel iso={task.due_date} />
                         </div>
 
-                        {task.assigned_to_name && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
-                            <div style={{ width: 18, height: 18, borderRadius: 6, background: hashColor(task.assigned_to_name) + '30', color: hashColor(task.assigned_to_name), display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 900, flexShrink: 0 }}>
-                              {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
-                            </div>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.assigned_to_name}</span>
+                        {(task.assigned_to_name || (task.message_count || 0) > 0) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                            {task.assigned_to_name && (
+                              <>
+                                <div style={{ width: 18, height: 18, borderRadius: 6, background: hashColor(task.assigned_to_name) + '30', color: hashColor(task.assigned_to_name), display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 900, flexShrink: 0 }}>
+                                  {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+                                </div>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                  {task.assigned_to_name}
+                                </span>
+                              </>
+                            )}
+                            {(task.message_count || 0) > 0 && (
+                              <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto', flexShrink: 0 }}>
+                                💬 {task.message_count}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
                     )
                   })}
 
-                  {/* Empty state per column */}
+                  {/* Empty state */}
                   {colTasks.length === 0 && (
-                    <div style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 12, color: 'var(--muted)', fontSize: 11 }}>
-                      {canDrag ? 'Drop here' : 'No tasks'}
+                    <div style={{
+                      padding: '24px 12px',
+                      textAlign: 'center',
+                      border: `2px dashed ${isOver ? col.color + '80' : col.color + '28'}`,
+                      borderRadius: 12,
+                      color: isOver ? col.color : 'var(--muted)',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      transition: 'all 0.15s',
+                    }}>
+                      {isOver ? '↓ Drop here' : canDrag ? 'Drop here' : 'No tasks'}
                     </div>
                   )}
                 </div>

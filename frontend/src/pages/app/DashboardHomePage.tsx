@@ -9,6 +9,7 @@ import {
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -223,6 +224,8 @@ export function DashboardHomePage() {
           </div>
         </div>
       </div>
+
+      <OnboardingBanner />
 
       {/* ── KPI Strip ── */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>

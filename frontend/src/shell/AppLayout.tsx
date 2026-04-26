@@ -16,7 +16,7 @@ import {
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Dashboard: LayoutDashboard, Tasks: ListChecks, 'My tasks': ClipboardList,
   Board: FolderKanban, Projects: Network, Calendar: Calendar, Analytics: BarChart3,
-  Billing: CreditCard, Contractors: Users, Jeczone: Gauge, Profile: Settings,
+  Billing: CreditCard, Contractors: Users, Jeczone: Gauge, Profile: Settings, Settings: Settings,
   Directory: Users, Reports: ScrollText, Audit: Shield, Employees: Users,
   'Time off': Calendar, Pipeline: Link2, Leads: BookOpen, Connections: Link2,
   Insights: BarChart3, Logs: ScrollText,
@@ -227,6 +227,8 @@ export function AppLayout() {
               {canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
               {canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
               {canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSee(role, 'manager') && <NavItem to="/app/insights" label="Insights" display="Insights" collapsed={collapsed} onNavigate={closeMobileNav} />}
+              {canSee(role, 'manager') && <NavItem to="/app/settings" label="Settings" display="Settings" collapsed={collapsed} onNavigate={closeMobileNav} />}
             </>
           )}
 

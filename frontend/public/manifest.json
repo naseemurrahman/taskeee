@@ -1,0 +1,20 @@
+{
+  "name": "TaskFlow Pro",
+  "short_name": "TaskFlow",
+  "description": "AI-powered task management for high-performance teams",
+  "start_url": "/app/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a10",
+  "theme_color": "#e2ab41",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    { "name": "Dashboard", "short_name": "Dashboard", "description": "View your dashboard", "url": "/app/dashboard" },
+    { "name": "Tasks", "short_name": "Tasks", "description": "View your tasks", "url": "/app/tasks" },
+    { "name": "Board", "short_name": "Board", "description": "Kanban board", "url": "/app/board" }
+  ]
+}

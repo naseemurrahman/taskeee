@@ -69,8 +69,55 @@ const STATUS_OPTIONS: Record<string, { label: string; color: string; bg: string 
 
 // Allowed status transitions per role (mirrors backend)
 function getAllowedTransitions(fromStatus: string, role: string): string[] {
-  if (role === 'employee') return []
-  return ['pending', 'in_progress', 'completed', 'overdue'].filter(s => s !== fromStatus)
+  const ALL_STATUSES = ['pending', 'in_progress', 'submitted', 'manager_approved', 'manager_rejected', 'completed', 'overdue', 'cancelled']
+
+  // Admin and director can transition to ANY status
+  if (role === 'admin' || role === 'director') {
+    return ALL_STATUSES.filter(s => s !== fromStatus)
+  }
+
+  const MAP: Record<string, Record<string, string[]>> = {
+    hr: {
+      pending: ['in_progress', 'completed', 'cancelled'],
+      overdue: ['in_progress', 'completed', 'pending', 'cancelled'],
+      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      manager_approved: ['completed'],
+      manager_rejected: ['pending', 'in_progress'],
+      completed: ['pending', 'in_progress'],
+      cancelled: ['pending'],
+    },
+    manager: {
+      pending: ['in_progress', 'completed', 'cancelled'],
+      overdue: ['in_progress', 'completed', 'pending', 'cancelled'],
+      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      manager_approved: ['completed'],
+      manager_rejected: ['pending', 'in_progress'],
+      completed: ['pending', 'in_progress'],
+      cancelled: ['pending'],
+    },
+    supervisor: {
+      pending: ['in_progress', 'completed', 'cancelled'],
+      overdue: ['in_progress', 'completed', 'pending', 'cancelled'],
+      in_progress: ['submitted', 'completed', 'pending', 'cancelled'],
+      submitted: ['manager_approved', 'manager_rejected', 'completed'],
+      manager_approved: ['completed'],
+      manager_rejected: ['pending', 'in_progress'],
+      completed: ['pending', 'in_progress'],
+      cancelled: ['pending'],
+    },
+    employee: {
+      pending: ['in_progress'],
+      overdue: ['in_progress'],
+      in_progress: ['submitted', 'pending'],
+      submitted: ['in_progress'],
+      manager_approved: ['completed'],
+      manager_rejected: ['in_progress'],
+    },
+  }
+  const roleMap = MAP[role] || MAP['manager']
+  return roleMap[fromStatus] || []
 }
 
 const PRIORITY_OPTS = [
@@ -207,8 +254,10 @@ export function TasksPage() {
   const q = useQuery({
     queryKey: ['tasks', 'list', status, priority, search, isEmployee],
     queryFn: () => fetchTasks(status, priority, search, isEmployee),
-    staleTime: 30_000,
+    staleTime: 20_000,
     refetchInterval: 30_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   })
 
   const tasks = q.data || []
@@ -303,7 +352,7 @@ export function TasksPage() {
           <div className="emptyStateV3" style={{ padding: '48px 24px' }}>
             <div className="emptyStateV3Icon">📋</div>
             <div className="emptyStateV3Title">{search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : isEmployee ? 'No tasks assigned to you yet' : 'No tasks yet'}</div>
-            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Check back when your manager assigns you work'}</div>
+            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Tasks assigned to you by your manager will appear here.'}</div>
             {canCreate && (
               <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -340,7 +389,7 @@ export function TasksPage() {
                       <td style={{ padding: 0, width: 4 }} onClick={e => e.stopPropagation()}>
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
-                      <td style={{ padding: '10px 14px', maxWidth: 260 }}>
+                      <td style={{ padding: '10px 14px', maxWidth: 260 }} onClick={e => e.stopPropagation()}>
                         <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
@@ -363,7 +412,7 @@ export function TasksPage() {
                           ) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>Unassigned</span>}
                         </td>
                       )}
-                      <td style={{ padding: '8px 10px', minWidth: 140 }}>
+                      <td style={{ padding: '8px 10px', minWidth: 140 }} onClick={e => e.stopPropagation()}>
                         <InlineStatus task={task} role={role} canChange={canChangeStatus} />
                       </td>
                       <td style={{ padding: '10px 14px' }}>
