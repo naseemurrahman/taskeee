@@ -16,7 +16,8 @@
     "db:test": "node scripts/test-db.js",
     "admin:create": "node scripts/create-admin.js",
     "dev:set-password": "node scripts/dev-set-password.js",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "audit:task-assignees": "node scripts/audit-task-assignees.js"
   },
   "engines": {
     "node": ">=18.0.0"

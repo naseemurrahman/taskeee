@@ -37,8 +37,7 @@ async function assertCanViewTask(req, task) {
   return rows.length > 0;
 }
 
-async function getScopedTargetUserIds(user) {
-  const orgId = user.org_id ?? user.orgId;
+async function getScopedTargetUserIds(user, orgId) {
   let targetUserIds = [user.id];
   let legacyEmployeeId = null;
 
@@ -78,11 +77,18 @@ async function getOwnTargetUserIds(user, orgId) {
   const ids = [user.id];
   try {
     const { rows } = await query(
-      `SELECT id FROM employees WHERE user_id = $1 AND org_id = $2 LIMIT 1`,
-      [user.id, orgId]
+      `SELECT id
+       FROM employees
+       WHERE org_id = $1
+         AND (
+           user_id = $2
+           OR (work_email IS NOT NULL AND LOWER(work_email) = LOWER($3))
+         )`,
+      [orgId, user.id, user.email || '']
     );
-    const legacyEmployeeId = rows[0]?.id;
-    if (legacyEmployeeId && !ids.includes(legacyEmployeeId)) ids.push(legacyEmployeeId);
+    for (const row of rows) {
+      if (row?.id && !ids.includes(row.id)) ids.push(row.id);
+    }
   } catch {
     // Ignore legacy mapping lookup failures.
   }
@@ -226,7 +232,7 @@ router.get('/', authenticate, async (req, res, next) => {
     const user = req.user;
     const orgId = await orgIdForSessionUser(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    let targetUserIds = await getScopedTargetUserIds(user);
+    let targetUserIds = await getScopedTargetUserIds(user, orgId);
 
     /** Employees ALWAYS see only their own tasks — enforce unconditionally. */
     if (user.role === 'employee') {
@@ -909,6 +915,9 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     if (['employee', 'hr'].includes(req.user.role))
       return res.status(403).json({ error: 'Your role cannot change task status' });
 
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
     const { status, note } = req.body;
     const allowedTransitions = {
       // Assignee: every listed `from` status must have an array (possibly empty) or PATCH returns 400.
@@ -959,7 +968,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
 
     const { rows } = await query(
       `SELECT * FROM tasks WHERE id = $1 AND org_id = $2`,
-      [req.params.id, req.user.org_id ?? req.user.orgId]
+      [req.params.id, orgId]
     );
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
@@ -1024,7 +1033,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     });
 
     await logUserActivity({
-      orgId: req.user.org_id ?? req.user.orgId,
+      orgId,
       userId: req.user.id,
       taskId: task.id,
       activityType: 'task_status_changed',
@@ -1043,7 +1052,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     if (status === 'submitted') {
       const notifyIds = new Set();
       if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
-      const { rows: assigneeMeta } = await query(`SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`, [task.assigned_to, req.user.org_id ?? req.user.orgId]);
+      const { rows: assigneeMeta } = await query(`SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`, [task.assigned_to, orgId]);
       const mgrId = assigneeMeta[0]?.manager_id;
       if (mgrId && mgrId !== req.user.id) notifyIds.add(mgrId);
 

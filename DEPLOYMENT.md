@@ -56,6 +56,17 @@ Set this in Vercel frontend project:
 VITE_API_BASE_URL=https://<your-backend-domain>
 ```
 
+### Task visibility hardening steps
+
+Run these after deploy to ensure legacy assignee mapping is normalized:
+
+```bash
+cd backend
+npm run audit:task-assignees
+# then apply migrations including 017_normalize_task_assignees.sql
+npm run migrate
+```
+
 2. **Environment Variables**
    Copy `config/production.env.example` to `config/production.env`
    Configure the following variables:

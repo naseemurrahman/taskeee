@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiFetch } from '../../lib/api'
+import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
@@ -49,6 +49,7 @@ export function BoardPage() {
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [dragging, setDragging] = useState<{ id: string; fromCol: string } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const dragTask = useRef<Task | null>(null)
@@ -58,7 +59,13 @@ export function BoardPage() {
 
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+    onSuccess: () => {
+      setStatusError(null)
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: (err) => {
+      setStatusError(getApiErrorMessage(err, 'Could not update task status.'))
+    },
   })
 
   // Group tasks by column key
@@ -125,6 +132,7 @@ export function BoardPage() {
       </div>
 
       {/* Board */}
+      {statusError ? <div className="alert alertError">{statusError}</div> : null}
       {isLoading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
           {COLUMNS.map(col => (
