@@ -31,7 +31,7 @@ const validateChangePassword = [
 ];
 
 // ── User validators ────────────────────────────────────────────────────────
-const VALID_ROLES = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'];
+const VALID_ROLES = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin'];
 
 const MANAGER_CREATABLE_ROLES = ['employee', 'supervisor'];
 

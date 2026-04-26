@@ -234,8 +234,8 @@ router.get('/', authenticate, async (req, res, next) => {
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     let targetUserIds = await getScopedTargetUserIds(user, orgId);
 
-    /** Employees ALWAYS see only their own tasks — enforce unconditionally. */
-    if (user.role === 'employee') {
+    /** Employees and technicians ALWAYS see only their own tasks — enforce unconditionally. */
+    if (user.role === 'employee' || user.role === 'technician') {
       targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (String(mine || '') === 'true') {
       /** Only tasks assigned to the signed-in user. */

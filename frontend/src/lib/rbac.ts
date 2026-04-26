@@ -1,5 +1,5 @@
 /** Role hierarchy — higher index = more authority */
-export const ROLE_ORDER = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'] as const
+export const ROLE_ORDER = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin'] as const
 export type AppRole = typeof ROLE_ORDER[number]
 
 function normalizeRole(role: string | undefined): string {
@@ -32,7 +32,7 @@ export function canRenameTasksAndProjects(role: string | undefined): boolean {
 /** Is this role strictly an employee (no management capabilities) */
 export function isEmployeeRole(role: string | undefined): boolean {
   const normalized = normalizeRole(role)
-  return !normalized || normalized === 'employee'
+  return !normalized || normalized === 'employee' || normalized === 'technician'
 }
 
 /** Can see all org employees / HR data */

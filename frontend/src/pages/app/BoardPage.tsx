@@ -67,7 +67,7 @@ export function BoardPage() {
   const ghostRef       = useRef<HTMLDivElement | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['tasks', 'board', isEmployee],
+    queryKey: ['tasks', 'board'],
     queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]),
     staleTime: 30_000,
     refetchInterval: 60_000,
@@ -77,16 +77,16 @@ export function BoardPage() {
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
     onMutate: async ({ id, status }) => {
-      await qc.cancelQueries({ queryKey: ['tasks', 'board', isEmployee] })
-      const previous = qc.getQueryData<Task[]>(['tasks', 'board', isEmployee])
-      qc.setQueryData<Task[]>(['tasks', 'board', isEmployee], (old) =>
+      await qc.cancelQueries({ queryKey: ['tasks', 'board'] })
+      const previous = qc.getQueryData<Task[]>(['tasks', 'board'])
+      qc.setQueryData<Task[]>(['tasks', 'board'], (old) =>
         (old || []).map(t => t.id === id ? { ...t, status } : t)
       )
       return { previous }
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        qc.setQueryData(['tasks', 'board', isEmployee], context.previous)
+        qc.setQueryData(['tasks', 'board'], context.previous)
       }
     },
     onSettled: () => {

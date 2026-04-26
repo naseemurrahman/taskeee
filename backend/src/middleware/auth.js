@@ -3,7 +3,7 @@ const { query, isDemo } = require('../utils/db');
 const { cacheGet, cacheSet } = require('../utils/redis');
 
 // Higher index = more authority (for requireRole min-level checks)
-const ROLE_HIERARCHY = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'];
+const ROLE_HIERARCHY = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin'];
 
 function getRoleLevel(role) {
   return ROLE_HIERARCHY.indexOf(String(role || '').toLowerCase());
