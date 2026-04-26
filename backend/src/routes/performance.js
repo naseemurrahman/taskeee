@@ -57,6 +57,8 @@ function calculateScore({ total, completed, overdue, rejected, onTimeCompleted }
 
 router.get('/summary', authenticate, requireAnyRole('employee', 'hr', 'manager', 'supervisor', 'director', 'admin'), async (req, res, next) => {
   try {
+    const days = Math.max(1, Math.min(parseInt(String(req.query.days || '30'), 10) || 30, 365));
+    const department = String(req.query.department || '').trim();
     const u = req.user;
     const orgId = u.org_id ?? u.orgId;
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
@@ -99,8 +101,9 @@ router.get('/summary', authenticate, requireAnyRole('employee', 'hr', 'manager',
       `SELECT id, assigned_to, status,
               ${hasDueDate ? 'due_date' : 'NULL::timestamptz AS due_date'},
               ${hasCompletedAt ? 'completed_at' : 'NULL::timestamptz AS completed_at'}
-       FROM tasks WHERE org_id = $1 AND assigned_to = ANY($2)`,
-      [orgId, assigneeFilter]
+       FROM tasks WHERE org_id = $1 AND assigned_to = ANY($2)
+         AND created_at >= NOW() - ($3::text || ' days')::interval`,
+      [orgId, assigneeFilter, String(days)]
     );
 
     const byAssignee = {};
@@ -130,7 +133,11 @@ router.get('/summary', authenticate, requireAnyRole('employee', 'hr', 'manager',
        FROM users WHERE org_id = $1 AND id = ANY($2)`,
       [orgId, assigneeFilter]
     );
-    const idToUser = Object.fromEntries(nameRows.map(r => [String(r.id), r]));
+    const filteredNameRows = department
+      ? nameRows.filter((row) => String(row.department || '').toLowerCase() === department.toLowerCase())
+      : nameRows;
+    const allowedUserSet = new Set(filteredNameRows.map((row) => String(row.id)));
+    const idToUser = Object.fromEntries(filteredNameRows.map(r => [String(r.id), r]));
 
     let activityRows = { rows: [] };
     try {
@@ -153,6 +160,7 @@ router.get('/summary', authenticate, requireAnyRole('employee', 'hr', 'manager',
     }
 
     const leaderboard = Object.entries(byAssignee)
+      .filter(([userId]) => !department || allowedUserSet.has(String(userId)))
       .map(([userId, v]) => {
         const uid = String(userId);
         const userMeta = idToUser[uid] || {};

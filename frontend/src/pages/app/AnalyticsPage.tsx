@@ -44,8 +44,10 @@ type PerformanceSummary = {
   }
 }
 
-async function fetchSummary() {
-  return await apiFetch<PerformanceSummary>(`/api/v1/performance/summary`)
+async function fetchSummary(rangeDays: number, department: string) {
+  const qs = new URLSearchParams({ days: String(rangeDays) })
+  if (department && department !== 'all') qs.set('department', department)
+  return await apiFetch<PerformanceSummary>(`/api/v1/performance/summary?${qs.toString()}`)
 }
 
 async function fetchTasksForDeadlines() {
@@ -59,7 +61,8 @@ export function AnalyticsPage() {
   const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null)
   const [pickId, setPickId] = useState<string | null>(null)
   const [rangeDays, setRangeDays] = useState(30)
-  const summaryQ = useQuery({ queryKey: ['analytics', 'summary'], queryFn: fetchSummary })
+  const [department, setDepartment] = useState('all')
+  const summaryQ = useQuery({ queryKey: ['analytics', 'summary', rangeDays, department], queryFn: () => fetchSummary(rangeDays, department) })
   const tasksQ = useQuery({ queryKey: ['analytics', 'deadlines'], queryFn: fetchTasksForDeadlines })
 
   const byStatus = summaryQ.data?.byStatus || {}
@@ -161,6 +164,12 @@ export function AnalyticsPage() {
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
+            </select>
+            <select value={department} onChange={e => setDepartment(e.target.value)} style={{ height: 38, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '0 10px', fontWeight: 700 }}>
+              <option value="all">All departments</option>
+              {Array.from(new Set((leaderboard || []).map((u) => u.department).filter(Boolean) as string[])).map((dep) => (
+                <option key={dep} value={dep}>{dep}</option>
+              ))}
             </select>
             <button type="button" className="btn btnGhost" style={{ height: 38 }} onClick={downloadCsv}>Download CSV</button>
             <button type="button" className="btn btnGhost" style={{ height: 38 }} onClick={() => window.print()}>Download PDF</button>

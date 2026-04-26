@@ -25,6 +25,48 @@
    GRANT ALL PRIVILEGES ON DATABASE taskflow_prod TO taskflow;
    ```
 
+### Railway + Vercel environment checklist
+
+Set these in Railway backend service:
+
+```env
+# Notifications
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+WHATSAPP_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+
+# Avatars / evidence
+AWS_REGION=
+S3_BUCKET=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_ENDPOINT=
+S3_PUBLIC_BASE_URL=
+S3_FORCE_PATH_STYLE=false
+```
+
+Set this in Vercel frontend project:
+
+```env
+VITE_API_BASE_URL=https://<your-backend-domain>
+```
+
+### Task visibility hardening steps
+
+Run these after deploy to ensure legacy assignee mapping is normalized:
+
+```bash
+cd backend
+npm run audit:task-assignees
+# then apply migrations including 017_normalize_task_assignees.sql
+npm run migrate
+```
+
 2. **Environment Variables**
    Copy `config/production.env.example` to `config/production.env`
    Configure the following variables:

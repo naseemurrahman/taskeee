@@ -12,6 +12,8 @@ type Lead = {
   status: string
   owner_name?: string | null
   created_at: string
+  lead_score?: number | null
+  converted_deal_id?: string | null
 }
 
 async function fetchLeads(status: string, search: string) {
@@ -24,6 +26,10 @@ async function fetchLeads(status: string, search: string) {
 
 async function createLead(input: { fullName?: string; email?: string; phoneE164?: string; source?: string }) {
   return await apiFetch(`/api/v1/crm/leads`, { method: 'POST', json: input })
+}
+
+async function convertLead(id: string) {
+  return await apiFetch(`/api/v1/crm/leads/${encodeURIComponent(id)}/convert`, { method: 'POST' })
 }
 
 export function CrmLeadsPage() {
@@ -53,6 +59,12 @@ export function CrmLeadsPage() {
     onError: (err) => {
       if (err instanceof ApiError) setError(err.message)
       else setError('Failed to create lead.')
+    },
+  })
+  const convertM = useMutation({
+    mutationFn: (id: string) => convertLead(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['crm', 'leads'] })
     },
   })
 
@@ -136,14 +148,15 @@ export function CrmLeadsPage() {
         {!q.isLoading && leads.length === 0 ? <div style={{ color: 'var(--text2)' }}>No leads found.</div> : null}
 
         <div className="tableWrapThemed">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr 0.9fr', padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
             <div>Lead</div>
             <div>Contact</div>
             <div>Status</div>
             <div>Source</div>
+            <div>Actions</div>
           </div>
           {leads.map((l) => (
-            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr', padding: '12px 12px', borderBottom: '1px solid var(--border)' }}>
+            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr 0.9fr', padding: '12px 12px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 900, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.full_name || '—'}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{l.owner_name || '—'}</div>
@@ -152,8 +165,24 @@ export function CrmLeadsPage() {
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email || '—'}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{l.phone_e164 || ''}</div>
               </div>
-              <div style={{ fontWeight: 900 }}>{l.status}</div>
+              <div style={{ fontWeight: 900 }}>
+                {l.status}
+                <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
+                  Score: {l.lead_score ?? 0}
+                </div>
+              </div>
               <div style={{ color: 'var(--text2)', fontWeight: 800 }}>{l.source || '—'}</div>
+              <div>
+                <button
+                  className="btn btnGhost"
+                  style={{ height: 32 }}
+                  type="button"
+                  disabled={l.status === 'converted' || !!l.converted_deal_id || convertM.isPending}
+                  onClick={() => convertM.mutate(l.id)}
+                >
+                  {l.status === 'converted' || l.converted_deal_id ? 'Converted' : 'Convert to deal'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -2,6 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const crypto = require('crypto');
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/auth');
 const { validateUserCreate, validateManagerUserCreate, validateUserUpdate } = require('../middleware/validators');
@@ -11,6 +15,27 @@ const { orgIdForSessionUser } = require('../utils/orgContext');
 const { normalizeStoredAvatarUrl } = require('../utils/avatarUrl');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+});
+
+let s3 = null;
+let PutObjectCommand = null;
+if (process.env.S3_BUCKET && process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID) {
+  try {
+    const { S3Client, PutObjectCommand: PutCommand } = require('@aws-sdk/client-s3');
+    s3 = new S3Client({
+      region: process.env.AWS_REGION,
+      endpoint: process.env.S3_ENDPOINT || undefined,
+      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
+    });
+    PutObjectCommand = PutCommand;
+  } catch {
+    s3 = null;
+    PutObjectCommand = null;
+  }
+}
 
 async function getSeatLimitForOrg(orgId) {
   const { rows } = await query(
@@ -116,6 +141,62 @@ router.patch('/:id/avatar', authenticate, async (req, res, next) => {
     });
 
     res.json({ user: userOut });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Avatar binary upload — stores in S3 when configured, otherwise local disk */
+router.post('/:id/avatar/upload', authenticate, avatarUpload.single('avatar'), async (req, res, next) => {
+  try {
+    const rawId = String(req.params.id || '').trim();
+    if (!UUID_RE.test(rawId)) return res.status(400).json({ error: 'Invalid user id' });
+    const sessionUserId = String(req.user.id || '').trim();
+    if (rawId.toLowerCase() !== sessionUserId.toLowerCase()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'avatar file is required' });
+
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    const isAllowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(mime);
+    if (!isAllowed) return res.status(422).json({ error: 'Only PNG, JPEG, or WEBP are allowed' });
+
+    const orgId = await orgIdForSessionUser(req);
+    if (orgId == null || orgId === '') {
+      return res.status(401).json({ error: 'Session expired — please sign in again.' });
+    }
+
+    const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+    const fileName = `avatar_${rawId}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+    let avatarUrl;
+
+    if (s3 && PutObjectCommand && process.env.S3_BUCKET) {
+      const key = `orgs/${orgId}/avatars/${fileName}`;
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key,
+        Body: req.file.buffer,
+        ContentType: mime,
+      }));
+      if (process.env.S3_PUBLIC_BASE_URL) avatarUrl = `${process.env.S3_PUBLIC_BASE_URL.replace(/\/$/, '')}/${key}`;
+      else avatarUrl = `s3://${process.env.S3_BUCKET}/${key}`;
+    } else {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadsDir, fileName), req.file.buffer);
+      avatarUrl = `/uploads/avatars/${fileName}`;
+    }
+
+    const { rows } = await query(
+      `UPDATE users SET avatar_url = $1 WHERE id = $2::uuid AND org_id = $3::uuid
+       RETURNING id, email, full_name, role, department, avatar_url`,
+      [avatarUrl, rawId, String(orgId)]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+
+    await cacheDel(`user:${rawId}`);
+    await cacheDelPattern(`user:${rawId}`);
+    return res.json({ user: rows[0], avatarUrl });
   } catch (err) {
     next(err);
   }

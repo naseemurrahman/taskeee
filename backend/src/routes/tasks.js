@@ -6,6 +6,7 @@ const { validateTaskCreate, validateStatusUpdate } = require('../middleware/vali
 const { emitNotification } = require('../services/notificationService');
 const { logUserActivity } = require('../services/activityService');
 const { triggerAITaskReview } = require('../services/aiService');
+const { orgIdForSessionUser } = require('../utils/orgContext');
 
 const _tableColsCache = new Map();
 async function getTableColumns(tableName) {
@@ -36,9 +37,19 @@ async function assertCanViewTask(req, task) {
   return rows.length > 0;
 }
 
-async function getScopedTargetUserIds(user) {
-  const orgId = user.org_id ?? user.orgId;
+async function getScopedTargetUserIds(user, orgId) {
   let targetUserIds = [user.id];
+  let legacyEmployeeId = null;
+
+  try {
+    const { rows: employeeRows } = await query(
+      `SELECT id FROM employees WHERE user_id = $1 AND org_id = $2 LIMIT 1`,
+      [user.id, orgId]
+    );
+    legacyEmployeeId = employeeRows[0]?.id || null;
+  } catch {
+    legacyEmployeeId = null;
+  }
 
   if (isOrgWideRole(user.role)) {
     const { rows: orgUsers } = await query(
@@ -54,7 +65,34 @@ async function getScopedTargetUserIds(user) {
     targetUserIds = [user.id, ...subs.map(r => r.user_id)];
   }
 
+  // Legacy compatibility: some deployments historically wrote employees.id into
+  // tasks.assigned_to. Include that id to avoid empty "My Tasks".
+  if (legacyEmployeeId && !targetUserIds.includes(legacyEmployeeId)) {
+    targetUserIds.push(legacyEmployeeId);
+  }
   return targetUserIds;
+}
+
+async function getOwnTargetUserIds(user, orgId) {
+  const ids = [user.id];
+  try {
+    const { rows } = await query(
+      `SELECT id
+       FROM employees
+       WHERE org_id = $1
+         AND (
+           user_id = $2
+           OR (work_email IS NOT NULL AND LOWER(work_email) = LOWER($3))
+         )`,
+      [orgId, user.id, user.email || '']
+    );
+    for (const row of rows) {
+      if (row?.id && !ids.includes(row.id)) ids.push(row.id);
+    }
+  } catch {
+    // Ignore legacy mapping lookup failures.
+  }
+  return ids;
 }
 
 function normalizeRecurrence(recurrence, dueDate) {
@@ -192,15 +230,16 @@ router.get('/', authenticate, async (req, res, next) => {
     const { status, priority, page = 1, limit = 20, userId, board, mine } = req.query;
     const offset = (page - 1) * limit;
     const user = req.user;
-    const orgId = user.org_id ?? user.orgId;
-    let targetUserIds = await getScopedTargetUserIds(user);
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+    let targetUserIds = await getScopedTargetUserIds(user, orgId);
 
     /** Employees ALWAYS see only their own tasks — enforce unconditionally. */
     if (user.role === 'employee') {
-      targetUserIds = [user.id];
+      targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (String(mine || '') === 'true') {
       /** Only tasks assigned to the signed-in user. */
-      targetUserIds = [user.id];
+      targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (userId && targetUserIds.includes(userId)) {
       targetUserIds = [userId];
     }
@@ -888,7 +927,11 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       // but only via allowed transitions defined below
     }
 
-    const { status, note } = req.body;
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const { status, note, force, source } = req.body;
+    const forceTransition = force === true && source === 'board_drag';
     const allowedTransitions = {
       // Assignee: every listed `from` status must have an array (possibly empty) or PATCH returns 400.
       employee: {
@@ -965,7 +1008,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
 
     const { rows } = await query(
       `SELECT * FROM tasks WHERE id = $1 AND org_id = $2`,
-      [req.params.id, req.user.org_id ?? req.user.orgId]
+      [req.params.id, orgId]
     );
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
@@ -978,7 +1021,8 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     const role = req.user.role;
     const allowed = allowedTransitions[role];
 
-    if (['in_progress', 'submitted', 'completed'].includes(status)) {
+    const elevatedBoardRoles = ['supervisor', 'manager', 'hr', 'director', 'admin'];
+    if (!forceTransition && ['in_progress', 'submitted', 'completed'].includes(status) && !elevatedBoardRoles.includes(role)) {
       const blocking = await getIncompleteBlockingDependencies(task.id);
       if (blocking.length) {
         return res.status(400).json({
@@ -1037,7 +1081,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     });
 
     await logUserActivity({
-      orgId: req.user.org_id ?? req.user.orgId,
+      orgId,
       userId: req.user.id,
       taskId: task.id,
       activityType: 'task_status_changed',
@@ -1056,7 +1100,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     if (status === 'submitted') {
       const notifyIds = new Set();
       if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
-      const { rows: assigneeMeta } = await query(`SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`, [task.assigned_to, req.user.org_id ?? req.user.orgId]);
+      const { rows: assigneeMeta } = await query(`SELECT manager_id FROM users WHERE id = $1 AND org_id = $2`, [task.assigned_to, orgId]);
       const mgrId = assigneeMeta[0]?.manager_id;
       if (mgrId && mgrId !== req.user.id) notifyIds.add(mgrId);
 
@@ -1079,6 +1123,38 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     }
 
     res.json({ message: 'Status updated', taskId: task.id, status, generatedTask });
+  } catch (err) { next(err); }
+});
+
+
+// PATCH /tasks/:id/board-status - explicit board move endpoint (manager+)
+router.patch('/:id/board-status', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), validateStatusUpdate, async (req, res, next) => {
+  try {
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const { status, note } = req.body;
+    const { rows } = await query(`SELECT * FROM tasks WHERE id = $1 AND org_id = $2`, [req.params.id, orgId]);
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+
+    const task = rows[0];
+    const taskCols = await getTableColumns('tasks');
+    const setClauses = ['status = $1', 'updated_at = NOW()'];
+    const params = [status, task.id];
+
+    if (status === 'in_progress' && taskCols.has('started_at')) setClauses.push('started_at = NOW()');
+    if (status === 'submitted' && taskCols.has('submitted_at')) setClauses.push('submitted_at = NOW()');
+    if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
+
+    await withTransaction(async (client) => {
+      await client.query(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $2`, params);
+      await client.query(`
+        INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
+        VALUES ($1, $2, 'user', 'status_changed', $3, $4, $5)
+      `, [task.id, req.user.id, task.status, status, note || 'Board status update']);
+    });
+
+    res.json({ message: 'Board status updated', taskId: task.id, status });
   } catch (err) { next(err); }
 });
 

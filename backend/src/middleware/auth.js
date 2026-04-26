@@ -6,14 +6,14 @@ const { cacheGet, cacheSet } = require('../utils/redis');
 const ROLE_HIERARCHY = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'];
 
 function getRoleLevel(role) {
-  return ROLE_HIERARCHY.indexOf(role);
+  return ROLE_HIERARCHY.indexOf(String(role || '').toLowerCase());
 }
 
 /** Roles that can see all users/tasks in the org (read-only HR + exec). */
 const ORG_WIDE_ROLES = new Set(['hr', 'director', 'admin']);
 
 function isOrgWideRole(role) {
-  return ORG_WIDE_ROLES.has(role);
+  return ORG_WIDE_ROLES.has(String(role || '').toLowerCase());
 }
 
 // ─── Verify JWT and attach user to req ────────────────────────────────────
@@ -44,7 +44,7 @@ async function authenticate(req, res, next) {
 
     if (!user.is_active) return res.status(403).json({ error: 'Account deactivated' });
 
-    req.user = user;
+    req.user = { ...user, role: String(user.role || '').toLowerCase() };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError')
@@ -69,7 +69,9 @@ function requireRole(...roles) {
 /** One-of explicit roles (not hierarchical). */
 function requireAnyRole(...roles) {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role))
+    const normalizedRole = String(req.user.role || '').toLowerCase();
+    const normalizedAllowedRoles = roles.map((role) => String(role || '').toLowerCase());
+    if (!normalizedAllowedRoles.includes(normalizedRole))
       return res.status(403).json({ error: 'Insufficient permissions' });
     next();
   };

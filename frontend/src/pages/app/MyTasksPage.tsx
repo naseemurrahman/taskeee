@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, apiUpload, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { Navigate } from 'react-router-dom'
 import { Camera, MessageCircle } from 'lucide-react'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
@@ -89,10 +88,9 @@ function formatDue(iso: string | null | undefined) {
 
 export function MyTasksPage() {
   const me = getUser()
-  // My Tasks is merged into Tasks page — always redirect
-  return <Navigate to="/app/tasks" replace />
   const qc = useQueryClient()
   const [status, setStatus] = useState('all')
+  const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [comment, setComment] = useState('')
   const [manualStatus, setManualStatus] = useState('')
@@ -137,7 +135,7 @@ export function MyTasksPage() {
   )
 
   const isAssignee = !!(me?.id && task?.assigned_to && task.assigned_to === me.id)
-  const canManageStatus = !!me?.role && ['supervisor', 'manager', 'director', 'admin'].includes(me.role)
+  const canManageStatus = !!me?.role && ['supervisor', 'manager', 'hr', 'director', 'admin'].includes(me.role)
 
   const manualStatusChoices = useMemo(() => {
     if (!task || !canManageStatus) return []
@@ -198,6 +196,27 @@ export function MyTasksPage() {
   })
 
   const tasks = listQ.data || []
+  const filteredTasks = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return tasks
+    return tasks.filter((t) =>
+      [t.title, t.category_name, t.status].filter(Boolean).join(' ').toLowerCase().includes(q)
+    )
+  }, [tasks, search])
+  const taskStats = useMemo(() => {
+    const stats = { total: tasks.length, pending: 0, in_progress: 0, submitted: 0, done: 0 }
+    for (const t of tasks) {
+      if (t.status === 'pending') stats.pending++
+      else if (t.status === 'in_progress') stats.in_progress++
+      else if (t.status === 'submitted') stats.submitted++
+      else if (['completed', 'manager_approved', 'ai_approved'].includes(t.status)) stats.done++
+    }
+    return stats
+  }, [tasks])
+
+  useEffect(() => {
+    if (!selectedId && filteredTasks.length > 0) setSelectedId(filteredTasks[0].id)
+  }, [selectedId, filteredTasks])
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -218,7 +237,7 @@ export function MyTasksPage() {
           </div>
         </div>
       </div>
-      <div className="card">
+      <div className="card" style={{ display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <div>
             <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>My tasks</h2>
@@ -227,13 +246,26 @@ export function MyTasksPage() {
             </div>
           </div>
         </div>
-        <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(110px, 1fr))', gap: 10 }}>
+          <div className="miniCard"><div className="miniLabel">Total</div><div className="miniValue">{taskStats.total}</div></div>
+          <div className="miniCard"><div className="miniLabel">To do</div><div className="miniValue">{taskStats.pending}</div></div>
+          <div className="miniCard"><div className="miniLabel">In progress</div><div className="miniValue">{taskStats.in_progress}</div></div>
+          <div className="miniCard"><div className="miniLabel">Done</div><div className="miniValue">{taskStats.done}</div></div>
+        </div>
+        <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 900 }}>STATUS</span>
           <div style={{ width: 180 }}>
             <Select value={status} onChange={setStatus}
               options={STATUS_FILTER.map(s => ({ value: s.key, label: s.label }))}
             />
           </div>
+          <input
+            className="input"
+            placeholder="Search in my tasks…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 260, height: 40 }}
+          />
         </div>
       </div>
 
@@ -241,11 +273,14 @@ export function MyTasksPage() {
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           {listQ.isLoading ? <div style={{ padding: 16, color: 'var(--text2)' }}>Loading…</div> : null}
           {listQ.isError ? <div className="alert alertError" style={{ margin: 12 }}>Failed to load tasks.</div> : null}
-          {!listQ.isLoading && tasks.length === 0 ? (
-            <div style={{ padding: 16, color: 'var(--text2)' }}>No tasks assigned to you for this filter.</div>
+          {!listQ.isLoading && filteredTasks.length === 0 ? (
+            <div style={{ padding: 20, color: 'var(--text2)', display: 'grid', gap: 4 }}>
+              <div style={{ fontWeight: 900, color: 'var(--text)' }}>No tasks found</div>
+              <div>Try changing the status filter or ask your manager to assign tasks to you.</div>
+            </div>
           ) : null}
           <div className="myTasksList">
-            {tasks.map((t) => (
+            {filteredTasks.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -265,7 +300,7 @@ export function MyTasksPage() {
 
         <div className="card">
           {!selectedId ? (
-            <div style={{ color: 'var(--text2)' }}>Select a task to upload photos, read AI results, comment, and update status.</div>
+            <div style={{ color: 'var(--text2)' }}>Select a task from the queue to view details, upload evidence, and collaborate.</div>
           ) : detailQ.isLoading ? (
             <div style={{ color: 'var(--text2)' }}>Loading task…</div>
           ) : detailQ.isError ? (

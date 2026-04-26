@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { useState } from 'react'
+import { getAccessToken } from '../../state/auth'
 
 type ReportRow = {
   id: string
@@ -33,6 +34,20 @@ function downloadReportCsv(rows: ReportRow[]) {
   const a = document.createElement('a')
   a.href = url
   a.download = `reports-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function downloadReportPdf(reportId: string) {
+  const res = await fetch(`/api/v1/reports/${encodeURIComponent(reportId)}/export?format=pdf`, {
+    headers: { Authorization: `Bearer ${getAccessToken() || ''}` },
+  })
+  if (!res.ok) throw new Error('PDF export failed')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `report-${reportId}.pdf`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -90,8 +105,11 @@ export function ReportsPage() {
             <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => downloadReportCsv(q.data?.reports || [])}>
               Export CSV
             </button>
-            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => window.print()}>
-              Export PDF
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => {
+              const first = q.data?.reports?.[0]
+              if (first) void downloadReportPdf(first.id)
+            }}>
+              Export Latest PDF
             </button>
           </div>
         </div>
@@ -123,6 +141,9 @@ export function ReportsPage() {
                 <Link className="btn btnGhost" style={{ height: 40, display: 'grid', placeItems: 'center', padding: '0 12px' }} to={`/app/reports/${r.id}`}>
                   Open
                 </Link>
+                <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} type="button" onClick={() => void downloadReportPdf(r.id)}>
+                  PDF
+                </button>
               </div>
             </div>
           ))}

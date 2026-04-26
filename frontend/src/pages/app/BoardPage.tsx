@@ -1,6 +1,6 @@
-import { useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiFetch } from '../../lib/api'
+import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
@@ -14,7 +14,10 @@ type Task = {
 }
 
 async function patchStatus(taskId: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } })
+  return apiFetch(`/api/v1/tasks/${taskId}/board-status`, {
+    method: 'PATCH',
+    json: { status, force: true, source: 'board_drag' },
+  })
 }
 
 const COLUMNS = [
@@ -65,6 +68,7 @@ export function BoardPage() {
     refetchInterval: 60_000,
   })
   const tasks = data || []
+  const taskById = useMemo(() => new Map(tasks.map(t => [t.id, t] as const)), [tasks])
 
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
@@ -180,6 +184,7 @@ export function BoardPage() {
       )}
 
       {/* Board */}
+      {statusError ? <div className="alert alertError">{statusError}</div> : null}
       {isLoading ? (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, 1fr)`, gap: 12 }}>
           {COLUMNS.map(col => (
@@ -230,7 +235,14 @@ export function BoardPage() {
                         draggable={canDrag}
                         onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
-                        onClick={() => setSelectedTaskId(task.id)}
+                        onPointerDown={e => onPointerDragStart(task, col.key, e.target)}
+                        onClick={() => {
+                          if (suppressCardClickRef.current) {
+                            suppressCardClickRef.current = false
+                            return
+                          }
+                          if (!dragging) setSelectedTaskId(task.id)
+                        }}
                         style={{
                           background: 'var(--bg1)',
                           borderRadius: 12,
@@ -262,6 +274,19 @@ export function BoardPage() {
                         <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', marginTop: task.priority ? 6 : 2, marginBottom: 6, lineHeight: 1.4 }}>
                           {task.title}
                         </div>
+
+                        {canDrag && (
+                          <div style={{ marginBottom: 6 }}>
+                            <select
+                              value={task.status}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => { e.stopPropagation(); onQuickMove(task.id, e.target.value) }}
+                              style={{ width: '100%', fontSize: 11, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '4px 6px' }}
+                            >
+                              {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                            </select>
+                          </div>
+                        )}
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {task.category_name && (

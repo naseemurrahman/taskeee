@@ -4,6 +4,7 @@ const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { generateReport, sendReportEmail } = require('../services/reportService');
+const PDFDocument = require('pdfkit');
 
 function isMissingReportsTableError(err) {
   const code = String(err?.code || '');
@@ -101,6 +102,33 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.csv"`);
       return res.send(csv);
+    }
+
+    if (format === 'pdf') {
+      const payload = typeof report.data === 'string' ? JSON.parse(report.data || '{}') : (report.data || {});
+      const doc = new PDFDocument({ margin: 40 });
+      const chunks = [];
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('error', () => null);
+      doc.fontSize(20).text('TaskFlow Pro Report', { align: 'left' });
+      doc.moveDown(0.6);
+      doc.fontSize(11).fillColor('#555').text(`Report ID: ${report.id}`);
+      doc.text(`Type: ${report.report_type}`);
+      doc.text(`Generated: ${new Date(report.created_at).toLocaleString()}`);
+      doc.moveDown(0.8);
+      doc.fillColor('#111').fontSize(12).text('Summary');
+      doc.moveDown(0.3);
+      Object.entries(payload || {}).slice(0, 50).forEach(([k, v]) => {
+        const value = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+        doc.fontSize(10).fillColor('#111').text(`${k}: ${value}`);
+      });
+      doc.end();
+      const pdfBuffer = await new Promise((resolve) => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.pdf"`);
+      return res.send(pdfBuffer);
     }
 
     return res.status(400).json({ error: 'Unsupported export format' });

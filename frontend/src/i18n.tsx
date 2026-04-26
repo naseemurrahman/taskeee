@@ -134,6 +134,7 @@ const DICT: Dict = {
   'nav.leads': { en: 'Leads', ar: 'العملاء المحتملون' },
   'nav.connections': { en: 'Connections', ar: 'الاتصالات' },
   'nav.insights': { en: 'Insights', ar: 'الرؤى' },
+  'nav.settings': { en: 'Org Settings', ar: 'إعدادات المؤسسة' },
   'nav.logs': { en: 'Logs', ar: 'السجلات' },
 
   // titles

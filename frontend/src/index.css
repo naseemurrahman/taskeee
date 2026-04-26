@@ -8175,3 +8175,58 @@ textarea.input {
   font-size: 20px;
 }
 
+/* Dark theme polish */
+.appShellV4Dark {
+  --bg1: #151922;
+  --bg2: #1b2130;
+  --border: rgba(255, 255, 255, 0.13);
+}
+
+.appShellV4Dark .card,
+.appShellV4Dark .miniCard,
+.appShellV4Dark .chartV3,
+.appShellV4Dark .kpiV3,
+.appShellV4Dark .pageHeaderCard {
+  background: linear-gradient(180deg, rgba(32, 39, 55, 0.95) 0%, rgba(23, 28, 39, 0.95) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
+}
+
+.appShellV4Dark .card:hover,
+.appShellV4Dark .miniCard:hover,
+.appShellV4Dark .chartV3:hover,
+.appShellV4Dark .kpiV3:hover {
+  border-color: rgba(226, 171, 65, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(226, 171, 65, 0.12);
+}
+
+.appShellV4Dark .btnGhost {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: rgba(243, 239, 231, 0.88) !important;
+}
+
+.appShellV4Dark .btnGhost:hover {
+  background: rgba(226, 171, 65, 0.15) !important;
+  border-color: rgba(226, 171, 65, 0.45) !important;
+  color: #f4ca57 !important;
+}
+
+.appShellV4Dark .input,
+.appShellV4Dark input.input,
+.appShellV4Dark textarea.input,
+.appShellV4Dark .inputV3Field,
+.appShellV4Dark .selectV3Trigger {
+  background: #111722 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.appShellV4Dark .input:focus,
+.appShellV4Dark input.input:focus,
+.appShellV4Dark textarea.input:focus,
+.appShellV4Dark .inputV3Field:focus-within,
+.appShellV4Dark .selectV3Open {
+  border-color: rgba(226, 171, 65, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(226, 171, 65, 0.16) !important;
+}
+
