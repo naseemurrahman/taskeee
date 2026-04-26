@@ -918,7 +918,8 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     const orgId = await orgIdForSessionUser(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
 
-    const { status, note } = req.body;
+    const { status, note, force, source } = req.body;
+    const forceTransition = force === true && source === 'board_drag';
     const allowedTransitions = {
       // Assignee: every listed `from` status must have an array (possibly empty) or PATCH returns 400.
       employee: {
@@ -982,7 +983,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     const allowed = allowedTransitions[role];
 
     const elevatedBoardRoles = ['supervisor', 'manager', 'hr', 'director', 'admin'];
-    if (['in_progress', 'submitted', 'completed'].includes(status) && !elevatedBoardRoles.includes(role)) {
+    if (!forceTransition && ['in_progress', 'submitted', 'completed'].includes(status) && !elevatedBoardRoles.includes(role)) {
       const blocking = await getIncompleteBlockingDependencies(task.id);
       if (blocking.length) {
         return res.status(400).json({
@@ -995,7 +996,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     const boardStatuses = new Set(['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue']);
     const boardRoleBypass = elevatedBoardRoles.includes(role) && boardStatuses.has(status);
 
-    if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
+    if (!forceTransition && !['director', 'admin'].includes(role) && !boardRoleBypass) {
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
         if (!allowed[task.status]?.includes(status)) {
           return res.status(400).json({ error: `Cannot transition from ${task.status} to ${status}` });

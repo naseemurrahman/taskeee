@@ -13,7 +13,10 @@ type Task = {
 }
 
 async function patchStatus(taskId: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } })
+  return apiFetch(`/api/v1/tasks/${taskId}/status`, {
+    method: 'PATCH',
+    json: { status, force: true, source: 'board_drag' },
+  })
 }
 
 const COLUMNS = [
