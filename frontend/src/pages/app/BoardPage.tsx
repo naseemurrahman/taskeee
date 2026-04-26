@@ -113,19 +113,16 @@ export function BoardPage() {
     if (!droppedTask || fromCol === toColKey) {
       dragTask.current = null
       setDragging(null)
-      window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
       return
     }
 
     m.mutate({ id: droppedTask.id, status: toColKey })
     dragTask.current = null
     setDragging(null)
-    window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
   }
 
   function onDragEnd() {
     setDragging(null); setDragOver(null); dragTask.current = null
-    window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
   }
 
   function onColumnDragLeave(e: React.DragEvent<HTMLDivElement>, colKey: string) {
@@ -212,7 +209,13 @@ export function BoardPage() {
                         draggable={canDrag}
                         onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
-                        onClick={() => { if (!dragging && !suppressCardClickRef.current) setSelectedTaskId(task.id) }}
+                        onClick={() => {
+                          if (suppressCardClickRef.current) {
+                            suppressCardClickRef.current = false
+                            return
+                          }
+                          if (!dragging) setSelectedTaskId(task.id)
+                        }}
                         style={{
                           background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
                           border: '1px solid var(--border)', cursor: canDrag ? 'grab' : 'pointer',
