@@ -169,9 +169,12 @@ export function BoardPage() {
             const isOver = dragOver === col.key
             return (
               <div key={col.key}
+                onDragEnter={e => onDragOver(e, col.key)}
                 onDragOver={e => onDragOver(e, col.key)}
                 onDrop={e => onDrop(e, col.key)}
-                onDragLeave={() => setDragOver(null)}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(null)
+                }}
                 style={{
                   background: isOver ? (col.color + '10') : 'var(--bg2)',
                   borderRadius: 16, padding: 14, minHeight: 200,
@@ -195,10 +198,8 @@ export function BoardPage() {
                       <div key={task.id}
                         draggable={canDrag}
                         onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
-                        onDragOver={e => { if (!canDrag) return; e.preventDefault(); e.stopPropagation() }}
-                        onDrop={e => { if (!canDrag) return; e.preventDefault(); e.stopPropagation(); onDrop(e, col.key) }}
                         onDragEnd={canDrag ? onDragEnd : undefined}
-                        onClick={() => setSelectedTaskId(task.id)}
+                        onClick={() => { if (!dragging) setSelectedTaskId(task.id) }}
                         style={{
                           background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
                           border: '1px solid var(--border)', cursor: canDrag ? 'grab' : 'pointer',
