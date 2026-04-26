@@ -527,7 +527,11 @@ router.post('/reset-password', async (req, res, next) => {
     await withTransaction(async (client) => {
       await client.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, rec.user_id]);
       await client.query(`UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`, [rec.id]);
-      await client.query(`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, [rec.user_id]);
+      try {
+        await client.query(`UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1`, [rec.user_id]);
+      } catch (err) {
+        if (String(err?.code || '') !== '42703') throw err;
+      }
     });
     await cacheDel(`user:${rec.user_id}`);
 
@@ -759,10 +763,13 @@ router.post('/refresh', async (req, res, next) => {
     const tokenHash = require('crypto')
       .createHash('sha256').update(refreshToken).digest('hex');
 
+    const rtCols = await getTableColumns('refresh_tokens');
+    const hasRevoked = rtCols.has('revoked');
+    const revokedClause = hasRevoked ? 'AND rt.revoked = FALSE' : '';
     const { rows } = await query(
       `SELECT rt.*, u.org_id, u.role FROM refresh_tokens rt
        JOIN users u ON u.id = rt.user_id
-       WHERE rt.token_hash = $1 AND rt.revoked = FALSE AND rt.expires_at > NOW()`,
+       WHERE rt.token_hash = $1 ${revokedClause} AND rt.expires_at > NOW()`,
       [tokenHash]
     );
 
@@ -786,7 +793,11 @@ router.post('/logout', authenticate, async (req, res, next) => {
     if (refreshToken) {
       const tokenHash = require('crypto')
         .createHash('sha256').update(refreshToken).digest('hex');
-      await query(`UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1`, [tokenHash]);
+      try {
+        await query(`UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1`, [tokenHash]);
+      } catch (err) {
+        if (String(err?.code || '') !== '42703') throw err;
+      }
     }
     await cacheDel(`user:${req.user.id}`);
     res.json({ message: 'Logged out successfully' });

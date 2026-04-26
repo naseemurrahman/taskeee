@@ -66,6 +66,7 @@ const statsRoutes       = require('./routes/stats');
 
 const app    = express();
 const server = http.createServer(app);
+app.set('trust proxy', 1);
 
 // ── WebSocket: OWASP A01 — JWT verified, user joins own room only ─────────
 const defaultOrigins = [
@@ -98,46 +99,6 @@ if (!process.env.CLIENT_ORIGIN) {
   console.warn('⚠️ CLIENT_ORIGIN not set, WebSocket may not work properly in production');
 }
 
-// Real-time features for production
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  
-  if (!token) {
-    return next(new Error('Authentication token required'));
-  }
-  
-  // Verify JWT token
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.userId;
-    socket.orgId = decoded.orgId;
-    
-    // Join user to their organization room
-    socket.join(`org_${socket.orgId}`);
-    
-    next();
-  } catch (error) {
-    console.error('WebSocket authentication error:', error);
-    next(new Error('Invalid authentication token'));
-  }
-});
-
-// Handle real-time events
-io.on('connection', (socket) => {
-  socket.on('task:update', (data) => {
-    // Broadcast task updates to organization members
-    socket.to(`org_${data.orgId}`).emit('task:updated', data);
-  });
-  
-  socket.on('task:comment', (data) => {
-    // Broadcast new comments to organization members
-    socket.to(`org_${data.orgId}`).emit('task:commented', data);
-  });
-  
-  socket.on('disconnect', () => {
-  });
-});
-
 app.set('io', io);
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -145,8 +106,14 @@ io.use((socket, next) => {
   try {
     const d = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = d.userId;
+    socket.orgId = d.orgId;
     next();
-  } catch { next(new Error('Invalid token')); }
+  } catch (err) {
+    if (err?.name !== 'TokenExpiredError') {
+      logger.warn(`WebSocket authentication error: ${err?.message || 'Invalid token'}`);
+    }
+    next(new Error('Invalid token'));
+  }
 });
 io.on('connection', socket => {
   // Join personal room
