@@ -239,6 +239,16 @@ export function BoardPage() {
                         key={task.id}
                         draggable={canDrag}
                         onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
+                        onDragOver={canDrag ? (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setDragOverCol(col.key)
+                        } : undefined}
+                        onDrop={canDrag ? (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          onColDrop(e, col.key)
+                        } : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => {
                           if (!draggingId) setSelectedTaskId(task.id)
