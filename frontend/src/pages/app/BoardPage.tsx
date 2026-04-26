@@ -178,8 +178,8 @@ export function BoardPage() {
                       <div key={task.id}
                         draggable={canDrag}
                         onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
-                        onDragOver={e => canDrag ? e.preventDefault() : undefined}
-                        onDrop={e => canDrag ? onDrop(e, col.key) : undefined}
+                        onDragOver={e => { if (!canDrag) return; e.preventDefault(); e.stopPropagation() }}
+                        onDrop={e => { if (!canDrag) return; e.preventDefault(); e.stopPropagation(); onDrop(e, col.key) }}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => setSelectedTaskId(task.id)}
                         style={{
