@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -29,6 +29,9 @@ const COLUMNS = [
   { key: 'overdue',          label: 'Overdue',      color: '#ef4444', icon: '⚠' },
 ]
 
+// Columns you cannot drop onto
+const NO_DROP_COLS = new Set(['overdue'])
+
 const PRIORITY_COLOR: Record<string, string> = { low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444' }
 
 function hashColor(s: string) {
@@ -55,11 +58,13 @@ export function BoardPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
-  // Drag state — use refs for values read inside event handlers to avoid stale closures
-  const [draggingId, setDraggingId] = useState<string | null>(null)
+  // ── Drag state (all in refs to avoid stale closures in event handlers) ──
+  const [draggingId, setDraggingId]   = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
-  const dragTaskRef = useRef<Task | null>(null)
-  const fromColRef = useRef<string | null>(null)
+  const draggingIdRef  = useRef<string | null>(null)
+  const dragTaskRef    = useRef<Task | null>(null)
+  const fromColRef     = useRef<string | null>(null)
+  const ghostRef       = useRef<HTMLDivElement | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', 'board', isEmployee],
@@ -68,6 +73,7 @@ export function BoardPage() {
     refetchInterval: 60_000,
   })
   const tasks = data || []
+
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
     onMutate: async ({ id, status }) => {
@@ -99,68 +105,71 @@ export function BoardPage() {
     return map
   }, [tasks])
 
-  // --- Drag handlers ---
-  function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
-    dragTaskRef.current = task
-    fromColRef.current = colKey
+  // ── HTML5 Drag handlers ──────────────────────────────────────────────────
+  // All state mutations happen in refs so event handlers never see stale values.
+
+  const onDragStart = useCallback((e: React.DragEvent, task: Task, colKey: string) => {
+    dragTaskRef.current   = task
+    fromColRef.current    = colKey
+    draggingIdRef.current = task.id
     setDraggingId(task.id)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id)
-    requestAnimationFrame(() => {
-      const el = e.currentTarget as HTMLElement
-      if (el) el.style.opacity = '0.4'
-    })
-  }
+  }, [])
 
-  function onDragEnd(e: React.DragEvent) {
-    const el = e.currentTarget as HTMLElement
-    if (el) el.style.opacity = '1'
+  const onDragEnd = useCallback((_e: React.DragEvent) => {
+    draggingIdRef.current = null
+    dragTaskRef.current   = null
+    fromColRef.current    = null
     setDraggingId(null)
-    fromColRef.current = null
     setDragOverCol(null)
-    dragTaskRef.current = null
-  }
+  }, [])
 
-  // Column drag-over: MUST always call preventDefault to allow drop
-  // Never make these conditional — unconditionally attach to every column
-  function onColDragEnter(e: React.DragEvent, colKey: string) {
-    e.preventDefault()  // required in Safari
-    setDragOverCol(colKey)
-  }
-
-  function onColDragOver(e: React.DragEvent, colKey: string) {
-    e.preventDefault()  // MUST be called every dragover to allow drop
+  const onColDragOver = useCallback((e: React.DragEvent, colKey: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (NO_DROP_COLS.has(colKey)) {
+      e.dataTransfer.dropEffect = 'none'
+      return
+    }
     e.dataTransfer.dropEffect = 'move'
     setDragOverCol(colKey)
-  }
+  }, [])
 
-  function onColDrop(e: React.DragEvent, toColKey: string) {
+  const onColDragEnter = useCallback((e: React.DragEvent, colKey: string) => {
     e.preventDefault()
-    setDragOverCol(null)
+    if (!NO_DROP_COLS.has(colKey)) setDragOverCol(colKey)
+  }, [])
 
-    const task = dragTaskRef.current
-    const currentFromCol = fromColRef.current
-
-    // Reset all drag state immediately
-    setDraggingId(null)
-    fromColRef.current = null
-    dragTaskRef.current = null
-
-    if (!task) return
-    if (!canDrag) return
-    if (currentFromCol === toColKey) return
-    // Don't allow dropping onto overdue column
-    if (toColKey === 'overdue') return
-
-    m.mutate({ id: task.id, status: toColKey })
-  }
-
-  function onColDragLeave(e: React.DragEvent) {
-    const related = e.relatedTarget as HTMLElement | null
+  const onColDragLeave = useCallback((e: React.DragEvent) => {
+    const related = e.relatedTarget as Node | null
     if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
       setDragOverCol(null)
     }
-  }
+  }, [])
+
+  const onColDrop = useCallback((e: React.DragEvent, toColKey: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverCol(null)
+
+    if (NO_DROP_COLS.has(toColKey)) return
+
+    const task        = dragTaskRef.current
+    const currentFrom = fromColRef.current
+
+    // Clear all drag state immediately
+    draggingIdRef.current = null
+    dragTaskRef.current   = null
+    fromColRef.current    = null
+    setDraggingId(null)
+
+    if (!task) return
+    if (!canDrag) return
+    if (currentFrom === toColKey) return
+
+    m.mutate({ id: task.id, status: toColKey })
+  }, [canDrag, m])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
@@ -175,7 +184,7 @@ export function BoardPage() {
             <div className="pageHeaderCardSub">
               {isEmployee
                 ? 'Your tasks by status. Click a card to view details.'
-                : 'Drag tasks between columns to change status. Click a card to view details.'}
+                : 'Drag tasks between columns to update status. Click a card to view details.'}
             </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
@@ -217,7 +226,8 @@ export function BoardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', flex: 1, alignItems: 'start' }}>
           {COLUMNS.map(col => {
             const colTasks = byCol[col.key] || []
-            const isOver = dragOverCol === col.key
+            const isOver   = dragOverCol === col.key && !NO_DROP_COLS.has(col.key)
+            const isNoDrop = dragOverCol === col.key && NO_DROP_COLS.has(col.key)
             return (
               <div
                 key={col.key}
@@ -230,7 +240,7 @@ export function BoardPage() {
                   borderRadius: 16,
                   padding: 14,
                   minHeight: 200,
-                  border: `2px solid ${isOver ? col.color + '70' : 'transparent'}`,
+                  border: `2px solid ${isOver ? col.color + '70' : isNoDrop ? '#ef444460' : 'transparent'}`,
                   transition: 'border-color 0.15s, background 0.15s',
                   boxSizing: 'border-box',
                 }}
@@ -256,7 +266,7 @@ export function BoardPage() {
                         onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => {
-                          if (!draggingId) setSelectedTaskId(task.id)
+                          if (!draggingIdRef.current) setSelectedTaskId(task.id)
                         }}
                         style={{
                           background: 'var(--bg1)',
@@ -264,13 +274,14 @@ export function BoardPage() {
                           padding: '10px 12px',
                           border: '1px solid var(--border)',
                           cursor: canDrag ? 'grab' : 'pointer',
-                          opacity: isDraggingThis ? 0.4 : 1,
+                          opacity: isDraggingThis ? 0.35 : 1,
                           transition: 'opacity 0.1s, box-shadow 0.12s, border-color 0.12s',
                           position: 'relative',
-                          // NO overflow:hidden — it breaks drag in Firefox
                           userSelect: 'none',
+                          pointerEvents: isDraggingThis ? 'none' : 'auto',
                         }}
                         onMouseEnter={e => {
+                          if (isDraggingThis) return
                           const el = e.currentTarget as HTMLDivElement
                           el.style.borderColor = col.color + '60'
                           el.style.boxShadow = `0 4px 16px ${col.color}18`
@@ -281,7 +292,6 @@ export function BoardPage() {
                           el.style.boxShadow = ''
                         }}
                       >
-                        {/* Priority stripe — use border-top instead of absolute div (no overflow:hidden needed) */}
                         {task.priority && (
                           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: pColor, borderRadius: '12px 12px 0 0' }} />
                         )}
@@ -294,11 +304,12 @@ export function BoardPage() {
                           <div style={{ marginBottom: 6 }}>
                             <select
                               value={task.status}
+                              onMouseDown={e => e.stopPropagation()}
                               onClick={e => e.stopPropagation()}
                               onChange={e => { e.stopPropagation(); m.mutate({ id: task.id, status: e.target.value }) }}
                               style={{ width: '100%', fontSize: 11, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '4px 6px' }}
                             >
-                              {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                              {COLUMNS.filter(c => !NO_DROP_COLS.has(c.key)).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                             </select>
                           </div>
                         )}
@@ -317,7 +328,7 @@ export function BoardPage() {
                             {task.assigned_to_name && (
                               <>
                                 <div style={{ width: 18, height: 18, borderRadius: 6, background: hashColor(task.assigned_to_name) + '30', color: hashColor(task.assigned_to_name), display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 900, flexShrink: 0 }}>
-                                  {task.assigned_to_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
+                                  {task.assigned_to_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
                                 </div>
                                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                                   {task.assigned_to_name}
@@ -335,7 +346,7 @@ export function BoardPage() {
                     )
                   })}
 
-                  {/* Empty state */}
+                  {/* Empty state / drop target */}
                   {colTasks.length === 0 && (
                     <div style={{
                       padding: '24px 12px',
@@ -346,8 +357,9 @@ export function BoardPage() {
                       fontSize: 11,
                       fontWeight: 700,
                       transition: 'all 0.15s',
+                      pointerEvents: 'none',
                     }}>
-                      {isOver ? '↓ Drop here' : canDrag ? 'Drop here' : 'No tasks'}
+                      {isOver ? '↓ Drop here' : canDrag && !NO_DROP_COLS.has(col.key) ? 'Drop here' : 'No tasks'}
                     </div>
                   )}
                 </div>
@@ -357,6 +369,7 @@ export function BoardPage() {
         </div>
       )}
 
+      {ghostRef && null /* ghost element placeholder */}
       {canManage && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
       <TaskDetailDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
     </div>
