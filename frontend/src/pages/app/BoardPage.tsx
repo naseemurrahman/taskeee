@@ -55,11 +55,11 @@ export function BoardPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
-  // Drag state
+  // Drag state — use refs for values read inside event handlers to avoid stale closures
   const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [fromCol, setFromCol] = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const dragTaskRef = useRef<Task | null>(null)
+  const fromColRef = useRef<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', 'board', isEmployee],
@@ -70,7 +70,20 @@ export function BoardPage() {
   const tasks = data || []
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
-    onSuccess: () => {
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['tasks', 'board', isEmployee] })
+      const previous = qc.getQueryData<Task[]>(['tasks', 'board', isEmployee])
+      qc.setQueryData<Task[]>(['tasks', 'board', isEmployee], (old) =>
+        (old || []).map(t => t.id === id ? { ...t, status } : t)
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['tasks', 'board', isEmployee], context.previous)
+      }
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
@@ -89,11 +102,10 @@ export function BoardPage() {
   // --- Drag handlers ---
   function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
     dragTaskRef.current = task
+    fromColRef.current = colKey
     setDraggingId(task.id)
-    setFromCol(colKey)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id)
-    // Small delay so the drag image renders before opacity changes
     requestAnimationFrame(() => {
       const el = e.currentTarget as HTMLElement
       if (el) el.style.opacity = '0.4'
@@ -104,7 +116,7 @@ export function BoardPage() {
     const el = e.currentTarget as HTMLElement
     if (el) el.style.opacity = '1'
     setDraggingId(null)
-    setFromCol(null)
+    fromColRef.current = null
     setDragOverCol(null)
     dragTaskRef.current = null
   }
@@ -127,15 +139,18 @@ export function BoardPage() {
     setDragOverCol(null)
 
     const task = dragTaskRef.current
-    if (!task) return
+    const currentFromCol = fromColRef.current
 
-    const currentFromCol = fromCol
+    // Reset all drag state immediately
     setDraggingId(null)
-    setFromCol(null)
+    fromColRef.current = null
     dragTaskRef.current = null
 
-    if (currentFromCol === toColKey) return
+    if (!task) return
     if (!canDrag) return
+    if (currentFromCol === toColKey) return
+    // Don't allow dropping onto overdue column
+    if (toColKey === 'overdue') return
 
     m.mutate({ id: task.id, status: toColKey })
   }
