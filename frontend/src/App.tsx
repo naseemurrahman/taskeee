@@ -29,9 +29,11 @@ import { ReportDetailPage } from './pages/app/ReportDetailPage'
 import { AuditPage } from './pages/app/AuditPage'
 import { ProfilePage } from './pages/app/ProfilePage'
 import { LogsPage } from './pages/app/LogsPage'
+import { InsightsPage } from './pages/app/InsightsPage'
 import { MarketingLayout } from './pages/marketing/MarketingLayout'
 import { MarketingHomePage } from './pages/marketing/MarketingHomePage'
 import { PricingPage } from './pages/marketing/PricingPage'
+import { OnboardingPage } from './pages/app/OnboardingPage'
 import React from 'react'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -77,12 +79,14 @@ export default function App() {
         <Route path="logs" element={<LogsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="insights" element={<InsightsPage />} />
         <Route path="hr/employees" element={<EmployeesPage />} />
         <Route path="hr/employees/:id" element={<EmployeeProfilePage />} />
         <Route path="hr/time-off" element={<TimeOffPage />} />
         <Route path="crm/pipeline" element={<CrmPipelinePage />} />
         <Route path="crm/leads" element={<CrmLeadsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="onboarding" element={<OnboardingPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="contractors" element={<ContractorsPage />} />
         <Route path="contractors/:id" element={<ContractorProfilePage />} />

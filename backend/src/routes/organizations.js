@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { query, withTransaction } = require('../utils/db');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requireRole, requireAnyRole } = require('../middleware/auth');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
@@ -99,6 +99,26 @@ router.patch('/me', authenticate, requireRole('admin'), async (req, res, next) =
       params
     );
     res.json({ organization: rows[0] });
+  } catch (err) { next(err); }
+});
+
+// POST /organizations/onboarding/complete - mark onboarding completed and save setup payload
+router.post('/onboarding/complete', authenticate, requireAnyRole('manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const payload = req.body?.onboarding || {};
+    const { rows } = await query(
+      `UPDATE organizations
+       SET settings = COALESCE(settings, '{}'::jsonb) || $1::jsonb
+       WHERE id = $2
+       RETURNING id, name, slug, plan, settings`,
+      [JSON.stringify({
+        onboardingCompleted: true,
+        onboardingCompletedAt: new Date().toISOString(),
+        onboarding: payload,
+      }), orgId]
+    );
+    return res.json({ organization: rows[0] });
   } catch (err) { next(err); }
 });
 

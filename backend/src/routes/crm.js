@@ -10,6 +10,15 @@ async function resolveOrgId(req) {
   return orgId != null && orgId !== '' ? String(orgId) : null;
 }
 
+function scoreLead(lead) {
+  let score = 0;
+  if (lead.email) score += 30;
+  if (lead.phone_e164) score += 20;
+  if (lead.source) score += 15;
+  if (lead.status === 'qualified') score += 35;
+  return Math.min(100, score);
+}
+
 // Pipelines
 router.get('/pipelines', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
@@ -141,7 +150,47 @@ router.post('/leads', authenticate, requireAnyRole('supervisor', 'manager', 'hr'
       userAgent: req.headers['user-agent'] || null
     });
 
-    res.status(201).json({ lead: rows[0] });
+    const lead = rows[0];
+    const leadScore = scoreLead(lead);
+    await query(`UPDATE crm_leads SET lead_score = $1 WHERE id = $2`, [leadScore, lead.id]);
+    res.status(201).json({ lead: { ...lead, lead_score: leadScore } });
+  } catch (err) { next(err); }
+});
+
+router.post('/leads/:id/convert', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const orgId = await resolveOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+    const leadId = req.params.id;
+    const converted = await withTransaction(async (client) => {
+      const { rows: leadRows } = await client.query(`SELECT * FROM crm_leads WHERE id = $1 AND org_id = $2 FOR UPDATE`, [leadId, orgId]);
+      if (!leadRows.length) return null;
+      const lead = leadRows[0];
+      if (lead.converted_deal_id) return { already: true, dealId: lead.converted_deal_id };
+
+      const { rows: pipelineRows } = await client.query(`SELECT id FROM crm_pipelines WHERE org_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1`, [orgId]);
+      if (!pipelineRows.length) throw new Error('No pipeline configured');
+      const pipelineId = pipelineRows[0].id;
+      const { rows: stageRows } = await client.query(`SELECT id FROM crm_pipeline_stages WHERE pipeline_id = $1 ORDER BY position ASC LIMIT 1`, [pipelineId]);
+      const stageId = stageRows[0]?.id;
+      if (!stageId) throw new Error('No pipeline stage configured');
+
+      const { rows: dealRows } = await client.query(
+        `INSERT INTO crm_deals (org_id, pipeline_id, stage_id, owner_user_id, title, value_currency)
+         VALUES ($1,$2,$3,$4,$5,'USD') RETURNING *`,
+        [orgId, pipelineId, stageId, lead.owner_user_id || req.user.id, lead.full_name || lead.email || 'Converted lead']
+      );
+      const deal = dealRows[0];
+      await client.query(
+        `UPDATE crm_leads
+         SET status = 'converted', converted_at = NOW(), converted_deal_id = $1, lead_score = COALESCE(lead_score, $2)
+         WHERE id = $3`,
+        [deal.id, scoreLead(lead), leadId]
+      );
+      return { already: false, deal };
+    });
+    if (!converted) return res.status(404).json({ error: 'Lead not found' });
+    return res.json(converted);
   } catch (err) { next(err); }
 });
 

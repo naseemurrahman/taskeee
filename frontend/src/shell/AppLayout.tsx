@@ -8,7 +8,7 @@ import { getUser } from '../state/auth'
 import { useI18n, type Lang } from '../i18n'
 import type React from 'react'
 import {
-  BarChart3, BookOpen, Calendar, ClipboardList, CreditCard, FolderKanban,
+  BarChart3, BookOpen, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
 } from 'lucide-react'
@@ -19,7 +19,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Billing: CreditCard, Contractors: Users, Jeczone: Gauge, Profile: Settings,
   Directory: Users, Reports: ScrollText, Audit: Shield, Employees: Users,
   'Time off': Calendar, Pipeline: Link2, Leads: BookOpen, Connections: Link2,
-  Insights: BarChart3, Logs: ScrollText,
+  Insights: BarChart3, 'Org Settings': Building2, Logs: ScrollText,
 }
 
 function labelKey(label: string): string {
@@ -30,7 +30,7 @@ function labelKey(label: string): string {
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
     'Time off': 'nav.timeOff', Pipeline: 'nav.pipeline', Leads: 'nav.leads',
-    Connections: 'nav.connections', Insights: 'nav.insights', Logs: 'nav.logs',
+    Connections: 'nav.connections', Insights: 'nav.insights', 'Org Settings': 'nav.settings', Logs: 'nav.logs',
   }
   return map[label] || label
 }
@@ -232,6 +232,8 @@ export function AppLayout() {
 
           {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Other</div>}
           {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSee(role, 'manager') && <NavItem to="/app/insights" label="Insights" display={t(labelKey('Insights'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSee(role, 'admin') && <NavItem to="/app/settings" label="Org Settings" display={t(labelKey('Org Settings'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           <NavItem to="/app/jeczone" label="Jeczone" display="JecZone AI" collapsed={collapsed} onNavigate={closeMobileNav} />
           {canSee(role, 'director') && (
             <>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch, ApiError } from '../../lib/api'
+import { apiFetch, apiUpload, ApiError } from '../../lib/api'
 import { clearAuth, getUser, setUser, type AuthUser } from '../../state/auth'
 import { Building2, CalendarClock, Clock, KeyRound, LogOut, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { useI18n } from '../../i18n'
@@ -40,55 +40,13 @@ async function postChangePassword(body: { currentPassword: string; newPassword: 
   return await apiFetch(`/api/v1/auth/change-password`, { method: 'POST', json: body })
 }
 
-type AvatarDraft = null | { kind: 'data'; url: string } | { kind: 'remove' }
+type AvatarDraft = null | { kind: 'preview'; file: File; url: string } | { kind: 'remove' }
 
-/** Resize/compress to JPEG data URL so PATCH body stays under API limits */
-function compressImageToDataUrl(file: File, maxEdge: number, quality: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      let w = img.naturalWidth
-      let h = img.naturalHeight
-      if (w < 1 || h < 1) {
-        reject(new Error('Invalid image'))
-        return
-      }
-      const scale = Math.min(1, maxEdge / Math.max(w, h))
-      w = Math.round(w * scale)
-      h = Math.round(h * scale)
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        reject(new Error('Canvas not available'))
-        return
-      }
-      ctx.drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', quality))
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Could not read image'))
-    }
-    img.src = url
-  })
-}
-
-const AVATAR_MAX_CHARS = 3_200_000
-
-async function compressAvatarForUpload(file: File): Promise<string> {
-  let maxEdge = 480
-  let quality = 0.78
-  for (let i = 0; i < 5; i++) {
-    const data = await compressImageToDataUrl(file, maxEdge, quality)
-    if (data.length <= AVATAR_MAX_CHARS) return data
-    maxEdge = Math.max(220, Math.round(maxEdge * 0.82))
-    quality = Math.max(0.52, quality - 0.07)
-  }
-  return compressImageToDataUrl(file, 220, 0.52)
+async function uploadAvatarFile(userId: string, file: File): Promise<string> {
+  const fd = new FormData()
+  fd.set('avatar', file)
+  const data = await apiUpload<{ avatarUrl?: string }>(`/api/v1/users/${encodeURIComponent(userId)}/avatar/upload`, fd)
+  return data.avatarUrl || ''
 }
 
 export function ProfilePage() {
@@ -132,8 +90,8 @@ export function ProfilePage() {
     ProfileSavePayload
   >({
     mutationFn: async (payload: ProfileSavePayload) => {
-      if (payload.avatarDraft?.kind === 'data') {
-        await patchAvatar(userId, payload.avatarDraft.url)
+      if (payload.avatarDraft?.kind === 'preview') {
+        await uploadAvatarFile(userId, payload.avatarDraft.file)
       } else if (payload.avatarDraft?.kind === 'remove') {
         await patchAvatar(userId, null)
       }
@@ -198,7 +156,7 @@ export function ProfilePage() {
 
   const rawAvatarUrl = q.data?.user?.avatar_url ?? null
   const displayAvatarUrl =
-    avatarDraft?.kind === 'data' ? avatarDraft.url : avatarDraft?.kind === 'remove' ? null : rawAvatarUrl
+    avatarDraft?.kind === 'preview' ? avatarDraft.url : avatarDraft?.kind === 'remove' ? null : rawAvatarUrl
   const normalizedAvatar = normalizeAvatarUrl(displayAvatarUrl)
   const headerAvatar = avatarDisplaySrc(displayAvatarUrl, q.dataUpdatedAt)
 
@@ -333,18 +291,8 @@ export function ProfilePage() {
                       setPhotoError('Image too large (max 6MB before compression).')
                       return
                     }
-                    void (async () => {
-                      try {
-                        const data = await compressAvatarForUpload(f)
-                        if (data.length > 3_500_000) {
-                          setPhotoError('Photo is still too large after compression. Try a smaller image.')
-                          return
-                        }
-                        setAvatarDraft({ kind: 'data', url: data })
-                      } catch {
-                        setPhotoError('Could not process image. Try another PNG or JPEG.')
-                      }
-                    })()
+                    const preview = URL.createObjectURL(f)
+                    setAvatarDraft({ kind: 'preview', file: f, url: preview })
                   }}
                 />
                 </label>
@@ -357,17 +305,17 @@ export function ProfilePage() {
                   >
                     Undo remove
                   </button>
-                ) : rawAvatarUrl || avatarDraft?.kind === 'data' ? (
+                ) : rawAvatarUrl || avatarDraft?.kind === 'preview' ? (
                   <button
                     type="button"
                     className="btn btnGhost profileUploadBtn"
                     onClick={() => {
-                      if (avatarDraft?.kind === 'data') setAvatarDraft(null)
+                      if (avatarDraft?.kind === 'preview') setAvatarDraft(null)
                       else setAvatarDraft({ kind: 'remove' })
                     }}
                     disabled={m.isPending}
                   >
-                    {avatarDraft?.kind === 'data' ? 'Discard new photo' : 'Remove photo'}
+                    {avatarDraft?.kind === 'preview' ? 'Discard new photo' : 'Remove photo'}
                   </button>
                 ) : null}
               </div>

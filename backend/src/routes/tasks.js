@@ -39,6 +39,17 @@ async function assertCanViewTask(req, task) {
 async function getScopedTargetUserIds(user) {
   const orgId = user.org_id ?? user.orgId;
   let targetUserIds = [user.id];
+  let legacyEmployeeId = null;
+
+  try {
+    const { rows: employeeRows } = await query(
+      `SELECT id FROM employees WHERE user_id = $1 AND org_id = $2 LIMIT 1`,
+      [user.id, orgId]
+    );
+    legacyEmployeeId = employeeRows[0]?.id || null;
+  } catch {
+    legacyEmployeeId = null;
+  }
 
   if (isOrgWideRole(user.role)) {
     const { rows: orgUsers } = await query(
@@ -54,6 +65,11 @@ async function getScopedTargetUserIds(user) {
     targetUserIds = [user.id, ...subs.map(r => r.user_id)];
   }
 
+  // Legacy compatibility: some deployments historically wrote employees.id into
+  // tasks.assigned_to. Include that id to avoid empty "My Tasks".
+  if (legacyEmployeeId && !targetUserIds.includes(legacyEmployeeId)) {
+    targetUserIds.push(legacyEmployeeId);
+  }
   return targetUserIds;
 }
 
