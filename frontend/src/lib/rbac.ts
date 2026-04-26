@@ -59,3 +59,9 @@ export function canAccessAdmin(role?: string | null): boolean {
   if (!role) return false
   return role.toLowerCase() === 'admin'
 }
+
+/** Can the user access analytics/reporting pages? */
+export function canViewAnalytics(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'manager', 'hr'].includes(role.toLowerCase())
+}

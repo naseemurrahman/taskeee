@@ -275,8 +275,8 @@ export function BoardPage() {
                     return (
                       <div
                         key={task.id}
-                        draggable={canDrag}
-                        onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
+                        onDragOver={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); setDragOverCol(col.key) } : undefined}
+                        onDrop={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onColDrop(e, col.key) } : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => {
                           if (!draggingIdRef.current) setSelectedTaskId(task.id)
@@ -309,8 +309,22 @@ export function BoardPage() {
                           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: pColor, borderRadius: '12px 12px 0 0' }} />
                         )}
 
-                        <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', marginTop: task.priority ? 6 : 2, marginBottom: 6, lineHeight: 1.4 }}>
-                          {task.title}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: task.priority ? 6 : 2, marginBottom: 6 }}>
+                          {canDrag ? (
+                            <span
+                              draggable
+                              onDragStart={e => onDragStart(e, task, col.key)}
+                              onDragEnd={onDragEnd}
+                              onClick={e => e.stopPropagation()}
+                              title="Drag task"
+                              style={{ cursor: 'grab', userSelect: 'none', fontSize: 13, lineHeight: 1, color: 'var(--muted)', paddingTop: 2 }}
+                            >
+                              ⠿
+                            </span>
+                          ) : null}
+                          <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
+                            {task.title}
+                          </div>
                         </div>
 
                         {canDrag && (
