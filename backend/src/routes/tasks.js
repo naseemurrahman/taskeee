@@ -991,7 +991,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
       }
     }
 
-    const boardStatuses = new Set(['pending', 'in_progress', 'completed', 'overdue']);
+    const boardStatuses = new Set(['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue']);
     const boardRoleBypass = ['supervisor', 'manager', 'hr', 'director', 'admin'].includes(role) && boardStatuses.has(status);
 
     if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
