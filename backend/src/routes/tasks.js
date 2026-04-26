@@ -961,7 +961,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
         completed: ['pending', 'in_progress'],
         cancelled: ['pending'],
       },
-      hr: {},
+      hr: ['*'],
       director: ['*'],
       admin: ['*']
     };
