@@ -59,6 +59,7 @@ export function BoardPage() {
 
   const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board', isEmployee], queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]), staleTime: 30_000, refetchInterval: 60_000 })
   const tasks = data || []
+  const taskById = useMemo(() => new Map(tasks.map(t => [t.id, t] as const)), [tasks])
 
   const m = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
@@ -88,6 +89,7 @@ export function BoardPage() {
     setDragging({ id: task.id, fromCol: colKey })
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id)
+    e.dataTransfer.setData('application/x-task-id', task.id)
   }
 
   function onDragOver(e: React.DragEvent, colKey: string) {
@@ -101,8 +103,18 @@ export function BoardPage() {
     if (!canDrag) return
     e.preventDefault()
     setDragOver(null)
-    if (!dragTask.current || dragging?.fromCol === toColKey) { setDragging(null); return }
-    m.mutate({ id: dragTask.current.id, status: toColKey })
+
+    const transferId = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-task-id')
+    const droppedTask = dragTask.current || (transferId ? taskById.get(transferId) || null : null)
+    const fromCol = dragging?.fromCol || droppedTask?.status || null
+
+    if (!droppedTask || fromCol === toColKey) {
+      dragTask.current = null
+      setDragging(null)
+      return
+    }
+
+    m.mutate({ id: droppedTask.id, status: toColKey })
     dragTask.current = null
     setDragging(null)
   }
