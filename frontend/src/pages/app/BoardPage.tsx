@@ -275,6 +275,8 @@ export function BoardPage() {
                     return (
                       <div
                         key={task.id}
+                        draggable={canDrag}
+                        onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
                         onDragOver={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); setDragOverCol(col.key) } : undefined}
                         onDrop={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onColDrop(e, col.key) } : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
@@ -291,7 +293,6 @@ export function BoardPage() {
                           transition: 'opacity 0.1s, box-shadow 0.12s, border-color 0.12s',
                           position: 'relative',
                           userSelect: 'none',
-                          pointerEvents: isDraggingThis ? 'none' : 'auto',
                         }}
                         onMouseEnter={e => {
                           if (isDraggingThis) return
@@ -312,11 +313,7 @@ export function BoardPage() {
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: task.priority ? 6 : 2, marginBottom: 6 }}>
                           {canDrag ? (
                             <span
-                              draggable
-                              onDragStart={e => onDragStart(e, task, col.key)}
-                              onDragEnd={onDragEnd}
-                              onClick={e => e.stopPropagation()}
-                              title="Drag task"
+                              aria-hidden
                               style={{ cursor: 'grab', userSelect: 'none', fontSize: 13, lineHeight: 1, color: 'var(--muted)', paddingTop: 2 }}
                             >
                               ⠿
