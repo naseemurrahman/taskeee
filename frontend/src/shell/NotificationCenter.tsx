@@ -105,7 +105,7 @@ export function NotificationCenter() {
         onClick={() => setOpen((v) => !v)}
       >
         <Bell size={18} />
-        {unread > 0 ? <span className="topbarNotifyBadge">{unread > 99 ? '99+' : unread}</span> : null}
+        {unread > 0 ? <span className="topbarNotifyBadge" style={{ animation: 'bellPulse 0.6s ease 3' }}>{unread > 99 ? '99+' : unread}</span> : null}
       </button>
       {open ? (
         <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications">

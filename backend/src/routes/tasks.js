@@ -456,13 +456,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
     const normalizedRecurrence = normalizeRecurrence(recurrence, dueDate);
     const nextRunAt = normalizedRecurrence ? computeNextRunAt(dueDate || new Date().toISOString(), normalizedRecurrence) : null;
 
-    console.log('Task creation request validation:');
-    console.log('Title:', title);
-    console.log('Assigned to:', assignedTo);
-    console.log('Category ID:', categoryId);
-    console.log('Priority:', priority);
-    
-    if (!title) return res.status(400).json({ error: 'Title is required' });
+        if (!title) return res.status(400).json({ error: 'Title is required' });
     
     // Validate assigned_to user exists
     if (assignedTo) {

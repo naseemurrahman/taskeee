@@ -67,8 +67,8 @@ export function AuditPage() {
                 ]}
               />
             </div>
-            <input className="input" style={{ height: 40 }} value={action} onChange={(e) => setAction(e.target.value)} placeholder="Filter by action…" />
-            <input className="input" style={{ height: 40 }} value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="Filter by entity…" />
+            <input style={{ height: 40, padding: "0 12px", borderRadius: 999, border: "1.5px solid var(--border)", background: "var(--bg2)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} value={action} onChange={(e) => setAction(e.target.value)} placeholder="Filter by action…" />
+            <input style={{ height: 40, padding: "0 12px", borderRadius: 999, border: "1.5px solid var(--border)", background: "var(--bg2)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="Filter by entity…" />
           </div>
         </div>
       </div>

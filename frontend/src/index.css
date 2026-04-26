@@ -8051,3 +8051,127 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
     border-radius: 18px !important;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATION BELL PULSE
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes bellPulse {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.25); }
+  50%  { transform: scale(1); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRM BOARD — kanban column styles
+   ═══════════════════════════════════════════════════════════════ */
+.crmKanbanBoard {
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+  align-items: start;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS PAGE — field grid responsive
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Settings field grid collapses to single column */
+  [style*="gridTemplateColumns: '200px 1fr'"],
+  [style*="grid-template-columns: 200px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL FORM INPUTS — consistent look everywhere
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Override .input class to match the design system */
+input.input, select.input, textarea.input {
+  background: var(--bg2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 999px !important;
+  padding: 0 14px !important;
+  height: 40px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+input.input:focus, select.input:focus {
+  border-color: var(--brandBorder) !important;
+  box-shadow: 0 0 0 3px var(--brandDim) !important;
+}
+textarea.input {
+  border-radius: 14px !important;
+  height: auto !important;
+  padding: 10px 14px !important;
+}
+.appShellV4Light input.input,
+.appShellV4Light select.input,
+.appShellV4Light textarea.input {
+  background: #fff !important;
+  border-color: #e4e7ef !important;
+  color: #1a1d2e !important;
+}
+.appShellV4Light input.input::placeholder,
+.appShellV4Light textarea.input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK DETAIL DRAWER — full-screen on very small screens
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 540px) {
+  /* Drawer takes full width on phones */
+  [style*="width: min(520px"] {
+    width: 100% !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOARD PAGE — mobile horizontal scroll
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Board and CRM pipeline scroll horizontally on mobile */
+  [style*="grid-template-columns: repeat("][style*="minmax(2"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 12px !important;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  [style*="grid-template-columns: repeat("][style*="minmax(2"] > * {
+    flex: 0 0 240px !important;
+    min-width: 240px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILE PAGE — avatar upload area
+   ═══════════════════════════════════════════════════════════════ */
+.avatarUploadZone {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+.avatarUploadZone:hover .avatarUploadOverlay {
+  opacity: 1;
+}
+.avatarUploadOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 20px;
+}
+

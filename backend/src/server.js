@@ -115,7 +115,6 @@ io.use((socket, next) => {
     // Join user to their organization room
     socket.join(`org_${socket.orgId}`);
     
-    console.log(`🔗 User ${socket.userId} connected to organization ${socket.orgId}`);
     next();
   } catch (error) {
     console.error('WebSocket authentication error:', error);
@@ -125,8 +124,6 @@ io.use((socket, next) => {
 
 // Handle real-time events
 io.on('connection', (socket) => {
-  console.log('📡 New WebSocket connection established');
-  
   socket.on('task:update', (data) => {
     // Broadcast task updates to organization members
     socket.to(`org_${data.orgId}`).emit('task:updated', data);
@@ -138,7 +135,6 @@ io.on('connection', (socket) => {
   });
   
   socket.on('disconnect', () => {
-    console.log(`📡 User ${socket.userId} disconnected`);
   });
 });
 
@@ -153,9 +149,30 @@ io.use((socket, next) => {
   } catch { next(new Error('Invalid token')); }
 });
 io.on('connection', socket => {
-  socket.join(`user:${socket.userId}`);
+  // Join personal room
+  if (socket.userId) socket.join(`user:${socket.userId}`);
+  
+  // Client-initiated room joins
+  socket.on('join:org', ({ orgId }) => {
+    if (orgId && String(orgId) === String(socket.orgId)) {
+      socket.join(`org:${orgId}`);
+      socket.join(`org_${orgId}`);
+    }
+  });
+  socket.on('join:user', ({ userId }) => {
+    if (userId && String(userId) === String(socket.userId)) {
+      socket.join(`user:${userId}`);
+    }
+  });
   socket.on('join_task', ({ taskId }) => {
     if (taskId) socket.join(`task:${taskId}`);
+  });
+  
+  // Broadcast notification to a specific user room
+  socket.on('notify:user', ({ targetUserId, notification }) => {
+    if (socket.orgId) {
+      socket.to(`user:${targetUserId}`).emit('notification', notification);
+    }
   });
 });
 

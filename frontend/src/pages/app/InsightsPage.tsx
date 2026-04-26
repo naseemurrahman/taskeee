@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
+import { Select } from '../../components/ui/Select'
 import { TaskInsightsPanel } from '../../components/tasks/TaskInsightsPanel'
 
 type InsightsResponse = {
@@ -34,14 +35,13 @@ export function InsightsPage() {
             <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Insights</h2>
             <div style={{ color: 'var(--text2)', marginTop: 4 }}>AI insights (with graceful fallback when AI service is offline).</div>
           </div>
-          <label className="label" style={{ margin: 0 }}>
-            Time range
-            <select className="input" style={{ height: 40 }} value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-              <option value="7d">7d</option>
-              <option value="30d">30d</option>
-              <option value="90d">90d</option>
-            </select>
-          </label>
+          <div style={{ width: 130 }}>
+            <Select value={timeRange} onChange={setTimeRange} options={[
+              { value: '7d', label: 'Last 7 days' },
+              { value: '30d', label: 'Last 30 days' },
+              { value: '90d', label: 'Last 90 days' },
+            ]} />
+          </div>
         </div>
         {meta ? <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>{meta}</div> : null}
       </div>

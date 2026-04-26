@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -74,10 +74,14 @@ export function SettingsPage() {
   const [orgName, setOrgName] = useState('')
   const [timezone, setTimezone] = useState('')
 
-  // Initialize form from fetched org
-  useState(() => {
-    if (org) { setOrgName(org.name); setTimezone(org.timezone || 'UTC') }
-  })
+  // Initialize form from fetched org data
+  useEffect(() => {
+    if (org) {
+      if (!orgName) setOrgName(org.name || '')
+      if (!timezone) setTimezone(org.timezone || 'UTC')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [org?.id])
 
   const m = useMutation({
     mutationFn: (data: Partial<OrgDetails>) => updateOrg(data),
