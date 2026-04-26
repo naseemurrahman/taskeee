@@ -99,7 +99,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   }
 
   const m = useMutation({
-    mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks', { method: 'POST', json: input, timeoutMs: 60_000 }),
+    mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks/create-simple', { method: 'POST', json: input }),
     onSuccess: () => {
       setError(null)
       // Fire-and-forget invalidations so button doesn't get stuck in "Creating…"

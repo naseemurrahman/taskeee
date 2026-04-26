@@ -232,6 +232,59 @@ function parseJsonField(value, fallback) {
 
 
 // GET /tasks - hierarchy + HR org-wide
+
+// SIMPLE TASK CREATE - minimal validation, no withTransaction, no timeline
+router.post('/create-simple', authenticate, async (req, res, next) => {
+  try {
+    const { title, assignedTo, priority = 'medium', dueDate, categoryId } = req.body;
+    if (!title || title.trim().length < 2) {
+      return res.status(400).json({ error: 'Title must be at least 2 characters' });
+    }
+    const orgId = req.user.org_id || req.user.orgId;
+    if (!orgId) return res.status(401).json({ error: 'No org ID found' });
+    
+    // Check role
+    const allowedRoles = ['supervisor','manager','hr','director','admin'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions to create tasks' });
+    }
+    
+    // Build minimal insert
+    const cols = ['org_id','title','status','priority','assigned_by'];
+    const vals = [orgId, title.trim(), 'pending', priority, req.user.id];
+    
+    if (assignedTo) { cols.push('assigned_to'); vals.push(assignedTo); }
+    if (dueDate) { cols.push('due_date'); vals.push(dueDate); }
+    
+    // Try to add optional columns if they exist
+    const taskCols = await getTableColumns('tasks');
+    if (categoryId && taskCols.has('category_id')) { cols.push('category_id'); vals.push(categoryId); }
+    if (taskCols.has('metadata')) { cols.push('metadata'); vals.push(JSON.stringify({ approval_index: 0 })); }
+    
+    const ph = vals.map((_, i) => `$${i+1}`).join(', ');
+    const { rows } = await query(
+      `INSERT INTO tasks (${cols.join(', ')}) VALUES (${ph}) RETURNING id, title, status, priority, assigned_to, due_date`,
+      vals
+    );
+    const task = rows[0];
+    
+    // Notify assignee (non-critical)
+    if (assignedTo) {
+      try {
+        const { emitNotification } = require('../services/notificationService');
+        await emitNotification(assignedTo, {
+          type: 'task_assigned', title: 'New task assigned', body: title,
+          data: { taskId: task.id }
+        });
+      } catch (_e) {}
+    }
+    
+    res.status(201).json({ task });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const { status, priority, page = 1, limit = 20, userId, board, mine } = req.query;
@@ -1162,6 +1215,31 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
   } catch (err) { next(err); }
 });
 
+
+
+// SIMPLE STATUS UPDATE - minimal middleware, direct DB update, maximum compatibility
+router.post('/:id/set-status', authenticate, async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const VALID = new Set(['pending','in_progress','submitted','manager_approved','manager_rejected','completed','overdue','cancelled']);
+    if (!status || !VALID.has(status)) {
+      return res.status(400).json({ error: 'Invalid status: ' + status });
+    }
+    const orgId = req.user.org_id || req.user.orgId;
+    if (!orgId) return res.status(401).json({ error: 'No org ID found' });
+    
+    const { rows } = await query(
+      'SELECT id, status, org_id FROM tasks WHERE id = $1 AND org_id = $2',
+      [req.params.id, orgId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+    
+    await query('UPDATE tasks SET status = $1, updated_at = NOW() WHERE id = $2', [status, req.params.id]);
+    res.json({ ok: true, taskId: req.params.id, status, previous: rows[0].status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // PATCH /tasks/:id/board-status - explicit board move endpoint (manager+)
 router.patch('/:id/board-status', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), validateStatusUpdate, async (req, res, next) => {
