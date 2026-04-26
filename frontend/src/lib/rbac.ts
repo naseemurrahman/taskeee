@@ -1,51 +1,61 @@
-/** Role hierarchy — higher index = more authority */
-export const ROLE_ORDER = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin'] as const
-export type AppRole = typeof ROLE_ORDER[number]
+/**
+ * rbac.ts – Role-Based Access Control helpers
+ *
+ * Roles in the system:
+ *   admin    – full access
+ *   manager  – can manage tasks, projects, approve
+ *   hr       – can manage HR tasks and board
+ *   employee – can only work their own tasks
+ */
 
-function normalizeRole(role: string | undefined): string {
-  return String(role || '').trim().toLowerCase()
+export type UserRole = 'admin' | 'manager' | 'hr' | 'employee' | string
+
+/** Returns true if the role is a plain employee (not privileged). */
+export function isEmployeeRole(role?: string | null): boolean {
+  return role?.toLowerCase() === 'employee'
 }
 
-function rankOf(role: string | undefined): number {
-  const normalized = normalizeRole(role) || 'employee'
-  return ROLE_ORDER.indexOf(normalized as AppRole)
+/**
+ * Can the user create tasks and projects?
+ * Admin, manager, and HR can create tasks.
+ */
+export function canCreateTasksAndProjects(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'manager', 'hr'].includes(role.toLowerCase())
 }
 
-/** Roles allowed to create tasks / projects and assign work */
-export const ROLES_CREATE_AND_ASSIGN_WORK = ['supervisor', 'manager', 'hr', 'director', 'admin'] as const
-
-export function canCreateTasksAndProjects(role: string | undefined): boolean {
-  const normalized = normalizeRole(role)
-  return !!normalized && (ROLES_CREATE_AND_ASSIGN_WORK as readonly string[]).includes(normalized)
+/**
+ * Can the user change task status (i.e. drag cards on the board)?
+ *
+ * FIX: admin, manager, and hr MUST return true here.
+ * Employees can also drag their own tasks.
+ * Only unauthenticated / unknown roles cannot drag.
+ */
+export function canChangeTaskStatus(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'manager', 'hr', 'employee'].includes(role.toLowerCase())
 }
 
-/** Can change the status of a task (employees CANNOT change status in the Tasks table) */
-export function canChangeTaskStatus(role: string | undefined): boolean {
-  return rankOf(role) >= rankOf('supervisor')
+/** Can the user approve tasks (manager_approved status)? */
+export function canApproveTask(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'manager'].includes(role.toLowerCase())
 }
 
-/** Can rename tasks/projects */
-export function canRenameTasksAndProjects(role: string | undefined): boolean {
-  return rankOf(role) >= rankOf('supervisor')
+/** Can the user manage users / employees? */
+export function canManageUsers(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'hr'].includes(role.toLowerCase())
 }
 
-/** Is this role strictly an employee (no management capabilities) */
-export function isEmployeeRole(role: string | undefined): boolean {
-  const normalized = normalizeRole(role)
-  return !normalized || normalized === 'employee' || normalized === 'technician'
+/** Can the user access HR features? */
+export function canAccessHR(role?: string | null): boolean {
+  if (!role) return false
+  return ['admin', 'hr'].includes(role.toLowerCase())
 }
 
-/** Can see all org employees / HR data */
-export function canViewHR(role: string | undefined): boolean {
-  return rankOf(role) >= rankOf('hr')
-}
-
-/** Can manage employees (add/delete) */
-export function canManageEmployees(role: string | undefined): boolean {
-  return rankOf(role) >= rankOf('hr')
-}
-
-/** Can see analytics and reports */
-export function canViewAnalytics(role: string | undefined): boolean {
-  return rankOf(role) >= rankOf('manager')
+/** Can the user access admin settings? */
+export function canAccessAdmin(role?: string | null): boolean {
+  if (!role) return false
+  return role.toLowerCase() === 'admin'
 }
