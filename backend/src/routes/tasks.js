@@ -981,7 +981,8 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     const role = req.user.role;
     const allowed = allowedTransitions[role];
 
-    if (['in_progress', 'submitted', 'completed'].includes(status)) {
+    const elevatedBoardRoles = ['supervisor', 'manager', 'hr', 'director', 'admin'];
+    if (['in_progress', 'submitted', 'completed'].includes(status) && !elevatedBoardRoles.includes(role)) {
       const blocking = await getIncompleteBlockingDependencies(task.id);
       if (blocking.length) {
         return res.status(400).json({
@@ -992,7 +993,7 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     }
 
     const boardStatuses = new Set(['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue']);
-    const boardRoleBypass = ['supervisor', 'manager', 'hr', 'director', 'admin'].includes(role) && boardStatuses.has(status);
+    const boardRoleBypass = elevatedBoardRoles.includes(role) && boardStatuses.has(status);
 
     if (!['director', 'admin'].includes(role) && !boardRoleBypass) {
       if (typeof allowed === 'object' && !Array.isArray(allowed)) {
