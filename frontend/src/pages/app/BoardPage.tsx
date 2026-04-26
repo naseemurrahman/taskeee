@@ -56,6 +56,7 @@ export function BoardPage() {
   const [dragging, setDragging] = useState<{ id: string; fromCol: string } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const dragTask = useRef<Task | null>(null)
+  const suppressCardClickRef = useRef(false)
 
   const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board', isEmployee], queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]), staleTime: 30_000, refetchInterval: 60_000 })
   const tasks = data || []
@@ -85,6 +86,7 @@ export function BoardPage() {
 
   function onDragStart(e: React.DragEvent, task: Task, colKey: string) {
     if (!canDrag) return
+    suppressCardClickRef.current = true
     dragTask.current = task
     setDragging({ id: task.id, fromCol: colKey })
     e.dataTransfer.effectAllowed = 'move'
@@ -111,15 +113,28 @@ export function BoardPage() {
     if (!droppedTask || fromCol === toColKey) {
       dragTask.current = null
       setDragging(null)
+      window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
       return
     }
 
     m.mutate({ id: droppedTask.id, status: toColKey })
     dragTask.current = null
     setDragging(null)
+    window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
   }
 
-  function onDragEnd() { setDragging(null); setDragOver(null); dragTask.current = null }
+  function onDragEnd() {
+    setDragging(null); setDragOver(null); dragTask.current = null
+    window.setTimeout(() => { suppressCardClickRef.current = false }, 0)
+  }
+
+  function onColumnDragLeave(e: React.DragEvent<HTMLDivElement>, colKey: string) {
+    if (!canDrag || dragOver !== colKey) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const { clientX, clientY } = e
+    const leftColumnBounds = clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom
+    if (leftColumnBounds) setDragOver(null)
+  }
 
   function onQuickMove(taskId: string, nextStatus: string) {
     if (!canDrag) return
@@ -172,9 +187,7 @@ export function BoardPage() {
                 onDragEnter={e => onDragOver(e, col.key)}
                 onDragOver={e => onDragOver(e, col.key)}
                 onDrop={e => onDrop(e, col.key)}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(null)
-                }}
+                onDragLeave={e => onColumnDragLeave(e, col.key)}
                 style={{
                   background: isOver ? (col.color + '10') : 'var(--bg2)',
                   borderRadius: 16, padding: 14, minHeight: 200,
@@ -199,7 +212,7 @@ export function BoardPage() {
                         draggable={canDrag}
                         onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
-                        onClick={() => { if (!dragging) setSelectedTaskId(task.id) }}
+                        onClick={() => { if (!dragging && !suppressCardClickRef.current) setSelectedTaskId(task.id) }}
                         style={{
                           background: 'var(--bg1)', borderRadius: 12, padding: '10px 12px',
                           border: '1px solid var(--border)', cursor: canDrag ? 'grab' : 'pointer',
