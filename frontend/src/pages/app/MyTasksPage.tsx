@@ -134,7 +134,7 @@ export function MyTasksPage() {
   )
 
   const isAssignee = !!(me?.id && task?.assigned_to && task.assigned_to === me.id)
-  const canManageStatus = !!me?.role && ['supervisor', 'manager', 'director', 'admin'].includes(me.role)
+  const canManageStatus = !!me?.role && ['supervisor', 'manager', 'hr', 'director', 'admin'].includes(me.role)
 
   const manualStatusChoices = useMemo(() => {
     if (!task || !canManageStatus) return []
@@ -195,6 +195,20 @@ export function MyTasksPage() {
   })
 
   const tasks = listQ.data || []
+  const taskStats = useMemo(() => {
+    const stats = { total: tasks.length, pending: 0, in_progress: 0, submitted: 0, done: 0 }
+    for (const t of tasks) {
+      if (t.status === 'pending') stats.pending++
+      else if (t.status === 'in_progress') stats.in_progress++
+      else if (t.status === 'submitted') stats.submitted++
+      else if (['completed', 'manager_approved', 'ai_approved'].includes(t.status)) stats.done++
+    }
+    return stats
+  }, [tasks])
+
+  useEffect(() => {
+    if (!selectedId && tasks.length > 0) setSelectedId(tasks[0].id)
+  }, [selectedId, tasks])
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -224,6 +238,12 @@ export function MyTasksPage() {
             </div>
           </div>
         </div>
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(110px, 1fr))', gap: 10 }}>
+          <div className="miniCard"><div className="miniLabel">Total</div><div className="miniValue">{taskStats.total}</div></div>
+          <div className="miniCard"><div className="miniLabel">To do</div><div className="miniValue">{taskStats.pending}</div></div>
+          <div className="miniCard"><div className="miniLabel">In progress</div><div className="miniValue">{taskStats.in_progress}</div></div>
+          <div className="miniCard"><div className="miniLabel">Done</div><div className="miniValue">{taskStats.done}</div></div>
+        </div>
         <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 900 }}>STATUS</span>
           <div style={{ width: 180 }}>
@@ -239,7 +259,10 @@ export function MyTasksPage() {
           {listQ.isLoading ? <div style={{ padding: 16, color: 'var(--text2)' }}>Loading…</div> : null}
           {listQ.isError ? <div className="alert alertError" style={{ margin: 12 }}>Failed to load tasks.</div> : null}
           {!listQ.isLoading && tasks.length === 0 ? (
-            <div style={{ padding: 16, color: 'var(--text2)' }}>No tasks assigned to you for this filter.</div>
+            <div style={{ padding: 20, color: 'var(--text2)', display: 'grid', gap: 4 }}>
+              <div style={{ fontWeight: 900, color: 'var(--text)' }}>No tasks found</div>
+              <div>Try changing the status filter or ask your manager to assign tasks to you.</div>
+            </div>
           ) : null}
           <div className="myTasksList">
             {tasks.map((t) => (
