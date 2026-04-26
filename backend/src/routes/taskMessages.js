@@ -13,7 +13,20 @@ async function assertTaskChatAccess(req, taskId) {
   if (!rows.length) return { ok: false, task: null };
   const task = rows[0];
   const u = req.user;
+  let legacyEmployeeIds = [];
+  try {
+    const { rows: empRows } = await query(
+      `SELECT id FROM employees
+       WHERE org_id = $1
+         AND (user_id = $2 OR (work_email IS NOT NULL AND LOWER(work_email) = LOWER($3)))`,
+      [orgId, u.id, u.email || '']
+    );
+    legacyEmployeeIds = empRows.map(r => r.id);
+  } catch {
+    legacyEmployeeIds = [];
+  }
   if (isOrgWideRole(u.role)) return { ok: true, task };
+  if (legacyEmployeeIds.includes(task.assigned_to)) return { ok: true, task };
   if (task.assigned_to === u.id || task.assigned_by === u.id) return { ok: true, task };
   const { rows: sub } = await query(
     `SELECT 1 FROM get_subordinate_ids($1) WHERE user_id = $2 LIMIT 1`,

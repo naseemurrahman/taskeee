@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 
 const _selectListeners = new Set<() => void>()
 function closeAllSelects() { _selectListeners.forEach(fn => fn()) }
@@ -36,6 +37,8 @@ export function Select({
   const [listMaxHeight, setListMaxHeight] = useState(240)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({})
 
   const selected = options.find(o => o.value === value)
   const filtered = searchable && search.trim()
@@ -50,7 +53,9 @@ export function Select({
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (ref.current?.contains(target) || dropdownRef.current?.contains(target)) return
+      if (ref.current) {
         setOpen(false); setSearch('')
       }
     }
@@ -78,6 +83,14 @@ export function Select({
     setOpenUp(shouldOpenUp)
     const available = shouldOpenUp ? spaceAbove : spaceBelow
     setListMaxHeight(Math.max(120, Math.min(280, Math.floor(available - 14))))
+    setDropdownStyle({
+      position: 'fixed',
+      left: rect.left,
+      top: shouldOpenUp ? rect.top - 8 : rect.bottom + 8,
+      width: rect.width,
+      zIndex: 100200,
+      transform: shouldOpenUp ? 'translateY(-100%)' : 'none',
+    })
   }, [open, searchable, filtered.length, preferOpenUp])
 
   function handleSelect(opt: SelectOption) {
@@ -131,8 +144,13 @@ export function Select({
         </svg>
       </div>
 
-      {open && (
-        <div className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox">
+      {open && createPortal((
+        <div
+          ref={dropdownRef}
+          className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()}
+          role="listbox"
+          style={dropdownStyle}
+        >
           {searchable && (
             <div className="selectV3SearchWrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -174,7 +192,7 @@ export function Select({
             ))}
           </div>
         </div>
-      )}
+      ), document.body)}
       {error && <div className="selectV3ErrorMsg">{error}</div>}
     </div>
   )
