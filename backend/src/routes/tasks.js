@@ -489,7 +489,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // POST /tasks
-router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admin'), validateTaskCreate, canManage, async (req, res, next) => {
+router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), validateTaskCreate, canManage, async (req, res, next) => {
   try {
     const {
       title, description, assignedTo, categoryId,
@@ -603,20 +603,26 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
         }
       }
 
-      await client.query(`
-        INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, to_status, note, metadata)
-        VALUES ($1, $2, 'user', 'task_created', 'pending', $3, $4)
-      `, [
-        createdTask.id,
-        req.user.id,
-        `Task assigned by ${req.user.full_name}`,
-        JSON.stringify({ dependencyCount: dependencyIds.length, recurring: !!normalizedRecurrence, approvalFlow })
-      ]);
-
       return createdTask;
     });
 
+    // CRITICAL: respond immediately — don't let timeline failure block task creation
     res.status(201).json({ task: { ...task, recurrence: normalizedRecurrence, approval_flow: approvalFlow } });
+
+    // Log to timeline non-critically after response is sent
+    try {
+      const tlCols = await getTableColumns('task_timeline');
+      if (tlCols.size > 0) {
+        const tlF = ['task_id', 'actor_type', 'event_type'];
+        const tlV = [task.id, 'user', 'task_created'];
+        if (tlCols.has('actor_id')) { tlF.push('actor_id'); tlV.push(req.user.id); }
+        if (tlCols.has('to_status')) { tlF.push('to_status'); tlV.push('pending'); }
+        if (tlCols.has('note')) { tlF.push('note'); tlV.push(`Task created by ${req.user.full_name || req.user.email}`); }
+        if (tlCols.has('metadata')) { tlF.push('metadata'); tlV.push(JSON.stringify({ dependencyCount: dependencyIds.length })); }
+        const ph = tlV.map((_, i) => `$${i+1}`).join(', ');
+        await query(`INSERT INTO task_timeline (${tlF.join(', ')}) VALUES (${ph})`, tlV);
+      }
+    } catch (_e) { /* non-critical */ }
 
     // Run side-effects after response so task creation UX is never blocked by
     // notification channels or activity log latency.

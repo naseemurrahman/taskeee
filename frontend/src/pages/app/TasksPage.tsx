@@ -31,7 +31,17 @@ async function renameTask(id: string, title: string) {
   return apiFetch(`/api/v1/tasks/${id}/rename`, { method: 'PATCH', json: { title } })
 }
 async function changeStatus(id: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${id}/status`, { method: 'PATCH', json: { status } })
+  // Try board-status first (simpler endpoint, fewer guards)
+  // Fall back to main status endpoint if board-status fails
+  try {
+    return await apiFetch(`/api/v1/tasks/${id}/board-status`, {
+      method: 'PATCH', json: { status, force: true, source: 'board_drag' }
+    })
+  } catch {
+    return apiFetch(`/api/v1/tasks/${id}/status`, {
+      method: 'PATCH', json: { status, force: true, source: 'board_drag' }
+    })
+  }
 }
 
 function dueStat(iso?: string | null): { label: string; tone: string } {
