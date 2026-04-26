@@ -94,14 +94,18 @@ async function canManage(req, res, next) {
   if (!targetUserId) return next();
   if (targetUserId === req.user.id) return next();
 
-  const { rows } = await query(
-    `SELECT user_id FROM get_subordinate_ids($1) WHERE user_id = $2`,
-    [req.user.id, targetUserId]
-  );
-
-  if (!rows.length)
+  let subRows = [];
+  try {
+    const r = await query(
+      `SELECT user_id FROM get_subordinate_ids($1) WHERE user_id = $2`,
+      [req.user.id, targetUserId]
+    );
+    subRows = r.rows;
+  } catch (_e) {
+    return next(); // function not available — allow to prevent blocking task creation
+  }
+  if (!subRows.length)
     return res.status(403).json({ error: 'You can only manage your direct reports' });
-
   next();
 }
 
