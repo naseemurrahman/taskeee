@@ -6,6 +6,7 @@ const { validateTaskCreate, validateStatusUpdate } = require('../middleware/vali
 const { emitNotification } = require('../services/notificationService');
 const { logUserActivity } = require('../services/activityService');
 const { triggerAITaskReview } = require('../services/aiService');
+const { orgIdForSessionUser } = require('../utils/orgContext');
 
 const _tableColsCache = new Map();
 async function getTableColumns(tableName) {
@@ -71,6 +72,21 @@ async function getScopedTargetUserIds(user) {
     targetUserIds.push(legacyEmployeeId);
   }
   return targetUserIds;
+}
+
+async function getOwnTargetUserIds(user, orgId) {
+  const ids = [user.id];
+  try {
+    const { rows } = await query(
+      `SELECT id FROM employees WHERE user_id = $1 AND org_id = $2 LIMIT 1`,
+      [user.id, orgId]
+    );
+    const legacyEmployeeId = rows[0]?.id;
+    if (legacyEmployeeId && !ids.includes(legacyEmployeeId)) ids.push(legacyEmployeeId);
+  } catch {
+    // Ignore legacy mapping lookup failures.
+  }
+  return ids;
 }
 
 function normalizeRecurrence(recurrence, dueDate) {
@@ -208,15 +224,16 @@ router.get('/', authenticate, async (req, res, next) => {
     const { status, priority, page = 1, limit = 20, userId, board, mine } = req.query;
     const offset = (page - 1) * limit;
     const user = req.user;
-    const orgId = user.org_id ?? user.orgId;
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     let targetUserIds = await getScopedTargetUserIds(user);
 
     /** Employees ALWAYS see only their own tasks — enforce unconditionally. */
     if (user.role === 'employee') {
-      targetUserIds = [user.id];
+      targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (String(mine || '') === 'true') {
       /** Only tasks assigned to the signed-in user. */
-      targetUserIds = [user.id];
+      targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (userId && targetUserIds.includes(userId)) {
       targetUserIds = [userId];
     }
