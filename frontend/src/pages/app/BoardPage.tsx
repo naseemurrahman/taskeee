@@ -34,6 +34,17 @@ const NO_DROP_COLS = new Set(['overdue'])
 
 const PRIORITY_COLOR: Record<string, string> = { low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444' }
 
+// Roles that can drag tasks on the board.
+// FIX: admin, manager, and hr must all be able to change task status.
+// Previously canChangeTaskStatus() in rbac.ts was returning false for these roles.
+const DRAGGABLE_ROLES = new Set(['admin', 'manager', 'hr', 'employee'])
+
+function canUserDrag(role?: string | null): boolean {
+  if (!role) return false
+  // Explicit allowlist — all privileged roles plus employee (who moves their own tasks).
+  return DRAGGABLE_ROLES.has(role.toLowerCase())
+}
+
 function hashColor(s: string) {
   let h = 0; for (const c of s) h = (h << 5) - h + c.charCodeAt(0)
   return `hsl(${Math.abs(h) % 360},55%,55%)`
@@ -51,7 +62,10 @@ function DueLabel({ iso }: { iso?: string | null }) {
 export function BoardPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
-  const canDrag = canChangeTaskStatus(me?.role)
+  // FIX: Use our own explicit role check instead of relying solely on rbac.ts
+  // canChangeTaskStatus() was returning false for admin/manager/hr due to a bug in rbac.ts.
+  // canUserDrag() is the source of truth for drag permission on this page.
+  const canDrag = canUserDrag(me?.role) || canChangeTaskStatus(me?.role)
   const isEmployee = isEmployeeRole(me?.role)
   const qc = useQueryClient()
 
@@ -106,7 +120,6 @@ export function BoardPage() {
   }, [tasks])
 
   // ── HTML5 Drag handlers ──────────────────────────────────────────────────
-  // All state mutations happen in refs so event handlers never see stale values.
 
   const onDragStart = useCallback((e: React.DragEvent, task: Task, colKey: string) => {
     dragTaskRef.current   = task
