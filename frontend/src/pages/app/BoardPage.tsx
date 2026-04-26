@@ -60,6 +60,7 @@ export function BoardPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   // ── Drag state (all in refs to avoid stale closures in event handlers) ──
+  const [boardError, setBoardError] = useState<string | null>(null)
   const [draggingId, setDraggingId]   = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const draggingIdRef  = useRef<string | null>(null)
@@ -85,10 +86,12 @@ export function BoardPage() {
       )
       return { previous }
     },
-    onError: (_err, _vars, context) => {
+    onError: (err: any, _vars, context) => {
       if (context?.previous) {
         qc.setQueryData(['tasks', 'board'], context.previous)
       }
+      setBoardError(err?.message || 'Status update failed — check your permissions')
+      setTimeout(() => setBoardError(null), 5000)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
@@ -206,9 +209,10 @@ export function BoardPage() {
       </div>
 
       {/* Mutation error */}
-      {m.isError && (
-        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>
-          ⚠ Failed to update status. {(m.error as any)?.message || 'Check your permissions.'}
+      {boardError && (
+        <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1.5px solid rgba(239,68,68,0.35)', color: '#ef4444', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16 }}>⚠</span>
+          <span>Status update failed: {boardError}</span>
         </div>
       )}
 

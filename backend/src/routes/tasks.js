@@ -1064,21 +1064,33 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
     if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
 
     let generatedTask = null;
-    await withTransaction(async (client) => {
-      await client.query(`
-        UPDATE tasks SET ${setClauses.join(', ')}
-        WHERE id = $2
-      `, params);
 
-      await client.query(`
-        INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
-        VALUES ($1, $2, 'user', 'status_changed', $3, $4, $5)
-      `, [task.id, req.user.id, task.status, status, note]);
+    // Execute status UPDATE — this is the critical operation
+    await query(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $2`, params);
 
-      if (status === 'completed') {
-        generatedTask = await createRecurringFollowUp(client, task);
+    // Log timeline — non-critical, failures must NOT rollback the status update
+    try {
+      const tlCols = await getTableColumns('task_timeline');
+      if (tlCols.size > 0) {
+        const tlFields = ['task_id', 'actor_type', 'event_type'];
+        const tlVals = [task.id, 'user', 'status_changed'];
+        if (tlCols.has('actor_id')) { tlFields.push('actor_id'); tlVals.push(req.user.id); }
+        if (tlCols.has('from_status')) { tlFields.push('from_status'); tlVals.push(task.status); }
+        if (tlCols.has('to_status')) { tlFields.push('to_status'); tlVals.push(status); }
+        if (tlCols.has('note')) { tlFields.push('note'); tlVals.push(note || null); }
+        const ph = tlVals.map((_, i) => `$${i + 1}`).join(', ');
+        await query(`INSERT INTO task_timeline (${tlFields.join(', ')}) VALUES (${ph})`, tlVals);
       }
-    });
+    } catch (_tlErr) { /* timeline is non-critical */ }
+
+    // Handle recurring task generation
+    if (status === 'completed') {
+      try {
+        await withTransaction(async (client) => {
+          generatedTask = await createRecurringFollowUp(client, task);
+        });
+      } catch (_recurErr) { /* recurrence non-critical */ }
+    }
 
     await logUserActivity({
       orgId,
@@ -1146,13 +1158,24 @@ router.patch('/:id/board-status', authenticate, requireAnyRole('supervisor', 'ma
     if (status === 'submitted' && taskCols.has('submitted_at')) setClauses.push('submitted_at = NOW()');
     if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
 
-    await withTransaction(async (client) => {
-      await client.query(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $2`, params);
-      await client.query(`
-        INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
-        VALUES ($1, $2, 'user', 'status_changed', $3, $4, $5)
-      `, [task.id, req.user.id, task.status, status, note || 'Board status update']);
-    });
+    // Update status first (critical operation)
+    await query(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $2`, params);
+
+    // Log to timeline — non-critical, never rollback the status update on timeline failure
+    try {
+      const tlCols = await getTableColumns('task_timeline');
+      if (tlCols.size > 0) {
+        const tlFields = ['task_id', 'actor_type', 'event_type'];
+        const tlVals = [task.id, 'user', 'status_changed'];
+        let p = 4;
+        if (tlCols.has('actor_id')) { tlFields.push('actor_id'); tlVals.push(req.user.id); }
+        if (tlCols.has('from_status')) { tlFields.push('from_status'); tlVals.push(task.status); }
+        if (tlCols.has('to_status')) { tlFields.push('to_status'); tlVals.push(status); }
+        if (tlCols.has('note')) { tlFields.push('note'); tlVals.push(note || 'Board drag'); }
+        const ph = tlVals.map((_, i) => `$${i + 1}`).join(', ');
+        await query(`INSERT INTO task_timeline (${tlFields.join(', ')}) VALUES (${ph})`, tlVals);
+      }
+    } catch (_tlErr) { /* timeline logging is non-critical */ }
 
     res.json({ message: 'Board status updated', taskId: task.id, status });
   } catch (err) { next(err); }
