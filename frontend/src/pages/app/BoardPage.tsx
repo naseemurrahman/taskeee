@@ -13,7 +13,7 @@ type Task = {
 }
 
 async function patchStatus(taskId: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${taskId}/status`, {
+  return apiFetch(`/api/v1/tasks/${taskId}/board-status`, {
     method: 'PATCH',
     json: { status, force: true, source: 'board_drag' },
   })

@@ -1080,6 +1080,38 @@ router.patch('/:id/status', authenticate, validateStatusUpdate, async (req, res,
   } catch (err) { next(err); }
 });
 
+
+// PATCH /tasks/:id/board-status - explicit board move endpoint (manager+)
+router.patch('/:id/board-status', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), validateStatusUpdate, async (req, res, next) => {
+  try {
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const { status, note } = req.body;
+    const { rows } = await query(`SELECT * FROM tasks WHERE id = $1 AND org_id = $2`, [req.params.id, orgId]);
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+
+    const task = rows[0];
+    const taskCols = await getTableColumns('tasks');
+    const setClauses = ['status = $1', 'updated_at = NOW()'];
+    const params = [status, task.id];
+
+    if (status === 'in_progress' && taskCols.has('started_at')) setClauses.push('started_at = NOW()');
+    if (status === 'submitted' && taskCols.has('submitted_at')) setClauses.push('submitted_at = NOW()');
+    if (status === 'completed' && taskCols.has('completed_at')) setClauses.push('completed_at = NOW()');
+
+    await withTransaction(async (client) => {
+      await client.query(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $2`, params);
+      await client.query(`
+        INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
+        VALUES ($1, $2, 'user', 'status_changed', $3, $4, $5)
+      `, [task.id, req.user.id, task.status, status, note || 'Board status update']);
+    });
+
+    res.json({ message: 'Board status updated', taskId: task.id, status });
+  } catch (err) { next(err); }
+});
+
 // PATCH /tasks/:id/details - update due date and assignee (manager+)
 router.patch('/:id/details', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
   try {
