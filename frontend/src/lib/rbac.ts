@@ -2,15 +2,21 @@
 export const ROLE_ORDER = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin'] as const
 export type AppRole = typeof ROLE_ORDER[number]
 
+function normalizeRole(role: string | undefined): string {
+  return String(role || '').trim().toLowerCase()
+}
+
 function rankOf(role: string | undefined): number {
-  return ROLE_ORDER.indexOf((role || 'employee') as AppRole)
+  const normalized = normalizeRole(role) || 'employee'
+  return ROLE_ORDER.indexOf(normalized as AppRole)
 }
 
 /** Roles allowed to create tasks / projects and assign work */
 export const ROLES_CREATE_AND_ASSIGN_WORK = ['supervisor', 'manager', 'hr', 'director', 'admin'] as const
 
 export function canCreateTasksAndProjects(role: string | undefined): boolean {
-  return !!role && (ROLES_CREATE_AND_ASSIGN_WORK as readonly string[]).includes(role)
+  const normalized = normalizeRole(role)
+  return !!normalized && (ROLES_CREATE_AND_ASSIGN_WORK as readonly string[]).includes(normalized)
 }
 
 /** Can change the status of a task (employees CANNOT change status in the Tasks table) */
@@ -25,7 +31,8 @@ export function canRenameTasksAndProjects(role: string | undefined): boolean {
 
 /** Is this role strictly an employee (no management capabilities) */
 export function isEmployeeRole(role: string | undefined): boolean {
-  return !role || role === 'employee'
+  const normalized = normalizeRole(role)
+  return !normalized || normalized === 'employee'
 }
 
 /** Can see all org employees / HR data */
