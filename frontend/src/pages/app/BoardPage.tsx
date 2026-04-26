@@ -208,6 +208,18 @@ export function BoardPage() {
                       <div key={task.id}
                         draggable={canDrag}
                         onDragStart={e => canDrag ? onDragStart(e, task, col.key) : undefined}
+                        onDragOver={e => {
+                          if (!canDrag) return
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setDragOver(col.key)
+                        }}
+                        onDrop={e => {
+                          if (!canDrag) return
+                          e.preventDefault()
+                          e.stopPropagation()
+                          onDrop(e, col.key)
+                        }}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => {
                           if (suppressCardClickRef.current) {
