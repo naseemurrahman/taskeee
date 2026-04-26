@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -57,6 +57,7 @@ export function BoardPage() {
   const [dragOver, setDragOver] = useState<string | null>(null)
   const dragTask = useRef<Task | null>(null)
   const suppressCardClickRef = useRef(false)
+  const pointerDragRef = useRef<{ id: string; fromCol: string } | null>(null)
 
   const { data, isLoading } = useQuery({ queryKey: ['tasks', 'board', isEmployee], queryFn: () => apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1${isEmployee ? '&mine=true' : ''}`).then(d => (d.tasks || d.rows || []) as Task[]), staleTime: 30_000, refetchInterval: 60_000 })
   const tasks = data || []
@@ -138,6 +139,43 @@ export function BoardPage() {
     m.mutate({ id: taskId, status: nextStatus })
   }
 
+  function onPointerDragStart(task: Task, colKey: string, target: EventTarget | null) {
+    if (!canDrag) return
+    if ((target as HTMLElement | null)?.closest('select')) return
+    pointerDragRef.current = { id: task.id, fromCol: colKey }
+    setDragging({ id: task.id, fromCol: colKey })
+  }
+
+  function onPointerDragEnterColumn(colKey: string) {
+    if (!pointerDragRef.current) return
+    setDragOver(colKey)
+  }
+
+  function onPointerDrop(colKey: string) {
+    const active = pointerDragRef.current
+    if (!active) return
+    pointerDragRef.current = null
+    setDragOver(null)
+    setDragging(null)
+    if (active.fromCol === colKey) return
+    m.mutate({ id: active.id, status: colKey })
+  }
+
+  useEffect(() => {
+    function clearPointerDrag() {
+      if (!pointerDragRef.current) return
+      pointerDragRef.current = null
+      setDragging(null)
+      setDragOver(null)
+    }
+    window.addEventListener('pointerup', clearPointerDrag)
+    window.addEventListener('pointercancel', clearPointerDrag)
+    return () => {
+      window.removeEventListener('pointerup', clearPointerDrag)
+      window.removeEventListener('pointercancel', clearPointerDrag)
+    }
+  }, [])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
       {/* Header */}
@@ -185,6 +223,8 @@ export function BoardPage() {
                 onDragOver={e => onDragOver(e, col.key)}
                 onDrop={e => onDrop(e, col.key)}
                 onDragLeave={e => onColumnDragLeave(e, col.key)}
+                onPointerEnter={() => onPointerDragEnterColumn(col.key)}
+                onPointerUp={() => onPointerDrop(col.key)}
                 style={{
                   background: isOver ? (col.color + '10') : 'var(--bg2)',
                   borderRadius: 16, padding: 14, minHeight: 200,
@@ -221,6 +261,7 @@ export function BoardPage() {
                           onDrop(e, col.key)
                         }}
                         onDragEnd={canDrag ? onDragEnd : undefined}
+                        onPointerDown={e => onPointerDragStart(task, col.key, e.target)}
                         onClick={() => {
                           if (suppressCardClickRef.current) {
                             suppressCardClickRef.current = false
