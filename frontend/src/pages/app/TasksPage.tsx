@@ -196,17 +196,25 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-/** Inline status — shows Select for managers+, static badge for employees */
+/** Inline status — native select, fully reliable cross-browser */
 function InlineStatus({ task, role, canChange }: { task: Task; role: string; canChange: boolean }) {
   const qc = useQueryClient()
+  const [errMsg, setErrMsg] = useState<string | null>(null)
   const transitions = canChange ? getAllowedTransitions(task.status, role) : []
   const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
 
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
     onSuccess: () => {
+      setErrMsg(null)
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'board'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err: any) => {
+      const msg = err?.message || 'Failed to update status'
+      setErrMsg(msg)
+      setTimeout(() => setErrMsg(null), 4000)
     },
   })
 
@@ -214,22 +222,49 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
     return <StatusBadge status={task.status} />
   }
 
+  const options = [
+    { value: task.status, label: meta.label },
+    ...transitions.map(s => {
+      const tm = STATUS_OPTIONS[s] || { label: s.replace(/_/g, ' '), color: '#9ca3af', bg: '' }
+      return { value: s, label: tm.label }
+    }),
+  ]
+
   return (
-    <div style={{ position: 'relative', minWidth: 130 }}>
-      <Select
-        value={task.status}
-        onChange={s => m.mutate(s)}
-        options={[
-          { value: task.status, label: meta.label, color: meta.color },
-          ...transitions.map(s => {
-            const tm = STATUS_OPTIONS[s] || { label: s.replace(/_/g, ' '), color: '#9ca3af', bg: '' }
-            return { value: s, label: tm.label, color: tm.color }
-          }),
-        ]}
-      />
-      {m.isError && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, fontSize: 10, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          Failed to update
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        {/* Color dot */}
+        <span style={{ position: 'absolute', left: 10, width: 7, height: 7, borderRadius: '50%', background: meta.color, pointerEvents: 'none', zIndex: 1, flexShrink: 0 }} />
+        {/* Native select — bypasses all portal/focus/backdrop issues completely */}
+        <select
+          value={task.status}
+          disabled={m.isPending}
+          onClick={e => e.stopPropagation()}
+          onChange={e => {
+            e.stopPropagation()
+            const v = e.target.value
+            if (v !== task.status) m.mutate(v)
+          }}
+          style={{
+            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+            paddingLeft: 22, paddingRight: 26, paddingTop: 4, paddingBottom: 4,
+            borderRadius: 999, fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
+            background: meta.bg, color: meta.color,
+            border: `1.5px solid ${meta.color}55`,
+            cursor: m.isPending ? 'not-allowed' : 'pointer',
+            outline: 'none', minWidth: 115,
+            opacity: m.isPending ? 0.6 : 1,
+            transition: 'opacity 0.15s',
+          }}
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        {/* Chevron */}
+        <svg style={{ position: 'absolute', right: 7, pointerEvents: 'none', color: meta.color, flexShrink: 0 }} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
+      </div>
+      {errMsg && (
+        <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 9999, fontSize: 10, color: '#ef4444', fontWeight: 800, whiteSpace: 'nowrap', background: 'var(--bg1)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+          ⚠ {errMsg}
         </div>
       )}
     </div>

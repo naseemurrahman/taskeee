@@ -109,31 +109,38 @@ export function BoardPage() {
     dragTaskRef.current = null
   }
 
+  // Column drag-over: MUST always call preventDefault to allow drop
+  // Never make these conditional — unconditionally attach to every column
+  function onColDragEnter(e: React.DragEvent, colKey: string) {
+    e.preventDefault()  // required in Safari
+    setDragOverCol(colKey)
+  }
+
   function onColDragOver(e: React.DragEvent, colKey: string) {
-    // MUST call preventDefault to allow drop
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault()  // MUST be called every dragover to allow drop
     e.dataTransfer.dropEffect = 'move'
     setDragOverCol(colKey)
   }
 
   function onColDrop(e: React.DragEvent, toColKey: string) {
     e.preventDefault()
-    e.stopPropagation()
     setDragOverCol(null)
 
-    if (!dragTaskRef.current) return
-    if (fromCol === toColKey) {
-      setDraggingId(null); setFromCol(null); dragTaskRef.current = null
-      return
-    }
+    const task = dragTaskRef.current
+    if (!task) return
 
-    m.mutate({ id: dragTaskRef.current.id, status: toColKey })
-    setDraggingId(null); setFromCol(null); dragTaskRef.current = null
+    const currentFromCol = fromCol
+    setDraggingId(null)
+    setFromCol(null)
+    dragTaskRef.current = null
+
+    if (currentFromCol === toColKey) return
+    if (!canDrag) return
+
+    m.mutate({ id: task.id, status: toColKey })
   }
 
   function onColDragLeave(e: React.DragEvent) {
-    // Only clear if leaving the column entirely (not entering a child)
     const related = e.relatedTarget as HTMLElement | null
     if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
       setDragOverCol(null)
@@ -199,9 +206,10 @@ export function BoardPage() {
             return (
               <div
                 key={col.key}
-                onDragOver={canDrag ? e => onColDragOver(e, col.key) : undefined}
-                onDrop={canDrag ? e => onColDrop(e, col.key) : undefined}
-                onDragLeave={canDrag ? onColDragLeave : undefined}
+                onDragEnter={e => onColDragEnter(e, col.key)}
+                onDragOver={e => onColDragOver(e, col.key)}
+                onDrop={e => onColDrop(e, col.key)}
+                onDragLeave={onColDragLeave}
                 style={{
                   background: isOver ? col.color + '12' : 'var(--bg2)',
                   borderRadius: 16,
