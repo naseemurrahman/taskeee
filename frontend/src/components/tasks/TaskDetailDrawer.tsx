@@ -63,9 +63,37 @@ export function TaskDetailDrawer({
   const qc = useQueryClient()
   const canManage = canCreateTasksAndProjects(me?.role)
   const [comment, setComment] = useState('')
-  const [activeTab, setActiveTab] = useState<'details' | 'comments'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'files'>(initialTab as 'details' | 'comments' | 'files')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !taskId) return
+    setUploading(true); setUploadError(null)
+    try {
+      const form = new FormData()
+      form.append('photo', file)
+      form.append('file', file)
+      form.append('taskId', taskId)
+      const API = (import.meta as any).env?.VITE_API_BASE_URL || ''
+      const token = localStorage.getItem('tf_access_token') || sessionStorage.getItem('tf_access_token') || ''
+      const res = await fetch(`${API}/api/v1/photos/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Upload failed') }
+      qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (err: any) {
+      setUploadError(err?.message || 'Upload failed')
+    } finally { setUploading(false) }
+  }
 
   const taskQ = useQuery({
     queryKey: ['task-detail', taskId],
@@ -202,17 +230,21 @@ export function TaskDetailDrawer({
 
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 20px' }}>
-          {(['details', 'comments'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{
-              padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 800, textTransform: 'capitalize',
-              color: activeTab === tab ? 'var(--brand)' : 'var(--muted)',
-              borderBottom: `2px solid ${activeTab === tab ? 'var(--brand)' : 'transparent'}`,
-              display: 'flex', alignItems: 'center', gap: 6,
+          {[
+            { key: 'details', label: 'Details' },
+            { key: 'comments', label: 'Comments', badge: messages.length },
+            { key: 'files', label: 'Files', badge: photos.length },
+          ].map(({ key, label, badge }) => (
+            <button key={key} onClick={() => setActiveTab(key as any)} style={{
+              padding: '10px 12px', border: 'none', background: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 800,
+              color: activeTab === key ? 'var(--brand)' : 'var(--muted)',
+              borderBottom: `2px solid ${activeTab === key ? 'var(--brand)' : 'transparent'}`,
+              display: 'flex', alignItems: 'center', gap: 5, transition: 'color 0.15s',
             }}>
-              {tab}
-              {tab === 'comments' && messages.length > 0 && (
-                <span style={{ fontSize: 10, fontWeight: 900, padding: '1px 6px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)' }}>{messages.length}</span>
+              {label}
+              {(badge || 0) > 0 && (
+                <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 5px', borderRadius: 999, background: activeTab === key ? 'var(--brandDim)' : 'var(--bg2)', color: activeTab === key ? 'var(--brand)' : 'var(--muted)' }}>{badge}</span>
               )}
             </button>
           ))}
@@ -364,6 +396,35 @@ export function TaskDetailDrawer({
                   </div>
                 )}
               </div>
+            </div>
+          ) : activeTab === 'files' ? (
+            /* Files Tab */
+            <div style={{ display: 'grid', gap: 12 }}>
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" style={{ display: 'none' }} onChange={handleFileUpload} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                style={{ padding: '14px', borderRadius: 12, border: '2px dashed var(--border)', background: 'transparent', color: 'var(--text2)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%' }}>
+                {uploading
+                  ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ animation: 'spin 0.8s linear infinite' }}><circle cx="12" cy="12" r="10" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/></svg> Uploading...</>
+                  : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload file or evidence</>
+                }
+              </button>
+              {uploadError && <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>⚠ {uploadError}</div>}
+              <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>Images, PDFs, documents • Manager notified on upload</div>
+              {photos.length === 0
+                ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--muted)' }}><div style={{ fontSize: 28 }}>📎</div><div style={{ fontWeight: 700, fontSize: 13, marginTop: 8 }}>No files yet</div></div>
+                : photos.map(ph => {
+                    const url = ph.file_url || ph.photo_url
+                    return (
+                      <a key={ph.id} href={url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg2)' }}>
+                        <span style={{ fontSize: 20 }}>{(ph as any).mime_type?.startsWith('image/') ? '🖼' : '📄'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(ph as any).original_filename || 'Attachment'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{ph.uploaded_by_name || 'Unknown'} · {timeAgo(ph.created_at)}</div>
+                        </div>
+                      </a>
+                    )
+                  })
+              }
             </div>
           ) : (
             /* Comments Tab */

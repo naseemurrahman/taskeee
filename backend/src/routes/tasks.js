@@ -195,14 +195,19 @@ router.get('/', authenticate, async (req, res, next) => {
     const orgId = user.org_id ?? user.orgId;
     let targetUserIds = await getScopedTargetUserIds(user);
 
-    /** Employees are always scoped to their own tasks, regardless of query params. */
+    /** Employees ALWAYS see only their own tasks — enforce unconditionally. */
     if (user.role === 'employee') {
       targetUserIds = [user.id];
     } else if (String(mine || '') === 'true') {
-      /** Only tasks assigned to the signed-in user (My Tasks page for managers/supervisors). */
+      /** Only tasks assigned to the signed-in user. */
       targetUserIds = [user.id];
     } else if (userId && targetUserIds.includes(userId)) {
       targetUserIds = [userId];
+    }
+
+    /** Safety net: if target list is empty for any reason, default to own tasks */
+    if (!targetUserIds || targetUserIds.length === 0) {
+      targetUserIds = [user.id];
     }
 
     const includeUnassigned = isOrgWideRole(user.role) && String(mine || '') !== 'true' && !userId;

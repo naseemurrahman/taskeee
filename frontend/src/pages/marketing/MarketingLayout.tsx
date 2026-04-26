@@ -159,7 +159,7 @@ export function MarketingLayout() {
         )}
       </header>
 
-      <main className="mktMain">
+      <main className="mktMain" style={{ paddingTop: 66 }}>
         <Outlet />
       </main>
 

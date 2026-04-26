@@ -258,7 +258,7 @@ export function MarketingHomePage() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" style={{ padding: '100px max(24px, calc(50vw - 600px))' }}>
+      <section id="products" style={{ padding: '100px max(24px, calc(50vw - 600px))' }}>
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 999, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', fontSize: 12, fontWeight: 800, color: '#8B5CF6', marginBottom: 20, letterSpacing: '0.05em' }}>
             EVERYTHING YOU NEED
@@ -284,7 +284,7 @@ export function MarketingHomePage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" style={{ padding: '100px max(24px, calc(50vw - 600px))', background: 'rgba(255,255,255,0.02)' }}>
+      <section id="pricing" data-section="pricing" style={{ padding: '100px max(24px, calc(50vw - 600px))', background: 'rgba(255,255,255,0.02)' }}>
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <h2 style={{ fontSize: 'clamp(28px,4vw,48px)', fontWeight: 950, letterSpacing: '-1.5px', color: '#fff', margin: '0 0 16px' }}>Simple, transparent pricing</h2>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)' }}>Start free. Scale when you need it. Cancel anytime.</p>
@@ -297,7 +297,7 @@ export function MarketingHomePage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section id="testimonials" style={{ padding: '100px max(24px, calc(50vw - 600px))' }}>
+      <section id="solutions" style={{ padding: '100px max(24px, calc(50vw - 600px))' }}>
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <h2 style={{ fontSize: 'clamp(28px,4vw,48px)', fontWeight: 950, letterSpacing: '-1.5px', color: '#fff', margin: '0 0 16px' }}>Loved by teams worldwide</h2>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>{'★★★★★'.split('').map((s, i) => <span key={i} style={{ color: '#e2ab41', fontSize: 20 }}>{s}</span>)}</div>

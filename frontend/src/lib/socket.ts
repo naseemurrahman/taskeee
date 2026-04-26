@@ -21,9 +21,15 @@ export function getSocket(): Socket {
     timeout: 10000,
   })
 
-  socket.on('connect', () => console.log('[Socket] connected'))
-  socket.on('disconnect', () => console.log('[Socket] disconnected'))
-  socket.on('connect_error', (err) => console.warn('[Socket] error:', err.message))
+  socket.on('connect', () => {
+    // Join the org room so the server can broadcast org-scoped events
+    const user = (() => { try { const u = localStorage.getItem('tf_user'); return u ? JSON.parse(u) : null } catch { return null } })()
+    const s = socket
+    if (s && user?.orgId) s.emit('join:org', { orgId: user.orgId })
+    if (s && user?.id) s.emit('join:user', { userId: user.id })
+  })
+  socket.on('disconnect', () => { /* silent reconnect */ })
+  socket.on('connect_error', (err) => { if (err.message !== 'xhr poll error') console.warn('[Socket]', err.message) })
 
   return socket
 }

@@ -18,6 +18,7 @@ import { EmployeeProfilePage } from './pages/app/hr/EmployeeProfilePage'
 import { TimeOffPage } from './pages/app/hr/TimeOffPage'
 import { CrmPipelinePage } from './pages/app/crm/CrmPipelinePage'
 import { CrmLeadsPage } from './pages/app/crm/CrmLeadsPage'
+import { SettingsPage } from './pages/app/SettingsPage'
 import { BillingPage } from './pages/app/BillingPage'
 import { ContractorsPage } from './pages/app/contractors/ContractorsPage'
 import { ContractorProfilePage } from './pages/app/contractors/ContractorProfilePage'
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="hr/time-off" element={<TimeOffPage />} />
         <Route path="crm/pipeline" element={<CrmPipelinePage />} />
         <Route path="crm/leads" element={<CrmLeadsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="contractors" element={<ContractorsPage />} />
         <Route path="contractors/:id" element={<ContractorProfilePage />} />
