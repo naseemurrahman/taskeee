@@ -121,6 +121,11 @@ export function BoardPage() {
 
   function onDragEnd() { setDragging(null); setDragOver(null); dragTask.current = null }
 
+  function onQuickMove(taskId: string, nextStatus: string) {
+    if (!canDrag) return
+    m.mutate({ id: taskId, status: nextStatus })
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
       {/* Header */}
@@ -207,6 +212,19 @@ export function BoardPage() {
                         {task.priority && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, background: pColor }} />}
 
                         <div style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.4, color: 'var(--text)', marginTop: 4, marginBottom: 6 }}>{task.title}</div>
+
+                        {canDrag && (
+                          <div style={{ marginBottom: 6 }}>
+                            <select
+                              value={task.status}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => { e.stopPropagation(); onQuickMove(task.id, e.target.value) }}
+                              style={{ width: '100%', fontSize: 11, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '4px 6px' }}
+                            >
+                              {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                            </select>
+                          </div>
+                        )}
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {task.category_name && (
