@@ -1236,8 +1236,11 @@ router.post('/:id/set-status', authenticate, async (req, res, next) => {
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
     
     await query('UPDATE tasks SET status = $1, updated_at = NOW() WHERE id = $2', [status, req.params.id]);
+    res.setHeader('Content-Type', 'application/json');
     res.json({ ok: true, taskId: req.params.id, status, previous: rows[0].status });
   } catch (err) {
+    console.error('[set-status] error:', err.message);
+    res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ error: err.message });
   }
 });

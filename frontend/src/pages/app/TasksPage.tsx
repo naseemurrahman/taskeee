@@ -216,8 +216,9 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
     },
     onError: (err: any) => {
       const msg = err?.message || 'Failed to update status'
+      console.error('[StatusChange] Error:', msg, err)
       setErrMsg(msg)
-      setTimeout(() => setErrMsg(null), 4000)
+      setTimeout(() => setErrMsg(null), 6000)
     },
   })
 

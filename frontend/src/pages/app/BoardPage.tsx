@@ -90,8 +90,10 @@ export function BoardPage() {
       if (context?.previous) {
         qc.setQueryData(['tasks', 'board'], context.previous)
       }
-      setBoardError(err?.message || 'Status update failed — check your permissions')
-      setTimeout(() => setBoardError(null), 5000)
+      const msg = err?.message || 'Status update failed'
+      console.error('[BoardDnD] Error:', msg, err)
+      setBoardError(msg)
+      setTimeout(() => setBoardError(null), 8000)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['tasks'] })

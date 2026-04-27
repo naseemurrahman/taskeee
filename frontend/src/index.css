@@ -5047,10 +5047,7 @@ select.input option { background: #1a1d2e; color: white; }
     grid-template-columns: 1fr;
   }
   /* On mobile: sidebar is position:fixed overlay, main fills full width */
-  .mainV4 {
-    grid-column: 1;
-    width: 100%;
-  }
+  
 }
 
 /* ── Sidebar V4 ────────────────────────────────────────────────── */
