@@ -6255,7 +6255,7 @@ select.input option { background: #1a1d2e; color: white; }
   padding: 20px 24px;
   margin-bottom: 2px;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Must be visible so dropdowns/portals show above */
 }
 .pageHeaderCard::before {
   content: '';
@@ -7580,15 +7580,14 @@ tr:hover .inlineEditBtn {
    Safe because Select dropdowns use position:fixed via createPortal
    ═══════════════════════════════════════════════════════════════ */
 .pageHeaderCard {
-  overflow: hidden !important;
-  position: relative !important;
+  overflow: visible !important;
 }
 .pageHeaderCard::before {
   border-radius: 18px 18px 0 0;
 }
 
 /* Cards also clip normally — dropdowns escape via portal */
-.card { overflow: hidden; }
+/* .card overflow managed per instance */
 .chartV3 { overflow: hidden; }
 .formCardV3 { overflow: hidden; }
 .miniCard { overflow: hidden; }
