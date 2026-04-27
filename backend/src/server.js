@@ -188,6 +188,7 @@ app.use('/api/v1/users',         userRoutes);
 // Task-scoped chat must register before /api/v1/tasks so /tasks/:taskId/messages is not swallowed by /tasks/:id
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
+app.use('/api/v1/ai',    require('./routes/ai'));
 app.use('/api/v1/tasks',         taskRoutes);
 app.use('/api/v1/photos',        photoRoutes);
 app.use('/api/v1/reports',       reportRoutes);

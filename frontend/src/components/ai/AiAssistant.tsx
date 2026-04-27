@@ -16,44 +16,18 @@ async function fetchContext() {
 }
 
 async function callAI(messages: Message[], context: any): Promise<string> {
-  const counts = { total: 0, overdue: 0, pending: 0, in_progress: 0, completed: 0 }
-  for (const t of context.tasks || []) {
-    counts.total++
-    if (t.status === 'overdue') counts.overdue++
-    else if (t.status === 'pending') counts.pending++
-    else if (t.status === 'in_progress') counts.in_progress++
-    else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++
-  }
-  const overdueList = (context.tasks || []).filter((t: Task) => t.status === 'overdue').slice(0, 5).map((t: Task) => `"${t.title}" (${t.assigned_to_name || 'unassigned'}) [ID:${t.id.slice(0,8)}]`).join('; ')
 
-  const systemPrompt = `You are JecZone AI, the intelligent assistant for TaskFlow Pro. You have live organization data.
 
-LIVE DATA:
-Tasks: ${counts.total} total | ${counts.overdue} overdue | ${counts.pending} pending | ${counts.in_progress} in-progress | ${counts.completed} completed
-Projects: ${context.projects?.map((p: any) => p.name).join(', ') || 'none'}
-Overdue tasks: ${overdueList || 'none'}
-Top performers: ${context.perf?.assigneeLeaderboard?.slice(0, 3).map((u: any) => u.name + ' (score:' + u.performanceScore + ')').join(', ') || 'no data'}
-
-When suggesting status changes, use this exact format so they can be applied:
-[ACTION: CHANGE_STATUS task_id="<8-char-id>" to="<status>"]
-
-Valid statuses: pending, in_progress, submitted, manager_approved, manager_rejected, completed, cancelled
-
-Be concise, data-driven, and actionable. Always show task names when referencing them.`
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  // Call backend proxy — keeps Anthropic API key secure on server
+  const data = await apiFetch<{ text: string; error?: string }>('/api/v1/ai/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1200,
-      system: systemPrompt,
+    json: {
       messages: messages.map(m => ({ role: m.role, content: m.content })),
-    }),
+      context,
+    },
   })
-  const data = await response.json()
-  if (data.error) throw new Error(data.error.message)
-  return data.content?.[0]?.text || 'No response.'
+  if (data.error) throw new Error(data.error)
+  return data.text || 'No response.'
 }
 
 function renderMessage(text: string, onApply: (taskId: string, status: string) => void) {
