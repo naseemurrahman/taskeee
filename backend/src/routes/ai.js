@@ -54,7 +54,7 @@ router.post('/chat', authenticate, async (req, res, next) => {
 
 LIVE ORGANIZATION DATA (as of right now):
 - Tasks: ${counts.total} total | ${counts.overdue} overdue | ${counts.pending} pending | ${counts.in_progress} in-progress | ${counts.submitted} submitted | ${counts.completed} completed
-- Projects: ${(orgContext.projects || []).map((p: any) => p.name).join(', ') || 'none'}
+- Projects: ${(orgContext.projects || []).map(p => p.name).join(', ') || 'none'}
 - Overdue tasks: ${overdueList || 'none'}
 - Team: ${lb || 'no data'}
 
