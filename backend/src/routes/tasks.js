@@ -10,7 +10,8 @@ const { orgIdForSessionUser } = require('../utils/orgContext');
 
 const _tableColsCache = new Map();
 async function getTableColumns(tableName) {
-  if (_tableColsCache.has(tableName)) return _tableColsCache.get(tableName);
+  const cached = _tableColsCache.get(tableName);
+  if (cached && cached.size > 0) return cached;  // Only use cache if non-empty
   try {
     const { rows } = await query(
       `SELECT column_name
@@ -19,7 +20,7 @@ async function getTableColumns(tableName) {
       [tableName]
     );
     const set = new Set((rows || []).map((r) => String(r.column_name)));
-    _tableColsCache.set(tableName, set);
+    if (set.size > 0) _tableColsCache.set(tableName, set);  // Only cache non-empty
     return set;
   } catch {
     return new Set();

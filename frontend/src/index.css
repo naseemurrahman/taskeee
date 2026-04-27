@@ -5043,7 +5043,14 @@ select.input option { background: #1a1d2e; color: white; }
   transition: background 0.2s ease, color 0.2s ease;
 }
 @media (max-width: 900px) {
-  .appShellV4 { grid-template-columns: 1fr; }
+  .appShellV4 { 
+    grid-template-columns: 1fr;
+  }
+  /* On mobile: sidebar is position:fixed overlay, main fills full width */
+  .mainV4 {
+    grid-column: 1;
+    width: 100%;
+  }
 }
 
 /* ── Sidebar V4 ────────────────────────────────────────────────── */
@@ -7872,9 +7879,7 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
    SIDEBAR MOBILE — reliable overlay behavior
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  /* Content doesn't shift when sidebar opens */
-  .appShellV4Main { margin-left: 0 !important; }
-  .mainV4 { margin-left: 0 !important; }
+
 
   /* Sidebar slides in from left */
   .sidebarV4 {
@@ -7911,9 +7916,7 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
   }
 
   /* Page content padding */
-  .appV4PageWrap, .pageContentV4 {
-    padding: 16px !important;
-  }
+
 }
 
 /* ═══════════════════════════════════════════════════════════════
