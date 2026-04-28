@@ -384,10 +384,11 @@ export function AppLayout() {
               type="button"
               className="topbarLangBtn"
               onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')}
-              title={t('nav.language')}
+              title={`${t('nav.language')}: ${activeLang.toUpperCase()}`}
+              aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}
             >
               <Globe size={13} />
-              <span>{activeLang.toUpperCase()}</span>
+              <span>Lang {activeLang.toUpperCase()}</span>
             </button>
             <div className="topbarProfileWrap" ref={profileRef}>
               <button type="button" className="topbarV4ProfileBtn"

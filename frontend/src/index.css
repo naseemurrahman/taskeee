@@ -8436,3 +8436,68 @@ textarea.input {
 @media (max-width: 1260px) {
   .topbarV4Meta { display: none; }
 }
+
+/* === Sidebar + language button clarity refresh === */
+.appShellV4Light .sidebarV4 {
+  background: linear-gradient(180deg, #020203 0%, #0e1014 48%, #171923 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.08), 8px 0 24px rgba(0,0,0,0.26);
+}
+
+.appShellV4Dark .sidebarV4 {
+  background: linear-gradient(180deg, #f5c35a 0%, #e2ab41 46%, #c98317 100%) !important;
+  border-right: 1px solid rgba(18, 14, 6, 0.25) !important;
+  box-shadow: inset -1px 0 0 rgba(18,14,6,0.12), 8px 0 24px rgba(201,131,23,0.26);
+}
+
+.appShellV4Light .sidebarV4,
+.appShellV4Light .sidebarV4 * {
+  color: rgba(255,255,255,0.94) !important;
+}
+
+.appShellV4Dark .sidebarV4,
+.appShellV4Dark .sidebarV4 * {
+  color: #1f1304 !important;
+}
+
+.appShellV4Dark .navItemV4,
+.appShellV4Light .navItemV4 {
+  border: 1px solid transparent;
+}
+
+.appShellV4Light .navItemV4:hover,
+.appShellV4Light .navItemV4Active {
+  background: rgba(255,255,255,0.14) !important;
+  border-color: rgba(255,255,255,0.28) !important;
+}
+
+.appShellV4Dark .navItemV4:hover,
+.appShellV4Dark .navItemV4Active {
+  background: rgba(255,255,255,0.36) !important;
+  border-color: rgba(31,19,4,0.28) !important;
+}
+
+.topbarLangBtn {
+  min-width: 96px;
+  justify-content: center;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em;
+}
+
+.appShellV4Light .topbarLangBtn {
+  background: rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.42) !important;
+}
+
+.appShellV4Dark .topbarLangBtn {
+  background: rgba(255,255,255,0.5) !important;
+  color: #1f1304 !important;
+  border-color: rgba(31,19,4,0.3) !important;
+}
+
+.appShellV4Light .topbarLangBtn:hover,
+.appShellV4Dark .topbarLangBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.16);
+}
