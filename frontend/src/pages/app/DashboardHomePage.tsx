@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { Modal } from '../../components/Modal'
 
 // ─── Types ────────────────────────────────────────────────────────
 type DashData = {
@@ -251,7 +252,10 @@ function KpiTile({ label, value, sub, color, icon }: {
 export function DashboardHomePage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
+  const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
+  const canOpenAdvancedDetails = canViewAnalytics(me?.role)
   const [createOpen, setCreateOpen] = useState(false)
+  const [chartDetail, setChartDetail] = useState<null | 'activity' | 'status' | 'priority' | 'projects' | 'velocity' | 'team' | 'workload'>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -278,6 +282,13 @@ export function DashboardHomePage() {
       { label: 'Pending',     value: tasks.pending,     color: C.brand },
     ].filter(s => s.value > 0)
   }, [tasks])
+
+  const priorityRows = useMemo(() => {
+    const p = data?.priority || {}
+    return [['critical', C.red], ['high', C.orange], ['medium', C.purple], ['low', C.blue]]
+      .map(([k, c]) => ({ label: k, value: Number(p[k] || 0), color: c as string }))
+      .filter(e => e.value > 0)
+  }, [data])
 
   const Skel = ({ h = 80 }: { h?: number }) => (
     <div className="skeleton" style={{ height: h, borderRadius: 14 }} />
@@ -327,11 +338,21 @@ export function DashboardHomePage() {
 
       {/* ── Row 1: Activity trend (wide) + Status donut ── */}
       <div className="dashGrid21">
-        <Card title="Task Activity — Last 14 Days" sub="Created · Completed · Overdue by day">
+        <Card
+          title="Task Activity — Last 14 Days"
+          sub="Created · Completed · Overdue by day"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('activity')}>Details</button> : undefined}
+        >
           {isLoading ? <Skel h={160} /> : !trendData.length ? (
             <div style={{ height: 160, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No activity data yet</div>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('activity') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('activity') : null)}
+            >
               {[
                 { key: 'completed', label: '✓ Completed', color: C.green },
                 { key: 'created',   label: '+ Created',   color: C.brand  },
@@ -354,9 +375,19 @@ export function DashboardHomePage() {
           )}
         </Card>
 
-        <Card title="Task Status" sub="Current distribution">
+        <Card
+          title="Task Status"
+          sub="Current distribution"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('status')}>Details</button> : undefined}
+        >
           {isLoading ? <Skel h={180} /> : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('status') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('status') : null)}
+            >
               <div style={{ position: 'relative' }}>
                 <DonutRing segments={statusSegs} size={130} strokeW={14} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(0deg)' }}>
@@ -380,16 +411,23 @@ export function DashboardHomePage() {
 
       {/* ── Row 2: Project progress + Priority ── */}
       <div className="dashGrid12">
-        <Card title="Priority Breakdown" sub="Tasks by urgency level">
+        <Card
+          title="Priority Breakdown"
+          sub="Tasks by urgency level"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('priority')}>Details</button> : undefined}
+        >
           {isLoading ? <Skel h={120} /> : (() => {
-            const p = data?.priority || {}
-            const entries = [['critical', C.red], ['high', C.orange], ['medium', C.purple], ['low', C.blue]]
-              .map(([k, c]) => ({ label: k, value: Number(p[k] || 0), color: c as string }))
-              .filter(e => e.value > 0)
+            const entries = priorityRows
             if (!entries.length) return <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No tasks yet</div>
             const max = Math.max(...entries.map(e => e.value))
             return (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div
+                role="button"
+                tabIndex={canOpenChartDetails ? 0 : -1}
+                style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+                onClick={() => canOpenChartDetails ? setChartDetail('priority') : null}
+                onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('priority') : null)}
+              >
                 {entries.map(e => (
                   <ProgressRow key={e.label} label={e.label.charAt(0).toUpperCase()+e.label.slice(1)} value={e.value} max={max} color={e.color} />
                 ))}
@@ -399,11 +437,20 @@ export function DashboardHomePage() {
         </Card>
 
         <Card title="Project Progress" sub="Completion % per project"
-          action={<Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>}>
+          action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('projects')}>Details</button> : null}
+            <Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>
+          </div>}>
           {isLoading ? <Skel h={200} /> : !projects.length ? (
             <div style={{ height: 120, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No projects yet</div>
           ) : (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 12, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('projects') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('projects') : null)}
+            >
               {projects.slice(0, 6).map((p, i) => {
                 const color = p.color || [C.brand, C.purple, C.blue, C.teal, C.orange][i % 5]
                 return (
@@ -435,11 +482,21 @@ export function DashboardHomePage() {
       </div>
 
       {/* ── Row 3: Weekly velocity ── */}
-      <Card title="Weekly Velocity" sub="Tasks created vs. completed per week — net throughput">
+      <Card
+        title="Weekly Velocity"
+        sub="Tasks created vs. completed per week — net throughput"
+        action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
+      >
         {isLoading ? <Skel h={130} /> : velocity.length < 2 ? (
           <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data</div>
         ) : (
-          <div>
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('velocity') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('velocity') : null)}
+          >
             <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
               {[
                 { label: 'Created', color: C.brand, key: 'created' },
@@ -473,11 +530,20 @@ export function DashboardHomePage() {
 
       {/* ── Row 4: Team leaderboard ── */}
       <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
-        action={<Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>}>
+        action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('team')}>Details</button> : null}
+          <Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>
+        </div>}>
         {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
           <div style={{ padding: '24px 0', textAlign: 'center', color: C.muted, fontSize: 13 }}>No team data yet</div>
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('team') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('team') : null)}
+          >
             {leaderboard.slice(0, 8).map((u, i) => {
               const colors = [C.brand, C.purple, C.blue, C.teal, C.orange, C.green]
               const color = colors[i % colors.length]
@@ -513,11 +579,21 @@ export function DashboardHomePage() {
         </Card>
 
         {/* Workload stacked bars */}
-        <Card title="Team Workload" sub="Active · Overdue · Done per person">
+        <Card
+          title="Team Workload"
+          sub="Active · Overdue · Done per person"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('workload')}>Details</button> : undefined}
+        >
           {leaderboard.length === 0 ? (
             <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('workload') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('workload') : null)}
+            >
               {leaderboard.slice(0, 6).map((u, i) => {
                 const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
                 if (u.total === 0) return null
@@ -547,6 +623,115 @@ export function DashboardHomePage() {
           )}
         </Card>
       </div>
+
+      <Modal
+        title={
+          chartDetail === 'activity' ? 'Task Activity Details'
+            : chartDetail === 'status' ? 'Task Status Details'
+            : chartDetail === 'priority' ? 'Priority Breakdown Details'
+            : chartDetail === 'projects' ? 'Project Progress Details'
+            : chartDetail === 'velocity' ? 'Weekly Velocity Details'
+            : chartDetail === 'team' ? 'Team Performance Details'
+            : chartDetail === 'workload' ? 'Team Workload Details'
+            : 'Chart details'
+        }
+        open={!!chartDetail}
+        wide
+        onClose={() => setChartDetail(null)}
+        footer={<button type="button" className="btn btnPrimary" style={{ height: 38 }} onClick={() => setChartDetail(null)}>Close</button>}
+      >
+        {!canOpenAdvancedDetails ? (
+          <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
+            Detailed metrics are limited for your role. You can still use the dashboard cards for high-level status and trends.
+          </div>
+        ) : null}
+        {chartDetail === 'activity' ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {trendData.slice(-10).map((d) => (
+              <div key={d.day} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{d.label}</div>
+                <div>Created: <strong>{d.created}</strong></div>
+                <div>Completed: <strong>{d.completed}</strong></div>
+                <div>Overdue: <strong style={{ color: d.overdue > 0 ? C.red : 'inherit' }}>{d.overdue}</strong></div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'status' && tasks ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {statusSegs.map((s) => (
+              <div key={s.label} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{s.label}</div>
+                <div>{Math.round((s.value / Math.max(1, tasks.total)) * 100)}%</div>
+                <div style={{ color: s.color, fontWeight: 900 }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'priority' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {priorityRows.map((p) => (
+              <div key={p.label} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                <div style={{ fontWeight: 800, textTransform: 'capitalize' }}>{p.label}</div>
+                <div style={{ color: p.color, fontWeight: 900 }}>{p.value}</div>
+              </div>
+            ))}
+            {priorityRows.length === 0 ? <div style={{ color: C.muted }}>No priority data yet.</div> : null}
+          </div>
+        ) : null}
+        {chartDetail === 'projects' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {projects.slice(0, 12).map((p) => (
+              <div key={p.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr repeat(4, 1fr)', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{p.name}</div>
+                <div>Done: {p.completed}</div>
+                <div>Active: {p.in_progress}</div>
+                <div>Overdue: {p.overdue}</div>
+                <div style={{ fontWeight: 900 }}>{p.progress}%</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'velocity' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {velocity.map((v) => (
+              <div key={v.week} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{v.week}</div>
+                <div>Created: {v.created}</div>
+                <div>Done: {v.completed}</div>
+                <div style={{ fontWeight: 900, color: v.completed - v.created >= 0 ? C.green : C.red }}>{v.completed - v.created >= 0 ? '+' : ''}{v.completed - v.created}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'team' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {leaderboard.slice(0, 12).map((u) => (
+              <div key={u.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{u.name}</div>
+                <div>Rate: {u.completion_rate}%</div>
+                <div>Done: {u.completed}/{u.total}</div>
+                <div style={{ fontWeight: 900 }}>Score {u.score}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'workload' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {leaderboard.slice(0, 12).map((u) => {
+              const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
+              return (
+                <div key={u.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                  <div style={{ fontWeight: 800 }}>{u.name}</div>
+                  <div>Done {u.completed}</div>
+                  <div>Active {active}</div>
+                  <div style={{ color: (u.overdue || 0) > 0 ? C.red : 'var(--text)' }}>Overdue {u.overdue || 0}</div>
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
+      </Modal>
 
       {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
     </div>
