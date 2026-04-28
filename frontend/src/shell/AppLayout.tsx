@@ -388,7 +388,7 @@ export function AppLayout() {
               aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}
             >
               <Globe size={13} />
-              <span>Lang {activeLang.toUpperCase()}</span>
+              <span>{activeLang.toUpperCase()}</span>
             </button>
             <div className="topbarProfileWrap" ref={profileRef}>
               <button type="button" className="topbarV4ProfileBtn"

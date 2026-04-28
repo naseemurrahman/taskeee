@@ -338,7 +338,7 @@ export function TasksPage() {
 
       {/* ── Filters ── */}
       <div className="chartV3" style={{ padding: '12px 16px' }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="taskFiltersRow" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
             {[
               { k: 'all', label: 'All', count: counts.all },
@@ -394,8 +394,8 @@ export function TasksPage() {
             )}
           </div>
         ) : (
-          <div style={{ overflow: 'visible' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="tasksTableWrap" style={{ overflow: 'visible' }}>
+            <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />

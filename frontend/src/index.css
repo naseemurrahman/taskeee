@@ -8501,3 +8501,46 @@ textarea.input {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.16);
 }
+
+/* === Sidebar scrollbar contrast + tasks mobile responsiveness === */
+.sidebarV4Nav::-webkit-scrollbar {
+  width: 7px !important;
+}
+.appShellV4Light .sidebarV4Nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border-radius: 999px;
+}
+.appShellV4Dark .sidebarV4Nav::-webkit-scrollbar-thumb {
+  background: rgba(84, 63, 24, 0.35) !important;
+  border-radius: 999px;
+}
+
+@media (max-width: 768px) {
+  .taskFiltersRow {
+    align-items: stretch !important;
+  }
+  .taskFiltersRow > div {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+
+  .tasksTableWrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tasksTable {
+    min-width: 760px;
+  }
+
+  .tasksTable th,
+  .tasksTable td {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .tasksTable td:first-child + td {
+    min-width: 220px;
+  }
+}
