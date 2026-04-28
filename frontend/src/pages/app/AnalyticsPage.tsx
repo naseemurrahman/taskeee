@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
+import { getUser } from '../../state/auth'
+import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { ChartCard } from '../../components/charts/ChartCard'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 import { buildDeadlineSeries } from '../../components/charts/chartUtils'
@@ -57,6 +59,9 @@ async function fetchTasksForDeadlines() {
 }
 
 export function AnalyticsPage() {
+  const me = getUser()
+  const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
+  const canOpenAdvancedDetails = canViewAnalytics(me?.role)
   const navigate = useNavigate()
   const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null)
   const [pickId, setPickId] = useState<string | null>(null)
@@ -142,6 +147,14 @@ export function AnalyticsPage() {
     return Math.round(Math.max(0, total - overloaded - underutilized) / total * 100)
   }, [summaryQ.data?.workload, summaryQ.data?.userCount])
 
+  function openDetail(title: string, kind: 'kpi' | 'chart') {
+    if (!canOpenChartDetails && kind === 'chart') {
+      setDetail({ title: 'Details limited', kind: 'chart' })
+      return
+    }
+    setDetail({ title, kind })
+  }
+
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       {/* Page header card */}
@@ -222,7 +235,7 @@ export function AnalyticsPage() {
       <ChartCard
         title="Team capacity"
         subtitle="Rapid insight into assignment balance and remote readiness."
-        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Workload balance', kind: 'chart' })}>Details</button>}
+        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Workload balance', 'chart')}>Details</button>}
       >
         <div style={{ display: 'grid', gap: 12 }}>
           <div className="grid4">
@@ -253,14 +266,14 @@ export function AnalyticsPage() {
         <ChartCard
           title="Tasks by status"
           subtitle="Distribution across your scope."
-          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Tasks by status', kind: 'chart' })}>Details</button>}
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Tasks by status', 'chart')}>Details</button>}
         >
           <div
             role="button"
             tabIndex={0}
             style={{ cursor: 'pointer' }}
-            onClick={() => setDetail({ title: 'Tasks by status', kind: 'chart' })}
-            onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Tasks by status', kind: 'chart' }) : null)}
+            onClick={() => openDetail('Tasks by status', 'chart')}
+            onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Tasks by status', 'chart') : null)}
           >
             <StatusBarChart byStatus={byStatus} />
           </div>
@@ -268,15 +281,15 @@ export function AnalyticsPage() {
         <ChartCard
           title="Deadlines trend"
           subtitle="Upcoming due tasks vs overdue (14 days)."
-          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Deadlines trend', kind: 'chart' })}>Details</button>}
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Deadlines trend', 'chart')}>Details</button>}
         >
           {tasksQ.isError ? <div className="alert alertError">Failed to load deadlines.</div> : null}
           <div
             role="button"
             tabIndex={0}
             style={{ cursor: 'pointer' }}
-            onClick={() => setDetail({ title: 'Deadlines trend', kind: 'chart' })}
-            onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Deadlines trend', kind: 'chart' }) : null)}
+            onClick={() => openDetail('Deadlines trend', 'chart')}
+            onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Deadlines trend', 'chart') : null)}
           >
             <DeadlinesTrendChart points={deadlinePoints} />
           </div>
@@ -287,14 +300,14 @@ export function AnalyticsPage() {
         <ChartCard
           title="Priority mix"
           subtitle="Task priority distribution across current work scope."
-          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Priority mix', kind: 'chart' })}>Details</button>}
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Priority mix', 'chart')}>Details</button>}
         >
           <div
             role="button"
             tabIndex={0}
             style={{ cursor: 'pointer' }}
-            onClick={() => setDetail({ title: 'Priority mix', kind: 'chart' })}
-            onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Priority mix', kind: 'chart' }) : null)}
+            onClick={() => openDetail('Priority mix', 'chart')}
+            onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Priority mix', 'chart') : null)}
           >
             <PriorityPieChart byPriority={byPriority} />
           </div>
@@ -302,14 +315,14 @@ export function AnalyticsPage() {
         <ChartCard
           title="Workload balance"
           subtitle="Overloaded, balanced, and underutilized team members."
-          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Workload balance', kind: 'chart' })}>Details</button>}
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Workload balance', 'chart')}>Details</button>}
         >
           <div
             role="button"
             tabIndex={0}
             style={{ cursor: 'pointer' }}
-            onClick={() => setDetail({ title: 'Workload balance', kind: 'chart' })}
-            onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Workload balance', kind: 'chart' }) : null)}
+            onClick={() => openDetail('Workload balance', 'chart')}
+            onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Workload balance', 'chart') : null)}
           >
             <WorkloadBalanceChart
               fillHeight
@@ -323,7 +336,7 @@ export function AnalyticsPage() {
       <ChartCard
         title="Team performance"
         subtitle="Score, active workload, and delivery."
-        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Team performance', kind: 'chart' })}>Details</button>}
+        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Team performance', 'chart')}>Details</button>}
       >
         {summaryQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!summaryQ.isLoading && leaderboard.length === 0 ? <div style={{ color: 'var(--text2)' }}>No team data yet.</div> : null}
@@ -331,8 +344,8 @@ export function AnalyticsPage() {
           role="button"
           tabIndex={0}
           style={{ cursor: 'pointer' }}
-          onClick={() => setDetail({ title: 'Team performance', kind: 'chart' })}
-          onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Team performance', kind: 'chart' }) : null)}
+          onClick={() => openDetail('Team performance', 'chart')}
+          onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Team performance', 'chart') : null)}
         >
           <AssigneeScoreChart rows={leaderboard.map((u) => ({ name: u.name, active: u.active, completed: u.completed, performanceScore: u.performanceScore }))} />
         </div>
@@ -355,7 +368,7 @@ export function AnalyticsPage() {
       <ChartCard
         title="Team comparison"
         subtitle="Compare performance and workload across top members."
-        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Team comparison', kind: 'chart' })}>Details</button>}
+        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Team comparison', 'chart')}>Details</button>}
       >
         {summaryQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!summaryQ.isLoading && leaderboard.length === 0 ? <div style={{ color: 'var(--text2)' }}>No comparison data yet.</div> : null}
@@ -363,8 +376,8 @@ export function AnalyticsPage() {
           role="button"
           tabIndex={0}
           style={{ cursor: 'pointer' }}
-          onClick={() => setDetail({ title: 'Team comparison', kind: 'chart' })}
-          onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Team comparison', kind: 'chart' }) : null)}
+          onClick={() => openDetail('Team comparison', 'chart')}
+          onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Team comparison', 'chart') : null)}
         >
           <AssigneeScoreChart
             rows={leaderboard.map((u) => ({
@@ -390,6 +403,11 @@ export function AnalyticsPage() {
           </div>
         }
       >
+        {detail?.kind === 'chart' && detail.title === 'Details limited' ? (
+          <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
+            Your role can view summary charts, but detailed drill-down windows are available for supervisors and above.
+          </div>
+        ) : null}
         {detail?.kind === 'kpi' && detail.title === 'Total tasks' ? (
           <div style={{ display: 'grid', gap: 12 }}>
             <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
@@ -428,6 +446,12 @@ export function AnalyticsPage() {
             <StatusMiniChart byStatus={byStatus} />
             <PriorityBreakdown byPriority={byPriority} />
             <TaskSampleTable tasks={tasks} empty="No tasks." />
+          </div>
+        ) : null}
+        {detail?.kind === 'chart' && detail.title === 'Priority mix' ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <PriorityBreakdown byPriority={byPriority} />
+            {canOpenAdvancedDetails ? <TaskSampleTable tasks={tasks} empty="No tasks." /> : null}
           </div>
         ) : null}
         {detail?.kind === 'chart' && detail.title === 'Team performance' ? (
