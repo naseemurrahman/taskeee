@@ -104,6 +104,36 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
   )
 }
 
+export function StatusDonutChart(props: { byStatus: Record<string, number> }) {
+  const COLORS: Record<string, string> = {
+    pending: '#f4ca57', in_progress: '#6366f1', submitted: '#8b5cf6',
+    manager_approved: '#10b981', completed: '#22c55e', overdue: '#ef4444', manager_rejected: '#f97316',
+  }
+  const data = Object.entries(props.byStatus || {})
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => ({ key: k, name: k.replace(/_/g, ' '), value: v, fill: COLORS[k] || '#94a3b8' }))
+  if (!data.length) return <EmptyChart icon="🍩" title="No status distribution yet" />
+  const total = data.reduce((s, d) => s + d.value, 0)
+  return (
+    <div style={{ position: 'relative' }}>
+      <Shell height={240}>
+        <PieChart>
+          <Tooltip content={<GlassTooltip />} />
+          <Pie data={data} dataKey="value" nameKey="name" innerRadius={68} outerRadius={98} paddingAngle={2} strokeWidth={0}>
+            {data.map((d) => <Cell key={d.key} fill={d.fill} />)}
+          </Pie>
+        </PieChart>
+      </Shell>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 950 }}>{total}</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tasks</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Priority Donut with side legend ──────────────────────────────
 export function PriorityPieChart(props: { byPriority: Record<string, number>; fillHeight?: boolean }) {
   const COLORS: Record<string, string> = {
@@ -219,6 +249,29 @@ export function DeadlinesTrendChart(props: {
           dot={false}
           activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22d3ee' }}
         />
+      </AreaChart>
+    </Shell>
+  )
+}
+
+export function CompletedTrendChart(props: { points: Array<{ day: string; completed: number }> }) {
+  if (!props.points?.length) return <EmptyChart icon="📈" title="No completion trend yet" />
+  return (
+    <Shell height={H}>
+      <AreaChart data={props.points} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="gradCompletedV3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.36} />
+            <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid {...GRID} />
+        <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} />
+        <YAxis tick={AXIS} axisLine={false} tickLine={false} width={32} />
+        <Tooltip content={<GlassTooltip />} />
+        <Area type="monotone" dataKey="completed" name="Completed"
+          stroke="#22c55e" strokeWidth={3} fill="url(#gradCompletedV3)"
+          dot={false} activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22c55e' }} />
       </AreaChart>
     </Shell>
   )

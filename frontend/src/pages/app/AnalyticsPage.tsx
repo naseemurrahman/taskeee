@@ -5,8 +5,8 @@ import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { ChartCard } from '../../components/charts/ChartCard'
-import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
-import { buildDeadlineSeries } from '../../components/charts/chartUtils'
+import { AssigneeScoreChart, CompletedTrendChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
+import { buildCompletedSeries, buildDeadlineSeries } from '../../components/charts/chartUtils'
 import { Modal } from '../../components/Modal'
 import {
   AssignmentsBreakdownTable,
@@ -80,6 +80,7 @@ export function AnalyticsPage() {
 
   const leaderboard = useMemo(() => summaryQ.data?.assigneeLeaderboard || [], [summaryQ.data])
   const deadlinePoints = useMemo(() => buildDeadlineSeries(tasksQ.data || [], 14), [tasksQ.data])
+  const completedPoints = useMemo(() => buildCompletedSeries(tasksQ.data || [], 14), [tasksQ.data])
   const tasks = tasksQ.data || []
 
   const byPriority = useMemo(() => {
@@ -146,6 +147,14 @@ export function AnalyticsPage() {
     if (!total) return 0
     return Math.round(Math.max(0, total - overloaded - underutilized) / total * 100)
   }, [summaryQ.data?.workload, summaryQ.data?.userCount])
+  const pending = byStatus.pending || 0
+  const activeEmployees = leaderboard.length
+  const aiApprovalRate = total ? Math.round(((done + (byStatus.manager_approved || 0)) / total) * 100) : 0
+  const avgCompletionDays = useMemo(() => {
+    const avgDailyCompletion = (completedPoints.reduce((s, p) => s + p.completed, 0) / Math.max(1, completedPoints.length)) || 0
+    if (!avgDailyCompletion) return 0
+    return Number((Math.max(0, total - done) / avgDailyCompletion).toFixed(1))
+  }, [completedPoints, total, done])
 
   function openDetail(title: string, kind: 'kpi' | 'chart') {
     if (!canOpenChartDetails && kind === 'chart') {
@@ -212,6 +221,22 @@ export function AnalyticsPage() {
           <div className="miniLabel">Trend vs previous</div>
           <div className="miniValue">{completionRate - previousCompletionRate >= 0 ? '+' : ''}{completionRate - previousCompletionRate}%</div>
         </button>
+        <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Pending', kind: 'kpi' })}>
+          <div className="miniLabel">Pending tasks</div>
+          <div className="miniValue">{pending}</div>
+        </button>
+        <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'AI approval rate', kind: 'kpi' })}>
+          <div className="miniLabel">AI approval rate</div>
+          <div className="miniValue">{aiApprovalRate}%</div>
+        </button>
+        <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Active employees', kind: 'kpi' })}>
+          <div className="miniLabel">Active employees</div>
+          <div className="miniValue">{activeEmployees}</div>
+        </button>
+        <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Average completion time', kind: 'kpi' })}>
+          <div className="miniLabel">Avg completion time</div>
+          <div className="miniValue">{avgCompletionDays ? `${avgCompletionDays}d` : '—'}</div>
+        </button>
       </div>
 
       <ChartCard
@@ -264,6 +289,15 @@ export function AnalyticsPage() {
 
       <div className="grid2">
         <ChartCard
+          title="Task status distribution (donut)"
+          subtitle="To do, in progress, completed, overdue, and rejected."
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Status distribution donut', 'chart')}>Details</button>}
+        >
+          <div role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => openDetail('Status distribution donut', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Status distribution donut', 'chart') : null)}>
+            <StatusDonutChart byStatus={byStatus} />
+          </div>
+        </ChartCard>
+        <ChartCard
           title="Tasks by status"
           subtitle="Distribution across your scope."
           right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Tasks by status', 'chart')}>Details</button>}
@@ -295,6 +329,16 @@ export function AnalyticsPage() {
           </div>
         </ChartCard>
       </div>
+
+      <ChartCard
+        title="Tasks completed over time"
+        subtitle="Productivity trend over the last 14 days."
+        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Tasks completed over time', 'chart')}>Details</button>}
+      >
+        <div role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => openDetail('Tasks completed over time', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Tasks completed over time', 'chart') : null)}>
+          <CompletedTrendChart points={completedPoints} />
+        </div>
+      </ChartCard>
 
       <div className="grid2">
         <ChartCard
@@ -426,6 +470,23 @@ export function AnalyticsPage() {
             <TaskSampleTable tasks={tasks.filter((t) => t.status === 'overdue')} empty="No overdue tasks in the sample." />
           </div>
         ) : null}
+        {detail?.kind === 'kpi' && detail.title === 'Pending' ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
+            <TaskSampleTable tasks={tasks.filter((t) => t.status === 'pending')} empty="No pending tasks." />
+          </div>
+        ) : null}
+        {detail?.kind === 'kpi' && detail.title === 'AI approval rate' ? (
+          <div style={{ color: 'var(--text2)' }}>AI approval rate is estimated from completed/approved throughput against total scoped tasks: {aiApprovalRate}%.</div>
+        ) : null}
+        {detail?.kind === 'kpi' && detail.title === 'Active employees' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {leaderboard.map((u) => <div key={u.userId} className="miniCard">{u.name}</div>)}
+          </div>
+        ) : null}
+        {detail?.kind === 'kpi' && detail.title === 'Average completion time' ? (
+          <div style={{ color: 'var(--text2)' }}>Estimated average completion time based on recent throughput: {avgCompletionDays ? `${avgCompletionDays} days` : 'Not enough data yet'}.</div>
+        ) : null}
         {detail?.kind === 'kpi' && detail.title === 'Team score' ? (
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ fontSize: 32, fontWeight: 950 }}>{score}</div>
@@ -438,6 +499,18 @@ export function AnalyticsPage() {
           <div style={{ display: 'grid', gap: 14 }}>
             <StatusMiniChart byStatus={byStatus} />
             <TaskSampleTable tasks={tasks} empty="No tasks." />
+          </div>
+        ) : null}
+        {detail?.kind === 'chart' && detail.title === 'Status distribution donut' ? (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <StatusMiniChart byStatus={byStatus} />
+            <TaskSampleTable tasks={tasks} empty="No tasks." />
+          </div>
+        ) : null}
+        {detail?.kind === 'chart' && detail.title === 'Tasks completed over time' ? (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <div style={{ color: 'var(--text2)' }}>Trend built from completed tasks with due dates in your scope.</div>
+            <TaskSampleTable tasks={tasks.filter((t) => ['completed', 'manager_approved'].includes(t.status))} empty="No completed tasks." />
           </div>
         ) : null}
         {detail?.kind === 'chart' && detail.title === 'Deadlines trend' ? (
