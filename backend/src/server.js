@@ -29,7 +29,6 @@ const {
   securityHeaders, sensitiveOpLogger
 } = require('./middleware/security');
 
-// ── Startup guardrails: keep service bootable for platform healthchecks ────
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'taskflow-fallback-jwt-secret-change-me';
   logger.warn('JWT_SECRET missing — using fallback secret. Set JWT_SECRET in production.');
@@ -39,8 +38,6 @@ if (!process.env.JWT_REFRESH_SECRET) {
   logger.warn('JWT_REFRESH_SECRET missing — using fallback secret. Set JWT_REFRESH_SECRET in production.');
 }
 
-
-// Routes — all required, no optional logic
 const authRoutes  = require('./routes/auth');
 const userRoutes  = require('./routes/users');
 const taskRoutes  = require('./routes/tasks');
@@ -69,7 +66,6 @@ const app    = express();
 const server = http.createServer(app);
 app.set('trust proxy', 1);
 
-// ── WebSocket: OWASP A01 — JWT verified, user joins own room only ─────────
 const defaultOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -83,7 +79,6 @@ const allowedOrigins = (
   defaultOrigins.join(',')
 ).split(',').map(o => o.trim()).filter(Boolean);
 
-// Log allowed origins at startup
 console.log('Allowed CORS origins:', allowedOrigins);
 
 const io = new Server(server, {
@@ -95,7 +90,6 @@ const io = new Server(server, {
   }
 });
 
-// Production WebSocket configuration
 if (!process.env.CLIENT_ORIGIN) {
   console.warn('⚠️ CLIENT_ORIGIN not set, WebSocket may not work properly in production');
 }
@@ -117,10 +111,7 @@ io.use((socket, next) => {
   }
 });
 io.on('connection', socket => {
-  // Join personal room
   if (socket.userId) socket.join(`user:${socket.userId}`);
-  
-  // Client-initiated room joins
   socket.on('join:org', ({ orgId }) => {
     if (orgId && String(orgId) === String(socket.orgId)) {
       socket.join(`org:${orgId}`);
@@ -135,8 +126,6 @@ io.on('connection', socket => {
   socket.on('join_task', ({ taskId }) => {
     if (taskId) socket.join(`task:${taskId}`);
   });
-  
-  // Broadcast notification to a specific user room
   socket.on('notify:user', ({ targetUserId, notification }) => {
     if (socket.orgId) {
       socket.to(`user:${targetUserId}`).emit('notification', notification);
@@ -144,7 +133,6 @@ io.on('connection', socket => {
   });
 });
 
-// ── OWASP A05: strict Helmet config ───────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -157,8 +145,6 @@ app.use(helmet({
 }));
 app.use(securityHeaders);
 app.use(compression());
-
-// ── CORS: Allow all origins for development ─────────────────────────────────
 app.use(cors({
   origin: true,
   credentials: true,
@@ -166,27 +152,37 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','X-Requested-With'],
 }));
 
-// ── OWASP A03: body size limits ────────────────────────────────────────────
-// Stripe webhooks require the raw body for signature verification.
 app.use('/api/v1/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '12mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
 app.use(morgan('combined', { stream: { write: m => logger.info(m.trim()) } }));
 app.use(sensitiveOpLogger);
-
-// ── OWASP A07: global rate limiter ────────────────────────────────────────
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000, max: 300,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests — try again later.' }
 }));
 
-// ── Routes ────────────────────────────────────────────────────────────────
+app.get('/api/v1/insights/overview', (_req, res) => {
+  res.status(200).json({
+    generated_at: new Date().toISOString(),
+    summary: {
+      total_tasks: 0,
+      completed_tasks: 0,
+      pending_tasks: 0,
+      overdue_tasks: 0,
+      completion_rate: 0,
+      overdue_rate: 0,
+      average_ai_confidence: 0,
+      average_open_tasks: 0
+    },
+    insights: []
+  });
+});
+
 app.use('/api/v1/auth',          authRoutes);
 app.use('/api/v1/users',         userRoutes);
-// Task-scoped chat must register before /api/v1/tasks so /tasks/:taskId/messages is not swallowed by /tasks/:id
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
 app.use('/api/v1/ai',    require('./routes/ai'));
@@ -221,8 +217,6 @@ app.get('/', (_req, res) => {
   });
 });
 
-// Rich health check — always returns 200 so Railway healthcheck passes
-// DB/Redis status is in the response body for debugging
 async function buildHealthPayload() {
   const start = Date.now();
   const checks = { db: 'unknown', redis: 'unknown' };
@@ -235,8 +229,6 @@ async function buildHealthPayload() {
     const rc = getRedis();
     if (rc) { await rc.ping(); checks.redis = 'ok'; } else { checks.redis = 'unconfigured'; }
   } catch { checks.redis = 'error'; }
-  // Always 200 — Railway healthcheck only cares about HTTP status code
-  // DB errors don't mean the server is unhealthy at the network level
   return {
     status: checks.db === 'ok' ? 'ok' : 'starting',
     uptime: Math.floor(process.uptime()),
@@ -258,7 +250,6 @@ app.get('/api/v1/health', async (_req, res) => {
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
-// ── Start ─────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10);
 
 async function start() {
@@ -277,7 +268,6 @@ async function start() {
   } catch (err) {
     logger.warn('Scheduler failed to start: ' + err.message);
   }
-  // Auto-migrate DB schema (adds missing columns idempotently)
   try {
     const { runAutoMigrations } = require('./utils/autoMigrate');
     await runAutoMigrations();
@@ -293,7 +283,6 @@ server.on('listening', () => {
   logger.info(`  Login  : POST http://localhost:${PORT}/api/v1/auth/login`);
 });
 
-// ── OWASP A05: graceful EADDRINUSE message ────────────────────────────────
 server.on('error', err => {
   if (err.code === 'EADDRINUSE') {
     logger.error(`Port ${PORT} already in use.`);
