@@ -189,7 +189,7 @@ export function TaskDetailDrawer({
 
       {/* Drawer */}
       <div style={{
-        position: 'fixed', right: 0, top: 0, bottom: 0, width: 'min(520px, 100vw)', zIndex: 9991,
+        position: 'fixed', right: 0, top: 0, bottom: 0, width: typeof window !== 'undefined' && window.innerWidth <= 600 ? '100vw' : 'min(520px, 100vw)', zIndex: 9991,
         background: 'var(--bg1)', borderLeft: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column',
         boxShadow: '-16px 0 48px rgba(0,0,0,0.25)',

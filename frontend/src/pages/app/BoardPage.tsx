@@ -14,10 +14,18 @@ type Task = {
 }
 
 async function patchStatus(taskId: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${taskId}/board-status`, {
-    method: 'PATCH',
-    json: { status, force: true, source: 'board_drag' },
-  })
+  console.log(`[Board DnD] Updating task ${taskId} -> ${status}`)
+  try {
+    const result = await apiFetch(`/api/v1/tasks/${taskId}/set-status`, {
+      method: 'POST',
+      json: { status },
+    })
+    console.log('[Board DnD] Success:', result)
+    return result
+  } catch (err: any) {
+    console.error('[Board DnD] FAILED:', err?.message, 'status:', err?.status, 'body:', err)
+    throw err
+  }
 }
 
 const COLUMNS = [
@@ -90,8 +98,10 @@ export function BoardPage() {
       if (context?.previous) {
         qc.setQueryData(['tasks', 'board'], context.previous)
       }
-      setBoardError(err?.message || 'Status update failed — check your permissions')
-      setTimeout(() => setBoardError(null), 5000)
+      const msg = err?.message || 'Status update failed'
+      console.error('[BoardDnD] Error:', msg, err)
+      setBoardError(msg)
+      setTimeout(() => setBoardError(null), 8000)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
@@ -268,8 +278,6 @@ export function BoardPage() {
                         key={task.id}
                         draggable={canDrag}
                         onDragStart={canDrag ? e => onDragStart(e, task, col.key) : undefined}
-                        onDragOver={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); setDragOverCol(col.key) } : undefined}
-                        onDrop={canDrag ? (e) => { e.preventDefault(); e.stopPropagation(); onColDrop(e, col.key) } : undefined}
                         onDragEnd={canDrag ? onDragEnd : undefined}
                         onClick={() => {
                           if (!draggingIdRef.current) setSelectedTaskId(task.id)

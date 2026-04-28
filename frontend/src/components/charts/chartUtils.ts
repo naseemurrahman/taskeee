@@ -31,3 +31,22 @@ export function buildDeadlineSeries(tasks: Array<{ due_date?: string | null; sta
   return buckets.map((b) => ({ day: formatDayLabel(b.day), due: b.due, overdue: b.overdue }))
 }
 
+export function buildCompletedSeries(tasks: Array<{ due_date?: string | null; status: string }>, days: number) {
+  const today = startOfDay(new Date())
+  const buckets = Array.from({ length: days }, (_v, i) => {
+    const day = new Date(today)
+    day.setDate(today.getDate() - (days - 1 - i))
+    return { day, completed: 0 }
+  })
+
+  const idxByIso = new Map(buckets.map((b, i) => [startOfDay(b.day).toISOString(), i]))
+  for (const t of tasks) {
+    if (!t.due_date) continue
+    if (!['completed', 'manager_approved'].includes(t.status)) continue
+    const doneDay = startOfDay(new Date(t.due_date)).toISOString()
+    const idx = idxByIso.get(doneDay)
+    if (idx == null) continue
+    buckets[idx].completed += 1
+  }
+  return buckets.map((b) => ({ day: formatDayLabel(b.day), completed: b.completed }))
+}

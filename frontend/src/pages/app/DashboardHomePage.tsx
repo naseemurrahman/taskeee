@@ -1,18 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  ResponsiveContainer, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell,
-  ComposedChart,
-} from 'recharts'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
-import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { Modal } from '../../components/Modal'
 
-// ─── Types ───────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────
 type DashData = {
   tasks: {
     total: number; pending: number; in_progress: number; submitted: number
@@ -22,84 +18,211 @@ type DashData = {
   trend: Array<{ day: string; label: string; completed: number; overdue: number; created: number }>
   projects: Array<{
     id: string; name: string; color?: string | null; total: number
-    completed: number; overdue: number; in_progress: number; pending: number
-    progress: number; start_date: string; earliest_due?: string; latest_due?: string
+    completed: number; overdue: number; in_progress: number; pending: number; progress: number
   }>
   leaderboard: Array<{
-    id: string; name: string; department?: string | null; role?: string | null
-    total: number; completed: number; overdue: number; in_progress: number
-    completion_rate: number; score: number
+    id: string; name: string; total: number; completed: number
+    overdue: number; in_progress: number; completion_rate: number; score: number
   }>
   priority: Record<string, number>
   velocity: Array<{ week: string; week_start: string; created: number; completed: number }>
-  projectStatusChart: Array<Record<string, any>>
 }
 
-// ─── Fetch ───────────────────────────────────────────────────────
 async function fetchDash(): Promise<DashData> {
   return apiFetch<DashData>('/api/v1/stats/dashboard')
 }
 
-// ─── Colors ──────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────
 const C = {
-  brand: '#e2ab41', purple: '#8B5CF6', blue: '#38bdf8', green: '#22c55e',
-  red: '#ef4444', orange: '#f97316', teal: '#14b8a6', pink: '#ec4899',
-  indigo: '#6366f1', amber: '#f59e0b',
+  brand: '#e2ab41', purple: '#8B5CF6', blue: '#38bdf8',
+  green: '#22c55e', red: '#ef4444', orange: '#f97316',
+  teal: '#14b8a6', muted: 'var(--muted)',
 }
-const STATUS_C: Record<string, string> = {
-  pending: C.amber, in_progress: C.purple, submitted: C.blue,
-  completed: C.green, manager_approved: C.green, overdue: C.red, cancelled: '#9ca3af',
-}
-const PRIORITY_C: Record<string, string> = {
-  low: C.blue, medium: C.purple, high: C.orange, critical: C.red, urgent: C.red,
-}
-const PLAYER_COLORS = [C.brand, C.purple, C.blue, C.green, C.teal, C.pink, C.indigo, C.orange]
 
-// ─── Shared tooltip ──────────────────────────────────────────────
-function Tip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
+// ─── Animated counter ─────────────────────────────────────────────
+function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(0)
+  const prev = useRef(0)
+  useEffect(() => {
+    const target = value
+    const start = prev.current
+    const diff = target - start
+    if (diff === 0) return
+    const steps = 30
+    let step = 0
+    const t = setInterval(() => {
+      step++
+      setDisplay(Math.round(start + (diff * step) / steps))
+      if (step >= steps) { clearInterval(t); prev.current = target }
+    }, 16)
+    return () => clearInterval(t)
+  }, [value])
+  return <>{display}{suffix}</>
+}
+
+// ─── Smooth area sparkline ────────────────────────────────────────
+function AreaLine({ data, color, height = 52 }: { data: number[]; color: string; height?: number }) {
+  if (!data.length) return <div style={{ height }} />
+  const max = Math.max(...data, 1)
+  const w = 300, h = height, pad = 4
+  const pts = data.map((v, i) => ({
+    x: (i / Math.max(data.length - 1, 1)) * w,
+    y: h - pad - (v / max) * (h - pad * 2)
+  }))
+
+  // Create smooth bezier path
+  function smooth(p: {x:number;y:number}[]) {
+    if (p.length < 2) return `M ${p[0]?.x ?? 0},${p[0]?.y ?? 0}`
+    let d = `M ${p[0].x},${p[0].y}`
+    for (let i = 0; i < p.length - 1; i++) {
+      const cp1x = p[i].x + (p[i+1].x - p[i].x) / 3
+      const cp2x = p[i].x + (p[i+1].x - p[i].x) * 2 / 3
+      d += ` C ${cp1x},${p[i].y} ${cp2x},${p[i+1].y} ${p[i+1].x},${p[i+1].y}`
+    }
+    return d
+  }
+
+  const linePath = smooth(pts)
+  const last = pts[pts.length - 1]
+  const gradId = `ag-${color.replace(/[^a-z0-9]/gi, '')}-${Math.random().toString(36).slice(2,6)}`
+
   return (
-    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px', boxShadow: '0 16px 40px rgba(0,0,0,0.35)', fontSize: 12 }}>
-      {label && <div style={{ fontWeight: 900, fontSize: 10, marginBottom: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>}
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: i > 0 ? 5 : 0 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 2, background: p.color || p.fill, flexShrink: 0 }} />
-          <span style={{ color: 'var(--text2)', flex: 1 }}>{p.name}</span>
-          <span style={{ fontWeight: 900, color: 'var(--text)' }}>{typeof p.value === 'number' ? (Number.isInteger(p.value) ? p.value : p.value.toFixed(1)) : p.value}</span>
-        </div>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="85%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={`${linePath} L ${last.x},${h} L 0,${h} Z`} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={last.x} cy={last.y} r="3.5" fill={color} />
+      <circle cx={last.x} cy={last.y} r="6" fill={color} fillOpacity="0.2" />
+    </svg>
+  )
+}
+
+// ─── Donut ring ────────────────────────────────────────────────────
+function DonutRing({ segments, size = 120, strokeW = 12 }: {
+  segments: { value: number; color: string; label: string }[]
+  size?: number; strokeW?: number
+}) {
+  const total = segments.reduce((s, d) => s + d.value, 0)
+  if (!total) return (
+    <div style={{ width: size, height: size, borderRadius: '50%', border: '2px dashed var(--border)', display: 'grid', placeItems: 'center' }}>
+      <span style={{ fontSize: 11, color: C.muted }}>No data</span>
+    </div>
+  )
+  const r = (size - strokeW) / 2
+  const circ = 2 * Math.PI * r
+  const cx = size / 2, cy = size / 2
+  let offset = 0
+  const segs = segments.filter(s => s.value > 0).map(s => {
+    const dash = (s.value / total) * circ
+    const seg = { ...s, dash, offset, pct: Math.round((s.value / total) * 100) }
+    offset += dash + 1
+    return seg
+  })
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg2)" strokeWidth={strokeW} />
+      {segs.map((s, i) => (
+        <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+          stroke={s.color} strokeWidth={strokeW - 1}
+          strokeDasharray={`${s.dash} ${circ}`}
+          strokeDashoffset={-s.offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
       ))}
-    </div>
+    </svg>
   )
 }
 
-// ─── KPI Card ────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, color, icon, trend }: { label: string; value: string | number; sub?: string; color?: string; icon: React.ReactNode; trend?: number }) {
+// ─── Horizontal progress bar ─────────────────────────────────────
+function ProgressRow({ label, value, max, color, sub }: {
+  label: string; value: number; max: number; color: string; sub?: string
+}) {
+  const pct = max === 0 ? 0 : Math.min(100, (value / max) * 100)
   return (
-    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '18px 20px', position: 'relative', overflow: 'hidden', flex: 1, minWidth: 140 }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color || C.brand }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 11, background: (color || C.brand) + '18', border: `1.5px solid ${(color || C.brand)}28`, color: color || C.brand, display: 'grid', placeItems: 'center' }}>{icon}</div>
-        {trend !== undefined && (
-          <span style={{ fontSize: 11, fontWeight: 800, color: trend >= 0 ? C.green : C.red, padding: '2px 7px', borderRadius: 999, background: (trend >= 0 ? C.green : C.red) + '18' }}>
-            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
-          </span>
-        )}
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'baseline' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>{value}</span>
+          {sub && <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{sub}</span>}
+        </div>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 950, letterSpacing: '-1px', color: 'var(--text)', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 3 }}>{sub}</div>}
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 999, transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+      </div>
     </div>
   )
 }
 
-// ─── Chart Container ─────────────────────────────────────────────
-function ChartBox({ title, subtitle, children, span = 1, action }: { title: string; subtitle?: string; children: React.ReactNode; span?: number; action?: React.ReactNode }) {
+// ─── Mini bar chart ───────────────────────────────────────────────
+function BarChart({ data, keys, colors, labels, height = 100 }: {
+  data: Array<Record<string, any>>
+  keys: string[]
+  colors: string[]
+  labels: string[]
+  height?: number
+}) {
+  if (!data.length) return null
+  const all = data.flatMap(d => keys.map(k => Number(d[k] || 0)))
+  const max = Math.max(...all, 1)
+  const W = 280, H = height, gap = 3
+  const groupW = (W - gap * (data.length - 1)) / data.length
+  const barW = Math.max(3, (groupW - 2 * (keys.length - 1)) / keys.length)
+
   return (
-    <div className="dashboardChartBox" style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 22px', gridColumn: `span ${span}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 8 }}>
+    <div>
+      <svg viewBox={`0 0 ${W} ${H + 18}`} preserveAspectRatio="none" style={{ width: '100%', height: H + 18 }}>
+        {data.map((d, i) => {
+          const gx = i * (groupW + gap)
+          return (
+            <g key={i}>
+              {keys.map((k, ki) => {
+                const val = Number(d[k] || 0)
+                const bh = Math.max(2, (val / max) * H)
+                return (
+                  <rect key={ki} x={gx + ki * (barW + 2)} y={H - bh} width={barW} height={bh}
+                    fill={colors[ki]} rx={2} opacity={0.9}
+                    style={{ transition: 'height 0.6s ease, y 0.6s ease' }}
+                  />
+                )
+              })}
+              <text x={gx + groupW / 2} y={H + 13} textAnchor="middle"
+                fill="var(--muted)" fontSize="8.5" fontWeight="600">
+                {String(d.label || d.week || '').slice(0, 6)}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+        {labels.map((l, i) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: colors[i] }} />
+            <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Card wrapper ─────────────────────────────────────────────────
+function Card({ title, sub, children, action }: {
+  title: string; sub?: string; children: React.ReactNode; action?: React.ReactNode
+}) {
+  return (
+    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>
-          <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: '-0.3px', color: 'var(--text)' }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{subtitle}</div>}
+          <div style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)', letterSpacing: '-0.2px' }}>{title}</div>
+          {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sub}</div>}
         </div>
         {action}
       </div>
@@ -108,428 +231,548 @@ function ChartBox({ title, subtitle, children, span = 1, action }: { title: stri
   )
 }
 
-// ─── Main Dashboard ──────────────────────────────────────────────
+// ─── KPI Tile ─────────────────────────────────────────────────────
+function KpiTile({ label, value, sub, color, icon }: {
+  label: string; value: number; sub?: string; color: string; icon: string
+}) {
+  return (
+    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '16px 18px', position: 'relative', overflow: 'hidden', flex: '1 1 130px', minWidth: 130 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '18px 18px 0 0' }} />
+      <div style={{ position: 'absolute', bottom: -20, right: -10, fontSize: 52, opacity: 0.06, lineHeight: 1, userSelect: 'none' }}>{icon}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1.5px', lineHeight: 1 }}>
+        <AnimatedNumber value={value} />
+      </div>
+      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>}
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────
 export function DashboardHomePage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
+  const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
+  const canOpenAdvancedDetails = canViewAnalytics(me?.role)
   const [createOpen, setCreateOpen] = useState(false)
+  const [chartDetail, setChartDetail] = useState<null | 'activity' | 'status' | 'priority' | 'projects' | 'velocity' | 'team' | 'workload'>(null)
 
-  const { data, isLoading } = useQuery<DashData>({
-    queryKey: ['dashboard', 'full'],
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard'],
     queryFn: fetchDash,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 
-  const tasks = data?.tasks
-  const trend = data?.trend || []
-  const projects = data?.projects || []
-  const leaderboard = data?.leaderboard || []
-  const velocity = data?.velocity || []
-  const projectStatusChart = data?.projectStatusChart || []
+  const tasks       = data?.tasks
+  const projects    = useMemo(() => data?.projects    || [], [data])
+  const leaderboard = useMemo(() => data?.leaderboard || [], [data])
+  const trendData    = useMemo(() => (data?.trend || []).slice(-14), [data])
+  const velocity    = useMemo(() => (data?.velocity || []).slice(-8).map(v => ({ ...v, label: v.week })), [data])
 
-  // Priority pie data
-  const priorityPie = useMemo(() => Object.entries(data?.priority || {}).map(([k, v]) => ({ name: k, value: v, fill: PRIORITY_C[k] || C.brand })), [data])
-
-  // Status donut data
-  const statusPie = useMemo(() => {
+  const statusSegs = useMemo(() => {
     if (!tasks) return []
     return [
-      { name: 'Pending',    value: tasks.pending,    fill: C.amber   },
-      { name: 'In Progress',value: tasks.in_progress, fill: C.purple  },
-      { name: 'Submitted',  value: tasks.submitted,  fill: C.blue    },
-      { name: 'Completed',  value: tasks.completed,  fill: C.green   },
-      { name: 'Overdue',    value: tasks.overdue,    fill: C.red     },
-    ].filter(d => d.value > 0)
+      { label: 'In Progress', value: tasks.in_progress, color: C.purple },
+      { label: 'Submitted',   value: tasks.submitted,   color: C.blue },
+      { label: 'Completed',   value: tasks.completed,   color: C.green },
+      { label: 'Overdue',     value: tasks.overdue,     color: C.red },
+      { label: 'Pending',     value: tasks.pending,     color: C.brand },
+    ].filter(s => s.value > 0)
   }, [tasks])
 
-  // Trend slice — last 14 days for cleaner chart
-  const recentTrend = trend.slice(-14)
+  const priorityRows = useMemo(() => {
+    const p = data?.priority || {}
+    return [['critical', C.red], ['high', C.orange], ['medium', C.purple], ['low', C.blue]]
+      .map(([k, c]) => ({ label: k, value: Number(p[k] || 0), color: c as string }))
+      .filter(e => e.value > 0)
+  }, [data])
 
-  // Completion rate by employee — bar chart
-  const employeeBar = leaderboard.slice(0, 8).map(u => ({
-    name: u.name.split(' ')[0],
-    fullName: u.name,
-    'Completion %': u.completion_rate || 0,
-    'Score': u.score || 0,
-    completed: u.completed,
-    total: u.total,
-    overdue: u.overdue,
-  }))
-
-  // Project progress bars
-  const projectBars = projects.slice(0, 8).map(p => ({
-    name: p.name.length > 14 ? p.name.slice(0, 14) + '…' : p.name,
-    fullName: p.name,
-    Progress: p.progress,
-    Completed: p.completed,
-    Remaining: p.total - p.completed,
-    Overdue: p.overdue,
-    color: p.color || C.brand,
-  }))
-
-  // Gantt-style timeline data
-  const now = Date.now()
-  const ganttProjects = projects
-    .filter(p => p.start_date)
-    .slice(0, 8)
-    .map(p => {
-      const start = new Date(p.start_date).getTime()
-      const end = p.latest_due ? new Date(p.latest_due).getTime() : start + 30 * 86400000
-      const duration = end - start
-      const elapsed = Math.max(0, Math.min(now - start, duration))
-      const pct = duration > 0 ? (elapsed / duration) * 100 : 0
-      return { ...p, start, end, duration, pct: Math.round(pct) }
-    })
-
-  if (isLoading) return (
-    <div style={{ display: 'grid', placeItems: 'center', height: '60vh' }}>
-      <div style={{ textAlign: 'center', color: 'var(--muted)' }}>
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style={{ display: 'block', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }}>
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/>
-          <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--brand)" strokeWidth="2.5" strokeLinecap="round"/>
-        </svg>
-        <div style={{ fontWeight: 800 }}>Loading dashboard…</div>
-      </div>
-    </div>
+  const Skel = ({ h = 80 }: { h?: number }) => (
+    <div className="skeleton" style={{ height: h, borderRadius: 14 }} />
   )
 
   return (
-    <div className="dashboardHomePage" style={{ display: 'grid', gap: 18 }}>
-      {/* ── Header ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
               Dashboard
             </div>
             <div className="pageHeaderCardSub">
-              AI-powered real-time analytics • {tasks?.total || 0} tasks across {projects.length} projects • Auto-refreshes every 60s
+              AI-powered real-time analytics • {tasks?.total || 0} tasks across {projects.length} projects • Auto-refreshes every 30s
             </div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag">📊 Live data</span>
-              {tasks?.overdue ? <span className="pageHeaderCardTag" style={{ color: C.red, background: C.red + '12', borderColor: C.red + '30' }}>⚠ {tasks.overdue} overdue</span> : null}
-              {tasks?.due_today ? <span className="pageHeaderCardTag" style={{ color: C.orange, background: C.orange + '12', borderColor: C.orange + '30' }}>⏰ {tasks.due_today} due today</span> : null}
-              {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: C.green + '12', borderColor: C.green + '30' }}>✓ {tasks.completion_rate}% complete</span>}
+              <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>● Live data</span>
+              {!!tasks?.overdue && <span className="pageHeaderCardTag" style={{ color: C.red, background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {tasks.overdue} overdue</span>}
+              {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {tasks.completion_rate}% complete</span>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {canCreate && (
-              <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Create Task
-              </button>
-            )}
-          </div>
+          {canCreate && (
+            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              + Create Task
+            </button>
+          )}
         </div>
       </div>
 
       <OnboardingBanner />
 
-      {/* ── KPI Strip ── */}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-        <KpiCard label="Total Tasks" value={tasks?.total || 0} sub={`${tasks?.due_today || 0} due today`} color={C.brand}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>} />
-        <KpiCard label="In Progress" value={tasks?.in_progress || 0} sub="Active work" color={C.purple}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>} />
-        <KpiCard label="Completed" value={tasks?.completed || 0} sub={`${tasks?.completion_rate || 0}% rate`} color={C.green}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>} />
-        <KpiCard label="Overdue" value={tasks?.overdue || 0} sub={`${tasks?.due_week || 0} due this week`} color={C.red}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>} />
-        <KpiCard label="Pending Review" value={tasks?.submitted || 0} sub="Awaiting approval" color={C.blue}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
-        <KpiCard label="Projects" value={projects.length} sub={`${projects.filter(p=>p.progress===100).length} completed`} color={C.teal}
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>} />
+      {/* ── KPI Row ── */}
+      <div className="dashKpiStrip">
+        {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, flex: '1 1 130px', minWidth: 130 }} />) : <>
+          <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon="📋" sub={`${tasks?.due_today||0} due today`} />
+          <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon="⚡" sub="active work" />
+          <KpiTile label="Completed"      value={tasks?.completed || 0}   color={C.green}  icon="✅" sub={`${tasks?.completion_rate||0}% rate`} />
+          <KpiTile label="Overdue"        value={tasks?.overdue || 0}     color={C.red}    icon="🚨" sub={`${tasks?.due_week||0} due this week`} />
+          <KpiTile label="Pending Review" value={tasks?.submitted || 0}   color={C.blue}   icon="📨" sub="awaiting approval" />
+          <KpiTile label="Projects"       value={projects.length}         color={C.teal}   icon="📁" sub={`${projects.filter(p=>p.progress===100).length} complete`} />
+        </>}
       </div>
 
-      {/* ── Row 1: Trend + Status Donut ── */}
-      <div className="dashResponsiveGrid dashResponsiveGrid--2-1" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-        <ChartBox title="Task Activity — Last 14 Days" subtitle="Created · Completed · Overdue by day">
-          <ResponsiveContainer width="100%" height={240}>
-            <ComposedChart data={recentTrend}>
-              <defs>
-                <linearGradient id="gradCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={C.green} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={C.green} stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={C.brand} stopOpacity={0.25}/>
-                  <stop offset="95%" stopColor={C.brand} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval={1} />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<Tip />} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-              <Area type="monotone" dataKey="created" name="Created" fill="url(#gradCreated)" stroke={C.brand} strokeWidth={2} dot={false} />
-              <Area type="monotone" dataKey="completed" name="Completed" fill="url(#gradCompleted)" stroke={C.green} strokeWidth={2} dot={false} />
-              <Bar dataKey="overdue" name="Overdue" fill={C.red} radius={[3,3,0,0]} opacity={0.8} barSize={6} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </ChartBox>
-
-        <ChartBox title="Task Status" subtitle="Current distribution">
-          {statusPie.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={statusPie} cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {statusPie.map((entry, i) => <Cell key={i} fill={entry.fill} stroke="none" />)}
-                  </Pie>
-                  <Tooltip content={<Tip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'grid', gap: 6, marginTop: 4 }}>
-                {statusPie.map(s => (
-                  <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: s.fill, flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: 'var(--text2)', fontWeight: 600 }}>{s.name}</span>
-                    <span style={{ fontWeight: 900, color: 'var(--text)' }}>{s.value}</span>
+      {/* ── Row 1: Activity trend (wide) + Status donut ── */}
+      <div className="dashGrid21">
+        <Card
+          title="Task Activity — Last 14 Days"
+          sub="Created · Completed · Overdue by day"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('activity')}>Details</button> : undefined}
+        >
+          {isLoading ? <Skel h={160} /> : !trendData.length ? (
+            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No activity data yet</div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('activity') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('activity') : null)}
+            >
+              {[
+                { key: 'completed', label: '✓ Completed', color: C.green },
+                { key: 'created',   label: '+ Created',   color: C.brand  },
+                { key: 'overdue',   label: '⚠ Overdue',  color: C.red    },
+              ].map(({ key, label, color }) => {
+                const vals = trendData.map((d: any) => d[key] as number)
+                const total = vals.reduce((a, b) => a + b, 0)
+                if (total === 0 && key === 'overdue') return null
+                return (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>{total}</span>
+                    </div>
+                    <AreaLine data={vals} color={color} height={40} />
                   </div>
-                ))}
-              </div>
-            </>
-          ) : <div style={{ height: 200, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No data yet</div>}
-        </ChartBox>
-      </div>
-
-      {/* ── Row 2: Project Progress + Velocity ── */}
-      <div className="dashResponsiveGrid dashResponsiveGrid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <ChartBox title="Project Progress" subtitle="Completion % per project">
-          {projectBars.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={projectBars} layout="vertical" margin={{ left: 0, right: 20 }}>
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} tickFormatter={v => v + '%'} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--text2)', fontWeight: 700 }} axisLine={false} tickLine={false} width={80} />
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <Tooltip content={<Tip />} />
-                <Bar dataKey="Progress" name="Progress %" radius={[0, 6, 6, 0]} barSize={16}
-                  label={{ position: 'right', fontSize: 10, formatter: (v: any) => v + '%', fill: 'var(--muted)' }}>
-                  {projectBars.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <div style={{ height: 260, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No projects yet</div>}
-        </ChartBox>
-
-        <ChartBox title="Weekly Velocity" subtitle="Tasks created vs. completed per week">
-          {velocity.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={velocity} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="created" name="Created" fill={C.brand} radius={[4,4,0,0]} barSize={16} opacity={0.7} />
-                <Bar dataKey="completed" name="Completed" fill={C.green} radius={[4,4,0,0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <div style={{ height: 260, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>Not enough data yet</div>}
-        </ChartBox>
-      </div>
-
-      {/* ── Row 3: Employee Performance ── */}
-      <ChartBox title="Employee Performance Leaderboard" subtitle="Completion rate & task score per team member" span={1}
-        action={<Link to="/app/analytics" className="btn btnGhost btnSm" style={{ fontSize: 11 }}>Full Analytics →</Link>}>
-        {employeeBar.length > 0 ? (
-          <div className="dashResponsiveGrid dashResponsiveGrid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={employeeBar} margin={{ left: 0, right: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} tickFormatter={v => v + '%'} />
-                <Tooltip content={<Tip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Completion %" radius={[6,6,0,0]} barSize={20}>
-                  {employeeBar.map((_, i) => <Cell key={i} fill={PLAYER_COLORS[i % PLAYER_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {leaderboard.slice(0, 8).map((u, i) => (
-                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 8, background: PLAYER_COLORS[i % PLAYER_COLORS.length] + '20', color: PLAYER_COLORS[i % PLAYER_COLORS.length], display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0 }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{u.name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)' }}>{u.department || u.role || 'Team member'}</div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: 900, fontSize: 13, color: u.completion_rate >= 70 ? C.green : u.completion_rate >= 40 ? C.amber : C.red }}>{u.completion_rate || 0}%</div>
-                    <div style={{ fontSize: 10, color: 'var(--muted)' }}>{u.completed}/{u.total} done</div>
-                  </div>
-                  <div style={{ width: 44, height: 6, borderRadius: 999, background: 'var(--border)', flexShrink: 0, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${u.completion_rate || 0}%`, background: PLAYER_COLORS[i % PLAYER_COLORS.length], borderRadius: 999, transition: 'width 0.8s ease' }} />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-          </div>
-        ) : <div style={{ height: 240, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No employee data yet</div>}
-      </ChartBox>
+          )}
+        </Card>
 
-      {/* ── Row 4: Priority + Project Status Stack + Gantt ── */}
-      <div className="dashResponsiveGrid dashResponsiveGrid--1-2" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
-        <ChartBox title="Priority Breakdown" subtitle="Tasks by urgency level">
-          {priorityPie.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={priorityPie} cx="50%" cy="50%" outerRadius={75} paddingAngle={4} dataKey="value" label={({ name, percent }: any) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : ''} labelLine={false}>
-                    {priorityPie.map((entry, i) => <Cell key={i} fill={entry.fill} stroke="none" />)}
-                  </Pie>
-                  <Tooltip content={<Tip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'grid', gap: 5, marginTop: 8 }}>
-                {priorityPie.map(p => (
-                  <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: p.fill }} />
-                    <span style={{ flex: 1, textTransform: 'capitalize', color: 'var(--text2)', fontWeight: 700 }}>{p.name}</span>
-                    <span style={{ fontWeight: 900, color: 'var(--text)' }}>{p.value}</span>
+        <Card
+          title="Task Status"
+          sub="Current distribution"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('status')}>Details</button> : undefined}
+        >
+          {isLoading ? <Skel h={180} /> : (
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('status') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('status') : null)}
+            >
+              <div style={{ position: 'relative' }}>
+                <DonutRing segments={statusSegs} size={130} strokeW={14} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(0deg)' }}>
+                  <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{tasks?.total || 0}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>tasks</div>
+                </div>
+              </div>
+              <div style={{ width: '100%', display: 'grid', gap: 6 }}>
+                {statusSegs.map(s => (
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>{s.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)' }}>{s.value}</span>
                   </div>
                 ))}
               </div>
-            </>
-          ) : <div style={{ height: 240, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No tasks yet</div>}
-        </ChartBox>
-
-        <ChartBox title="Project Status Breakdown" subtitle="Task status distribution per project">
-          {projectStatusChart.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={projectStatusChart} margin={{ left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="project" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                {['pending','in_progress','submitted','completed','overdue'].map(s => (
-                  <Bar key={s} dataKey={s} name={s.replace(/_/g,' ')} stackId="a" fill={STATUS_C[s]} radius={s === 'overdue' ? [4,4,0,0] : [0,0,0,0]} />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <div style={{ height: 260, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No project data yet</div>}
-        </ChartBox>
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* ── Row 5: Project Timeline (Gantt-style) ── */}
-      {ganttProjects.length > 0 && (
-        <ChartBox title="Project Timeline" subtitle="Visual timeline from start date to latest task due date">
-          <div style={{ display: 'grid', gap: 10, marginTop: 4 }}>
-            {ganttProjects.map((p, i) => {
-              const totalSpan = ganttProjects.reduce((acc, g) => Math.max(acc, g.end), 0) - Math.min(...ganttProjects.map(g => g.start))
-              const minStart = Math.min(...ganttProjects.map(g => g.start))
-              const leftPct = totalSpan ? ((p.start - minStart) / totalSpan) * 100 : 0
-              const widthPct = totalSpan ? (p.duration / totalSpan) * 100 : 50
-              const color = p.color || PLAYER_COLORS[i % PLAYER_COLORS.length]
-              const overdueClass = p.overdue > 0
+      {/* ── Row 2: Project progress + Priority ── */}
+      <div className="dashGrid12">
+        <Card
+          title="Priority Breakdown"
+          sub="Tasks by urgency level"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('priority')}>Details</button> : undefined}
+        >
+          {isLoading ? <Skel h={120} /> : (() => {
+            const entries = priorityRows
+            if (!entries.length) return <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No tasks yet</div>
+            const max = Math.max(...entries.map(e => e.value))
+            return (
+              <div
+                role="button"
+                tabIndex={canOpenChartDetails ? 0 : -1}
+                style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+                onClick={() => canOpenChartDetails ? setChartDetail('priority') : null}
+                onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('priority') : null)}
+              >
+                {entries.map(e => (
+                  <ProgressRow key={e.label} label={e.label.charAt(0).toUpperCase()+e.label.slice(1)} value={e.value} max={max} color={e.color} />
+                ))}
+              </div>
+            )
+          })()}
+        </Card>
+
+        <Card title="Project Progress" sub="Completion % per project"
+          action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('projects')}>Details</button> : null}
+            <Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>
+          </div>}>
+          {isLoading ? <Skel h={200} /> : !projects.length ? (
+            <div style={{ height: 120, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No projects yet</div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 12, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('projects') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('projects') : null)}
+            >
+              {projects.slice(0, 6).map((p, i) => {
+                const color = p.color || [C.brand, C.purple, C.blue, C.teal, C.orange][i % 5]
+                return (
+                  <div key={p.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
+                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 10, color: C.muted }}>{p.completed}/{p.total}</span>
+                        <span style={{ fontSize: 14, fontWeight: 950, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text)', minWidth: 36, textAlign: 'right' }}>{p.progress}%</span>
+                      </div>
+                    </div>
+                    {/* Segmented bar */}
+                    <div style={{ height: 7, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 0 }}>
+                      <div style={{ flex: p.completed, background: C.green, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.in_progress, background: color, opacity: 0.7, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.overdue, background: C.red, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.pending, background: 'var(--border)', transition: 'flex 0.8s ease' }} />
+                    </div>
+                    {p.overdue > 0 && <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginTop: 3 }}>⚠ {p.overdue} overdue</div>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* ── Row 3: Weekly velocity ── */}
+      <Card
+        title="Weekly Velocity"
+        sub="Tasks created vs. completed per week — net throughput"
+        action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
+      >
+        {isLoading ? <Skel h={130} /> : velocity.length < 2 ? (
+          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data</div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('velocity') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('velocity') : null)}
+          >
+            <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+              {[
+                { label: 'Created', color: C.brand, key: 'created' },
+                { label: 'Completed', color: C.green, key: 'completed' },
+              ].map(m => {
+                const total = velocity.reduce((s, v) => s + (v as any)[m.key], 0)
+                const avg = Math.round(total / velocity.length)
+                return (
+                  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text)' }}>avg {avg}/wk</span>
+                  </div>
+                )
+              })}
+              {(() => {
+                const lastCreated = velocity[velocity.length-1]?.created || 0
+                const lastDone = velocity[velocity.length-1]?.completed || 0
+                const net = lastDone - lastCreated
+                return (
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: net >= 0 ? C.green : C.red }}>
+                    {net >= 0 ? '▲' : '▼'} Net {Math.abs(net)} this week
+                  </span>
+                )
+              })()}
+            </div>
+            <BarChart data={velocity} keys={['created', 'completed']} colors={[C.brand, C.green]} labels={['Created', 'Completed']} height={100} />
+          </div>
+        )}
+      </Card>
+
+      {/* ── Row 4: Team leaderboard ── */}
+      <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
+        action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('team')}>Details</button> : null}
+          <Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>
+        </div>}>
+        {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: C.muted, fontSize: 13 }}>No team data yet</div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('team') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('team') : null)}
+          >
+            {leaderboard.slice(0, 8).map((u, i) => {
+              const colors = [C.brand, C.purple, C.blue, C.teal, C.orange, C.green]
+              const color = colors[i % colors.length]
+              const rate = u.completion_rate || 0
+              const rateColor = rate >= 75 ? C.green : rate >= 40 ? C.brand : C.red
               return (
-                <div key={p.id} className="dashTimelineRow" style={{ display: 'grid', gridTemplateColumns: '140px 1fr 60px', gap: 10, alignItems: 'center' }}>
-                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800, color: 'var(--text)' }} title={p.name}>{p.name}</div>
-                  <div style={{ height: 24, background: 'var(--bg2)', borderRadius: 999, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: leftPct + '%', width: Math.max(widthPct, 4) + '%', background: color + '40', borderRadius: 999, border: `1.5px solid ${color}60` }} />
-                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: leftPct + '%', width: Math.max(widthPct * (p.progress / 100), 2) + '%', background: color, borderRadius: 999 }} />
-                    {overdueClass && <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 900, color: C.red }}>⚠</div>}
+                <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 44px', gap: 10, alignItems: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 9, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0, border: `1.5px solid ${color}35` }}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text2)', textAlign: 'right' }}>
-                    {p.progress}%
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{u.name}</span>
+                      <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{u.completed}/{u.total} done</span>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${rate}%`, background: rateColor, borderRadius: 999, transition: 'width 0.8s ease' }} />
+                    </div>
                   </div>
+                  <div style={{ fontSize: 14, fontWeight: 950, color: rateColor, textAlign: 'right' }}>{rate}%</div>
                 </div>
               )
             })}
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)' }}>
-              <div style={{ width: 20, height: 8, borderRadius: 999, background: C.green }} /> Completed portion
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)' }}>
-              <div style={{ width: 20, height: 8, borderRadius: 999, background: C.brand + '50', border: `1.5px solid ${C.brand}` }} /> Total span
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)' }}>
-              <span style={{ color: C.red, fontWeight: 900 }}>⚠</span> Has overdue tasks
-            </div>
-          </div>
-        </ChartBox>
-      )}
+        )}
+      </Card>
 
-      {/* ── Row 6: Task Follow-up Table ── */}
-      <ChartBox title="Task Follow-up — At-Risk Items" subtitle="Overdue and pending tasks requiring immediate attention">
-        <TaskFollowup />
-      </ChartBox>
+      {/* ── Row 5: At-risk tasks + Workload ── */}
+      <div className="dashGrid2">
+        {/* At-risk */}
+        <Card title="⚠ At-Risk Tasks" sub="Overdue items requiring immediate attention">
+          <AtRiskList />
+        </Card>
+
+        {/* Workload stacked bars */}
+        <Card
+          title="Team Workload"
+          sub="Active · Overdue · Done per person"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('workload')}>Details</button> : undefined}
+        >
+          {leaderboard.length === 0 ? (
+            <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('workload') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('workload') : null)}
+            >
+              {leaderboard.slice(0, 6).map((u, i) => {
+                const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
+                if (u.total === 0) return null
+                return (
+                  <div key={u.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
+                      <span style={{ fontSize: 10, color: C.muted }}>{u.total} tasks</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
+                      {u.completed > 0 && <div style={{ flex: u.completed, background: C.green, transition: 'flex 0.6s ease' }} />}
+                      {active > 0 && <div style={{ flex: active, background: [C.brand, C.purple, C.blue, C.teal][i%4], opacity: 0.8, transition: 'flex 0.6s ease' }} />}
+                      {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red, transition: 'flex 0.6s ease' }} />}
+                    </div>
+                  </div>
+                )
+              }).filter(Boolean)}
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
+                {[['Done', C.green], ['Active', C.brand], ['Overdue', C.red]].map(([l, c]) => (
+                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c as string }} />
+                    <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <Modal
+        title={
+          chartDetail === 'activity' ? 'Task Activity Details'
+            : chartDetail === 'status' ? 'Task Status Details'
+            : chartDetail === 'priority' ? 'Priority Breakdown Details'
+            : chartDetail === 'projects' ? 'Project Progress Details'
+            : chartDetail === 'velocity' ? 'Weekly Velocity Details'
+            : chartDetail === 'team' ? 'Team Performance Details'
+            : chartDetail === 'workload' ? 'Team Workload Details'
+            : 'Chart details'
+        }
+        open={!!chartDetail}
+        wide
+        onClose={() => setChartDetail(null)}
+        footer={<button type="button" className="btn btnPrimary" style={{ height: 38 }} onClick={() => setChartDetail(null)}>Close</button>}
+      >
+        {!canOpenAdvancedDetails ? (
+          <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
+            Detailed metrics are limited for your role. You can still use the dashboard cards for high-level status and trends.
+          </div>
+        ) : null}
+        {chartDetail === 'activity' ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {trendData.slice(-10).map((d) => (
+              <div key={d.day} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{d.label}</div>
+                <div>Created: <strong>{d.created}</strong></div>
+                <div>Completed: <strong>{d.completed}</strong></div>
+                <div>Overdue: <strong style={{ color: d.overdue > 0 ? C.red : 'inherit' }}>{d.overdue}</strong></div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'status' && tasks ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {statusSegs.map((s) => (
+              <div key={s.label} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{s.label}</div>
+                <div>{Math.round((s.value / Math.max(1, tasks.total)) * 100)}%</div>
+                <div style={{ color: s.color, fontWeight: 900 }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'priority' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {priorityRows.map((p) => (
+              <div key={p.label} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                <div style={{ fontWeight: 800, textTransform: 'capitalize' }}>{p.label}</div>
+                <div style={{ color: p.color, fontWeight: 900 }}>{p.value}</div>
+              </div>
+            ))}
+            {priorityRows.length === 0 ? <div style={{ color: C.muted }}>No priority data yet.</div> : null}
+          </div>
+        ) : null}
+        {chartDetail === 'projects' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {projects.slice(0, 12).map((p) => (
+              <div key={p.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr repeat(4, 1fr)', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{p.name}</div>
+                <div>Done: {p.completed}</div>
+                <div>Active: {p.in_progress}</div>
+                <div>Overdue: {p.overdue}</div>
+                <div style={{ fontWeight: 900 }}>{p.progress}%</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'velocity' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {velocity.map((v) => (
+              <div key={v.week} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{v.week}</div>
+                <div>Created: {v.created}</div>
+                <div>Done: {v.completed}</div>
+                <div style={{ fontWeight: 900, color: v.completed - v.created >= 0 ? C.green : C.red }}>{v.completed - v.created >= 0 ? '+' : ''}{v.completed - v.created}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'team' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {leaderboard.slice(0, 12).map((u) => (
+              <div key={u.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ fontWeight: 800 }}>{u.name}</div>
+                <div>Rate: {u.completion_rate}%</div>
+                <div>Done: {u.completed}/{u.total}</div>
+                <div style={{ fontWeight: 900 }}>Score {u.score}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {chartDetail === 'workload' ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {leaderboard.slice(0, 12).map((u) => {
+              const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
+              return (
+                <div key={u.id} className="miniCard" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                  <div style={{ fontWeight: 800 }}>{u.name}</div>
+                  <div>Done {u.completed}</div>
+                  <div>Active {active}</div>
+                  <div style={{ color: (u.overdue || 0) > 0 ? C.red : 'var(--text)' }}>Overdue {u.overdue || 0}</div>
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
+      </Modal>
 
       {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
     </div>
   )
 }
 
-// ─── Task Follow-up ───────────────────────────────────────────────
-type FollowupTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assigned_to_name?: string | null; category_name?: string | null }
-
-function TaskFollowup() {
+// ─── At-risk task list ─────────────────────────────────────────────
+type RTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assigned_to_name?: string | null; category_name?: string | null }
+function AtRiskList() {
   const { data } = useQuery({
-    queryKey: ['tasks', 'followup'],
-    queryFn: () => apiFetch<{ tasks: FollowupTask[] }>('/api/v1/tasks?limit=50&page=1&status=overdue').then(d => d.tasks || []),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    queryKey: ['dash-overdue'],
+    queryFn: () => apiFetch<{ tasks?: RTask[] }>('/api/v1/tasks?limit=20&page=1&status=overdue').then(d => d.tasks || []),
+    staleTime: 0, refetchOnWindowFocus: true,
   })
-  const overdue = data || []
-
-  const { data: pending } = useQuery({
-    queryKey: ['tasks', 'followup-pending'],
-    queryFn: () => apiFetch<{ tasks: FollowupTask[] }>('/api/v1/tasks?limit=20&page=1&status=pending').then(d => d.tasks || []),
-    staleTime: 30_000,
-  })
-
-  const all = [...overdue, ...(pending || []).slice(0, 10)]
-
-  if (!all.length) return (
-    <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--muted)' }}>
-      <span style={{ fontSize: 24 }}>🎉</span>
-      <div style={{ fontWeight: 800, marginTop: 8 }}>All tasks on track!</div>
-      <div style={{ fontSize: 12, marginTop: 4 }}>No overdue or at-risk items.</div>
+  const tasks = data || []
+  if (!tasks.length) return (
+    <div style={{ padding: '20px 0', textAlign: 'center', color: C.muted }}>
+      <div style={{ fontSize: 24, marginBottom: 6 }}>🎉</div>
+      <div style={{ fontWeight: 800, fontSize: 13 }}>All tasks on track!</div>
+      <div style={{ fontSize: 11, marginTop: 3 }}>No overdue items.</div>
     </div>
   )
-
+  const pCol: Record<string, string> = { critical: C.red, high: C.orange, medium: C.purple, low: C.blue }
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['Task', 'Project', 'Assignee', 'Priority', 'Status', 'Due'].map(h => (
-              <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {all.slice(0, 20).map(t => {
-            const isOverdue = t.status === 'overdue'
-            const pColor = PRIORITY_C[t.priority || ''] || '#9ca3af'
-            const dueDate = t.due_date ? new Date(t.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'
-            return (
-              <tr key={t.id} style={{ borderBottom: '1px solid var(--border)', background: isOverdue ? C.red + '04' : '' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
-                onMouseLeave={e => (e.currentTarget.style.background = isOverdue ? C.red + '04' : '')}>
-                <td style={{ padding: '9px 12px', fontWeight: 800, fontSize: 12, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{t.title}</td>
-                <td style={{ padding: '9px 12px', fontSize: 11, color: 'var(--muted)' }}>{t.category_name || '—'}</td>
-                <td style={{ padding: '9px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>{t.assigned_to_name || '—'}</td>
-                <td style={{ padding: '9px 12px' }}>
-                  {t.priority && <span style={{ fontSize: 10, fontWeight: 800, color: pColor, textTransform: 'capitalize', padding: '2px 8px', borderRadius: 999, background: pColor + '18' }}>{t.priority}</span>}
-                </td>
-                <td style={{ padding: '9px 12px' }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: isOverdue ? C.red + '18' : C.amber + '18', color: isOverdue ? C.red : C.amber, textTransform: 'capitalize' }}>
-                    {isOverdue ? '⚠ Overdue' : t.status.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td style={{ padding: '9px 12px', fontSize: 12, fontWeight: 700, color: isOverdue ? C.red : 'var(--text2)', whiteSpace: 'nowrap' }}>{dueDate}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div style={{ display: 'grid', gap: 7 }}>
+      {tasks.slice(0, 8).map(t => {
+        const due = t.due_date ? new Date(t.due_date) : null
+        const daysOverdue = due ? Math.floor((Date.now() - due.getTime()) / 86400000) : null
+        return (
+          <div key={t.id} style={{ padding: '9px 12px', borderRadius: 11, background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{t.assigned_to_name || '—'}{t.category_name ? ` · ${t.category_name}` : ''}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+              {daysOverdue !== null && <span style={{ fontSize: 10, fontWeight: 900, color: C.red }}>{daysOverdue}d late</span>}
+              {t.priority && <span style={{ fontSize: 9, fontWeight: 800, color: pCol[t.priority] || C.muted, textTransform: 'capitalize' }}>{t.priority}</span>}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

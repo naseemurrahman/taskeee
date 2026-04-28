@@ -216,8 +216,9 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
     },
     onError: (err: any) => {
       const msg = err?.message || 'Failed to update status'
+      console.error('[StatusChange] Error:', msg, err)
       setErrMsg(msg)
-      setTimeout(() => setErrMsg(null), 4000)
+      setTimeout(() => setErrMsg(null), 6000)
     },
   })
 
@@ -235,10 +236,8 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
-      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-        {/* Color dot */}
-        <span style={{ position: 'absolute', left: 10, width: 7, height: 7, borderRadius: '50%', background: meta.color, pointerEvents: 'none', zIndex: 1, flexShrink: 0 }} />
-        {/* Native select — bypasses all portal/focus/backdrop issues completely */}
+      <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+        {/* Status select — keep native appearance so dropdown opens properly */}
         <select
           value={task.status}
           disabled={m.isPending}
@@ -249,21 +248,17 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
             if (v !== task.status) m.mutate(v)
           }}
           style={{
-            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-            paddingLeft: 22, paddingRight: 26, paddingTop: 4, paddingBottom: 4,
+            paddingLeft: 10, paddingRight: 8, paddingTop: 5, paddingBottom: 5,
             borderRadius: 999, fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
             background: meta.bg, color: meta.color,
             border: `1.5px solid ${meta.color}55`,
             cursor: m.isPending ? 'not-allowed' : 'pointer',
-            outline: 'none', minWidth: 115,
+            outline: 'none', minWidth: 120,
             opacity: m.isPending ? 0.6 : 1,
-            transition: 'opacity 0.15s',
           }}
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {/* Chevron */}
-        <svg style={{ position: 'absolute', right: 7, pointerEvents: 'none', color: meta.color, flexShrink: 0 }} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
       </div>
       {errMsg && (
         <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 9999, fontSize: 10, color: '#ef4444', fontWeight: 800, whiteSpace: 'nowrap', background: 'var(--bg1)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
@@ -343,7 +338,7 @@ export function TasksPage() {
 
       {/* ── Filters ── */}
       <div className="chartV3" style={{ padding: '12px 16px' }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="taskFiltersRow" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
             {[
               { k: 'all', label: 'All', count: counts.all },
@@ -399,8 +394,8 @@ export function TasksPage() {
             )}
           </div>
         ) : (
-          <div style={{ overflow: 'visible' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="tasksTableWrap" style={{ overflow: 'visible' }}>
+            <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />

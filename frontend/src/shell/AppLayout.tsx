@@ -136,6 +136,22 @@ export function AppLayout() {
     queryFn: () => apiFetch<any>('/api/v1/users/profile'),
     staleTime: 5 * 60 * 1000,
   })
+  const statsQ = useQuery({
+    queryKey: ['shell', 'topbar', 'stats'],
+    queryFn: () => apiFetch<{
+      tasks?: {
+        due_today?: number
+        overdue?: number
+        completion_rate?: number
+      }
+    }>('/api/v1/stats/dashboard'),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    retry: false,
+  })
+  const dueToday = statsQ.data?.tasks?.due_today ?? 0
+  const overdueCount = statsQ.data?.tasks?.overdue ?? 0
+  const completionRate = statsQ.data?.tasks?.completion_rate ?? 0
   const displayName = profileQ.data?.user?.full_name?.trim() || me?.fullName?.trim() || me?.email || ''
   const rawAvatarUrl = normalizeAvatarUrl(profileQ.data?.user?.avatar_url)
   const avatarSrc = rawAvatarUrl ? avatarDisplaySrc(rawAvatarUrl, 0) : ''
@@ -337,6 +353,21 @@ export function AppLayout() {
             )}
           </div>
 
+          <div className="topbarV4Meta" aria-label="workspace quick metrics">
+            <button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks')}>
+              <span className="topbarMetricDot" />
+              Due today <strong>{dueToday}</strong>
+            </button>
+            <button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks?status=overdue')}>
+              <span className="topbarMetricDot topbarMetricDotWarn" />
+              Overdue <strong>{overdueCount}</strong>
+            </button>
+            <button type="button" className="topbarMetricChip" onClick={() => navigate('/app/analytics')}>
+              <span className="topbarMetricDot topbarMetricDotSuccess" />
+              Completion <strong>{completionRate}%</strong>
+            </button>
+          </div>
+
           {/* Right: notifications + profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
             <NotificationCenter />
@@ -353,7 +384,8 @@ export function AppLayout() {
               type="button"
               className="topbarLangBtn"
               onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')}
-              title={t('nav.language')}
+              title={`${t('nav.language')}: ${activeLang.toUpperCase()}`}
+              aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}
             >
               <Globe size={13} />
               <span>{activeLang.toUpperCase()}</span>

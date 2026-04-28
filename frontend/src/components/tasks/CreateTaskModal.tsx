@@ -109,7 +109,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
       handleClose()
     },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : String(err) || 'Failed to create task. Please try again.')
+      const msg = err instanceof ApiError ? err.message : String(err) || 'Failed to create task. Please try again.'
+      console.error('[CreateTask] Error:', msg, err)
+      setError(msg)
     },
   })
 

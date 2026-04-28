@@ -6,6 +6,7 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AppLayout } from './shell/AppLayout'
+import { DiagnosticsPage } from './pages/app/DiagnosticsPage'
 import { DashboardHomePage } from './pages/app/DashboardHomePage'
 import { getUser, isAuthed } from './state/auth'
 import { TasksPage } from './pages/app/TasksPage'
@@ -66,6 +67,7 @@ export default function App() {
       <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardHomePage />} />
+        <Route path="diagnostics" element={<DiagnosticsPage />} />
         <Route path="tasks" element={tasksHome} />
         <Route path="my-tasks" element={<Navigate to="/app/tasks" replace />} />
         <Route path="projects" element={<ProjectsPage />} />

@@ -10,7 +10,8 @@ const { orgIdForSessionUser } = require('../utils/orgContext');
 
 const _tableColsCache = new Map();
 async function getTableColumns(tableName) {
-  if (_tableColsCache.has(tableName)) return _tableColsCache.get(tableName);
+  const cached = _tableColsCache.get(tableName);
+  if (cached && cached.size > 0) return cached;  // Only use cache if non-empty
   try {
     const { rows } = await query(
       `SELECT column_name
@@ -19,7 +20,7 @@ async function getTableColumns(tableName) {
       [tableName]
     );
     const set = new Set((rows || []).map((r) => String(r.column_name)));
-    _tableColsCache.set(tableName, set);
+    if (set.size > 0) _tableColsCache.set(tableName, set);  // Only cache non-empty
     return set;
   } catch {
     return new Set();
@@ -240,6 +241,9 @@ router.post('/create-simple', authenticate, async (req, res, next) => {
     if (!title || title.trim().length < 2) {
       return res.status(400).json({ error: 'Title must be at least 2 characters' });
     }
+    if (!assignedTo) {
+      return res.status(400).json({ error: 'Please select an employee to assign this task to.' });
+    }
     const orgId = req.user.org_id || req.user.orgId;
     if (!orgId) return res.status(401).json({ error: 'No org ID found' });
     
@@ -249,11 +253,9 @@ router.post('/create-simple', authenticate, async (req, res, next) => {
       return res.status(403).json({ error: 'Insufficient permissions to create tasks' });
     }
     
-    // Build minimal insert
-    const cols = ['org_id','title','status','priority','assigned_by'];
-    const vals = [orgId, title.trim(), 'pending', priority, req.user.id];
-    
-    if (assignedTo) { cols.push('assigned_to'); vals.push(assignedTo); }
+    // Build minimal insert — assigned_to is NOT NULL in the DB schema
+    const cols = ['org_id','title','status','priority','assigned_by','assigned_to'];
+    const vals = [orgId, title.trim(), 'pending', priority, req.user.id, assignedTo];
     if (dueDate) { cols.push('due_date'); vals.push(dueDate); }
     
     // Try to add optional columns if they exist
@@ -1235,8 +1237,11 @@ router.post('/:id/set-status', authenticate, async (req, res, next) => {
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
     
     await query('UPDATE tasks SET status = $1, updated_at = NOW() WHERE id = $2', [status, req.params.id]);
+    res.setHeader('Content-Type', 'application/json');
     res.json({ ok: true, taskId: req.params.id, status, previous: rows[0].status });
   } catch (err) {
+    console.error('[set-status] error:', err.message);
+    res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ error: err.message });
   }
 });

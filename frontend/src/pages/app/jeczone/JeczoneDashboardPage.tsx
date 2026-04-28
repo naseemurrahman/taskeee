@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Select } from '../../../components/ui/Select'
 import { apiFetch } from '../../../lib/api'
+import { getUser } from '../../../state/auth'
+import { canCreateTasksAndProjects, canViewAnalytics } from '../../../lib/rbac'
 import { ChartCard } from '../../../components/charts/ChartCard'
 import { AssignmentsChart, ProjectProgressChart } from '../../../components/charts/WorkCharts'
 import { DeadlinesTrendChart, StatusBarChart } from '../../../components/charts/PerformanceCharts'
@@ -61,6 +63,9 @@ async function fetchPerf() {
 type Tab = 'overview' | 'projects' | 'gantt' | 'resources' | 'ai'
 
 export function JeczoneDashboardPage() {
+  const me = getUser()
+  const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
+  const canOpenAdvancedDetails = canViewAnalytics(me?.role)
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')
   const [projectId, setProjectId] = useState<string>('all')
@@ -173,6 +178,14 @@ export function JeczoneDashboardPage() {
 
   const deadlines = useMemo(() => buildDeadlineSeries(filteredTasks, 7), [filteredTasks])
 
+  function openDetail(title: string, kind: 'kpi' | 'chart') {
+    if (!canOpenChartDetails && kind === 'chart') {
+      setDetail({ title: 'Details limited', kind: 'chart' })
+      return
+    }
+    setDetail({ title, kind })
+  }
+
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       {/* Page header card */}
@@ -253,14 +266,14 @@ export function JeczoneDashboardPage() {
             <ChartCard
               title="Project progress"
               subtitle="Completion per project."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Project progress', kind: 'chart' })}>Details</button>}
+              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Project progress', 'chart')}>Details</button>}
             >
               <div
                 role="button"
                 tabIndex={0}
                 style={{ minHeight: 280, cursor: 'pointer' }}
-                onClick={() => setDetail({ title: 'Project progress', kind: 'chart' })}
-                onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Project progress', kind: 'chart' }) : null)}
+                onClick={() => openDetail('Project progress', 'chart')}
+                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Project progress', 'chart') : null)}
               >
                 {tasksQ.isLoading ? <div style={{ height: 280, color: 'var(--text2)' }}>Loading…</div> : null}
                 {!tasksQ.isLoading && filteredTasks.length === 0 ? (
@@ -278,14 +291,14 @@ export function JeczoneDashboardPage() {
             <ChartCard
               title="Assignments"
               subtitle="Active/overdue/done by assignee."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Assignments', kind: 'chart' })}>Details</button>}
+              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Assignments', 'chart')}>Details</button>}
             >
               <div
                 role="button"
                 tabIndex={0}
                 style={{ minHeight: 280, cursor: 'pointer' }}
-                onClick={() => setDetail({ title: 'Assignments', kind: 'chart' })}
-                onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Assignments', kind: 'chart' }) : null)}
+                onClick={() => openDetail('Assignments', 'chart')}
+                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Assignments', 'chart') : null)}
               >
                 {tasksQ.isLoading ? <div style={{ height: 280, color: 'var(--text2)' }}>Loading…</div> : null}
                 {!tasksQ.isLoading && filteredTasks.length === 0 ? (
@@ -301,14 +314,14 @@ export function JeczoneDashboardPage() {
             <ChartCard
               title="Deadlines"
               subtitle="Next 7 days due vs overdue."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Deadlines', kind: 'chart' })}>Details</button>}
+              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Deadlines', 'chart')}>Details</button>}
             >
               <div
                 role="button"
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}
-                onClick={() => setDetail({ title: 'Deadlines', kind: 'chart' })}
-                onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Deadlines', kind: 'chart' }) : null)}
+                onClick={() => openDetail('Deadlines', 'chart')}
+                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Deadlines', 'chart') : null)}
               >
                 <DeadlinesTrendChart points={deadlines} />
               </div>
@@ -316,14 +329,14 @@ export function JeczoneDashboardPage() {
             <ChartCard
               title="Status"
               subtitle="Distribution for selected scope."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => setDetail({ title: 'Status', kind: 'chart' })}>Details</button>}
+              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Status', 'chart')}>Details</button>}
             >
               <div
                 role="button"
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}
-                onClick={() => setDetail({ title: 'Status', kind: 'chart' })}
-                onKeyDown={(e) => (e.key === 'Enter' ? setDetail({ title: 'Status', kind: 'chart' }) : null)}
+                onClick={() => openDetail('Status', 'chart')}
+                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Status', 'chart') : null)}
               >
                 <StatusBarChart byStatus={byStatus} />
               </div>
@@ -426,6 +439,11 @@ export function JeczoneDashboardPage() {
           </div>
         }
       >
+        {detail?.kind === 'chart' && detail.title === 'Details limited' ? (
+          <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
+            Your role can view chart summaries, but full drill-down detail is available for supervisors and above.
+          </div>
+        ) : null}
         {detail?.kind === 'kpi' && detail.title === 'Total tasks' ? (
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: 'var(--text2)' }}>All tasks in scope for the selected project filter (API summary).</div>
@@ -475,7 +493,7 @@ export function JeczoneDashboardPage() {
         {detail?.kind === 'chart' && detail.title === 'Status' ? (
           <div style={{ display: 'grid', gap: 14 }}>
             <StatusMiniChart byStatus={Object.keys(byStatus).length ? byStatus : byFromTasks} />
-            <TaskSampleTable tasks={filteredTasks} empty="No tasks." />
+            {canOpenAdvancedDetails ? <TaskSampleTable tasks={filteredTasks} empty="No tasks." /> : null}
           </div>
         ) : null}
       </Modal>
@@ -494,4 +512,3 @@ export function JeczoneDashboardPage() {
     </div>
   )
 }
-

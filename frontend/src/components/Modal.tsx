@@ -46,7 +46,7 @@ export function Modal(props: {
     >
       <div
         ref={cardRef}
-        className={`modalCardV2 ${props.wide ? 'modalCardV2Wide' : ''} animate-scaleIn`}
+        className={`modalCardV2 ${props.wide ? 'modalCardV2Wide' : ''}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
