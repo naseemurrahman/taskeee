@@ -11,11 +11,11 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 20_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
+      staleTime: 0,           // Always consider data stale — refetch on mount
+      gcTime: 2 * 60_000,     // Keep unused data in cache for 2 minutes
+      refetchOnWindowFocus: true,  // Refetch when tab gets focus (catches mobile ↔ laptop sync)
+      refetchOnMount: true,
       retry: (failureCount, error: any) => {
-        // Don't retry 4xx errors
         if (error?.status >= 400 && error?.status < 500) return false
         return failureCount < 2
       },

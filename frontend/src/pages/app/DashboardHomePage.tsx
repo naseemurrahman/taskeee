@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
@@ -7,7 +7,7 @@ import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 
-// ─── Types ───────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────
 type DashData = {
   tasks: {
     total: number; pending: number; in_progress: number; submitted: number
@@ -17,49 +17,211 @@ type DashData = {
   trend: Array<{ day: string; label: string; completed: number; overdue: number; created: number }>
   projects: Array<{
     id: string; name: string; color?: string | null; total: number
-    completed: number; overdue: number; in_progress: number; pending: number
-    progress: number; start_date: string; earliest_due?: string; latest_due?: string
+    completed: number; overdue: number; in_progress: number; pending: number; progress: number
   }>
   leaderboard: Array<{
-    id: string; name: string; department?: string | null; role?: string | null
-    total: number; completed: number; overdue: number; in_progress: number
-    completion_rate: number; score: number
+    id: string; name: string; total: number; completed: number
+    overdue: number; in_progress: number; completion_rate: number; score: number
   }>
   priority: Record<string, number>
   velocity: Array<{ week: string; week_start: string; created: number; completed: number }>
-  projectStatusChart: Array<Record<string, any>>
 }
 
 async function fetchDash(): Promise<DashData> {
   return apiFetch<DashData>('/api/v1/stats/dashboard')
 }
 
+// ─── Design tokens ────────────────────────────────────────────────
 const C = {
-  brand: '#e2ab41', purple: '#8B5CF6', blue: '#38bdf8', green: '#22c55e',
-  red: '#ef4444', orange: '#f97316', teal: '#14b8a6', amber: '#f59e0b',
+  brand: '#e2ab41', purple: '#8B5CF6', blue: '#38bdf8',
+  green: '#22c55e', red: '#ef4444', orange: '#f97316',
+  teal: '#14b8a6', muted: 'var(--muted)',
 }
 
-
-const PRIORITY_META: Record<string, { color: string }> = {
-  low: { color: C.blue }, medium: { color: C.purple },
-  high: { color: C.orange }, critical: { color: C.red },
+// ─── Animated counter ─────────────────────────────────────────────
+function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(0)
+  const prev = useRef(0)
+  useEffect(() => {
+    const target = value
+    const start = prev.current
+    const diff = target - start
+    if (diff === 0) return
+    const steps = 30
+    let step = 0
+    const t = setInterval(() => {
+      step++
+      setDisplay(Math.round(start + (diff * step) / steps))
+      if (step >= steps) { clearInterval(t); prev.current = target }
+    }, 16)
+    return () => clearInterval(t)
+  }, [value])
+  return <>{display}{suffix}</>
 }
 
-const PLAYER_COLORS = [C.brand, C.purple, C.blue, C.green, C.teal, C.orange]
+// ─── Smooth area sparkline ────────────────────────────────────────
+function AreaLine({ data, color, height = 52 }: { data: number[]; color: string; height?: number }) {
+  if (!data.length) return <div style={{ height }} />
+  const max = Math.max(...data, 1)
+  const w = 300, h = height, pad = 4
+  const pts = data.map((v, i) => ({
+    x: (i / Math.max(data.length - 1, 1)) * w,
+    y: h - pad - (v / max) * (h - pad * 2)
+  }))
 
-// ─── Utility ─────────────────────────────────────────────────────
-function pct(n: number, t: number) { return t === 0 ? 0 : Math.round((n / t) * 100) }
+  // Create smooth bezier path
+  function smooth(p: {x:number;y:number}[]) {
+    if (p.length < 2) return `M ${p[0]?.x ?? 0},${p[0]?.y ?? 0}`
+    let d = `M ${p[0].x},${p[0].y}`
+    for (let i = 0; i < p.length - 1; i++) {
+      const cp1x = p[i].x + (p[i+1].x - p[i].x) / 3
+      const cp2x = p[i].x + (p[i+1].x - p[i].x) * 2 / 3
+      d += ` C ${cp1x},${p[i].y} ${cp2x},${p[i+1].y} ${p[i+1].x},${p[i+1].y}`
+    }
+    return d
+  }
 
-// ─── Chart Card ──────────────────────────────────────────────────
-function Card({ title, sub, children, action, className = '' }: {
-  title: string; sub?: string; children: React.ReactNode; action?: React.ReactNode; className?: string
+  const linePath = smooth(pts)
+  const last = pts[pts.length - 1]
+  const gradId = `ag-${color.replace(/[^a-z0-9]/gi, '')}-${Math.random().toString(36).slice(2,6)}`
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="85%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={`${linePath} L ${last.x},${h} L 0,${h} Z`} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={last.x} cy={last.y} r="3.5" fill={color} />
+      <circle cx={last.x} cy={last.y} r="6" fill={color} fillOpacity="0.2" />
+    </svg>
+  )
+}
+
+// ─── Donut ring ────────────────────────────────────────────────────
+function DonutRing({ segments, size = 120, strokeW = 12 }: {
+  segments: { value: number; color: string; label: string }[]
+  size?: number; strokeW?: number
+}) {
+  const total = segments.reduce((s, d) => s + d.value, 0)
+  if (!total) return (
+    <div style={{ width: size, height: size, borderRadius: '50%', border: '2px dashed var(--border)', display: 'grid', placeItems: 'center' }}>
+      <span style={{ fontSize: 11, color: C.muted }}>No data</span>
+    </div>
+  )
+  const r = (size - strokeW) / 2
+  const circ = 2 * Math.PI * r
+  const cx = size / 2, cy = size / 2
+  let offset = 0
+  const segs = segments.filter(s => s.value > 0).map(s => {
+    const dash = (s.value / total) * circ
+    const seg = { ...s, dash, offset, pct: Math.round((s.value / total) * 100) }
+    offset += dash + 1
+    return seg
+  })
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg2)" strokeWidth={strokeW} />
+      {segs.map((s, i) => (
+        <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+          stroke={s.color} strokeWidth={strokeW - 1}
+          strokeDasharray={`${s.dash} ${circ}`}
+          strokeDashoffset={-s.offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
+      ))}
+    </svg>
+  )
+}
+
+// ─── Horizontal progress bar ─────────────────────────────────────
+function ProgressRow({ label, value, max, color, sub }: {
+  label: string; value: number; max: number; color: string; sub?: string
+}) {
+  const pct = max === 0 ? 0 : Math.min(100, (value / max) * 100)
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'baseline' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>{value}</span>
+          {sub && <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{sub}</span>}
+        </div>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 999, transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Mini bar chart ───────────────────────────────────────────────
+function BarChart({ data, keys, colors, labels, height = 100 }: {
+  data: Array<Record<string, any>>
+  keys: string[]
+  colors: string[]
+  labels: string[]
+  height?: number
+}) {
+  if (!data.length) return null
+  const all = data.flatMap(d => keys.map(k => Number(d[k] || 0)))
+  const max = Math.max(...all, 1)
+  const W = 280, H = height, gap = 3
+  const groupW = (W - gap * (data.length - 1)) / data.length
+  const barW = Math.max(3, (groupW - 2 * (keys.length - 1)) / keys.length)
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H + 18}`} preserveAspectRatio="none" style={{ width: '100%', height: H + 18 }}>
+        {data.map((d, i) => {
+          const gx = i * (groupW + gap)
+          return (
+            <g key={i}>
+              {keys.map((k, ki) => {
+                const val = Number(d[k] || 0)
+                const bh = Math.max(2, (val / max) * H)
+                return (
+                  <rect key={ki} x={gx + ki * (barW + 2)} y={H - bh} width={barW} height={bh}
+                    fill={colors[ki]} rx={2} opacity={0.9}
+                    style={{ transition: 'height 0.6s ease, y 0.6s ease' }}
+                  />
+                )
+              })}
+              <text x={gx + groupW / 2} y={H + 13} textAnchor="middle"
+                fill="var(--muted)" fontSize="8.5" fontWeight="600">
+                {String(d.label || d.week || '').slice(0, 6)}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+        {labels.map((l, i) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: colors[i] }} />
+            <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Card wrapper ─────────────────────────────────────────────────
+function Card({ title, sub, children, action }: {
+  title: string; sub?: string; children: React.ReactNode; action?: React.ReactNode
 }) {
   return (
-    <div className={`dashCard ${className}`} style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>
-          <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--text)', letterSpacing: '-0.3px' }}>{title}</div>
-          {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, fontWeight: 600 }}>{sub}</div>}
+          <div style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)', letterSpacing: '-0.2px' }}>{title}</div>
+          {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sub}</div>}
         </div>
         {action}
       </div>
@@ -68,145 +230,20 @@ function Card({ title, sub, children, action, className = '' }: {
   )
 }
 
-// ─── KPI Tile ────────────────────────────────────────────────────
-function KpiTile({ label, value, sub, color, icon }: { label: string; value: number | string; sub?: string; color: string; icon: string }) {
-  return (
-    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '16px 18px', position: 'relative', overflow: 'hidden', flex: '1 1 130px' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: '18px 18px 0 0' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <div style={{ fontSize: 24, lineHeight: 1 }}>{icon}</div>
-        <div style={{ fontSize: 11, fontWeight: 800, color: color, background: color + '15', padding: '2px 7px', borderRadius: 999 }}>live</div>
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1px', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  )
-}
-
-// ─── Sparkline (pure SVG, no deps) ───────────────────────────────
-function Sparkline({ data, color, height = 48 }: { data: number[]; color: string; height?: number }) {
-  if (!data.length) return <div style={{ height }} />
-  const max = Math.max(...data, 1)
-  const w = 240, h = height
-  const pts = data.map((v, i) => {
-    const x = (i / Math.max(data.length - 1, 1)) * w
-    const y = h - (v / max) * (h - 4) - 2
-    return `${x},${y}`
-  })
-  const area = `M ${pts[0]} ${pts.slice(1).map(p => `L ${p}`).join(' ')} L ${w},${h} L 0,${h} Z`
-  const line = `M ${pts[0]} ${pts.slice(1).map(p => `L ${p}`).join(' ')}`
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height }}>
-      <defs>
-        <linearGradient id={`sg-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#sg-${color.replace('#','')})`} />
-      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Last point dot */}
-      <circle cx={w} cy={h - (data[data.length-1] / max) * (h - 4) - 2} r="3.5" fill={color} />
-    </svg>
-  )
-}
-
-// ─── Horizontal bar row ───────────────────────────────────────────
-function HBar({ label, value, max, color, right }: { label: string; value: number; max: number; color: string; right?: React.ReactNode }) {
-  const w = max === 0 ? 0 : Math.min(100, (value / max) * 100)
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-          <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)', flexShrink: 0, marginLeft: 8 }}>{value}</span>
-        </div>
-        <div style={{ height: 6, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${w}%`, background: color, borderRadius: 999, transition: 'width 0.8s ease' }} />
-        </div>
-      </div>
-      {right && <div style={{ flexShrink: 0 }}>{right}</div>}
-    </div>
-  )
-}
-
-// ─── Status ring (pure SVG donut) ─────────────────────────────────
-function StatusRing({ data }: { data: Array<{ label: string; value: number; color: string }> }) {
-  const total = data.reduce((s, d) => s + d.value, 0)
-  if (!total) return <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No tasks yet</div>
-  const r = 44, cx = 56, cy = 56, stroke = 10
-  let offset = 0
-  const circ = 2 * Math.PI * r
-  const segs = data.filter(d => d.value > 0).map(d => {
-    const dash = (d.value / total) * circ
-    const seg = { ...d, dash, offset }
-    offset += dash
-    return seg
-  })
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-      <svg width={112} height={112} style={{ flexShrink: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
-        {segs.map((s, i) => (
-          <circle key={i} cx={cx} cy={cy} r={r} fill="none"
-            stroke={s.color} strokeWidth={stroke}
-            strokeDasharray={`${s.dash} ${circ - s.dash}`}
-            strokeDashoffset={circ / 4 - s.offset}
-            strokeLinecap="butt"
-          />
-        ))}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--text)" fontSize="20" fontWeight="900">{total}</text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--muted)" fontSize="9" fontWeight="700">TASKS</text>
-      </svg>
-      <div style={{ display: 'grid', gap: 7, flex: 1, minWidth: 120 }}>
-        {segs.map(s => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600, flex: 1 }}>{s.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)' }}>{s.value}</span>
-            <span style={{ fontSize: 10, color: 'var(--muted)', width: 30, textAlign: 'right' }}>{pct(s.value, total)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Mini bar chart (pure SVG) ────────────────────────────────────
-function MiniBarChart({ data, keys, colors, height = 120 }: {
-  data: Array<Record<string, any>>; keys: string[]; colors: string[]; height?: number
+// ─── KPI Tile ─────────────────────────────────────────────────────
+function KpiTile({ label, value, sub, color, icon }: {
+  label: string; value: number; sub?: string; color: string; icon: string
 }) {
-  if (!data.length) return null
-  const allVals = data.flatMap(d => keys.map(k => Number(d[k] || 0)))
-  const max = Math.max(...allVals, 1)
-  const w = 240, h = height, gap = 4
-  const groupW = (w - gap * (data.length - 1)) / data.length
-  const barW = Math.max(4, (groupW - gap * (keys.length - 1)) / keys.length)
   return (
-    <svg viewBox={`0 0 ${w} ${h + 20}`} preserveAspectRatio="none" style={{ width: '100%', height: height + 20 }}>
-      {data.map((d, i) => {
-        const gx = i * (groupW + gap)
-        return (
-          <g key={i}>
-            {keys.map((k, ki) => {
-              const val = Number(d[k] || 0)
-              const bh = (val / max) * h
-              const bx = gx + ki * (barW + 2)
-              const by = h - bh
-              return (
-                <g key={ki}>
-                  <rect x={bx} y={by} width={barW} height={bh} fill={colors[ki]} rx={3} opacity={0.9} />
-                </g>
-              )
-            })}
-            <text x={gx + groupW / 2} y={h + 14} textAnchor="middle" fill="var(--muted)" fontSize="8" fontWeight="600">
-              {String(d.label || d.week || d.name || '').slice(0, 5)}
-            </text>
-          </g>
-        )
-      })}
-    </svg>
+    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '16px 18px', position: 'relative', overflow: 'hidden', flex: '1 1 130px', minWidth: 130 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '18px 18px 0 0' }} />
+      <div style={{ position: 'absolute', bottom: -20, right: -10, fontSize: 52, opacity: 0.06, lineHeight: 1, userSelect: 'none' }}>{icon}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1.5px', lineHeight: 1 }}>
+        <AnimatedNumber value={value} />
+      </div>
+      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>}
+    </div>
   )
 }
 
@@ -219,53 +256,35 @@ export function DashboardHomePage() {
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDash,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 
   const tasks       = data?.tasks
-  const projects    = data?.projects    || []
-  const leaderboard = data?.leaderboard || []
-  const trend       = data?.trend       || []
-  const velocity    = data?.velocity    || []
+  const projects    = useMemo(() => data?.projects    || [], [data])
+  const leaderboard = useMemo(() => data?.leaderboard || [], [data])
+  const trendData    = useMemo(() => (data?.trend || []).slice(-14), [data])
+  const velocity    = useMemo(() => (data?.velocity || []).slice(-8).map(v => ({ ...v, label: v.week })), [data])
 
-  // Derived
-  const statusRingData = useMemo(() => {
+  const statusSegs = useMemo(() => {
     if (!tasks) return []
     return [
-      { label: 'In Progress', value: tasks.in_progress,      color: C.purple },
-      { label: 'Pending',     value: tasks.pending,          color: C.amber  },
-      { label: 'Submitted',   value: tasks.submitted,        color: C.blue   },
-      { label: 'Overdue',     value: tasks.overdue,          color: C.red    },
-      { label: 'Done',        value: tasks.completed,        color: C.green  },
+      { label: 'In Progress', value: tasks.in_progress, color: C.purple },
+      { label: 'Submitted',   value: tasks.submitted,   color: C.blue },
+      { label: 'Completed',   value: tasks.completed,   color: C.green },
+      { label: 'Overdue',     value: tasks.overdue,     color: C.red },
+      { label: 'Pending',     value: tasks.pending,     color: C.brand },
     ].filter(s => s.value > 0)
   }, [tasks])
 
-  const priorityData = useMemo(() => {
-    const p = data?.priority || {}
-    return Object.entries(p)
-      .filter(([, v]) => v > 0)
-      .sort(([, a], [, b]) => b - a)
-      .map(([k, v]) => ({ label: k, value: v, color: PRIORITY_META[k]?.color || C.brand }))
-  }, [data?.priority])
-
-  const recentTrend = trend.slice(-10)
-  const trendCompleted = recentTrend.map(d => d.completed)
-  const trendCreated   = recentTrend.map(d => d.created)
-  const trendOverdue   = recentTrend.map(d => d.overdue)
-
-  const velData = velocity.slice(-8).map(v => ({
-    ...v, label: v.week
-  }))
-
-  const Skel = ({ h = 80, r = 12 }: { h?: number; r?: number }) => (
-    <div className="skeleton" style={{ height: h, borderRadius: r }} />
+  const Skel = ({ h = 80 }: { h?: number }) => (
+    <div className="skeleton" style={{ height: h, borderRadius: 14 }} />
   )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-
       {/* Header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
@@ -275,18 +294,18 @@ export function DashboardHomePage() {
               Dashboard
             </div>
             <div className="pageHeaderCardSub">
-              {tasks?.total || 0} tasks · {projects.length} projects · refreshes every 60s
+              AI-powered real-time analytics • {tasks?.total || 0} tasks across {projects.length} projects • Auto-refreshes every 30s
             </div>
             <div className="pageHeaderCardMeta">
-              {tasks?.overdue ? <span className="pageHeaderCardTag" style={{ color: C.red, background: C.red+'12', borderColor: C.red+'30' }}>⚠ {tasks.overdue} overdue</span> : null}
-              {tasks?.due_today ? <span className="pageHeaderCardTag" style={{ color: C.orange, background: C.orange+'12', borderColor: C.orange+'30' }}>⏰ {tasks.due_today} due today</span> : null}
-              {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: C.green+'12', borderColor: C.green+'30' }}>✓ {tasks.completion_rate}% done</span>}
+              <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>● Live data</span>
+              {!!tasks?.overdue && <span className="pageHeaderCardTag" style={{ color: C.red, background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {tasks.overdue} overdue</span>}
+              {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {tasks.completion_rate}% complete</span>}
             </div>
           </div>
           {canCreate && (
-            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New Task
+              + Create Task
             </button>
           )}
         </div>
@@ -294,104 +313,119 @@ export function DashboardHomePage() {
 
       <OnboardingBanner />
 
-      {/* ── KPI Strip ── */}
+      {/* ── KPI Row ── */}
       <div className="dashKpiStrip">
-        {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, minWidth: 140, flex: '1 1 140px' }} />) : <>
-          <KpiTile label="Total Tasks"     value={tasks?.total || 0}       sub={`${tasks?.due_today||0} due today`}   color={C.brand}  icon="📋" />
-          <KpiTile label="In Progress"     value={tasks?.in_progress || 0} sub="active work"                          color={C.purple} icon="⚡" />
-          <KpiTile label="Completed"       value={tasks?.completed || 0}   sub={`${tasks?.completion_rate||0}% rate`} color={C.green}  icon="✅" />
-          <KpiTile label="Overdue"         value={tasks?.overdue || 0}     sub={`${tasks?.due_week||0} due this week`} color={C.red}   icon="⚠️" />
-          <KpiTile label="Pending Review"  value={tasks?.submitted || 0}   sub="awaiting approval"                    color={C.blue}   icon="📨" />
-          <KpiTile label="Projects"        value={projects.length}         sub={`${projects.filter(p=>p.progress===100).length} complete`} color={C.teal} icon="📁" />
+        {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, flex: '1 1 130px', minWidth: 130 }} />) : <>
+          <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon="📋" sub={`${tasks?.due_today||0} due today`} />
+          <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon="⚡" sub="active work" />
+          <KpiTile label="Completed"      value={tasks?.completed || 0}   color={C.green}  icon="✅" sub={`${tasks?.completion_rate||0}% rate`} />
+          <KpiTile label="Overdue"        value={tasks?.overdue || 0}     color={C.red}    icon="🚨" sub={`${tasks?.due_week||0} due this week`} />
+          <KpiTile label="Pending Review" value={tasks?.submitted || 0}   color={C.blue}   icon="📨" sub="awaiting approval" />
+          <KpiTile label="Projects"       value={projects.length}         color={C.teal}   icon="📁" sub={`${projects.filter(p=>p.progress===100).length} complete`} />
         </>}
       </div>
 
-      {/* ── Row 1: Status Ring + Task Trend ── */}
+      {/* ── Row 1: Activity trend (wide) + Status donut ── */}
       <div className="dashGrid21">
-        {/* Activity Sparklines */}
-        <Card title="Task Activity" sub="Last 10 days — completed · created · overdue">
-          {isLoading ? <Skel h={160} /> : recentTrend.length === 0 ? (
-            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No activity yet</div>
+        <Card title="Task Activity — Last 14 Days" sub="Created · Completed · Overdue by day">
+          {isLoading ? <Skel h={160} /> : !trendData.length ? (
+            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No activity data yet</div>
           ) : (
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: C.green }}>✓ Completed</span>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: C.green }}>{trendCompleted.reduce((a,b)=>a+b,0)}</span>
-                </div>
-                <Sparkline data={trendCompleted} color={C.green} height={36} />
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: C.brand }}>+ Created</span>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: C.brand }}>{trendCreated.reduce((a,b)=>a+b,0)}</span>
-                </div>
-                <Sparkline data={trendCreated} color={C.brand} height={36} />
-              </div>
-              {trendOverdue.some(v=>v>0) && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: C.red }}>⚠ Became Overdue</span>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: C.red }}>{trendOverdue.reduce((a,b)=>a+b,0)}</span>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {[
+                { key: 'completed', label: '✓ Completed', color: C.green },
+                { key: 'created',   label: '+ Created',   color: C.brand  },
+                { key: 'overdue',   label: '⚠ Overdue',  color: C.red    },
+              ].map(({ key, label, color }) => {
+                const vals = trendData.map((d: any) => d[key] as number)
+                const total = vals.reduce((a, b) => a + b, 0)
+                if (total === 0 && key === 'overdue') return null
+                return (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>{total}</span>
+                    </div>
+                    <AreaLine data={vals} color={color} height={40} />
                   </div>
-                  <Sparkline data={trendOverdue} color={C.red} height={28} />
-                </div>
-              )}
+                )
+              })}
             </div>
           )}
         </Card>
 
-        {/* Status Ring */}
-        <Card title="Status" sub="Current distribution">
-          {isLoading ? <Skel h={120} /> : <StatusRing data={statusRingData} />}
+        <Card title="Task Status" sub="Current distribution">
+          {isLoading ? <Skel h={180} /> : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <div style={{ position: 'relative' }}>
+                <DonutRing segments={statusSegs} size={130} strokeW={14} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(0deg)' }}>
+                  <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{tasks?.total || 0}</div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>tasks</div>
+                </div>
+              </div>
+              <div style={{ width: '100%', display: 'grid', gap: 6 }}>
+                {statusSegs.map(s => (
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>{s.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)' }}>{s.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* ── Row 2: Project Progress + Priority ── */}
+      {/* ── Row 2: Project progress + Priority ── */}
       <div className="dashGrid12">
-        {/* Priority breakdown */}
-        <Card title="Priority" sub="Tasks by urgency">
-          {isLoading ? <Skel h={120} /> : priorityData.length === 0 ? (
-            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No tasks yet</div>
-          ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {priorityData.map(p => (
-                <HBar key={p.label} label={p.label.charAt(0).toUpperCase()+p.label.slice(1)} value={p.value} max={priorityData[0]?.value || 1} color={p.color} />
-              ))}
-            </div>
-          )}
+        <Card title="Priority Breakdown" sub="Tasks by urgency level">
+          {isLoading ? <Skel h={120} /> : (() => {
+            const p = data?.priority || {}
+            const entries = [['critical', C.red], ['high', C.orange], ['medium', C.purple], ['low', C.blue]]
+              .map(([k, c]) => ({ label: k, value: Number(p[k] || 0), color: c as string }))
+              .filter(e => e.value > 0)
+            if (!entries.length) return <div style={{ color: C.muted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No tasks yet</div>
+            const max = Math.max(...entries.map(e => e.value))
+            return (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {entries.map(e => (
+                  <ProgressRow key={e.label} label={e.label.charAt(0).toUpperCase()+e.label.slice(1)} value={e.value} max={max} color={e.color} />
+                ))}
+              </div>
+            )
+          })()}
         </Card>
 
-        {/* Project Progress */}
-        <Card title="Project Progress" sub="Completion per project" action={<Link to="/app/projects" style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 800, textDecoration: 'none' }}>View all →</Link>}>
-          {isLoading ? <Skel h={200} /> : projects.length === 0 ? (
-            <div style={{ height: 120, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>No projects yet</div>
+        <Card title="Project Progress" sub="Completion % per project"
+          action={<Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>}>
+          {isLoading ? <Skel h={200} /> : !projects.length ? (
+            <div style={{ height: 120, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No projects yet</div>
           ) : (
-            <div style={{ display: 'grid', gap: 14 }}>
+            <div style={{ display: 'grid', gap: 12 }}>
               {projects.slice(0, 6).map((p, i) => {
-                const color = p.color || PLAYER_COLORS[i % PLAYER_COLORS.length]
+                const color = p.color || [C.brand, C.purple, C.blue, C.teal, C.orange][i % 5]
                 return (
                   <div key={p.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
+                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{p.name}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>{p.completed}/{p.total}</span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text)', minWidth: 36, textAlign: 'right' }}>{p.progress}%</span>
+                        <span style={{ fontSize: 10, color: C.muted }}>{p.completed}/{p.total}</span>
+                        <span style={{ fontSize: 14, fontWeight: 950, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text)', minWidth: 36, textAlign: 'right' }}>{p.progress}%</span>
                       </div>
                     </div>
-                    {/* Segmented progress bar */}
-                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
-                      {p.completed > 0 && <div style={{ flex: p.completed, background: C.green, transition: 'flex 0.8s ease' }} />}
-                      {p.in_progress > 0 && <div style={{ flex: p.in_progress, background: color, opacity: 0.7, transition: 'flex 0.8s ease' }} />}
-                      {p.overdue > 0 && <div style={{ flex: p.overdue, background: C.red, transition: 'flex 0.8s ease' }} />}
-                      {p.pending > 0 && <div style={{ flex: p.pending, background: 'var(--border)', transition: 'flex 0.8s ease' }} />}
+                    {/* Segmented bar */}
+                    <div style={{ height: 7, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 0 }}>
+                      <div style={{ flex: p.completed, background: C.green, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.in_progress, background: color, opacity: 0.7, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.overdue, background: C.red, transition: 'flex 0.8s ease' }} />
+                      <div style={{ flex: p.pending, background: 'var(--border)', transition: 'flex 0.8s ease' }} />
                     </div>
-                    {p.overdue > 0 && (
-                      <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginTop: 3 }}>⚠ {p.overdue} overdue</div>
-                    )}
+                    {p.overdue > 0 && <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginTop: 3 }}>⚠ {p.overdue} overdue</div>}
                   </div>
                 )
               })}
@@ -400,61 +434,70 @@ export function DashboardHomePage() {
         </Card>
       </div>
 
-      {/* ── Row 3: Weekly Velocity ── */}
-      <Card title="Weekly Velocity" sub="Tasks created vs. completed per week">
-        {isLoading ? <Skel h={130} /> : velData.length < 2 ? (
-          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>Need at least 2 weeks of data</div>
+      {/* ── Row 3: Weekly velocity ── */}
+      <Card title="Weekly Velocity" sub="Tasks created vs. completed per week — net throughput">
+        {isLoading ? <Skel h={130} /> : velocity.length < 2 ? (
+          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data</div>
         ) : (
           <div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
-              {[{ label: 'Created', color: C.brand }, { label: 'Completed', color: C.green }].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 3, background: l.color }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{l.label}</span>
-                </div>
-              ))}
-              <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>
-                Avg: {Math.round(velData.reduce((s,v)=>s+v.completed,0)/velData.length)} completed/week
-              </div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+              {[
+                { label: 'Created', color: C.brand, key: 'created' },
+                { label: 'Completed', color: C.green, key: 'completed' },
+              ].map(m => {
+                const total = velocity.reduce((s, v) => s + (v as any)[m.key], 0)
+                const avg = Math.round(total / velocity.length)
+                return (
+                  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text)' }}>avg {avg}/wk</span>
+                  </div>
+                )
+              })}
+              {(() => {
+                const lastCreated = velocity[velocity.length-1]?.created || 0
+                const lastDone = velocity[velocity.length-1]?.completed || 0
+                const net = lastDone - lastCreated
+                return (
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: net >= 0 ? C.green : C.red }}>
+                    {net >= 0 ? '▲' : '▼'} Net {Math.abs(net)} this week
+                  </span>
+                )
+              })()}
             </div>
-            <MiniBarChart
-              data={velData}
-              keys={['created', 'completed']}
-              colors={[C.brand, C.green]}
-              height={110}
-            />
+            <BarChart data={velocity} keys={['created', 'completed']} colors={[C.brand, C.green]} labels={['Created', 'Completed']} height={100} />
           </div>
         )}
       </Card>
 
-      {/* ── Row 4: Employee Leaderboard ── */}
-      <Card title="Team Performance" sub="Completion rate per team member"
-        action={<Link to="/app/analytics" style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>}>
-        {isLoading ? <Skel h={200} /> : leaderboard.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No team data yet</div>
+      {/* ── Row 4: Team leaderboard ── */}
+      <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
+        action={<Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>}>
+        {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: C.muted, fontSize: 13 }}>No team data yet</div>
         ) : (
           <div style={{ display: 'grid', gap: 10 }}>
             {leaderboard.slice(0, 8).map((u, i) => {
-              const color = PLAYER_COLORS[i % PLAYER_COLORS.length]
+              const colors = [C.brand, C.purple, C.blue, C.teal, C.orange, C.green]
+              const color = colors[i % colors.length]
               const rate = u.completion_rate || 0
+              const rateColor = rate >= 75 ? C.green : rate >= 40 ? C.brand : C.red
               return (
-                <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: 10, alignItems: 'center' }}>
-                  {/* Rank badge */}
-                  <div style={{ width: 24, height: 24, borderRadius: 8, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
-                    {i+1}
+                <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 44px', gap: 10, alignItems: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 9, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0, border: `1.5px solid ${color}35` }}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{u.name}</span>
-                      <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>{u.completed}/{u.total}</span>
+                      <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{u.completed}/{u.total} done</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${rate}%`, background: rate >= 70 ? C.green : rate >= 40 ? color : C.red, borderRadius: 999, transition: 'width 0.8s ease' }} />
+                      <div style={{ height: '100%', width: `${rate}%`, background: rateColor, borderRadius: 999, transition: 'width 0.8s ease' }} />
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: rate >= 70 ? C.green : rate >= 40 ? C.amber : C.red, minWidth: 36, textAlign: 'right' }}>
-                    {rate}%
-                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 950, color: rateColor, textAlign: 'right' }}>{rate}%</div>
                 </div>
               )
             })}
@@ -462,116 +505,85 @@ export function DashboardHomePage() {
         )}
       </Card>
 
-      {/* ── Row 5: Assignments per person ── */}
-      {leaderboard.length > 0 && (
-        <div className="dashGrid2">
-          <Card title="Active vs Overdue" sub="Per team member workload">
-            {leaderboard.slice(0, 6).map((u, i) => {
-              const color = PLAYER_COLORS[i % PLAYER_COLORS.length]
-              const active = (u.in_progress || 0) + (u.total - u.completed - (u.overdue||0))
-              void Math.max(...leaderboard.map(l => (l.in_progress||0) + l.overdue + l.completed))
-              return (
-                <div key={u.id} style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text2)' }}>{u.name.split(' ')[0]}</span>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{u.total} tasks</span>
-                  </div>
-                  <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
-                    {u.completed > 0 && <div style={{ flex: u.completed, background: C.green }} title="Done" />}
-                    {active > 0 && <div style={{ flex: active, background: color, opacity: 0.8 }} title="Active" />}
-                    {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red }} title="Overdue" />}
-                  </div>
-                </div>
-              )
-            })}
-            <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-              {[['Done', C.green], ['Active', C.purple], ['Overdue', C.red]].map(([l,c]) => (
-                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c as string }} />
-                  <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>{l}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
+      {/* ── Row 5: At-risk tasks + Workload ── */}
+      <div className="dashGrid2">
+        {/* At-risk */}
+        <Card title="⚠ At-Risk Tasks" sub="Overdue items requiring immediate attention">
+          <AtRiskList />
+        </Card>
 
-          {/* Project task status stacked */}
-          <Card title="Project Status" sub="Task distribution per project">
-            {projects.slice(0, 5).map((p, i) => {
-              const color = p.color || PLAYER_COLORS[i % PLAYER_COLORS.length]
-              return (
-                <div key={p.id} style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{p.name}</span>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{p.total} tasks</span>
-                  </div>
-                  {p.total > 0 && (
-                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
-                      {p.completed > 0 && <div style={{ flex: p.completed, background: C.green }} />}
-                      {p.in_progress > 0 && <div style={{ flex: p.in_progress, background: color, opacity: 0.8 }} />}
-                      {p.overdue > 0 && <div style={{ flex: p.overdue, background: C.red }} />}
-                      {p.pending > 0 && <div style={{ flex: p.pending, background: 'var(--border)' }} />}
+        {/* Workload stacked bars */}
+        <Card title="Team Workload" sub="Active · Overdue · Done per person">
+          {leaderboard.length === 0 ? (
+            <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {leaderboard.slice(0, 6).map((u, i) => {
+                const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
+                if (u.total === 0) return null
+                return (
+                  <div key={u.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
+                      <span style={{ fontSize: 10, color: C.muted }}>{u.total} tasks</span>
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </Card>
-        </div>
-      )}
-
-      {/* ── Row 6: At-Risk Tasks ── */}
-      <Card title="At-Risk Tasks" sub="Overdue and pending items needing attention">
-        <AtRiskTasks />
-      </Card>
+                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
+                      {u.completed > 0 && <div style={{ flex: u.completed, background: C.green, transition: 'flex 0.6s ease' }} />}
+                      {active > 0 && <div style={{ flex: active, background: [C.brand, C.purple, C.blue, C.teal][i%4], opacity: 0.8, transition: 'flex 0.6s ease' }} />}
+                      {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red, transition: 'flex 0.6s ease' }} />}
+                    </div>
+                  </div>
+                )
+              }).filter(Boolean)}
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
+                {[['Done', C.green], ['Active', C.brand], ['Overdue', C.red]].map(([l, c]) => (
+                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c as string }} />
+                    <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {canCreate && <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />}
     </div>
   )
 }
 
-// ─── At-Risk Tasks ────────────────────────────────────────────────
-type RiskTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assigned_to_name?: string | null; category_name?: string | null }
-
-function AtRiskTasks() {
-  const { data: overdue } = useQuery({
+// ─── At-risk task list ─────────────────────────────────────────────
+type RTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assigned_to_name?: string | null; category_name?: string | null }
+function AtRiskList() {
+  const { data } = useQuery({
     queryKey: ['dash-overdue'],
-    queryFn: () => apiFetch<{ tasks: RiskTask[] }>('/api/v1/tasks?limit=30&page=1&status=overdue').then(d => d.tasks || []),
-    staleTime: 30_000,
+    queryFn: () => apiFetch<{ tasks?: RTask[] }>('/api/v1/tasks?limit=20&page=1&status=overdue').then(d => d.tasks || []),
+    staleTime: 0, refetchOnWindowFocus: true,
   })
-  const { data: pending } = useQuery({
-    queryKey: ['dash-pending'],
-    queryFn: () => apiFetch<{ tasks: RiskTask[] }>('/api/v1/tasks?limit=10&page=1&status=pending').then(d => d.tasks || []),
-    staleTime: 30_000,
-  })
-  const all = [...(overdue || []), ...(pending || []).slice(0, 5)]
-  if (!all.length) return (
-    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--muted)' }}>
-      <div style={{ fontSize: 24, marginBottom: 8 }}>🎉</div>
-      <div style={{ fontWeight: 800, fontSize: 14 }}>All tasks on track!</div>
-      <div style={{ fontSize: 12, marginTop: 4 }}>No overdue or pending items.</div>
+  const tasks = data || []
+  if (!tasks.length) return (
+    <div style={{ padding: '20px 0', textAlign: 'center', color: C.muted }}>
+      <div style={{ fontSize: 24, marginBottom: 6 }}>🎉</div>
+      <div style={{ fontWeight: 800, fontSize: 13 }}>All tasks on track!</div>
+      <div style={{ fontSize: 11, marginTop: 3 }}>No overdue items.</div>
     </div>
   )
+  const pCol: Record<string, string> = { critical: C.red, high: C.orange, medium: C.purple, low: C.blue }
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      {all.slice(0, 15).map(t => {
-        const isOverdue = t.status === 'overdue'
-        const pColor = PRIORITY_META[t.priority || '']?.color || '#9ca3af'
-        const due = t.due_date ? new Date(t.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null
+    <div style={{ display: 'grid', gap: 7 }}>
+      {tasks.slice(0, 8).map(t => {
+        const due = t.due_date ? new Date(t.due_date) : null
+        const daysOverdue = due ? Math.floor((Date.now() - due.getTime()) / 86400000) : null
         return (
-          <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '10px 14px', borderRadius: 12, background: isOverdue ? C.red+'06' : 'var(--bg2)', border: `1px solid ${isOverdue ? C.red+'25' : 'var(--border)'}`, alignItems: 'center' }}>
+          <div key={t.id} style={{ padding: '9px 12px', borderRadius: 11, background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                {t.category_name && <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>📁 {t.category_name}</span>}
-                {t.assigned_to_name && <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600 }}>👤 {t.assigned_to_name}</span>}
-              </div>
+              <div style={{ fontWeight: 800, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{t.assigned_to_name || '—'}{t.category_name ? ` · ${t.category_name}` : ''}</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: isOverdue ? C.red+'15' : C.amber+'15', color: isOverdue ? C.red : C.amber }}>
-                {isOverdue ? '⚠ Overdue' : '○ Pending'}
-              </span>
-              {t.priority && <span style={{ fontSize: 10, fontWeight: 800, color: pColor, textTransform: 'capitalize' }}>{t.priority}</span>}
-              {due && <span style={{ fontSize: 10, color: isOverdue ? C.red : 'var(--muted)', fontWeight: 700 }}>{due}</span>}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+              {daysOverdue !== null && <span style={{ fontSize: 10, fontWeight: 900, color: C.red }}>{daysOverdue}d late</span>}
+              {t.priority && <span style={{ fontSize: 9, fontWeight: 800, color: pCol[t.priority] || C.muted, textTransform: 'capitalize' }}>{t.priority}</span>}
             </div>
           </div>
         )
