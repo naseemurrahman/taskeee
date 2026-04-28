@@ -8445,9 +8445,9 @@ textarea.input {
 }
 
 .appShellV4Dark .sidebarV4 {
-  background: linear-gradient(180deg, #f5c35a 0%, #e2ab41 46%, #c98317 100%) !important;
-  border-right: 1px solid rgba(18, 14, 6, 0.25) !important;
-  box-shadow: inset -1px 0 0 rgba(18,14,6,0.12), 8px 0 24px rgba(201,131,23,0.26);
+  background: linear-gradient(180deg, #fffdf7 0%, #f7f1e2 46%, #efe4cc 100%) !important;
+  border-right: 1px solid rgba(84, 63, 24, 0.22) !important;
+  box-shadow: inset -1px 0 0 rgba(84,63,24,0.1), 8px 0 24px rgba(84,63,24,0.14);
 }
 
 .appShellV4Light .sidebarV4,
