@@ -5,8 +5,8 @@ import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { ChartCard } from '../../components/charts/ChartCard'
-import { AssigneeScoreChart, CompletedTrendChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
-import { buildCompletedSeries, buildDeadlineSeries } from '../../components/charts/chartUtils'
+import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
+import { buildDeadlineSeries } from '../../components/charts/chartUtils'
 import { Modal } from '../../components/Modal'
 import {
   AssignmentsBreakdownTable,
@@ -18,27 +18,29 @@ import {
 import { EmployeeDetailModal } from '../../components/employees/EmployeeDetailModal'
 import type { TaskLite } from '../../components/insight/types'
 
+type PerformanceUser = {
+  userId: string
+  name: string
+  department?: string | null
+  role?: string | null
+  total: number
+  completed: number
+  active: number
+  overdue: number
+  rejected: number
+  completionRate: number
+  onTimeRate: number
+  performanceScore: number
+  activityCount14d?: number
+}
+
 type PerformanceSummary = {
   scope: 'organization' | 'team'
   totalTasks: number
   byStatus: Record<string, number>
   userCount: number
   teamPerformanceScore: number
-  assigneeLeaderboard: Array<{
-    userId: string
-    name: string
-    department?: string | null
-    role?: string | null
-    total: number
-    completed: number
-    active: number
-    overdue: number
-    rejected: number
-    completionRate: number
-    onTimeRate: number
-    performanceScore: number
-    activityCount14d?: number
-  }>
+  assigneeLeaderboard: PerformanceUser[]
   workload: {
     averageOpenTasks: number
     overloaded: Array<{ userId: string; name: string; active: number; performanceScore: number }>
@@ -58,6 +60,23 @@ async function fetchTasksForDeadlines() {
   return (data.tasks || data.rows || []) as TaskLite[]
 }
 
+function buildCompletedSeriesLocal(tasks: TaskLite[], days: number) {
+  const labels = Array.from({ length: days }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (days - 1 - i))
+    return d.toISOString().slice(5, 10)
+  })
+  const map = new Map(labels.map((label) => [label, 0]))
+  for (const task of tasks) {
+    if (!['completed', 'manager_approved'].includes(String(task.status))) continue
+    const rawDate = String((task as TaskLite & { completed_at?: string; completedAt?: string }).completed_at || (task as TaskLite & { completedAt?: string }).completedAt || '')
+    if (!rawDate) continue
+    const key = rawDate.slice(5, 10)
+    if (map.has(key)) map.set(key, (map.get(key) || 0) + 1)
+  }
+  return labels.map((day) => ({ day, completed: map.get(day) || 0 }))
+}
+
 export function AnalyticsPage() {
   const me = getUser()
   const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
@@ -66,7 +85,7 @@ export function AnalyticsPage() {
   const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null)
   const [pickId, setPickId] = useState<string | null>(null)
   const [rangeDays, setRangeDays] = useState(30)
-  const [department, setDepartment] = useState('all')
+  const department = 'all'
   const summaryQ = useQuery({ queryKey: ['analytics', 'summary', rangeDays, department], queryFn: () => fetchSummary(rangeDays, department) })
   const tasksQ = useQuery({ queryKey: ['analytics', 'deadlines'], queryFn: fetchTasksForDeadlines })
 
@@ -80,7 +99,7 @@ export function AnalyticsPage() {
 
   const leaderboard = useMemo(() => summaryQ.data?.assigneeLeaderboard || [], [summaryQ.data])
   const deadlinePoints = useMemo(() => buildDeadlineSeries(tasksQ.data || [], 14), [tasksQ.data])
-  const completedPoints = useMemo(() => buildCompletedSeries(tasksQ.data || [], 14), [tasksQ.data])
+  const completedPoints = useMemo(() => buildCompletedSeriesLocal(tasksQ.data || [], 14), [tasksQ.data])
   const tasks = tasksQ.data || []
 
   const byPriority = useMemo(() => {
@@ -93,13 +112,13 @@ export function AnalyticsPage() {
     return out
   }, [tasks])
 
-  const assignmentRows = useMemo(() => leaderboard.map((u) => ({ name: u.name, active: u.active, overdue: u.overdue, done: u.completed })), [leaderboard])
+  const assignmentRows = useMemo(() => leaderboard.map((u: PerformanceUser) => ({ name: u.name, active: u.active, overdue: u.overdue, done: u.completed })), [leaderboard])
 
   const pending = byStatus.pending || 0
   const activeEmployees = leaderboard.length
   const aiApprovalRate = total ? Math.round(((done + (byStatus.manager_approved || 0)) / total) * 100) : 0
   const avgCompletionDays = useMemo(() => {
-    const avgDailyCompletion = (completedPoints.reduce((s, p) => s + p.completed, 0) / Math.max(1, completedPoints.length)) || 0
+    const avgDailyCompletion = (completedPoints.reduce((sum: number, point: { completed: number }) => sum + point.completed, 0) / Math.max(1, completedPoints.length)) || 0
     if (!avgDailyCompletion) return 0
     return Number((Math.max(0, total - done) / avgDailyCompletion).toFixed(1))
   }, [completedPoints, total, done])
@@ -201,9 +220,6 @@ export function AnalyticsPage() {
         <ChartCard title="Deadlines trend" subtitle="Upcoming due tasks vs overdue.">
           <DeadlinesTrendChart points={deadlinePoints} />
         </ChartCard>
-        <ChartCard title="Tasks completed over time" subtitle="Productivity trend over recent days.">
-          <CompletedTrendChart points={completedPoints} />
-        </ChartCard>
       </div>
 
       <div className="grid2">
@@ -216,7 +232,7 @@ export function AnalyticsPage() {
       </div>
 
       <ChartCard title="Team performance" subtitle="Score, active workload, and delivery.">
-        <AssigneeScoreChart rows={leaderboard.map((u) => ({ name: u.name, active: u.active, completed: u.completed, performanceScore: u.performanceScore }))} />
+        <AssigneeScoreChart rows={leaderboard.map((u: PerformanceUser) => ({ name: u.name, active: u.active, completed: u.completed, performanceScore: u.performanceScore }))} />
       </ChartCard>
 
       <Modal title={detail?.title || 'Details'} open={!!detail} wide={detail?.kind === 'chart'} onClose={() => setDetail(null)} footer={<div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}><button type="button" className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} onClick={() => { setDetail(null); navigate('/app/tasks') }}>Open tasks</button></div>}>
