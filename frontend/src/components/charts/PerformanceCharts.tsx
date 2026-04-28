@@ -7,8 +7,21 @@ import {
 const H = 280
 const H_TALL = 320
 
-// ── Modern Glass Tooltip ─────────────────────────────────────────
-function GlassTooltip({ active, payload, label }: any) {
+type TooltipPayloadItem = {
+  name?: string
+  value?: string | number
+  color?: string
+  fill?: string
+  payload?: Record<string, unknown>
+}
+
+type TooltipProps = {
+  active?: boolean
+  payload?: TooltipPayloadItem[]
+  label?: string | number
+}
+
+function GlassTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
@@ -21,20 +34,20 @@ function GlassTooltip({ active, payload, label }: any) {
       color: 'var(--tooltip-text, var(--text))',
       minWidth: 140,
     }}>
-      {label && (
+      {label ? (
         <div style={{
           fontWeight: 900, fontSize: 11, marginBottom: 8,
           color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em',
         }}>{label}</div>
-      )}
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{
+      ) : null}
+      {payload.map((p, i) => (
+        <div key={`${p.name || 'item'}-${i}`} style={{
           display: 'flex', alignItems: 'center', gap: 10,
           marginTop: i > 0 ? 6 : 0,
         }}>
           <div style={{
             width: 10, height: 10, borderRadius: 3,
-            background: p.color, flexShrink: 0,
+            background: p.color || p.fill || 'var(--brand)', flexShrink: 0,
           }} />
           <span style={{ color: 'var(--text2)', flex: 1 }}>{p.name}</span>
           <span style={{ fontWeight: 900 }}>{typeof p.value === 'number' ? p.value.toLocaleString() : p.value}</span>
@@ -48,7 +61,7 @@ function Shell({ children, height = H }: { children: ReactNode; height?: number 
   return (
     <div style={{ width: '100%', minWidth: 0 }}>
       <ResponsiveContainer width="100%" height={height} minWidth={0} debounce={48}>
-        {children as any}
+        {children}
       </ResponsiveContainer>
     </div>
   )
@@ -57,7 +70,6 @@ function Shell({ children, height = H }: { children: ReactNode; height?: number 
 const AXIS = { fill: 'var(--chart-tick2)', fontSize: 11, fontWeight: 600 }
 const GRID = { stroke: 'var(--chart-grid)', strokeDasharray: '4 4', vertical: false }
 
-// ── Status Bar — dual-tone bars (like OrcaHR work hours) ────────────
 export function StatusBarChart(props: { byStatus: Record<string, number>; fillHeight?: boolean }) {
   const COLORS: Record<string, [string, string]> = {
     pending:          ['#f4ca57', '#fbd576'],
@@ -66,8 +78,9 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
     manager_approved: ['#10b981', '#34d399'],
     completed:        ['#22c55e', '#4ade80'],
     overdue:          ['#ef4444', '#f87171'],
+    rejected:         ['#dc2626', '#fb7185'],
   }
-  const order = ['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue']
+  const order = ['pending', 'in_progress', 'submitted', 'manager_approved', 'completed', 'overdue', 'rejected']
   const data = order
     .filter(k => (props.byStatus[k] ?? 0) > 0)
     .map(k => ({
@@ -104,7 +117,6 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
   )
 }
 
-// ── Priority Donut with side legend ──────────────────────────────
 export function PriorityPieChart(props: { byPriority: Record<string, number>; fillHeight?: boolean }) {
   const COLORS: Record<string, string> = {
     low: '#38bdf8', medium: '#f4ca57', high: '#f97316', urgent: '#ef4444', critical: '#dc2626',
@@ -122,9 +134,9 @@ export function PriorityPieChart(props: { byPriority: Record<string, number>; fi
   const total = data.reduce((s, d) => s + d.value, 0)
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'center' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(160px, 1fr)', gap: 16, alignItems: 'center' }}>
       <div style={{ position: 'relative', minWidth: 0 }}>
-        <Shell height={220}>
+        <Shell height={props.fillHeight ? 250 : 220}>
           <PieChart>
             <Tooltip content={<GlassTooltip />} />
             <Pie
@@ -132,7 +144,7 @@ export function PriorityPieChart(props: { byPriority: Record<string, number>; fi
               cx="50%" cy="50%" innerRadius={62} outerRadius={92}
               paddingAngle={3} strokeWidth={0} startAngle={90} endAngle={-270}
             >
-              {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              {data.map((d, i) => <Cell key={`${d.name}-${i}`} fill={d.fill} />)}
             </Pie>
           </PieChart>
         </Shell>
@@ -176,7 +188,6 @@ export function PriorityPieChart(props: { byPriority: Record<string, number>; fi
   )
 }
 
-// ── Deadlines Trend — Area chart with dual gradient (like Werker) ─
 export function DeadlinesTrendChart(props: {
   points: Array<{ day: string; due: number; overdue: number }>
   fillHeight?: boolean
@@ -201,32 +212,18 @@ export function DeadlinesTrendChart(props: {
         <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} />
         <YAxis tick={AXIS} axisLine={false} tickLine={false} width={32} />
         <Tooltip content={<GlassTooltip />} />
-        <Legend
-          iconType="circle" iconSize={8}
-          wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 12 }}
-        />
-        <Area
-          type="monotone" dataKey="due" name="Due"
-          stroke="#6366f1" strokeWidth={3}
-          fill="url(#gradDueV3)"
-          dot={false}
-          activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#6366f1' }}
-        />
-        <Area
-          type="monotone" dataKey="overdue" name="Overdue"
-          stroke="#22d3ee" strokeWidth={3}
-          fill="url(#gradOverdueV3)"
-          dot={false}
-          activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22d3ee' }}
-        />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 12 }} />
+        <Area type="monotone" dataKey="due" name="Due" stroke="#6366f1" strokeWidth={3} fill="url(#gradDueV3)" dot={false} activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#6366f1' }} />
+        <Area type="monotone" dataKey="overdue" name="Overdue" stroke="#22d3ee" strokeWidth={3} fill="url(#gradOverdueV3)" dot={false} activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22d3ee' }} />
       </AreaChart>
     </Shell>
   )
 }
 
-// ── Workload Balance — Donut with % center (like Workup salary gauge) ─
+type WorkloadUser = { userId?: string; name?: string; active?: number; performanceScore?: number }
+
 export function WorkloadBalanceChart(props: {
-  workload: { averageOpenTasks: number; overloaded: any[]; underutilized: any[] }
+  workload: { averageOpenTasks: number; overloaded: WorkloadUser[]; underutilized: WorkloadUser[] }
   userCount: number
   fillHeight?: boolean
 }) {
@@ -247,15 +244,8 @@ export function WorkloadBalanceChart(props: {
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       <div style={{ position: 'relative' }}>
-        <Shell height={200}>
-          <RadialBarChart
-            cx="50%" cy="50%"
-            innerRadius="65%" outerRadius="100%"
-            barSize={14} startAngle={90} endAngle={-270}
-            data={[
-              { name: 'Balanced', value: balancedPct, fill: '#22c55e' },
-            ]}
-          >
+        <Shell height={props.fillHeight ? 230 : 200}>
+          <RadialBarChart cx="50%" cy="50%" innerRadius="65%" outerRadius="100%" barSize={14} startAngle={90} endAngle={-270} data={[{ name: 'Balanced', value: balancedPct, fill: '#22c55e' }]}> 
             <RadialBar dataKey="value" cornerRadius={8} background={{ fill: 'rgba(255,255,255,0.05)' }} />
           </RadialBarChart>
         </Shell>
@@ -268,10 +258,7 @@ export function WorkloadBalanceChart(props: {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         {data.map(d => (
-          <div key={d.name} style={{
-            textAlign: 'center', padding: '10px 4px', borderRadius: 12,
-            background: `${d.fill}14`, border: `1px solid ${d.fill}28`,
-          }}>
+          <div key={d.name} style={{ textAlign: 'center', padding: '10px 4px', borderRadius: 12, background: `${d.fill}14`, border: `1px solid ${d.fill}28` }}>
             <div style={{ fontSize: 20, fontWeight: 950, color: d.fill, letterSpacing: '-0.5px' }}>{d.value}</div>
             <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2, fontWeight: 700 }}>{d.name}</div>
           </div>
@@ -284,7 +271,6 @@ export function WorkloadBalanceChart(props: {
   )
 }
 
-// ── Assignee Score Chart (horizontal ranking bars) ──────────────
 export function AssigneeScoreChart(props: {
   rows: Array<{ name: string; active: number; completed: number; performanceScore: number }>
   fillHeight?: boolean
@@ -293,11 +279,11 @@ export function AssigneeScoreChart(props: {
     .slice(0, 8)
     .sort((a, b) => (b.performanceScore || 0) - (a.performanceScore || 0))
     .map(r => ({
-    name: r.name.split(' ').slice(0, 2).join(' ').slice(0, 16),
-    score: Math.round(r.performanceScore),
-    active: r.active,
-    done: r.completed,
-  }))
+      name: r.name.split(' ').slice(0, 2).join(' ').slice(0, 16),
+      score: Math.round(r.performanceScore),
+      active: r.active,
+      done: r.completed,
+    }))
   const maxCount = Math.max(1, ...data.map(d => Math.max(d.active, d.done)))
 
   if (!data.length) return <EmptyChart icon="🏆" title="No performance data yet" />
@@ -306,35 +292,17 @@ export function AssigneeScoreChart(props: {
     <Shell height={Math.max(H, data.length * 48)}>
       <BarChart data={data} layout="vertical" barCategoryGap="34%" margin={{ top: 8, right: 18, left: 4, bottom: 0 }}>
         <defs>
-          <linearGradient id="gradScore" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.88} />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.95} />
-          </linearGradient>
-          <linearGradient id="gradDone" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.88} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0.95} />
-          </linearGradient>
-          <linearGradient id="gradActive" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#f4ca57" stopOpacity={0.88} />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.95} />
-          </linearGradient>
+          <linearGradient id="gradScore" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.88} /><stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.95} /></linearGradient>
+          <linearGradient id="gradDone" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#22c55e" stopOpacity={0.88} /><stop offset="100%" stopColor="#10b981" stopOpacity={0.95} /></linearGradient>
+          <linearGradient id="gradActive" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#f4ca57" stopOpacity={0.88} /><stop offset="100%" stopColor="#fbbf24" stopOpacity={0.95} /></linearGradient>
         </defs>
         <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="4 4" horizontal={false} />
-        <XAxis
-          xAxisId="score"
-          type="number"
-          domain={[0, 100]}
-          tick={AXIS}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v) => `${v}%`}
-        />
+        <XAxis xAxisId="score" type="number" domain={[0, 100]} tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
         <XAxis xAxisId="count" type="number" domain={[0, maxCount]} hide />
         <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
         <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 8 }} />
-        <Bar dataKey="score" xAxisId="score" name="Score %" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={12}
-          label={{ position: 'right', fill: 'var(--chart-tick2)', fontSize: 10, formatter: (v: any) => `${Number(v || 0)}%` }} />
+        <Bar dataKey="score" xAxisId="score" name="Score %" fill="url(#gradScore)" radius={[0, 8, 8, 0]} barSize={12} label={{ position: 'right', fill: 'var(--chart-tick2)', fontSize: 10, formatter: (v: string | number) => `${Number(v || 0)}%` }} />
         <Bar dataKey="done" xAxisId="count" name="Done" fill="url(#gradDone)" radius={[0, 8, 8, 0]} barSize={8} />
         <Bar dataKey="active" xAxisId="count" name="Active" fill="url(#gradActive)" radius={[0, 8, 8, 0]} barSize={8} />
       </BarChart>
@@ -342,7 +310,6 @@ export function AssigneeScoreChart(props: {
   )
 }
 
-// ── Empty state ─────────────────────────────────────────────────
 function EmptyChart({ icon, title }: { icon: string; title: string }) {
   return (
     <div className="emptyStateV3" style={{ padding: '40px 20px' }}>
