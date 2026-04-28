@@ -8347,3 +8347,92 @@ textarea.input {
     max-width: calc(100vw - 16px) !important;
   }
 }
+
+/* === Topbar gradient refresh (light + dark themes) === */
+.topbarV4 {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.appShellV4Light .topbarV4 {
+  background: linear-gradient(120deg, #020203 0%, #101114 42%, #1a1b20 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.appShellV4Dark .topbarV4 {
+  background: linear-gradient(120deg, #f5c35a 0%, #e2ab41 48%, #c98317 100%) !important;
+  border-bottom: 1px solid rgba(18, 14, 6, 0.22) !important;
+  box-shadow: 0 10px 30px rgba(201, 131, 23, 0.35);
+}
+
+.appShellV4Light .topbarV4,
+.appShellV4Light .topbarV4 * {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.appShellV4Dark .topbarV4,
+.appShellV4Dark .topbarV4 * {
+  color: #1f1304;
+}
+
+.appShellV4Light .topbarV4SearchWrap,
+.appShellV4Dark .topbarV4SearchWrap {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+.appShellV4Light .topbarV4SearchInput,
+.appShellV4Dark .topbarV4SearchInput {
+  background: transparent !important;
+}
+
+.appShellV4Dark .topbarV4SearchInput::placeholder,
+.appShellV4Dark .topbarV4SearchIcon {
+  color: rgba(31, 19, 4, 0.7) !important;
+}
+
+.topbarV4Meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+}
+
+.topbarMetricChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topbarMetricChip strong { font-size: 12px; }
+.topbarMetricChip:hover { transform: translateY(-1px); }
+
+.topbarMetricDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+.topbarMetricDotWarn {
+  background: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+}
+.topbarMetricDotSuccess {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+@media (max-width: 1260px) {
+  .topbarV4Meta { display: none; }
+}
