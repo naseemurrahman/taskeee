@@ -312,6 +312,9 @@ export function AnalyticsPage() {
             <StatusBarChart byStatus={byStatus} />
           </div>
         </ChartCard>
+      </div>
+
+      <div className="grid2">
         <ChartCard
           title="Deadlines trend"
           subtitle="Upcoming due tasks vs overdue (14 days)."
@@ -328,17 +331,16 @@ export function AnalyticsPage() {
             <DeadlinesTrendChart points={deadlinePoints} />
           </div>
         </ChartCard>
+        <ChartCard
+          title="Tasks completed over time"
+          subtitle="Productivity trend over the last 14 days."
+          right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Tasks completed over time', 'chart')}>Details</button>}
+        >
+          <div role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => openDetail('Tasks completed over time', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Tasks completed over time', 'chart') : null)}>
+            <CompletedTrendChart points={completedPoints} />
+          </div>
+        </ChartCard>
       </div>
-
-      <ChartCard
-        title="Tasks completed over time"
-        subtitle="Productivity trend over the last 14 days."
-        right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Tasks completed over time', 'chart')}>Details</button>}
-      >
-        <div role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => openDetail('Tasks completed over time', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Tasks completed over time', 'chart') : null)}>
-          <CompletedTrendChart points={completedPoints} />
-        </div>
-      </ChartCard>
 
       <div className="grid2">
         <ChartCard
