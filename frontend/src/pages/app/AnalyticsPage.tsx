@@ -18,27 +18,29 @@ import {
 import { EmployeeDetailModal } from '../../components/employees/EmployeeDetailModal'
 import type { TaskLite } from '../../components/insight/types'
 
+type PerformanceUser = {
+  userId: string
+  name: string
+  department?: string | null
+  role?: string | null
+  total: number
+  completed: number
+  active: number
+  overdue: number
+  rejected: number
+  completionRate: number
+  onTimeRate: number
+  performanceScore: number
+  activityCount14d?: number
+}
+
 type PerformanceSummary = {
   scope: 'organization' | 'team'
   totalTasks: number
   byStatus: Record<string, number>
   userCount: number
   teamPerformanceScore: number
-  assigneeLeaderboard: Array<{
-    userId: string
-    name: string
-    department?: string | null
-    role?: string | null
-    total: number
-    completed: number
-    active: number
-    overdue: number
-    rejected: number
-    completionRate: number
-    onTimeRate: number
-    performanceScore: number
-    activityCount14d?: number
-  }>
+  assigneeLeaderboard: PerformanceUser[]
   workload: {
     averageOpenTasks: number
     overloaded: Array<{ userId: string; name: string; active: number; performanceScore: number }>
@@ -58,6 +60,23 @@ async function fetchTasksForDeadlines() {
   return (data.tasks || data.rows || []) as TaskLite[]
 }
 
+function buildCompletedSeriesLocal(tasks: TaskLite[], days: number) {
+  const labels = Array.from({ length: days }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (days - 1 - i))
+    return d.toISOString().slice(5, 10)
+  })
+  const map = new Map(labels.map((label) => [label, 0]))
+  for (const task of tasks) {
+    if (!['completed', 'manager_approved'].includes(String(task.status))) continue
+    const rawDate = String((task as TaskLite & { completed_at?: string; completedAt?: string }).completed_at || (task as TaskLite & { completedAt?: string }).completedAt || '')
+    if (!rawDate) continue
+    const key = rawDate.slice(5, 10)
+    if (map.has(key)) map.set(key, (map.get(key) || 0) + 1)
+  }
+  return labels.map((day) => ({ day, completed: map.get(day) || 0 }))
+}
+
 export function AnalyticsPage() {
   const me = getUser()
   const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
@@ -66,7 +85,7 @@ export function AnalyticsPage() {
   const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null)
   const [pickId, setPickId] = useState<string | null>(null)
   const [rangeDays, setRangeDays] = useState(30)
-  const [department, setDepartment] = useState('all')
+  const department = 'all'
   const summaryQ = useQuery({ queryKey: ['analytics', 'summary', rangeDays, department], queryFn: () => fetchSummary(rangeDays, department) })
   const tasksQ = useQuery({ queryKey: ['analytics', 'deadlines'], queryFn: fetchTasksForDeadlines })
 
@@ -93,18 +112,24 @@ export function AnalyticsPage() {
     return out
   }, [tasks])
 
-  const assignmentRows = useMemo(() => {
-    const map = new Map<string, { name: string; active: number; overdue: number; done: number }>()
-    for (const u of leaderboard) {
-      map.set(u.name, {
-        name: u.name,
-        active: u.active,
-        overdue: u.overdue,
-        done: u.completed,
-      })
-    }
-    return Array.from(map.values())
-  }, [leaderboard])
+  const assignmentRows = useMemo(() => leaderboard.map((u: PerformanceUser) => ({ name: u.name, active: u.active, overdue: u.overdue, done: u.completed })), [leaderboard])
+
+  const pending = byStatus.pending || 0
+  const activeEmployees = leaderboard.length
+  const aiApprovalRate = total ? Math.round(((done + (byStatus.manager_approved || 0)) / total) * 100) : 0
+  const avgCompletionDays = useMemo(() => {
+    const avgDailyCompletion = (completedPoints.reduce((sum: number, point: { completed: number }) => sum + point.completed, 0) / Math.max(1, completedPoints.length)) || 0
+    if (!avgDailyCompletion) return 0
+    return Number((Math.max(0, total - done) / avgDailyCompletion).toFixed(1))
+  }, [completedPoints, total, done])
+
+  const capacityIndex = useMemo(() => {
+    const overloaded = summaryQ.data?.workload?.overloaded.length ?? 0
+    const underutilized = summaryQ.data?.workload?.underutilized.length ?? 0
+    const totalUsers = summaryQ.data?.userCount ?? 0
+    if (!totalUsers) return 0
+    return Math.round(Math.max(0, totalUsers - overloaded - underutilized) / totalUsers * 100)
+  }, [summaryQ.data?.workload, summaryQ.data?.userCount])
 
   const departmentBreakdown = useMemo(() => {
     const map = new Map<string, { department: string; members: number; completed: number; overdue: number; active: number }>()
@@ -120,10 +145,13 @@ export function AnalyticsPage() {
     return Array.from(map.values()).sort((a, b) => b.completed - a.completed)
   }, [leaderboard])
 
-  const previousCompletionRate = useMemo(() => {
-    // lightweight trend comparison based on selected range vs a fixed 60% benchmark fallback
-    return Math.max(0, completionRate - Math.round((rangeDays / 180) * 12))
-  }, [completionRate, rangeDays])
+  function openDetail(title: string, kind: 'kpi' | 'chart') {
+    if (!canOpenChartDetails && kind === 'chart') {
+      setDetail({ title: 'Details limited', kind: 'chart' })
+      return
+    }
+    setDetail({ title, kind })
+  }
 
   function downloadCsv() {
     const rows = [
@@ -166,32 +194,17 @@ export function AnalyticsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      {/* Page header card */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              Analytics
-            </div>
+            <div className="pageHeaderCardTitle">Analytics</div>
             <div className="pageHeaderCardSub">Deep-dive into task completion rates, team performance, deadline trends, and workload balance across your organization.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Real-time charts</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📈</span> Performance scores</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🎯</span> Deadline tracking</span>
-            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <select value={rangeDays} onChange={e => setRangeDays(Number(e.target.value))} style={{ height: 38, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '0 10px', fontWeight: 700 }}>
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
-            </select>
-            <select value={department} onChange={e => setDepartment(e.target.value)} style={{ height: 38, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '0 10px', fontWeight: 700 }}>
-              <option value="all">All departments</option>
-              {Array.from(new Set((leaderboard || []).map((u) => u.department).filter(Boolean) as string[])).map((dep) => (
-                <option key={dep} value={dep}>{dep}</option>
-              ))}
             </select>
             <button type="button" className="btn btnGhost" style={{ height: 38 }} onClick={downloadCsv}>Download CSV</button>
             <button type="button" className="btn btnGhost" style={{ height: 38 }} onClick={() => window.print()}>Download PDF</button>

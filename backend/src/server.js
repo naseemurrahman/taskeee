@@ -63,6 +63,7 @@ const crmRoutes = require('./routes/crm');
 const billingRoutes = require('./routes/billing');
 const contractorsRoutes = require('./routes/contractors');
 const statsRoutes       = require('./routes/stats');
+const analyticsRoutes   = require('./routes/analytics');
 
 const app    = express();
 const server = http.createServer(app);
@@ -208,6 +209,7 @@ app.use('/api/v1/crm',           crmRoutes);
 app.use('/api/v1/billing',       billingRoutes);
 app.use('/api/v1/contractors',   contractorsRoutes);
 app.use('/api/v1/stats',         statsRoutes);
+app.use('/api/v1/analytics',     analyticsRoutes);
 
 app.get('/', (_req, res) => {
   res.status(200).json({
