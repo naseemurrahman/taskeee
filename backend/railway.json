@@ -3,7 +3,7 @@
     "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "node src/utils/migrate.js || echo 'Migration step failed; continuing startup' && node src/server.js",
+    "startCommand": "node src/utils/migrate.js && node src/server.js",
     "restartPolicyType": "Always",
     "restartPolicyMaxRetries": 10,
     "healthcheckPath": "/health",
