@@ -8229,3 +8229,41 @@ textarea.input {
   box-shadow: 0 0 0 3px rgba(226, 171, 65, 0.16) !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD GRID SYSTEM — reliable cross-browser responsive layout
+   ═══════════════════════════════════════════════════════════════ */
+.dashGrid2  { display: grid; grid-template-columns: 1fr 1fr;    gap: 14px; }
+.dashGrid3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.dashGrid21 { display: grid; grid-template-columns: 2fr 1fr;    gap: 14px; }
+.dashGrid12 { display: grid; grid-template-columns: 1fr 2fr;    gap: 14px; }
+
+/* KPI strip: horizontal scroll on mobile, wrap on desktop */
+.dashKpiStrip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.dashKpiStrip > * { flex: 0 0 auto; min-width: 140px; }
+
+@media (max-width: 700px) {
+  .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12 {
+    grid-template-columns: 1fr !important;
+  }
+  .dashKpiStrip > * { flex: 0 0 140px; }
+}
+@media (min-width: 701px) {
+  .dashKpiStrip { flex-wrap: wrap; }
+  .dashKpiStrip > * { flex: 1 1 140px; }
+}
+
+/* Board/CRM kanban: horizontal scroll on narrow screens */
+@media (max-width: 768px) {
+  .boardGrid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .boardGrid > * {
+    flex: 0 0 240px !important;
+    min-width: 240px !important;
+  }
+}

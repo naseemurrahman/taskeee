@@ -241,6 +241,9 @@ router.post('/create-simple', authenticate, async (req, res, next) => {
     if (!title || title.trim().length < 2) {
       return res.status(400).json({ error: 'Title must be at least 2 characters' });
     }
+    if (!assignedTo) {
+      return res.status(400).json({ error: 'Please select an employee to assign this task to.' });
+    }
     const orgId = req.user.org_id || req.user.orgId;
     if (!orgId) return res.status(401).json({ error: 'No org ID found' });
     
@@ -250,11 +253,9 @@ router.post('/create-simple', authenticate, async (req, res, next) => {
       return res.status(403).json({ error: 'Insufficient permissions to create tasks' });
     }
     
-    // Build minimal insert
-    const cols = ['org_id','title','status','priority','assigned_by'];
-    const vals = [orgId, title.trim(), 'pending', priority, req.user.id];
-    
-    if (assignedTo) { cols.push('assigned_to'); vals.push(assignedTo); }
+    // Build minimal insert — assigned_to is NOT NULL in the DB schema
+    const cols = ['org_id','title','status','priority','assigned_by','assigned_to'];
+    const vals = [orgId, title.trim(), 'pending', priority, req.user.id, assignedTo];
     if (dueDate) { cols.push('due_date'); vals.push(dueDate); }
     
     // Try to add optional columns if they exist

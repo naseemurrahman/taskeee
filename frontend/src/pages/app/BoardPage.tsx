@@ -14,10 +14,18 @@ type Task = {
 }
 
 async function patchStatus(taskId: string, status: string) {
-  return apiFetch(`/api/v1/tasks/${taskId}/set-status`, {
-    method: 'POST',
-    json: { status },
-  })
+  console.log(`[Board DnD] Updating task ${taskId} -> ${status}`)
+  try {
+    const result = await apiFetch(`/api/v1/tasks/${taskId}/set-status`, {
+      method: 'POST',
+      json: { status },
+    })
+    console.log('[Board DnD] Success:', result)
+    return result
+  } catch (err: any) {
+    console.error('[Board DnD] FAILED:', err?.message, 'status:', err?.status, 'body:', err)
+    throw err
+  }
 }
 
 const COLUMNS = [

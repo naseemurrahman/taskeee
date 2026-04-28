@@ -264,21 +264,7 @@ export function DashboardHomePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <style>{`
-        .dashGrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .dashGrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-        .dashGrid21 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
-        .dashGrid12 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; }
-        @media (max-width: 700px) {
-          .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12 { grid-template-columns: 1fr !important; }
-        }
-        .dashKpiStrip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-        .dashKpiStrip > * { flex: 0 0 auto; min-width: 140px; }
-        @media (min-width: 701px) {
-          .dashKpiStrip { flex-wrap: wrap; }
-          .dashKpiStrip > * { flex: 1 1 140px; }
-        }
-      `}</style>
+
 
       {/* Header */}
       <div className="pageHeaderCard">
