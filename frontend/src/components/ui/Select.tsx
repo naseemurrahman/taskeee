@@ -83,11 +83,14 @@ export function Select({
     setOpenUp(shouldOpenUp)
     const available = shouldOpenUp ? spaceAbove : spaceBelow
     setListMaxHeight(Math.max(120, Math.min(280, Math.floor(available - 14))))
+    const isMobile = window.innerWidth <= 600
+    const dropWidth = Math.max(rect.width, isMobile ? Math.min(window.innerWidth - 16, 280) : rect.width)
+    const dropLeft = isMobile ? Math.max(8, Math.min(rect.left, window.innerWidth - dropWidth - 8)) : rect.left
     setDropdownStyle({
       position: 'fixed',
-      left: rect.left,
+      left: dropLeft,
       top: shouldOpenUp ? rect.top - 8 : rect.bottom + 8,
-      width: rect.width,
+      width: dropWidth,
       zIndex: 100200,
       transform: shouldOpenUp ? 'translateY(-100%)' : 'none',
     })

@@ -8267,3 +8267,83 @@ textarea.input {
     min-width: 240px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE MODAL — bottom sheet on small screens
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .modalOverlayV2 {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modalCardV2, .modalCardV2Wide {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92vh !important;
+    animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0.6; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Task detail drawer — full screen on mobile */
+  [style*="width: min(520px"] {
+    width: 100% !important;
+  }
+
+  /* Select dropdowns — ensure they open upward on mobile */
+  [style*="zIndex: 100200"] {
+    max-height: 50vh !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE TOPBAR — tighter spacing
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .topbarV4 {
+    padding: 0 10px !important;
+    height: 52px !important;
+  }
+  .topbarSearch {
+    max-width: 160px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE TABLE — hide less important columns
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Tasks table: hide PROJECT and DUE columns on narrow screens */
+  .tasksTable th:nth-child(2),
+  .tasksTable td:nth-child(2),
+  .tasksTable th:nth-child(5),
+  .tasksTable td:nth-child(5) {
+    display: none !important;
+  }
+  /* Make task title wrap instead of truncate */
+  .tasksTable td:first-child {
+    white-space: normal !important;
+    max-width: 140px !important;
+  }
+  /* Status select — smaller on mobile */
+  .tasksTable select {
+    min-width: 90px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FIXED SELECT DROPDOWN POSITION — always visible on mobile
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* Custom select portal dropdown — snap to screen edges */
+  div[style*="position: fixed"][style*="zIndex: 100200"] {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
