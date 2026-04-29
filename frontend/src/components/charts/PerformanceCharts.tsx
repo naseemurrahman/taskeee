@@ -206,12 +206,12 @@ export function PriorityPieChart(props: { byPriority: Record<string, number>; fi
   )
 }
 
-// ── Deadlines Trend — Area chart with dual gradient (like Werker) ─
+// ── Created / completed / overdue trend ─────────────────────────
 export function DeadlinesTrendChart(props: {
-  points: Array<{ day: string; due: number; overdue: number }>
+  points: Array<{ day: string; due: number; completed?: number; overdue: number }>
   fillHeight?: boolean
 }) {
-  if (!props.points?.length) return <EmptyChart icon="📅" title="No upcoming deadlines" />
+  if (!props.points?.length) return <EmptyChart icon="📅" title="No trend data yet" />
   return (
     <Shell height={props.fillHeight ? H_TALL : H}>
       <AreaChart data={props.points} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
@@ -221,10 +221,15 @@ export function DeadlinesTrendChart(props: {
             <stop offset="60%" stopColor="#6366f1" stopOpacity={0.1} />
             <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
           </linearGradient>
+          <linearGradient id="gradCompletedInTrendV3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.34} />
+            <stop offset="65%" stopColor="#22c55e" stopOpacity={0.08} />
+            <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+          </linearGradient>
           <linearGradient id="gradOverdueV3" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
-            <stop offset="60%" stopColor="#22d3ee" stopOpacity={0.08} />
-            <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+            <stop offset="0%" stopColor="#ef4444" stopOpacity={0.35} />
+            <stop offset="60%" stopColor="#ef4444" stopOpacity={0.08} />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid {...GRID} />
@@ -236,18 +241,25 @@ export function DeadlinesTrendChart(props: {
           wrapperStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 12 }}
         />
         <Area
-          type="monotone" dataKey="due" name="Due"
+          type="monotone" dataKey="due" name="Created"
           stroke="#6366f1" strokeWidth={3}
           fill="url(#gradDueV3)"
           dot={false}
           activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#6366f1' }}
         />
         <Area
+          type="monotone" dataKey="completed" name="Completed"
+          stroke="#22c55e" strokeWidth={3}
+          fill="url(#gradCompletedInTrendV3)"
+          dot={false}
+          activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22c55e' }}
+        />
+        <Area
           type="monotone" dataKey="overdue" name="Overdue"
-          stroke="#22d3ee" strokeWidth={3}
+          stroke="#ef4444" strokeWidth={3}
           fill="url(#gradOverdueV3)"
           dot={false}
-          activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#22d3ee' }}
+          activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--bg)', fill: '#ef4444' }}
         />
       </AreaChart>
     </Shell>
