@@ -68,7 +68,11 @@ export function AnalyticsPage() {
     return { name: e.employee_name || 'Unassigned', active: Math.max(0, assigned - done), completed: done, performanceScore: score }
   })
 
-  const priorityPlaceholder = { high: overdue, medium: pending, low: Math.max(0, total - pending - overdue - completed) }
+  const priorityPressure = {
+    high: overdue,
+    medium: Math.max(0, pending - overdue),
+    low: Math.max(0, total - pending - completed),
+  }
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -123,8 +127,8 @@ export function AnalyticsPage() {
         <ChartCard title="Tasks by status" subtitle="Operational workload grouped by status."><StatusBarChart byStatus={byStatus} /></ChartCard>
       </div>
       <div className="grid2">
-        <ChartCard title="Created / completed / overdue trend" subtitle={`Daily trend across the last ${days} days.`}><DeadlinesTrendChart points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), overdue: Number(p.overdue || 0) }))} /></ChartCard>
-        <ChartCard title="Priority pressure" subtitle="Risk-weighted work pressure inferred from current task state."><PriorityPieChart byPriority={priorityPlaceholder} /></ChartCard>
+        <ChartCard title="Created / completed / overdue trend" subtitle={`Daily trend across the last ${days} days.`}><DeadlinesTrendChart points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} /></ChartCard>
+        <ChartCard title="Priority pressure" subtitle="Risk-weighted work pressure inferred from current task state."><PriorityPieChart byPriority={priorityPressure} /></ChartCard>
       </div>
       <div className="grid2">
         <ChartCard title="Workload balance" subtitle="Overloaded, balanced, and underutilized team members."><WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} /></ChartCard>
