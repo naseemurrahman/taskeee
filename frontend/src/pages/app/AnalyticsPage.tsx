@@ -12,6 +12,9 @@ type TrendPoint = { day: string; created?: number; completed?: number; overdue?:
 type EmployeePerformance = { employee_id: string; employee_name: string; assigned: number; completed: number; overdue: number }
 type WorkloadEmployee = { employee_id: string; employee_name: string; open_tasks: number; total_tasks: number }
 
+type RiskSignal = { title: string; detail: string; score: number; severity: Insight['severity']; action: string }
+type Redistribution = { from: string; to: string; tasks: number; reason: string }
+
 async function fetchInsights(days: number) { return apiFetch<InsightsResponse>(`/api/v1/insights/overview?days=${days}`) }
 async function fetchSummary(days: number) { return apiFetch<AnalyticsSummary>(`/api/v1/analytics/summary?days=${days}`) }
 async function fetchStatus(days: number) { return apiFetch<{ statuses: StatusPoint[] }>(`/api/v1/analytics/task-status?days=${days}`) }
@@ -24,6 +27,13 @@ function severityColor(severity: Insight['severity']) {
   if (severity === 'high') return '#f97316'
   if (severity === 'medium') return '#f4ca57'
   return '#22c55e'
+}
+
+function riskSeverity(score: number): Insight['severity'] {
+  if (score >= 85) return 'critical'
+  if (score >= 65) return 'high'
+  if (score >= 40) return 'medium'
+  return 'low'
 }
 
 function toNumber(value: string | number | undefined | null) { return Number(value || 0) }
@@ -48,6 +58,7 @@ export function AnalyticsPage() {
   const pending = Number(summary?.pending_tasks || 0)
   const overdue = Number(summary?.overdue_tasks || 0)
   const completionRate = total ? Math.round((completed / total) * 100) : 0
+  const overdueRate = total ? Math.round((overdue / total) * 100) : 0
   const avgHours = toNumber(summary?.avg_completion_hours)
   const avgConfidence = toNumber(summary?.avg_ai_confidence)
 
@@ -74,13 +85,73 @@ export function AnalyticsPage() {
     low: Math.max(0, total - pending - completed),
   }
 
+  const predictiveRisks = useMemo<RiskSignal[]>(() => {
+    const latest = trend.slice(-7)
+    const recentCreated = latest.reduce((s, p) => s + Number(p.created || 0), 0)
+    const recentCompleted = latest.reduce((s, p) => s + Number(p.completed || 0), 0)
+    const backlogVelocityGap = Math.max(0, recentCreated - recentCompleted)
+    const deliveryPressure = Math.min(100, Math.round(overdueRate * 1.2 + backlogVelocityGap * 8 + Math.max(0, 75 - completionRate) * 0.7))
+    const workloadPressure = Math.min(100, Math.round((workload.overloaded.length * 22) + Math.max(0, workload.averageOpenTasks - 4) * 8))
+    const aiConfidenceRisk = Math.min(100, Math.round(Math.max(0, 0.78 - avgConfidence) * 130))
+
+    return [
+      {
+        title: 'Deadline risk prediction',
+        detail: `${overdue} overdue tasks, ${pending} open tasks, and ${backlogVelocityGap} net new tasks in the recent trend window.`,
+        score: deliveryPressure,
+        severity: riskSeverity(deliveryPressure),
+        action: deliveryPressure >= 65 ? 'Freeze low-priority intake and focus the team on overdue/high-risk tasks.' : 'Maintain current execution cadence and monitor overdue trend daily.',
+      },
+      {
+        title: 'Capacity risk prediction',
+        detail: `${workload.overloaded.length} overloaded people, ${workload.underutilized.length} underutilized people, ${workload.averageOpenTasks.toFixed(1)} average open tasks/person.`,
+        score: workloadPressure,
+        severity: riskSeverity(workloadPressure),
+        action: workloadPressure >= 65 ? 'Rebalance tasks from overloaded users to underutilized users before assigning new work.' : 'Capacity is acceptable; keep workload distribution visible during planning.',
+      },
+      {
+        title: 'AI confidence risk',
+        detail: avgConfidence ? `Average AI confidence is ${Math.round(avgConfidence * 100)}%.` : 'AI confidence data is not yet available for this period.',
+        score: aiConfidenceRisk,
+        severity: riskSeverity(aiConfidenceRisk),
+        action: aiConfidenceRisk >= 40 ? 'Review low-confidence AI decisions manually and add task context before automation.' : 'AI confidence is healthy enough for assisted recommendations.',
+      },
+    ]
+  }, [avgConfidence, completionRate, overdue, overdueRate, pending, trend, workload.averageOpenTasks, workload.overloaded.length, workload.underutilized.length])
+
+  const aiSuggestions = useMemo(() => {
+    const lowPerformers = performanceRows.filter((r) => r.performanceScore < 60 && (r.active || r.completed)).slice(0, 3)
+    const strongest = performanceRows.slice().sort((a, b) => b.performanceScore - a.performanceScore)[0]
+    const suggestions = [
+      overdue > 0 ? `Escalate ${overdue} overdue task${overdue === 1 ? '' : 's'} and require owner updates before end of day.` : 'No overdue escalation needed right now.',
+      workload.overloaded.length > 0 ? `Move 1-2 open tasks from overloaded people before creating more assignments.` : 'Workload distribution is currently stable.',
+      strongest ? `Use ${strongest.name} as a template owner for similar work; current delivery score is ${strongest.performanceScore}%.` : 'Assign owners consistently so employee-level recommendations become stronger.',
+      lowPerformers.length > 0 ? `Coach ${lowPerformers.map((p) => p.name).join(', ')} with smaller task batches and clearer due dates.` : 'No low delivery-score coaching signal detected.',
+    ]
+    return suggestions
+  }, [overdue, performanceRows, workload.overloaded.length])
+
+  const redistribution = useMemo<Redistribution[]>(() => {
+    const overloaded = workloadEmployees.slice().sort((a, b) => Number(b.open_tasks || 0) - Number(a.open_tasks || 0)).filter((e) => Number(e.open_tasks || 0) > Math.max(5, workload.averageOpenTasks * 1.5))
+    const underutilized = workloadEmployees.slice().sort((a, b) => Number(a.open_tasks || 0) - Number(b.open_tasks || 0)).filter((e) => Number(e.open_tasks || 0) <= Math.max(1, workload.averageOpenTasks * 0.35))
+    return overloaded.slice(0, 3).map((from, index) => {
+      const to = underutilized[index % Math.max(underutilized.length, 1)]
+      return {
+        from: from.employee_name || 'Overloaded owner',
+        to: to?.employee_name || 'next available owner',
+        tasks: Math.max(1, Math.min(3, Math.round((Number(from.open_tasks || 0) - workload.averageOpenTasks) / 2))),
+        reason: `${from.employee_name || 'This owner'} has ${from.open_tasks} open tasks versus ${workload.averageOpenTasks.toFixed(1)} team average.`,
+      }
+    })
+  }, [workload.averageOpenTasks, workloadEmployees])
+
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">Analytics Intelligence</div>
-            <div className="pageHeaderCardSub">AI insights, executive KPIs, workload analytics, and professional operational charts.</div>
+            <div className="pageHeaderCardSub">AI insights, executive KPIs, workload analytics, prediction signals, and professional operational charts.</div>
           </div>
           <select value={days} onChange={(event) => setDays(Number(event.target.value))} style={{ height: 38, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '0 10px', fontWeight: 700 }}>
             <option value={7}>Last 7 days</option>
@@ -88,6 +159,53 @@ export function AnalyticsPage() {
             <option value={90}>Last 90 days</option>
           </select>
         </div>
+      </div>
+
+      <ChartCard title="Predictive Intelligence" subtitle="Forward-looking operational risks generated from current analytics signals.">
+        <div className="grid3">
+          {predictiveRisks.map((risk) => {
+            const color = severityColor(risk.severity)
+            return (
+              <div key={risk.title} className="miniCard" style={{ borderTop: `4px solid ${color}`, background: `${color}10` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div style={{ fontWeight: 950 }}>{risk.title}</div>
+                  <span className="pill pillMuted" style={{ color }}>{risk.score}%</span>
+                </div>
+                <div style={{ height: 7, borderRadius: 999, background: 'rgba(255,255,255,.08)', overflow: 'hidden', marginTop: 12 }}>
+                  <div style={{ height: '100%', width: `${risk.score}%`, background: color, borderRadius: 999 }} />
+                </div>
+                <div style={{ marginTop: 10, color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>{risk.detail}</div>
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 800 }}>Action: {risk.action}</div>
+              </div>
+            )
+          })}
+        </div>
+      </ChartCard>
+
+      <div className="grid2">
+        <ChartCard title="AI task suggestions" subtitle="Recommended execution moves based on risk, velocity, and performance.">
+          <div style={{ display: 'grid', gap: 10 }}>
+            {aiSuggestions.map((suggestion, index) => (
+              <div key={suggestion} className="miniCard" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span className="pill pillMuted" style={{ color: '#8b5cf6' }}>AI {index + 1}</span>
+                <div style={{ color: 'var(--text2)', lineHeight: 1.55, fontSize: 13 }}>{suggestion}</div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Smart workload redistribution" subtitle="Suggested reassignment moves to reduce delivery risk.">
+          <div style={{ display: 'grid', gap: 10 }}>
+            {redistribution.length === 0 ? (
+              <div style={{ color: 'var(--text2)' }}>No redistribution needed. Current workload balance is acceptable.</div>
+            ) : redistribution.map((move) => (
+              <div key={`${move.from}-${move.to}`} className="miniCard">
+                <div style={{ fontWeight: 900 }}>{move.from} → {move.to}</div>
+                <div style={{ marginTop: 6, color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>Move approximately {move.tasks} task{move.tasks === 1 ? '' : 's'}. {move.reason}</div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
       </div>
 
       <ChartCard title="AI Insights" subtitle="Prioritized risks and recommendations from the insights engine.">

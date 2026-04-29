@@ -243,8 +243,6 @@ export function AppLayout() {
               {canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
               {canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
               {canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
-              {canSee(role, 'manager') && <NavItem to="/app/insights" label="Insights" display="Insights" collapsed={collapsed} onNavigate={closeMobileNav} />}
-              {canSee(role, 'manager') && <NavItem to="/app/settings" label="Settings" display="Settings" collapsed={collapsed} onNavigate={closeMobileNav} />}
             </>
           )}
 
