@@ -14,6 +14,14 @@ type WorkloadEmployee = { employee_id: string; employee_name: string; open_tasks
 
 type RiskSignal = { title: string; detail: string; score: number; severity: Insight['severity']; action: string }
 type Redistribution = { from: string; to: string; tasks: number; reason: string }
+type BackendAiOverview = {
+  generated_at: string
+  predictive_risks: RiskSignal[]
+  risk_tasks: Array<{ task_id: string; title: string; risk_score: number; severity: Insight['severity']; reason: string; suggestion: string; assigned_to_name?: string; due_date?: string; priority?: string; status?: string }>
+  suggestions: string[]
+  workload_redistribution: Redistribution[]
+  data_quality?: { confidence_available?: boolean; open_tasks_scored?: number }
+}
 
 async function fetchInsights(days: number) { return apiFetch<InsightsResponse>(`/api/v1/insights/overview?days=${days}`) }
 async function fetchSummary(days: number) { return apiFetch<AnalyticsSummary>(`/api/v1/analytics/summary?days=${days}`) }
@@ -21,6 +29,7 @@ async function fetchStatus(days: number) { return apiFetch<{ statuses: StatusPoi
 async function fetchTrend(days: number) { return apiFetch<{ points: TrendPoint[] }>(`/api/v1/analytics/tasks-over-time?days=${days}`) }
 async function fetchEmployees(days: number) { return apiFetch<{ employees: EmployeePerformance[] }>(`/api/v1/analytics/employee-performance?days=${days}`) }
 async function fetchWorkload(days: number) { return apiFetch<{ employees: WorkloadEmployee[] }>(`/api/v1/analytics/workload?days=${days}`) }
+async function fetchBackendAi(days: number) { return apiFetch<BackendAiOverview>(`/api/v1/ai/predictive-overview?days=${days}`) }
 
 function severityColor(severity: Insight['severity']) {
   if (severity === 'critical') return '#ef4444'
@@ -38,6 +47,7 @@ function riskSeverity(score: number): Insight['severity'] {
 
 function toNumber(value: string | number | undefined | null) { return Number(value || 0) }
 function statusMap(points: StatusPoint[] = []) { return Object.fromEntries(points.map((p) => [p.status, Number(p.count || 0)])) }
+function hasMetric(value: unknown) { return value !== null && value !== undefined && Number(value) > 0 }
 
 export function AnalyticsPage() {
   const [days, setDays] = useState(30)
@@ -47,6 +57,7 @@ export function AnalyticsPage() {
   const trendQ = useQuery({ queryKey: ['analytics-trend', days], queryFn: () => fetchTrend(days) })
   const employeesQ = useQuery({ queryKey: ['analytics-employees', days], queryFn: () => fetchEmployees(days) })
   const workloadQ = useQuery({ queryKey: ['analytics-workload', days], queryFn: () => fetchWorkload(days) })
+  const backendAiQ = useQuery({ queryKey: ['backend-ai-overview', days], queryFn: () => fetchBackendAi(days), retry: false })
 
   const summary = summaryQ.data
   const byStatus = useMemo(() => statusMap(statusQ.data?.statuses), [statusQ.data])
@@ -60,7 +71,8 @@ export function AnalyticsPage() {
   const completionRate = total ? Math.round((completed / total) * 100) : 0
   const overdueRate = total ? Math.round((overdue / total) * 100) : 0
   const avgHours = toNumber(summary?.avg_completion_hours)
-  const avgConfidence = toNumber(summary?.avg_ai_confidence)
+  const avgConfidenceAvailable = hasMetric(summary?.avg_ai_confidence)
+  const avgConfidence = avgConfidenceAvailable ? toNumber(summary?.avg_ai_confidence) : 0
 
   const workload = useMemo(() => {
     const avg = workloadEmployees.length ? workloadEmployees.reduce((s, e) => s + Number(e.open_tasks || 0), 0) / workloadEmployees.length : 0
@@ -85,14 +97,14 @@ export function AnalyticsPage() {
     low: Math.max(0, total - pending - completed),
   }
 
-  const predictiveRisks = useMemo<RiskSignal[]>(() => {
+  const fallbackPredictiveRisks = useMemo<RiskSignal[]>(() => {
     const latest = trend.slice(-7)
     const recentCreated = latest.reduce((s, p) => s + Number(p.created || 0), 0)
     const recentCompleted = latest.reduce((s, p) => s + Number(p.completed || 0), 0)
     const backlogVelocityGap = Math.max(0, recentCreated - recentCompleted)
     const deliveryPressure = Math.min(100, Math.round(overdueRate * 1.2 + backlogVelocityGap * 8 + Math.max(0, 75 - completionRate) * 0.7))
     const workloadPressure = Math.min(100, Math.round((workload.overloaded.length * 22) + Math.max(0, workload.averageOpenTasks - 4) * 8))
-    const aiConfidenceRisk = Math.min(100, Math.round(Math.max(0, 0.78 - avgConfidence) * 130))
+    const aiConfidenceRisk = avgConfidenceAvailable ? Math.min(100, Math.round(Math.max(0, 0.78 - avgConfidence) * 130)) : 0
 
     return [
       {
@@ -111,15 +123,15 @@ export function AnalyticsPage() {
       },
       {
         title: 'AI confidence risk',
-        detail: avgConfidence ? `Average AI confidence is ${Math.round(avgConfidence * 100)}%.` : 'AI confidence data is not yet available for this period.',
+        detail: avgConfidenceAvailable ? `Average AI confidence is ${Math.round(avgConfidence * 100)}%.` : 'AI confidence data is not yet available for this period.',
         score: aiConfidenceRisk,
-        severity: riskSeverity(aiConfidenceRisk),
-        action: aiConfidenceRisk >= 40 ? 'Review low-confidence AI decisions manually and add task context before automation.' : 'AI confidence is healthy enough for assisted recommendations.',
+        severity: avgConfidenceAvailable ? riskSeverity(aiConfidenceRisk) : 'low',
+        action: avgConfidenceAvailable && aiConfidenceRisk >= 40 ? 'Review low-confidence AI decisions manually and add task context before automation.' : 'No AI-confidence alarm. Continue collecting confidence signals.',
       },
     ]
-  }, [avgConfidence, completionRate, overdue, overdueRate, pending, trend, workload.averageOpenTasks, workload.overloaded.length, workload.underutilized.length])
+  }, [avgConfidence, avgConfidenceAvailable, completionRate, overdue, overdueRate, pending, trend, workload.averageOpenTasks, workload.overloaded.length, workload.underutilized.length])
 
-  const aiSuggestions = useMemo(() => {
+  const fallbackSuggestions = useMemo(() => {
     const lowPerformers = performanceRows.filter((r) => r.performanceScore < 60 && (r.active || r.completed)).slice(0, 3)
     const strongest = performanceRows.slice().sort((a, b) => b.performanceScore - a.performanceScore)[0]
     const suggestions = [
@@ -131,7 +143,7 @@ export function AnalyticsPage() {
     return suggestions
   }, [overdue, performanceRows, workload.overloaded.length])
 
-  const redistribution = useMemo<Redistribution[]>(() => {
+  const fallbackRedistribution = useMemo<Redistribution[]>(() => {
     const overloaded = workloadEmployees.slice().sort((a, b) => Number(b.open_tasks || 0) - Number(a.open_tasks || 0)).filter((e) => Number(e.open_tasks || 0) > Math.max(5, workload.averageOpenTasks * 1.5))
     const underutilized = workloadEmployees.slice().sort((a, b) => Number(a.open_tasks || 0) - Number(b.open_tasks || 0)).filter((e) => Number(e.open_tasks || 0) <= Math.max(1, workload.averageOpenTasks * 0.35))
     return overloaded.slice(0, 3).map((from, index) => {
@@ -144,6 +156,13 @@ export function AnalyticsPage() {
       }
     })
   }, [workload.averageOpenTasks, workloadEmployees])
+
+  const backendAi = backendAiQ.data
+  const predictiveRisks = backendAi?.predictive_risks?.length ? backendAi.predictive_risks : fallbackPredictiveRisks
+  const aiSuggestions = backendAi?.suggestions?.length ? backendAi.suggestions : fallbackSuggestions
+  const redistribution = backendAi?.workload_redistribution?.length ? backendAi.workload_redistribution : fallbackRedistribution
+  const riskTasks = backendAi?.risk_tasks || []
+  const usingBackendAi = !!backendAi
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -161,7 +180,9 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <ChartCard title="Predictive Intelligence" subtitle="Forward-looking operational risks generated from current analytics signals.">
+      <ChartCard title="Predictive Intelligence" subtitle={usingBackendAi ? 'Backend-powered operational risk intelligence from live task data.' : 'Fallback prediction mode until backend AI deploy is available.'}>
+        {backendAiQ.isLoading ? <div style={{ color: 'var(--text2)', marginBottom: 10 }}>Loading backend AI intelligence…</div> : null}
+        {backendAiQ.isError ? <div className="alertV4 alertV4Error" style={{ marginBottom: 12 }}>Backend AI is not available yet. Showing safe local predictions.</div> : null}
         <div className="grid3">
           {predictiveRisks.map((risk) => {
             const color = severityColor(risk.severity)
@@ -181,6 +202,26 @@ export function AnalyticsPage() {
           })}
         </div>
       </ChartCard>
+
+      {riskTasks.length > 0 ? (
+        <ChartCard title="Highest-risk tasks" subtitle="Task-level risk scores generated by the backend AI engine.">
+          <div style={{ display: 'grid', gap: 10 }}>
+            {riskTasks.slice(0, 5).map((task) => {
+              const color = severityColor(task.severity)
+              return (
+                <div key={task.task_id || task.title} className="miniCard" style={{ borderLeft: `4px solid ${color}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                    <div style={{ fontWeight: 900 }}>{task.title}</div>
+                    <span className="pill pillMuted" style={{ color }}>{task.risk_score}%</span>
+                  </div>
+                  <div style={{ marginTop: 6, color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>{task.reason}</div>
+                  <div style={{ marginTop: 8, fontSize: 13, fontWeight: 800 }}>Suggestion: {task.suggestion}</div>
+                </div>
+              )
+            })}
+          </div>
+        </ChartCard>
+      ) : null}
 
       <div className="grid2">
         <ChartCard title="AI task suggestions" subtitle="Recommended execution moves based on risk, velocity, and performance.">
@@ -236,7 +277,7 @@ export function AnalyticsPage() {
         <div className="miniCard"><div className="miniLabel">Overdue</div><div className="miniValue" style={{ color: 'rgba(239,68,68,.92)' }}>{overdue}</div></div>
         <div className="miniCard"><div className="miniLabel">Active employees</div><div className="miniValue">{summary?.active_employees ?? 0}</div></div>
         <div className="miniCard"><div className="miniLabel">Avg completion</div><div className="miniValue">{avgHours ? `${avgHours.toFixed(1)}h` : '—'}</div></div>
-        <div className="miniCard"><div className="miniLabel">AI confidence</div><div className="miniValue">{avgConfidence ? `${Math.round(avgConfidence * 100)}%` : '—'}</div></div>
+        <div className="miniCard"><div className="miniLabel">AI confidence</div><div className="miniValue">{avgConfidenceAvailable ? `${Math.round(avgConfidence * 100)}%` : '—'}</div></div>
         <div className="miniCard"><div className="miniLabel">Avg workload</div><div className="miniValue">{workload.averageOpenTasks.toFixed(1)}</div></div>
       </div>
 
