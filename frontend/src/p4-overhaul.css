@@ -1,0 +1,148 @@
+/* P4 UI Overhaul — premium SaaS polish layer */
+:root {
+  --p4-radius-xl: 24px;
+  --p4-radius-lg: 18px;
+  --p4-panel: linear-gradient(145deg, rgba(255,255,255,.092), rgba(255,255,255,.035));
+  --p4-panel-strong: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+  --p4-stroke: rgba(255,255,255,.14);
+  --p4-glow: 0 24px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.08);
+  --p4-glow-soft: 0 16px 42px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.appShellV4Dark .mainV4,
+.appShellV4 .mainV4 {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(139,92,246,.16), transparent 34%),
+    radial-gradient(circle at 84% 8%, rgba(251,191,36,.13), transparent 32%),
+    radial-gradient(circle at 68% 95%, rgba(34,197,94,.08), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.018), transparent 340px);
+}
+
+.contentV4 {
+  max-width: 1580px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pageHeaderCard {
+  border-radius: var(--p4-radius-xl) !important;
+  border: 1px solid var(--p4-stroke) !important;
+  background:
+    linear-gradient(120deg, rgba(251,191,36,.10), transparent 32%),
+    linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.038)) !important;
+  box-shadow: var(--p4-glow-soft) !important;
+  overflow: hidden;
+  position: relative;
+}
+.pageHeaderCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(251,191,36,.20), transparent 28%),
+    radial-gradient(circle at 78% 0%, rgba(139,92,246,.18), transparent 30%);
+  opacity: .75;
+}
+.pageHeaderCardInner { position: relative; z-index: 1; padding: 22px 24px !important; }
+.pageHeaderCardTitle { font-size: clamp(22px, 2vw, 31px) !important; letter-spacing: -.85px !important; }
+.pageHeaderCardSub { font-size: 13px !important; line-height: 1.55 !important; max-width: 76ch; }
+.pageHeaderCardTag, .pill {
+  backdrop-filter: blur(12px);
+  border-radius: 999px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.chartV3,
+.miniCard,
+.capacityGuideCard,
+.tasksTableWrap,
+.emptyStateV3,
+.profileDropdown,
+.topbarV4SearchDropdown {
+  border: 1px solid var(--p4-stroke) !important;
+  background: var(--p4-panel) !important;
+  box-shadow: var(--p4-glow-soft) !important;
+  backdrop-filter: blur(18px);
+}
+
+.chartV3,
+.capacityGuideCard { border-radius: var(--p4-radius-xl) !important; }
+.miniCard { border-radius: var(--p4-radius-lg) !important; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.miniCard:hover { transform: translateY(-2px); border-color: rgba(251,191,36,.24) !important; box-shadow: 0 18px 48px rgba(0,0,0,.26) !important; }
+
+.btn, .btnPrimary, .btnGhost {
+  border-radius: 14px !important;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.btn:hover, .btnPrimary:hover, .btnGhost:hover { transform: translateY(-1px); }
+.btnPrimary { box-shadow: 0 12px 28px rgba(226,171,65,.20), inset 0 1px 0 rgba(255,255,255,.20) !important; }
+
+/* Dashboard modernization */
+.dashKpiStrip {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
+  gap: 14px !important;
+}
+.dashKpiStrip > * {
+  background: var(--p4-panel-strong) !important;
+  border: 1px solid var(--p4-stroke) !important;
+  box-shadow: var(--p4-glow-soft) !important;
+  border-radius: var(--p4-radius-xl) !important;
+  min-height: 116px;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.dashKpiStrip > *:hover { transform: translateY(-3px); border-color: rgba(251,191,36,.25) !important; }
+.dashGrid21, .dashGrid12 { gap: 16px !important; }
+.dashGrid21 > *, .dashGrid12 > * {
+  border-radius: var(--p4-radius-xl) !important;
+  background: var(--p4-panel) !important;
+  border: 1px solid var(--p4-stroke) !important;
+  box-shadow: var(--p4-glow-soft) !important;
+}
+
+/* Capacity guidance */
+.capacityGuideCard { padding: 14px; display: grid; gap: 12px; }
+.capacityGuideHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.capacityGuideTitle { font-weight: 950; color: var(--text); letter-spacing: -.25px; }
+.capacityGuideSub { margin-top: 3px; color: var(--text2); font-size: 12px; line-height: 1.45; }
+.capacityGuideAvg { border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text2); border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 850; white-space: nowrap; }
+.capacityGuideList { display: grid; gap: 8px; }
+.capacityGuideItem { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.035); color: var(--text); border-radius: 16px; padding: 10px 12px; text-align: left; cursor: pointer; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.capacityGuideItem:hover { transform: translateY(-1px); border-color: rgba(251,191,36,.28); background: rgba(251,191,36,.065); }
+.capacityGuideItemSelected { border-color: rgba(34,197,94,.42) !important; background: rgba(34,197,94,.08) !important; }
+.capacityGuideName { font-weight: 900; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.capacityGuideMeta { margin-top: 2px; color: var(--muted); font-size: 11px; }
+.capacityGuideStats { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.capacityGuideLoad { color: var(--text2); font-weight: 850; font-size: 12px; }
+.capacityGuideTone { border-radius: 999px; padding: 4px 8px; font-size: 10px; font-weight: 950; white-space: nowrap; }
+.capacityGuideEmpty { color: var(--text2); font-size: 13px; padding: 8px 0; }
+.capacityGuideSelected { color: var(--text2); border-top: 1px solid rgba(255,255,255,.10); padding-top: 10px; font-size: 12px; }
+
+/* Tasks table polish + AI badges */
+.tasksTable { border-collapse: separate !important; border-spacing: 0 8px !important; padding: 8px; }
+.tasksTable thead tr { background: transparent !important; border: none !important; }
+.tasksTable tbody tr { background: rgba(255,255,255,.035); border-radius: 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.tasksTable tbody tr td:first-child { border-radius: 18px 0 0 18px; overflow: hidden; }
+.tasksTable tbody tr td:last-child { border-radius: 0 18px 18px 0; }
+.aiRiskBadge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 950; border: 1px solid currentColor; background: rgba(255,255,255,.055); white-space: nowrap; }
+.aiRiskBadgeLow { color: #22c55e; }
+.aiRiskBadgeMedium { color: #f4ca57; }
+.aiRiskBadgeHigh { color: #f97316; }
+.aiRiskBadgeCritical { color: #ef4444; }
+
+/* Board polish */
+.p4BoardGrid { display: grid; grid-template-columns: repeat(6, minmax(220px, 1fr)); gap: 14px; overflow-x: auto; flex: 1; align-items: start; padding-bottom: 8px; }
+.p4BoardColumn { border-radius: var(--p4-radius-xl) !important; background: var(--p4-panel) !important; border: 1px solid var(--p4-stroke) !important; box-shadow: var(--p4-glow-soft) !important; }
+.p4BoardColumnHeader { padding: 4px 2px 12px; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 12px !important; }
+.p4BoardCard { border-radius: 18px !important; background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.035)) !important; box-shadow: 0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.06); }
+.p4BoardCard:hover { transform: translateY(-2px); }
+.p4BoardDropEmpty { background: rgba(255,255,255,.028); }
+
+@media (max-width: 1320px) { .dashKpiStrip { grid-template-columns: repeat(3, minmax(160px, 1fr)); } }
+@media (max-width: 760px) {
+  .dashKpiStrip { grid-template-columns: 1fr 1fr; }
+  .pageHeaderCardInner { padding: 18px !important; }
+  .p4BoardGrid { grid-template-columns: repeat(6, minmax(240px, 82vw)); }
+  .capacityGuideHeader { flex-direction: column; }
+}
