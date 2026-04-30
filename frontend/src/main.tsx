@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@fontsource/inter/latin.css'
 import './index.css'
+import './p4-overhaul.css'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -11,9 +12,9 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,           // Always consider data stale — refetch on mount
-      gcTime: 2 * 60_000,     // Keep unused data in cache for 2 minutes
-      refetchOnWindowFocus: true,  // Refetch when tab gets focus (catches mobile ↔ laptop sync)
+      staleTime: 0,
+      gcTime: 2 * 60_000,
+      refetchOnWindowFocus: true,
       refetchOnMount: true,
       retry: (failureCount, error: any) => {
         if (error?.status >= 400 && error?.status < 500) return false
