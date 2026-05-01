@@ -27,6 +27,10 @@ interface SelectProps {
   preferOpenUp?: boolean
 }
 
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n))
+}
+
 export function Select({
   value, onChange, options, placeholder = 'Select…', label,
   disabled, error, required, searchable, className, preferOpenUp,
@@ -47,21 +51,32 @@ export function Select({
     : options
 
   const closeMe = useCallback(() => { setOpen(false); setSearch('') }, [])
+
   const updateMenuPosition = useCallback(() => {
     const trigger = triggerRef.current
     if (!trigger) return
 
     const rect = trigger.getBoundingClientRect()
-    const mobile = window.innerWidth <= 640
-    const viewportPadding = mobile ? 8 : 12
+    const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
+    const mobile = viewportWidth <= 720
+    const viewportPadding = mobile ? 8 : 12
+
+    const measuredWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : 260
+    const desktopMax = searchable ? 420 : 360
+    const desktopMin = Math.min(220, viewportWidth - viewportPadding * 2)
+    const dropdownWidth = mobile
+      ? viewportWidth - viewportPadding * 2
+      : clamp(measuredWidth, desktopMin, Math.min(desktopMax, viewportWidth - viewportPadding * 2))
+
+    const rawLeft = mobile ? viewportPadding : rect.left
+    const left = clamp(rawLeft, viewportPadding, viewportWidth - dropdownWidth - viewportPadding)
+
     const spaceBelow = Math.max(0, viewportHeight - rect.bottom - viewportPadding)
     const spaceAbove = Math.max(0, rect.top - viewportPadding)
-    const shouldOpenUp = !!preferOpenUp || (!mobile && spaceBelow < 260 && spaceAbove > spaceBelow)
+    const shouldOpenUp = !!preferOpenUp || (!mobile && spaceBelow < 220 && spaceAbove > spaceBelow)
     const available = shouldOpenUp ? spaceAbove : spaceBelow
-    const maxHeight = Math.max(160, Math.min(mobile ? 420 : 320, available - 8))
-    const width = mobile ? Math.min(window.innerWidth - viewportPadding * 2, Math.max(rect.width, 280)) : rect.width
-    const left = mobile ? viewportPadding : Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding))
+    const maxHeight = clamp(available - 8, 160, mobile ? 420 : 320)
     const top = shouldOpenUp ? rect.top - 8 : rect.bottom + 8
 
     setOpenUp(shouldOpenUp)
@@ -70,11 +85,12 @@ export function Select({
       position: 'fixed',
       left,
       top,
-      width,
+      width: dropdownWidth,
+      maxWidth: viewportWidth - viewportPadding * 2,
       zIndex: 100500,
       transform: shouldOpenUp ? 'translateY(-100%)' : 'none',
     })
-  }, [preferOpenUp])
+  }, [preferOpenUp, searchable])
 
   useEffect(() => {
     _selectListeners.add(closeMe)
