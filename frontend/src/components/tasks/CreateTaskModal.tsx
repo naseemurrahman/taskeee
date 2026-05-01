@@ -5,6 +5,7 @@ import { Modal } from '../Modal'
 import { Select } from '../ui/Select'
 import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
+import { useToast } from '../ui/ToastSystem'
 
 type Project = { id: string; name: string; color?: string | null }
 type UserRow = { id: string; email: string; name?: string | null; full_name?: string | null; role: string; department?: string | null }
@@ -47,6 +48,7 @@ function workloadTone(openTasks: number, average: number) {
 
 export function CreateTaskModal(props: { open: boolean; onClose: () => void; defaultProjectId?: string | null }) {
   const qc = useQueryClient(); const me = getUser(); const canAssign = roleRank(me?.role) >= 60
+  const { success: toastSuccess, error: toastError } = useToast()
   const [dept, setDept] = useState(''); const [assignedTo, setAssignedTo] = useState(''); const [priority, setPriority] = useState('medium'); const [projectId, setProjectId] = useState(props.defaultProjectId || ''); const [error, setError] = useState<string | null>(null)
   const projectsQ = useQuery({ queryKey: ['modal-projects'], queryFn: fetchProjects, enabled: props.open, staleTime: 60_000 })
   const usersQ = useQuery({ queryKey: ['modal-users'], queryFn: fetchAllUsers, enabled: props.open && canAssign, staleTime: 60_000 })
@@ -68,7 +70,22 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   })() : null)
 
   function handleClose() { setDept(''); setAssignedTo(''); setPriority('medium'); setProjectId(props.defaultProjectId || ''); setError(null); props.onClose() }
-  const m = useMutation({ mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks/create-simple', { method: 'POST', json: input }), onSuccess: () => { setError(null); qc.invalidateQueries({ queryKey: ['dashboard'] }); qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['performance'] }); qc.invalidateQueries({ queryKey: ['modal-workload'] }); handleClose() }, onError: (err) => { const msg = err instanceof ApiError ? err.message : String(err) || 'Failed to create task. Please try again.'; console.error('[CreateTask] Error:', msg, err); setError(msg) } })
+  const m = useMutation({
+    mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks/create-simple', { method: 'POST', json: input }),
+    onSuccess: () => {
+      setError(null)
+      qc.invalidateQueries({ queryKey: ['dashboard'] }); qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['performance'] }); qc.invalidateQueries({ queryKey: ['modal-workload'] })
+      toastSuccess('Task created', 'The task has been assigned and is ready.')
+      handleClose()
+    },
+    onError: (err) => {
+      const msg = err instanceof ApiError ? err.message : String(err) || 'Failed to create task. Please try again.'
+      console.error('[CreateTask] Error:', msg, err)
+      setError(msg)
+      toastError('Create failed', msg)
+    }
+  })
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); e.stopPropagation(); setError(null)

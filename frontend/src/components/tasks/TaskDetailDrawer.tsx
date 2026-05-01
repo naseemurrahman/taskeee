@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { useToast } from '../ui/ToastSystem'
 
 type Task = {
   id: string; title: string; status: string; priority?: string | null
@@ -62,6 +63,7 @@ export function TaskDetailDrawer({
   const me = getUser()
   const qc = useQueryClient()
   const canManage = canCreateTasksAndProjects(me?.role)
+  const { success: toastSuccess, error: toastError } = useToast()
   const [comment, setComment] = useState('')
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'files'>(initialTab as 'details' | 'comments' | 'files')
   const [uploading, setUploading] = useState(false)
@@ -135,15 +137,23 @@ export function TaskDetailDrawer({
       qc.invalidateQueries({ queryKey: ['task-messages', taskId] })
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     },
+    onError: (err: any) => {
+      toastError('Comment failed', err instanceof ApiError ? err.message : 'Failed to send comment')
+    }
   })
 
   const statusM = useMutation({
     mutationFn: (status: string) => apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } }),
-    onSuccess: () => {
+    onSuccess: (_data, status) => {
       qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      const label = STATUS_META[status]?.label || status
+      toastSuccess('Status updated', `Task marked as ${label}`)
     },
+    onError: (err: any) => {
+      toastError('Update failed', err instanceof ApiError ? err.message : 'Could not update status')
+    }
   })
 
   const detailsM = useMutation({
@@ -153,7 +163,11 @@ export function TaskDetailDrawer({
       qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toastSuccess('Task updated', 'Changes saved successfully')
     },
+    onError: (err: any) => {
+      toastError('Save failed', err instanceof ApiError ? err.message : 'Could not save changes')
+    }
   })
 
   function sendComment() {

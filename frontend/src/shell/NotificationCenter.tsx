@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { apiFetch } from '../lib/api'
+import { useToast } from '../components/ui/ToastSystem'
 
 type InAppNotification = {
   id: string
@@ -36,6 +37,7 @@ import { subscribeToOrg } from '../lib/socket'
 export function NotificationCenter() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { info: toastInfo } = useToast()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
