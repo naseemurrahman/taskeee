@@ -118,7 +118,6 @@ export function BoardPage() {
           reason: item.signal.loadNote || item.signal.note,
         }
       })
-      .filter(item => item.from !== item.to)
     return { scored, risky, topRisk, overloaded, available, suggestions }
   }, [tasks, loadByUser, workloadRows])
 
