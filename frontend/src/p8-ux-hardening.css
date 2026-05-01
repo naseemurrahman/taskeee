@@ -1,4 +1,4 @@
-/* P8 UX Hardening — dropdowns, mobile, modals, analytics priority, fast rendering */
+/* P8 UX Hardening — dropdowns, mobile, modals, analytics priority */
 :root {
   --p8-safe-gap: 12px;
   --p8-touch: 44px;
@@ -124,11 +124,7 @@ input:required, select:required, textarea:required { scroll-margin-top: 90px; }
 }
 .drawerPanel { contain: layout paint; }
 
-/* Fast rendering + stable layout */
-.chartV3, .miniCard, .p4BoardCard, .tasksTableWrap, .capacityGuideCard {
-  content-visibility: auto;
-  contain-intrinsic-size: 240px;
-}
+/* Stable layout: do not use content-visibility on data cards/charts; Recharts needs real measured dimensions. */
 .pageHeaderCard, .topbarV4, .sidebarV4, .modalCard, .selectV3Dropdown { will-change: auto; }
 img, svg, canvas { max-width: 100%; }
 
