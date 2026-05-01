@@ -1,6 +1,6 @@
 /* P10 UI patch */
 
-/* Shared Select now uses a safe portal with inline fixed coordinates.
+/* Shared Select uses a safe portal with inline fixed coordinates.
    Do not override position/top/left here, otherwise menus get clipped inside cards. */
 .selectV3Wrap{position:relative!important;}
 .selectV3Dropdown{border-radius:16px!important;border:1px solid rgba(255,255,255,.16)!important;background:#101522!important;color:#f8fafc!important;box-shadow:0 24px 60px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:none!important;overflow:hidden!important;}
@@ -22,23 +22,26 @@
 .pageHeaderCard:before{content:''!important;position:absolute!important;top:0!important;left:0!important;right:0!important;height:3px!important;background:linear-gradient(90deg,#e2ab41,#f4ca57,rgba(226,171,65,.35))!important;opacity:1!important;z-index:1!important;border-radius:inherit inherit 0 0!important;}
 .pageHeaderCardInner{position:relative!important;z-index:2!important;}
 
+/* Remove Create Task button from Dashboard header only. Dashboard title icon is the grid SVG with rects. */
+.pageHeaderCard:has(.pageHeaderCardTitle svg rect) .pageHeaderCardInner>.btnPrimary{display:none!important;}
+
 /* Compact oversized filter/header cards. */
 .chartV3:has(.taskFiltersRow){min-height:0!important;padding:14px 16px!important;gap:12px!important;}
-.chartV3:has(.taskFiltersRow)>div:first-child{margin:0!important;}
-.taskFiltersRow{align-items:center!important;}
+.chartV3:has(.taskFiltersRow)>div:first-child{margin:0!important;min-height:0!important;}
+.taskFiltersRow{align-items:center!important;margin-top:4px!important;}
 .taskFiltersRow .inputWrap,.taskFiltersRow .selectV3Wrap{min-height:42px!important;}
 .taskFiltersRow .btn{min-height:36px!important;}
-@media(min-width:900px){.chartV3:has(.taskFiltersRow){grid-template-rows:auto auto!important}.taskFiltersRow{margin-top:4px!important}}
+@media(min-width:900px){.chartV3:has(.taskFiltersRow){grid-template-rows:auto auto!important}}
 
-/* Dashboard Weekly Velocity: stop stretched SVG text/compressed labels. */
-.card svg[viewBox^='0 0 280']{height:150px!important;max-height:150px!important;preserve-aspect-ratio:xMidYMid meet;}
-.card svg[viewBox^='0 0 280'] text{font-size:7px!important;font-weight:700!important;fill:var(--muted)!important;letter-spacing:.02em!important;}
-.card svg[viewBox^='0 0 280'] rect{rx:3px!important;}
+/* Dashboard Weekly Velocity: compact, readable, no stretched/compressed label text. */
 .card:has(svg[viewBox^='0 0 280']){gap:10px!important;}
 .card:has(svg[viewBox^='0 0 280'])>div:last-child{overflow:hidden!important;}
-.card:has(svg[viewBox^='0 0 280']) svg{display:block!important;margin-top:4px!important;}
+.card svg[viewBox^='0 0 280']{height:118px!important;max-height:118px!important;display:block!important;margin-top:2px!important;}
+.card svg[viewBox^='0 0 280'] text{display:none!important;}
+.card svg[viewBox^='0 0 280'] rect{rx:3px!important;}
 .card:has(svg[viewBox^='0 0 280']) div[style*='marginTop: 6']{margin-top:2px!important;}
 
-/* Chart cards should have visible plotting area. */
-.chartCardV2Body,.chartV3{min-height:260px;}
+/* Chart cards should have visible plotting area without forcing every card/filter panel to be tall. */
+.chartCardV2Body{min-height:260px;}
+.analyticsPriorityCharts .chartV3,.jeczoneChartFrame,.jeczoneChartFrame .chartV3{min-height:300px!important;}
 .recharts-wrapper svg,.recharts-surface{overflow:visible!important;}
