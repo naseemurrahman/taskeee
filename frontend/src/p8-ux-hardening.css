@@ -3,29 +3,39 @@
   --p8-safe-gap: 12px;
   --p8-touch: 44px;
   --p8-dropdown-z: 100500;
+  --p8-menu-bg-dark: #101522;
+  --p8-menu-bg-light: #ffffff;
 }
 
 /* Dropdowns: stable positioning + professional menu design */
 .selectV3Dropdown {
   z-index: var(--p8-dropdown-z) !important;
   border-radius: 16px !important;
-  border: 1px solid var(--wow-border, var(--border)) !important;
-  background: color-mix(in srgb, var(--bg2) 94%, transparent) !important;
-  box-shadow: 0 24px 60px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.08) !important;
-  backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: var(--p8-menu-bg-dark) !important;
+  color: var(--text) !important;
+  box-shadow: 0 28px 70px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter: none !important;
   overflow: hidden;
   contain: layout paint;
 }
-.appShellV4Light .selectV3Dropdown {
-  background: rgba(255,255,255,.97) !important;
-  box-shadow: 0 24px 62px rgba(30,41,59,.15), inset 0 1px 0 rgba(255,255,255,.92) !important;
+.appShellV4Light .selectV3Dropdown,
+[data-theme='light'] .selectV3Dropdown {
+  border-color: rgba(15,23,42,.12) !important;
+  background: var(--p8-menu-bg-light) !important;
+  color: #0f172a !important;
+  box-shadow: 0 26px 64px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.94) !important;
 }
 .selectV3SearchWrap {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: inherit;
+  background: inherit !important;
   border-bottom: 1px solid var(--wow-border, var(--border));
+}
+.selectV3SearchInput {
+  color: inherit !important;
+  background: transparent !important;
 }
 .selectV3List {
   overflow-y: auto;
@@ -38,19 +48,96 @@
   padding: 10px 12px !important;
   border-radius: 11px !important;
   margin: 4px 6px !important;
+  color: inherit !important;
   transition: background .14s ease, transform .14s ease, border-color .14s ease;
 }
 .selectV3Option:hover,
 .selectV3OptionActive {
-  background: rgba(226,171,65,.12) !important;
+  background: rgba(226,171,65,.14) !important;
   transform: translateY(-1px);
 }
 .selectV3OptionDisabled {
   opacity: .62;
   pointer-events: none;
 }
-.selectV3OptionLabel { line-height: 1.25; }
-.selectV3OptionDesc { line-height: 1.35; opacity: .86; }
+.selectV3OptionLabel { line-height: 1.25; color: inherit !important; }
+.selectV3OptionDesc { line-height: 1.35; opacity: .86; color: var(--text2) !important; }
+
+/* Native dropdown/select hardening across the app */
+select {
+  background-color: var(--bg2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  min-height: 38px;
+}
+select option {
+  background-color: #101522 !important;
+  color: #f8fafc !important;
+}
+.appShellV4Light select,
+[data-theme='light'] select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15,23,42,.14) !important;
+}
+.appShellV4Light select option,
+[data-theme='light'] select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Profile/search/dropdown menus must never be transparent */
+.profileDropdown,
+.topbarV4SearchDropdown,
+.dropdownContent,
+.popoverContent,
+.popupContent {
+  z-index: 100400 !important;
+  background: var(--p8-menu-bg-dark) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow: 0 28px 70px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter: none !important;
+}
+.appShellV4Light .profileDropdown,
+.appShellV4Light .topbarV4SearchDropdown,
+.appShellV4Light .dropdownContent,
+.appShellV4Light .popoverContent,
+.appShellV4Light .popupContent,
+[data-theme='light'] .profileDropdown,
+[data-theme='light'] .topbarV4SearchDropdown,
+[data-theme='light'] .dropdownContent,
+[data-theme='light'] .popoverContent,
+[data-theme='light'] .popupContent {
+  background: var(--p8-menu-bg-light) !important;
+  color: #0f172a !important;
+  border-color: rgba(15,23,42,.12) !important;
+  box-shadow: 0 26px 64px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.94) !important;
+}
+.profileDropdownName,
+.profileDropdownItem,
+.topbarV4SearchItemTitle { color: var(--text) !important; }
+.profileDropdownEmail,
+.profileDropdownRole,
+.topbarV4SearchItemSub,
+.topbarV4SearchEmpty { color: var(--text2) !important; }
+.appShellV4Light .profileDropdownName,
+.appShellV4Light .profileDropdownItem,
+.appShellV4Light .topbarV4SearchItemTitle,
+[data-theme='light'] .profileDropdownName,
+[data-theme='light'] .profileDropdownItem,
+[data-theme='light'] .topbarV4SearchItemTitle { color: #0f172a !important; }
+.appShellV4Light .profileDropdownEmail,
+.appShellV4Light .profileDropdownRole,
+.appShellV4Light .topbarV4SearchItemSub,
+.appShellV4Light .topbarV4SearchEmpty,
+[data-theme='light'] .profileDropdownEmail,
+[data-theme='light'] .profileDropdownRole,
+[data-theme='light'] .topbarV4SearchItemSub,
+[data-theme='light'] .topbarV4SearchEmpty { color: #475569 !important; }
+.profileDropdownItem:hover,
+.topbarV4SearchItem:hover { background: rgba(226,171,65,.12) !important; }
+.profileDropdownDivider { border-color: var(--border) !important; opacity: .8; }
 
 /* Native date/calendar and required fields */
 input[type='date'] {
@@ -82,18 +169,28 @@ input:required, select:required, textarea:required { scroll-margin-top: 90px; }
   margin-bottom: 4px;
 }
 .analyticsPriorityCharts .chartV3 {
-  min-height: 340px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+.analyticsPriorityCharts .chartV3 > *:last-child {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .analyticsChartHero {
   grid-column: 1 / -1;
 }
 .analyticsChartHero .chartV3 {
-  min-height: 380px;
+  min-height: 400px;
+}
+.analyticsPriorityCharts .recharts-responsive-container {
+  min-height: 240px !important;
 }
 
-/* Recharts polish */
+/* Recharts polish and reliability */
 .recharts-wrapper,
 .recharts-surface { max-width: 100%; }
+.recharts-responsive-container { min-width: 0 !important; }
 .recharts-cartesian-axis-tick-value,
 .recharts-legend-item-text,
 .recharts-text {
@@ -104,7 +201,7 @@ input:required, select:required, textarea:required { scroll-margin-top: 90px; }
 .recharts-cartesian-grid line {
   stroke: rgba(148, 163, 184, 0.16) !important;
 }
-.recharts-tooltip-wrapper { outline: none !important; }
+.recharts-tooltip-wrapper { outline: none !important; z-index: 30 !important; }
 .chartV3 {
   border-radius: 22px !important;
   overflow: hidden;
@@ -123,6 +220,33 @@ input:required, select:required, textarea:required { scroll-margin-top: 90px; }
   overflow-wrap: anywhere;
 }
 .drawerPanel { contain: layout paint; }
+
+/* Card accent bars: align with card bounds and avoid floating/misaligned strips */
+.p4BoardCard,
+.miniCard,
+.chartV3,
+.tasksTable tbody tr {
+  position: relative;
+}
+.p4BoardCard { overflow: hidden !important; }
+.p4BoardCard > div[style*='position: absolute'][style*='height: 3'] {
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+.tasksTable tbody td:first-child {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 16px 0 0 16px !important;
+}
+.tasksTable tbody td:first-child > div {
+  width: 4px !important;
+  min-height: 100% !important;
+  height: 100% !important;
+  align-self: stretch !important;
+  border-radius: 16px 0 0 16px !important;
+}
 
 /* Stable layout: do not use content-visibility on data cards/charts; Recharts needs real measured dimensions. */
 .pageHeaderCard, .topbarV4, .sidebarV4, .modalCard, .selectV3Dropdown { will-change: auto; }
