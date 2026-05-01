@@ -10,6 +10,8 @@ import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
+import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
+
 type Task = {
   id: string
   title?: string
