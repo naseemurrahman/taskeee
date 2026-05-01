@@ -1,0 +1,176 @@
+/* P8 UX Hardening — dropdowns, mobile, modals, charts priority, fast rendering */
+:root {
+  --p8-safe-gap: 12px;
+  --p8-touch: 44px;
+  --p8-dropdown-z: 100500;
+}
+
+/* Dropdowns: polished, readable, mobile-safe */
+.selectV3Dropdown {
+  z-index: var(--p8-dropdown-z) !important;
+  border-radius: 18px !important;
+  border: 1px solid var(--wow-border, var(--border)) !important;
+  background: color-mix(in srgb, var(--bg2) 86%, transparent) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(22px) saturate(150%);
+  overflow: hidden;
+  contain: layout paint;
+}
+.appShellV4Light .selectV3Dropdown {
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 24px 62px rgba(30,41,59,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+.selectV3SearchWrap {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--bg2) 92%, transparent);
+  border-bottom: 1px solid var(--wow-border, var(--border));
+}
+.selectV3List {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.selectV3Option {
+  min-height: var(--p8-touch);
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  margin: 4px 6px !important;
+  transition: background .14s ease, transform .14s ease, border-color .14s ease;
+}
+.selectV3Option:hover,
+.selectV3OptionActive {
+  background: rgba(226,171,65,.12) !important;
+  transform: translateY(-1px);
+}
+.selectV3OptionLabel {
+  line-height: 1.25;
+}
+.selectV3OptionDesc {
+  line-height: 1.35;
+  opacity: .86;
+}
+
+/* Native date/calendar and required fields */
+input[type='date'] {
+  min-height: var(--p8-touch);
+  color-scheme: dark;
+  cursor: pointer;
+}
+.appShellV4Light input[type='date'] { color-scheme: light; }
+input:required, select:required, textarea:required {
+  scroll-margin-top: 90px;
+}
+.requiredFieldHint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: -4px;
+}
+
+/* Analytics: charts are first-class priority content */
+.analyticsPriorityCharts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, .9fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.analyticsPriorityCharts .chartV3 {
+  min-height: 360px;
+}
+.analyticsPriorityCharts .recharts-wrapper,
+.analyticsPriorityCharts svg {
+  max-width: 100%;
+}
+.analyticsSignalStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+/* Modal / popup professional behavior */
+.modalV2Body, .modalBody, .drawerPanel {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.modalCard, .drawerPanel {
+  max-width: min(94vw, 980px) !important;
+}
+.popupContent, .popoverContent, .dropdownContent, .profileDropdown, .topbarV4SearchDropdown {
+  max-width: calc(100vw - 24px);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.drawerPanel {
+  contain: layout paint;
+}
+
+/* Fast rendering + stable layout */
+.chartV3, .miniCard, .p4BoardCard, .tasksTableWrap, .capacityGuideCard {
+  content-visibility: auto;
+  contain-intrinsic-size: 240px;
+}
+.pageHeaderCard, .topbarV4, .sidebarV4, .modalCard, .selectV3Dropdown {
+  will-change: auto;
+}
+img, svg, canvas { max-width: 100%; }
+
+/* Small screens */
+@media (max-width: 900px) {
+  .analyticsPriorityCharts,
+  .grid2,
+  .grid3,
+  .grid4 {
+    grid-template-columns: 1fr !important;
+  }
+  .analyticsSignalStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .selectV3Dropdown {
+    left: 8px !important;
+    right: 8px !important;
+    width: calc(100vw - 16px) !important;
+    max-height: min(68vh, 520px) !important;
+  }
+  .selectV3List {
+    max-height: min(54vh, 420px) !important;
+  }
+  .modalCard {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 22px !important;
+  }
+  .modalV2Body, .modalBody {
+    max-height: calc(100dvh - 112px) !important;
+    overflow-y: auto !important;
+    padding-bottom: 12px !important;
+  }
+  .capacityGuideStats {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .analyticsSignalStrip {
+    grid-template-columns: 1fr;
+  }
+  .pageHeaderCardInner {
+    gap: 14px !important;
+  }
+  .pageHeaderCardInner,
+  .capacityGuideHeader,
+  .capacityGuideItem {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .capacityGuideStats {
+    justify-content: space-between;
+  }
+  .btn, .btnPrimary, .btnGhost, .btnSecondary {
+    min-height: var(--p8-touch);
+  }
+  form[aria-label='Create task form'] > div[style*='grid-template-columns'] {
+    grid-template-columns: 1fr !important;
+  }
+}
