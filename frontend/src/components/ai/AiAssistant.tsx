@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
+import { useToast } from '../ui/ToastSystem'
 
 type Message = { role: 'user' | 'assistant'; content: string; ts: number }
 type Task = { id: string; title: string; status: string; priority?: string | null; assigned_to_name?: string | null; due_date?: string | null }
@@ -58,6 +59,7 @@ const QUICK_PROMPTS = [
 export function AiAssistant() {
   const me = getUser()
   const qc = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
     content: 'Hi ' + (me?.fullName?.split(' ')[0] || 'there') + '! I\'m JecZone AI. I have live access to your organization\'s tasks, projects, and team performance.\n\nAsk me anything — I can identify bottlenecks, suggest status changes, analyze workload, or write a status report.',
@@ -65,6 +67,7 @@ export function AiAssistant() {
   }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{ taskId: string; status: string } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -86,12 +89,18 @@ export function AiAssistant() {
       qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       setMessages(prev => [...prev, { role: 'assistant', content: `✅ Done — task status updated to "${vars.status}".`, ts: Date.now() }])
+      toastSuccess('Status applied', `Task set to "${vars.status}"`)
+      setPendingAction(null)
     },
-    onError: () => setMessages(prev => [...prev, { role: 'assistant', content: '❌ Failed to apply status change. Check task permissions.', ts: Date.now() }]),
+    onError: () => {
+      setMessages(prev => [...prev, { role: 'assistant', content: '❌ Failed to apply status change. Check task permissions.', ts: Date.now() }])
+      toastError('Apply failed', 'Could not update task status.')
+      setPendingAction(null)
+    },
   })
 
   function handleApply(taskId: string, status: string) {
-    if (window.confirm(`Apply status change to "${status}"?`)) applyM.mutate({ taskId, status })
+    setPendingAction({ taskId, status })
   }
 
   async function send(text: string) {
@@ -173,7 +182,26 @@ export function AiAssistant() {
           <div ref={bottomRef} />
         </div>
         {/* Input */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: 'column' }}>
+          {/* Inline confirm banner — replaces window.confirm */}
+          {pendingAction && (
+            <div style={{
+              width: '100%', padding: '10px 14px', borderRadius: 12,
+              background: 'rgba(249,115,22,0.08)', border: '1.5px solid rgba(249,115,22,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>
+                Apply: set task status to <strong style={{ color: '#f97316' }}>&quot;{pendingAction.status}&quot;</strong>?
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button type="button" className="btn btnGhost btnSm" onClick={() => setPendingAction(null)}>Cancel</button>
+                <button type="button" className="btn btnPrimary btnSm" onClick={() => applyM.mutate(pendingAction)} disabled={applyM.isPending}>
+                  {applyM.isPending ? 'Applying…' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', width: '100%' }}>
           <textarea ref={textareaRef} className="taskCommentTextarea" style={{ borderRadius: 14, flex: 1 }} value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
             placeholder="Ask about tasks, performance, bottlenecks… (Enter to send)" rows={2} disabled={loading}
@@ -186,6 +214,7 @@ export function AiAssistant() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             </button>
           )}
+          </div>
         </div>
       </div>
     </div>

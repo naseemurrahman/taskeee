@@ -37,7 +37,7 @@ import { subscribeToOrg } from '../lib/socket'
 export function NotificationCenter() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { info: toastInfo } = useToast()
+  const { success: _toastSuccess } = useToast()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
