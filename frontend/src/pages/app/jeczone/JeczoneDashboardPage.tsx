@@ -22,493 +22,56 @@ import { EmployeeDetailModal } from '../../../components/employees/EmployeeDetai
 import { AiAssistant } from '../../../components/ai/AiAssistant'
 import { ProjectDetailModal } from '../../../components/projects/ProjectDetailModal'
 
-type Project = {
-  id: string
-  name: string
-  color?: string | null
-}
+type Project = { id: string; name: string; color?: string | null }
+type Task = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; category_id?: string | null; category_name?: string | null; assigned_to_name?: string | null }
+type PerformanceSummary = { totalTasks: number; byStatus: Record<string, number>; teamPerformanceScore: number; assigneeLeaderboard: Array<{ userId: string; name: string; active: number; performanceScore: number }> }
 
-type Task = {
-  id: string
-  title: string
-  status: string
-  priority?: string | null
-  due_date?: string | null
-  category_id?: string | null
-  category_name?: string | null
-  assigned_to_name?: string | null
-}
-
-type PerformanceSummary = {
-  totalTasks: number
-  byStatus: Record<string, number>
-  teamPerformanceScore: number
-  assigneeLeaderboard: Array<{ userId: string; name: string; active: number; performanceScore: number }>
-}
-
-async function fetchProjects() {
-  const d = await apiFetch<{ projects: Project[] }>(`/api/v1/projects`)
-  return d.projects || []
-}
-
-async function fetchTasks() {
-  const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1`)
-  return (d.tasks || d.rows || []) as Task[]
-}
-
-async function fetchPerf() {
-  return await apiFetch<PerformanceSummary>(`/api/v1/performance/summary`)
-}
-
+async function fetchProjects() { const d = await apiFetch<{ projects: Project[] }>(`/api/v1/projects`); return d.projects || [] }
+async function fetchTasks() { const d = await apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?limit=300&page=1`); return (d.tasks || d.rows || []) as Task[] }
+async function fetchPerf() { return await apiFetch<PerformanceSummary>(`/api/v1/performance/summary`) }
 type Tab = 'overview' | 'projects' | 'gantt' | 'resources' | 'ai'
 
 export function JeczoneDashboardPage() {
-  const me = getUser()
-  const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
-  const canOpenAdvancedDetails = canViewAnalytics(me?.role)
-  const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('overview')
-  const [projectId, setProjectId] = useState<string>('all')
-  const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null)
-  const [resourcePick, setResourcePick] = useState<string | null>(null)
-  const [projectModalId, setProjectModalId] = useState<string | null>(null)
-
-  const projectsQ = useQuery({ queryKey: ['jeczone', 'projects'], queryFn: fetchProjects })
-  const tasksQ = useQuery({ queryKey: ['jeczone', 'tasks'], queryFn: fetchTasks })
-  const perfQ = useQuery({ queryKey: ['jeczone', 'perf'], queryFn: fetchPerf })
-
-  const projects = projectsQ.data || []
-  const tasks = tasksQ.data || []
-  const perf = perfQ.data
-
-  const filteredTasks = useMemo(() => {
-    if (projectId === 'all') return tasks
-    return tasks.filter((t) => String(t.category_id || '') === projectId)
-  }, [tasks, projectId])
-
-  // Debug logging for chart data
-  useMemo(() => {
-  }, [perfQ.isLoading, perfQ.isError, perfQ.data, tasksQ.isLoading, tasksQ.isError, tasksQ.data, tasks.length, projects.length, filteredTasks.length, perf])
-
-  const byStatus = perf?.byStatus || {}
-  const total = perf?.totalTasks || 0
-  const done = byStatus.completed || 0
-  const overdue = byStatus.overdue || 0
-  const inProgress = byStatus.in_progress || 0
-  const completionRate = total ? Math.round((done / total) * 100) : 0
-  const score = perf?.teamPerformanceScore ?? 0
-
-  const projectCards = useMemo(() => {
-    const map: Record<string, { total: number; done: number; overdue: number; name: string; color?: string | null }> = {}
-    for (const p of projects) map[p.id] = { total: 0, done: 0, overdue: 0, name: p.name, color: p.color }
-    for (const t of tasks) {
-      const pid = t.category_id
-      if (!pid || !map[pid]) continue
-      map[pid].total++
-      if (t.status === 'completed') map[pid].done++
-      if (t.status === 'overdue') map[pid].overdue++
-    }
-    return Object.entries(map)
-      .map(([id, v]) => ({ id, ...v, progress: v.total ? Math.round((v.done / v.total) * 100) : 0 }))
-      .sort((a, b) => (b.total - a.total) || a.name.localeCompare(b.name))
-  }, [projects, tasks])
-
-  const ganttRows = useMemo(() => {
-    const now = Date.now()
-    return filteredTasks
-      .filter((t) => t.due_date)
-      .map((t) => {
-        const due = new Date(t.due_date as string).getTime()
-        const days = Math.round((due - now) / 86400000)
-        return { ...t, dueMs: due, days }
-      })
-      .sort((a, b) => a.dueMs - b.dueMs)
-      .slice(0, 60)
-  }, [filteredTasks])
-
-  const progressRows = useMemo(() => {
-    const map = new Map<string, { name: string; done: number; remaining: number }>()
-    for (const p of projects) map.set(p.id, { name: p.name, done: 0, remaining: 0 })
-    for (const t of tasks) {
-      const pid = t.category_id
-      if (!pid) continue
-      const slot = map.get(String(pid))
-      if (!slot) continue
-      const isDone = t.status === 'completed' || t.status === 'manager_approved'
-      if (isDone) slot.done += 1
-      else slot.remaining += 1
-    }
-    return Array.from(map.values())
-      .filter((x) => x.done + x.remaining > 0)
-      .sort((a, b) => (b.done + b.remaining) - (a.done + a.remaining))
-  }, [projects, tasks])
-
-  const assignments = useMemo(() => {
-    const map = new Map<string, { name: string; active: number; overdue: number; done: number }>()
-    for (const t of filteredTasks) {
-      const name = t.assigned_to_name || 'Unassigned'
-      const slot = map.get(name) || { name, active: 0, overdue: 0, done: 0 }
-      const isDone = t.status === 'completed' || t.status === 'manager_approved'
-      if (isDone) slot.done += 1
-      else if (t.status === 'overdue') slot.overdue += 1
-      else slot.active += 1
-      map.set(name, slot)
-    }
-    return Array.from(map.values()).sort((a, b) => (b.active + b.overdue + b.done) - (a.active + a.overdue + a.done))
-  }, [filteredTasks])
-
-  const byPriority = useMemo(() => {
-    const out: Record<string, number> = {}
-    for (const t of filteredTasks) {
-      const p = String(t.priority || '').toLowerCase()
-      if (!p) continue
-      out[p] = (out[p] || 0) + 1
-    }
-    return out
-  }, [filteredTasks])
-
-  const byFromTasks = useMemo(() => {
-    const m: Record<string, number> = {}
-    for (const t of filteredTasks) {
-      const s = String(t.status || '')
-      m[s] = (m[s] || 0) + 1
-    }
-    return m
-  }, [filteredTasks])
-
+  const me = getUser(); const canOpenChartDetails = canCreateTasksAndProjects(me?.role); const canOpenAdvancedDetails = canViewAnalytics(me?.role); const navigate = useNavigate()
+  const [tab, setTab] = useState<Tab>('overview'); const [projectId, setProjectId] = useState<string>('all'); const [detail, setDetail] = useState<null | { title: string; kind: 'kpi' | 'chart' }>(null); const [resourcePick, setResourcePick] = useState<string | null>(null); const [projectModalId, setProjectModalId] = useState<string | null>(null)
+  const projectsQ = useQuery({ queryKey: ['jeczone', 'projects'], queryFn: fetchProjects }); const tasksQ = useQuery({ queryKey: ['jeczone', 'tasks'], queryFn: fetchTasks }); const perfQ = useQuery({ queryKey: ['jeczone', 'perf'], queryFn: fetchPerf })
+  const projects = projectsQ.data || []; const tasks = tasksQ.data || []; const perf = perfQ.data
+  const filteredTasks = useMemo(() => projectId === 'all' ? tasks : tasks.filter((t) => String(t.category_id || '') === projectId), [tasks, projectId])
+  const byStatus = perf?.byStatus || {}; const total = perf?.totalTasks || 0; const done = byStatus.completed || 0; const overdue = byStatus.overdue || 0; const inProgress = byStatus.in_progress || 0; const completionRate = total ? Math.round((done / total) * 100) : 0; const score = perf?.teamPerformanceScore ?? 0
+  const projectCards = useMemo(() => { const map: Record<string, { total: number; done: number; overdue: number; name: string; color?: string | null }> = {}; for (const p of projects) map[p.id] = { total: 0, done: 0, overdue: 0, name: p.name, color: p.color }; for (const t of tasks) { const pid = t.category_id; if (!pid || !map[pid]) continue; map[pid].total++; if (t.status === 'completed') map[pid].done++; if (t.status === 'overdue') map[pid].overdue++ } return Object.entries(map).map(([id, v]) => ({ id, ...v, progress: v.total ? Math.round((v.done / v.total) * 100) : 0 })).sort((a, b) => (b.total - a.total) || a.name.localeCompare(b.name)) }, [projects, tasks])
+  const ganttRows = useMemo(() => { const now = Date.now(); return filteredTasks.filter((t) => t.due_date).map((t) => { const due = new Date(t.due_date as string).getTime(); const days = Math.round((due - now) / 86400000); return { ...t, dueMs: due, days } }).sort((a, b) => a.dueMs - b.dueMs).slice(0, 60) }, [filteredTasks])
+  const progressRows = useMemo(() => { const map = new Map<string, { name: string; done: number; remaining: number }>(); for (const p of projects) map.set(p.id, { name: p.name, done: 0, remaining: 0 }); for (const t of tasks) { const pid = t.category_id; if (!pid) continue; const slot = map.get(String(pid)); if (!slot) continue; const isDone = t.status === 'completed' || t.status === 'manager_approved'; if (isDone) slot.done += 1; else slot.remaining += 1 } return Array.from(map.values()).filter((x) => x.done + x.remaining > 0).sort((a, b) => (b.done + b.remaining) - (a.done + a.remaining)) }, [projects, tasks])
+  const assignments = useMemo(() => { const map = new Map<string, { name: string; active: number; overdue: number; done: number }>(); for (const t of filteredTasks) { const name = t.assigned_to_name || 'Unassigned'; const slot = map.get(name) || { name, active: 0, overdue: 0, done: 0 }; const isDone = t.status === 'completed' || t.status === 'manager_approved'; if (isDone) slot.done += 1; else if (t.status === 'overdue') slot.overdue += 1; else slot.active += 1; map.set(name, slot) } return Array.from(map.values()).sort((a, b) => (b.active + b.overdue + b.done) - (a.active + a.overdue + a.done)) }, [filteredTasks])
+  const byPriority = useMemo(() => { const out: Record<string, number> = {}; for (const t of filteredTasks) { const p = String(t.priority || '').toLowerCase(); if (!p) continue; out[p] = (out[p] || 0) + 1 } return out }, [filteredTasks])
+  const byFromTasks = useMemo(() => { const m: Record<string, number> = {}; for (const t of filteredTasks) { const s = String(t.status || ''); m[s] = (m[s] || 0) + 1 } return m }, [filteredTasks])
   const deadlines = useMemo(() => buildDeadlineSeries(filteredTasks, 7), [filteredTasks])
-
-  function openDetail(title: string, kind: 'kpi' | 'chart') {
-    if (!canOpenChartDetails && kind === 'chart') {
-      setDetail({ title: 'Details limited', kind: 'chart' })
-      return
-    }
-    setDetail({ title, kind })
-  }
+  function openDetail(title: string, kind: 'kpi' | 'chart') { if (!canOpenChartDetails && kind === 'chart') { setDetail({ title: 'Details limited', kind: 'chart' }); return } setDetail({ title, kind }) }
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      {/* Page header card */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-              JecZone AI
-            </div>
-            <div className="pageHeaderCardSub">AI-powered project management hub. View portfolio overview, Gantt timelines, resource allocation, and get AI-assisted task insights.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤖</span> AI insights</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Portfolio overview</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗓️</span> Gantt timelines</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Jeczone Project Management</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Portfolio overview, gantt, and resources.</div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Project
-<div style={{ minWidth: 220 }}>
-              <Select
-                value={projectId}
-                onChange={setProjectId}
-                options={[
-                  { value: '', label: 'All projects' },
-                  ...projects.map(p => ({ value: p.id, label: p.name })),
-                ]}
-              />
-            </div>
-            </label>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {(['overview','projects','gantt','resources'] as Tab[]).map((t) => (
-            <button key={t} className={`btn ${tab === t ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px' }} onClick={() => setTab(t)}>
-              {t[0].toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-          <button className={`btn ${tab === 'ai' ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab('ai')}>
-            🤖 AI Assistant
-          </button>
-        </div>
-      </div>
-
-      {tab === 'overview' ? (
-        <>
-          <div className="grid4">
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}>
-              <div className="miniLabel">Total tasks</div>
-              <div className="miniValue">{total}</div>
-            </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}>
-              <div className="miniLabel">Completion</div>
-              <div className="miniValue">{completionRate}%</div>
-            </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}>
-              <div className="miniLabel">Overdue</div>
-              <div className="miniValue" style={{ color: 'rgba(239, 68, 68, 0.92)' }}>{overdue}</div>
-            </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}>
-              <div className="miniLabel">Team score</div>
-              <div className="miniValue">{score}</div>
-            </button>
-          </div>
-
-          <div className="grid2">
-            <ChartCard
-              title="Project progress"
-              subtitle="Completion per project."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Project progress', 'chart')}>Details</button>}
-            >
-              <div
-                role="button"
-                tabIndex={0}
-                style={{ minHeight: 280, cursor: 'pointer' }}
-                onClick={() => openDetail('Project progress', 'chart')}
-                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Project progress', 'chart') : null)}
-              >
-                {tasksQ.isLoading ? <div style={{ height: 280, color: 'var(--text2)' }}>Loading…</div> : null}
-                {!tasksQ.isLoading && filteredTasks.length === 0 ? (
-                  <div style={{ height: 280, display: 'grid', placeItems: 'center', color: 'var(--text2)', textAlign: 'center', padding: 18 }}>
-                    <div>
-                      <div style={{ fontWeight: 900 }}>No tasks yet</div>
-                      <div style={{ marginTop: 6 }}>Create and assign tasks to populate Jeczone insights.</div>
-                    </div>
-                  </div>
-                ) : (
-                  <ProjectProgressChart rows={progressRows.map((p) => ({ name: p.name, done: p.done, remaining: p.remaining }))} />
-                )}
-              </div>
-            </ChartCard>
-            <ChartCard
-              title="Assignments"
-              subtitle="Active/overdue/done by assignee."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Assignments', 'chart')}>Details</button>}
-            >
-              <div
-                role="button"
-                tabIndex={0}
-                style={{ minHeight: 280, cursor: 'pointer' }}
-                onClick={() => openDetail('Assignments', 'chart')}
-                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Assignments', 'chart') : null)}
-              >
-                {tasksQ.isLoading ? <div style={{ height: 280, color: 'var(--text2)' }}>Loading…</div> : null}
-                {!tasksQ.isLoading && filteredTasks.length === 0 ? (
-                  <div style={{ height: 280, display: 'grid', placeItems: 'center', color: 'var(--text2)' }}>No assignments yet.</div>
-                ) : (
-                  <AssignmentsChart rows={assignments.map((a) => ({ name: a.name, active: a.active, overdue: a.overdue, done: a.done }))} />
-                )}
-              </div>
-            </ChartCard>
-          </div>
-
-          <div className="grid2">
-            <ChartCard
-              title="Deadlines"
-              subtitle="Next 7 days due vs overdue."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Deadlines', 'chart')}>Details</button>}
-            >
-              <div
-                role="button"
-                tabIndex={0}
-                style={{ cursor: 'pointer' }}
-                onClick={() => openDetail('Deadlines', 'chart')}
-                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Deadlines', 'chart') : null)}
-              >
-                <DeadlinesTrendChart points={deadlines} />
-              </div>
-            </ChartCard>
-            <ChartCard
-              title="Status"
-              subtitle="Distribution for selected scope."
-              right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Status', 'chart')}>Details</button>}
-            >
-              <div
-                role="button"
-                tabIndex={0}
-                style={{ cursor: 'pointer' }}
-                onClick={() => openDetail('Status', 'chart')}
-                onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Status', 'chart') : null)}
-              >
-                <StatusBarChart byStatus={byStatus} />
-              </div>
-            </ChartCard>
-          </div>
-
-        </>
-      ) : null}
-
-      {tab === 'projects' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Projects</h3>
-          <div className="projectGrid">
-            {projectCards.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="projectCard"
-                style={{ textAlign: 'left', cursor: 'pointer' }}
-                onClick={() => setProjectModalId(p.id)}
-              >
-                <div className="projectDot" style={{ background: p.color || 'rgba(244,202,87,0.9)' }} />
-                <div style={{ minWidth: 0, width: '100%' }}>
-                  <div className="projectName">{p.name}</div>
-                  <div className="projectDesc">{p.total} tasks · {p.progress}% complete</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {tab === 'gantt' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Gantt (by due date)</h3>
-          <div style={{ color: 'var(--text2)', marginBottom: 12 }}>Shows upcoming tasks (sorted by due date). Timeline is simplified for MVP.</div>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {ganttRows.map((t) => (
-              <div key={t.id} className="miniCard" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 900, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>
-                    {t.category_name ? `${t.category_name} · ` : ''}{t.assigned_to_name || '—'} · due {new Date(t.due_date as string).toLocaleDateString()}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  <span className="pill pillMuted">{t.status}</span>
-                  <span className="pill">{t.days >= 0 ? `${t.days}d` : `${Math.abs(t.days)}d late`}</span>
-                </div>
-              </div>
-            ))}
-            {!tasksQ.isLoading && ganttRows.length === 0 ? <div style={{ color: 'var(--text2)' }}>No dated tasks found.</div> : null}
-          </div>
-        </div>
-      ) : null}
-
-      {tab === 'resources' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Resources</h3>
-          <div style={{ color: 'var(--text2)', marginBottom: 12 }}>Workload and performance from the leaderboard.</div>
-          {perfQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
-          {perfQ.isError ? <div className="alert alertError">Failed to load resources.</div> : null}
-          <div style={{ display: 'grid', gap: 10 }}>
-            {(perf?.assigneeLeaderboard || []).slice(0, 12).map((u) => (
-              <button
-                key={u.userId}
-                type="button"
-                className="miniCard miniLink"
-                style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', width: '100%', textAlign: 'left' }}
-                onClick={() => setResourcePick(u.userId)}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 900, letterSpacing: '-0.2px' }}>{u.name}</div>
-                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{u.active} active tasks</div>
-                </div>
-                <span className="pill">{u.performanceScore} score</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {tab === 'ai' ? (
-        <AiAssistant />
-      ) : null}
-
-      <Modal
-        title={detail?.title || 'Details'}
-        open={!!detail}
-        wide={detail?.kind === 'chart'}
-        onClose={() => setDetail(null)}
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => { setDetail(null); navigate('/app/analytics') }}>
-              Analytics
-            </button>
-            <button type="button" className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} onClick={() => { setDetail(null); navigate('/app/tasks') }}>
-              Open tasks
-            </button>
-          </div>
-        }
-      >
-        {detail?.kind === 'chart' && detail.title === 'Details limited' ? (
-          <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
-            Your role can view chart summaries, but full drill-down detail is available for supervisors and above.
-          </div>
-        ) : null}
-        {detail?.kind === 'kpi' && detail.title === 'Total tasks' ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ color: 'var(--text2)' }}>All tasks in scope for the selected project filter (API summary).</div>
-            <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
-            <TaskSampleTable tasks={filteredTasks} empty="No tasks." />
-          </div>
-        ) : null}
-        {detail?.kind === 'kpi' && detail.title === 'Completion rate' ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ color: 'var(--text2)' }}>{completionRate}% of scoped tasks are marked completed ({done}/{total}).</div>
-            <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
-            <TaskSampleTable tasks={filteredTasks.filter((t) => t.status === 'completed' || t.status === 'manager_approved')} empty="No completed tasks." />
-          </div>
-        ) : null}
-        {detail?.kind === 'kpi' && detail.title === 'Overdue' ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
-            <TaskSampleTable tasks={filteredTasks.filter((t) => t.status === 'overdue')} empty="No overdue tasks in this filter." />
-          </div>
-        ) : null}
-        {detail?.kind === 'kpi' && detail.title === 'Team score' ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ fontSize: 32, fontWeight: 950 }}>{score}</div>
-            <div style={{ color: 'var(--text2)' }}>Scoped team performance index from the summary API.</div>
-            <KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} />
-          </div>
-        ) : null}
-        {detail?.kind === 'chart' && detail.title === 'Project progress' ? (
-          <div style={{ display: 'grid', gap: 14 }}>
-            <ProjectsBreakdownTable rows={progressRows.map((p) => ({ name: p.name, done: p.done, remaining: p.remaining }))} />
-            <TaskSampleTable tasks={filteredTasks} empty="No tasks." />
-          </div>
-        ) : null}
-        {detail?.kind === 'chart' && detail.title === 'Assignments' ? (
-          <div style={{ display: 'grid', gap: 14 }}>
-            <AssignmentsBreakdownTable rows={assignments.map((a) => ({ name: a.name, active: a.active, overdue: a.overdue, done: a.done }))} />
-            <TaskSampleTable tasks={filteredTasks} empty="No tasks." />
-          </div>
-        ) : null}
-        {detail?.kind === 'chart' && detail.title === 'Deadlines' ? (
-          <div style={{ display: 'grid', gap: 14 }}>
-            <StatusMiniChart byStatus={byFromTasks} />
-            <PriorityBreakdown byPriority={byPriority} />
-            <TaskSampleTable tasks={filteredTasks} empty="No tasks." />
-          </div>
-        ) : null}
-        {detail?.kind === 'chart' && detail.title === 'Status' ? (
-          <div style={{ display: 'grid', gap: 14 }}>
-            <StatusMiniChart byStatus={Object.keys(byStatus).length ? byStatus : byFromTasks} />
-            {canOpenAdvancedDetails ? <TaskSampleTable tasks={filteredTasks} empty="No tasks." /> : null}
-          </div>
-        ) : null}
+      <div className="pageHeaderCard"><div className="pageHeaderCardInner"><div className="pageHeaderCardLeft"><div className="pageHeaderCardTitle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>JecZone AI</div><div className="pageHeaderCardSub">AI-powered project management hub. View portfolio overview, Gantt timelines, resource allocation, and get AI-assisted task insights.</div><div className="pageHeaderCardMeta"><span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤖</span> AI insights</span><span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Portfolio overview</span><span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗓️</span> Gantt timelines</span></div></div></div></div>
+      <div className="card"><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}><div><h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Jeczone Project Management</h2><div style={{ color: 'var(--text2)', marginTop: 4 }}>Portfolio overview, gantt, and resources.</div></div><div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', justifyContent: 'flex-end' }}><label className="label" style={{ margin: 0 }}>Project<div style={{ minWidth: 220 }}><Select value={projectId} onChange={setProjectId} options={[{ value: 'all', label: 'All projects' }, ...projects.map(p => ({ value: p.id, label: p.name }))]} /></div></label></div></div><div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>{(['overview','projects','gantt','resources'] as Tab[]).map((t) => <button key={t} className={`btn ${tab === t ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px' }} onClick={() => setTab(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}<button className={`btn ${tab === 'ai' ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab('ai')}>🤖 AI Assistant</button></div></div>
+      {tab === 'overview' ? <><div className="grid4"><button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}><div className="miniLabel">Total tasks</div><div className="miniValue">{total}</div></button><button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}><div className="miniLabel">Completion</div><div className="miniValue">{completionRate}%</div></button><button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}><div className="miniLabel">Overdue</div><div className="miniValue" style={{ color: 'rgba(239, 68, 68, 0.92)' }}>{overdue}</div></button><button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}><div className="miniLabel">Team score</div><div className="miniValue">{score}</div></button></div>
+        <div className="grid2"><div className="jeczoneChartFrame"><ChartCard title="Project progress" subtitle="Completion per project." right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Project progress', 'chart')}>Details</button>}><div role="button" tabIndex={0} style={{ minHeight: 320, cursor: 'pointer' }} onClick={() => openDetail('Project progress', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Project progress', 'chart') : null)}>{tasksQ.isLoading ? <div style={{ height: 320, color: 'var(--text2)' }}>Loading…</div> : null}{!tasksQ.isLoading && filteredTasks.length === 0 ? <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--text2)', textAlign: 'center', padding: 18 }}><div><div style={{ fontWeight: 900 }}>No tasks yet</div><div style={{ marginTop: 6 }}>Create and assign tasks to populate Jeczone insights.</div></div></div> : <ProjectProgressChart rows={progressRows.map((p) => ({ name: p.name, done: p.done, remaining: p.remaining }))} />}</div></ChartCard></div>
+        <div className="jeczoneChartFrame"><ChartCard title="Assignments" subtitle="Active/overdue/done by assignee." right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Assignments', 'chart')}>Details</button>}><div role="button" tabIndex={0} style={{ minHeight: 320, cursor: 'pointer' }} onClick={() => openDetail('Assignments', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Assignments', 'chart') : null)}>{tasksQ.isLoading ? <div style={{ height: 320, color: 'var(--text2)' }}>Loading…</div> : null}{!tasksQ.isLoading && filteredTasks.length === 0 ? <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--text2)' }}>No assignments yet.</div> : <AssignmentsChart rows={assignments.map((a) => ({ name: a.name, active: a.active, overdue: a.overdue, done: a.done }))} />}</div></ChartCard></div></div>
+        <div className="grid2"><div className="jeczoneChartFrame"><ChartCard title="Deadlines" subtitle="Next 7 days due vs overdue." right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Deadlines', 'chart')}>Details</button>}><div role="button" tabIndex={0} style={{ minHeight: 320, cursor: 'pointer' }} onClick={() => openDetail('Deadlines', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Deadlines', 'chart') : null)}><DeadlinesTrendChart fillHeight points={deadlines} /></div></ChartCard></div><div className="jeczoneChartFrame"><ChartCard title="Status" subtitle="Distribution for selected scope." right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Status', 'chart')}>Details</button>}><div role="button" tabIndex={0} style={{ minHeight: 320, cursor: 'pointer' }} onClick={() => openDetail('Status', 'chart')} onKeyDown={(e) => (e.key === 'Enter' ? openDetail('Status', 'chart') : null)}><StatusBarChart fillHeight byStatus={byStatus} /></div></ChartCard></div></div></> : null}
+      {tab === 'projects' ? <div className="card"><h3 style={{ margin: 0, marginBottom: 12 }}>Projects</h3><div className="projectGrid">{projectCards.map((p) => <button key={p.id} type="button" className="projectCard" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => setProjectModalId(p.id)}><div className="projectDot" style={{ background: p.color || 'rgba(244,202,87,0.9)' }} /><div style={{ minWidth: 0, width: '100%' }}><div className="projectName">{p.name}</div><div className="projectDesc">{p.total} tasks · {p.progress}% complete</div></div></button>)}</div></div> : null}
+      {tab === 'gantt' ? <div className="card"><h3 style={{ margin: 0, marginBottom: 12 }}>Gantt (by due date)</h3><div style={{ color: 'var(--text2)', marginBottom: 12 }}>Shows upcoming tasks (sorted by due date). Timeline is simplified for MVP.</div><div style={{ display: 'grid', gap: 10 }}>{ganttRows.map((t) => <div key={t.id} className="miniCard" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}><div style={{ minWidth: 0 }}><div style={{ fontWeight: 900, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div><div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{t.category_name ? `${t.category_name} · ` : ''}{t.assigned_to_name || '—'} · due {new Date(t.due_date as string).toLocaleDateString()}</div></div><div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}><span className="pill pillMuted">{t.status}</span><span className="pill">{t.days >= 0 ? `${t.days}d` : `${Math.abs(t.days)}d late`}</span></div></div>)}{!tasksQ.isLoading && ganttRows.length === 0 ? <div style={{ color: 'var(--text2)' }}>No dated tasks found.</div> : null}</div></div> : null}
+      {tab === 'resources' ? <div className="card"><h3 style={{ margin: 0, marginBottom: 12 }}>Resources</h3><div style={{ color: 'var(--text2)', marginBottom: 12 }}>Workload and performance from the leaderboard.</div>{perfQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}{perfQ.isError ? <div className="alert alertError">Failed to load resources.</div> : null}<div style={{ display: 'grid', gap: 10 }}>{(perf?.assigneeLeaderboard || []).slice(0, 12).map((u) => <button key={u.userId} type="button" className="miniCard miniLink" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', width: '100%', textAlign: 'left' }} onClick={() => setResourcePick(u.userId)}><div style={{ minWidth: 0 }}><div style={{ fontWeight: 900, letterSpacing: '-0.2px' }}>{u.name}</div><div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{u.active} active tasks</div></div><span className="pill">{u.performanceScore} score</span></button>)}</div></div> : null}
+      {tab === 'ai' ? <AiAssistant /> : null}
+      <Modal title={detail?.title || 'Details'} open={!!detail} wide={detail?.kind === 'chart'} onClose={() => setDetail(null)} footer={<div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}><button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => { setDetail(null); navigate('/app/analytics') }}>Analytics</button><button type="button" className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} onClick={() => { setDetail(null); navigate('/app/tasks') }}>Open tasks</button></div>}>
+        {detail?.kind === 'chart' && detail.title === 'Details limited' ? <div style={{ color: 'var(--text2)', lineHeight: 1.7 }}>Your role can view chart summaries, but full drill-down detail is available for supervisors and above.</div> : null}
+        {detail?.kind === 'kpi' && detail.title === 'Total tasks' ? <div style={{ display: 'grid', gap: 12 }}><div style={{ color: 'var(--text2)' }}>All tasks in scope for the selected project filter (API summary).</div><KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} /><TaskSampleTable tasks={filteredTasks} empty="No tasks." /></div> : null}
+        {detail?.kind === 'kpi' && detail.title === 'Completion rate' ? <div style={{ display: 'grid', gap: 12 }}><div style={{ color: 'var(--text2)' }}>{completionRate}% of scoped tasks are marked completed ({done}/{total}).</div><KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} /><TaskSampleTable tasks={filteredTasks.filter((t) => t.status === 'completed' || t.status === 'manager_approved')} empty="No completed tasks." /></div> : null}
+        {detail?.kind === 'kpi' && detail.title === 'Overdue' ? <div style={{ display: 'grid', gap: 12 }}><KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} /><TaskSampleTable tasks={filteredTasks.filter((t) => t.status === 'overdue')} empty="No overdue tasks in this filter." /></div> : null}
+        {detail?.kind === 'kpi' && detail.title === 'Team score' ? <div style={{ display: 'grid', gap: 12 }}><div style={{ fontSize: 32, fontWeight: 950 }}>{score}</div><div style={{ color: 'var(--text2)' }}>Scoped team performance index from the summary API.</div><KpiStrip total={total} inProgress={inProgress} completed={done} overdue={overdue} /></div> : null}
+        {detail?.kind === 'chart' && detail.title === 'Project progress' ? <div style={{ display: 'grid', gap: 14 }}><ProjectsBreakdownTable rows={progressRows.map((p) => ({ name: p.name, done: p.done, remaining: p.remaining }))} /><TaskSampleTable tasks={filteredTasks} empty="No tasks." /></div> : null}
+        {detail?.kind === 'chart' && detail.title === 'Assignments' ? <div style={{ display: 'grid', gap: 14 }}><AssignmentsBreakdownTable rows={assignments.map((a) => ({ name: a.name, active: a.active, overdue: a.overdue, done: a.done }))} /><TaskSampleTable tasks={filteredTasks} empty="No tasks." /></div> : null}
+        {detail?.kind === 'chart' && detail.title === 'Deadlines' ? <div style={{ display: 'grid', gap: 14 }}><StatusMiniChart byStatus={byFromTasks} /><PriorityBreakdown byPriority={byPriority} /><TaskSampleTable tasks={filteredTasks} empty="No tasks." /></div> : null}
+        {detail?.kind === 'chart' && detail.title === 'Status' ? <div style={{ display: 'grid', gap: 14 }}><StatusMiniChart byStatus={Object.keys(byStatus).length ? byStatus : byFromTasks} />{canOpenAdvancedDetails ? <TaskSampleTable tasks={filteredTasks} empty="No tasks." /> : null}</div> : null}
       </Modal>
-
       <EmployeeDetailModal userId={resourcePick} onClose={() => setResourcePick(null)} />
-
-      <ProjectDetailModal
-        projectId={projectModalId}
-        onClose={() => setProjectModalId(null)}
-        onOpenTasks={() => {
-          setProjectModalId(null)
-          navigate('/app/tasks')
-        }}
-      />
-
+      <ProjectDetailModal projectId={projectModalId} onClose={() => setProjectModalId(null)} onOpenTasks={() => { setProjectModalId(null); navigate('/app/tasks') }} />
     </div>
   )
 }
