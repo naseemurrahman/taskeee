@@ -1,0 +1,230 @@
+/* P5 Wow UI — product-wide polish from marketing to logs */
+:root {
+  --wow-gold: #e2ab41;
+  --wow-gold-2: #f8d878;
+  --wow-violet: #8b5cf6;
+  --wow-cyan: #38bdf8;
+  --wow-green: #22c55e;
+  --wow-red: #ef4444;
+  --wow-radius: 26px;
+  --wow-radius-sm: 16px;
+  --wow-blur: blur(24px) saturate(145%);
+  --wow-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.09);
+  --wow-shadow-soft: 0 18px 54px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.07);
+  --wow-border: rgba(255,255,255,.145);
+  --wow-panel: linear-gradient(145deg, rgba(255,255,255,.115), rgba(255,255,255,.038));
+  --wow-panel-2: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.055));
+}
+
+[data-theme='light'], .appShellV4Light {
+  --wow-border: rgba(15,23,42,.11);
+  --wow-shadow: 0 28px 80px rgba(30,41,59,.12), inset 0 1px 0 rgba(255,255,255,.86);
+  --wow-shadow-soft: 0 18px 42px rgba(30,41,59,.10), inset 0 1px 0 rgba(255,255,255,.78);
+  --wow-panel: linear-gradient(145deg, rgba(255,255,255,.92), rgba(248,250,252,.72));
+  --wow-panel-2: linear-gradient(145deg, rgba(255,255,255,.98), rgba(248,250,252,.82));
+}
+
+html { scroll-behavior: smooth; }
+body {
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+}
+
+::selection { background: rgba(226,171,65,.34); color: var(--text); }
+* { scrollbar-width: thin; scrollbar-color: rgba(226,171,65,.45) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(226,171,65,.55), rgba(139,92,246,.42)); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* Marketing/public pages */
+.landingPage, .marketingPage, .publicPage, .homePage, .authPage, .signinPage, .signupPage {
+  background:
+    radial-gradient(circle at 12% 6%, rgba(226,171,65,.22), transparent 28%),
+    radial-gradient(circle at 88% 10%, rgba(139,92,246,.20), transparent 32%),
+    radial-gradient(circle at 52% 90%, rgba(56,189,248,.13), transparent 34%),
+    var(--bg) !important;
+}
+.hero, .heroCard, .landingHero, .marketingHero {
+  border-radius: 34px !important;
+  background: var(--wow-panel-2) !important;
+  border: 1px solid var(--wow-border) !important;
+  box-shadow: var(--wow-shadow) !important;
+  backdrop-filter: var(--wow-blur);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before, .heroCard::before, .landingHero::before, .marketingHero::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(248,216,120,.24), transparent 22%),
+    radial-gradient(circle at 82% 0%, rgba(139,92,246,.22), transparent 26%),
+    linear-gradient(120deg, rgba(255,255,255,.12), transparent 45%);
+  pointer-events: none;
+}
+
+/* App shell */
+.appShellV4 .mainV4 {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(226,171,65,.18), transparent 30%),
+    radial-gradient(circle at 95% 4%, rgba(139,92,246,.17), transparent 33%),
+    radial-gradient(circle at 64% 100%, rgba(56,189,248,.10), transparent 36%),
+    linear-gradient(180deg, rgba(255,255,255,.024), transparent 420px),
+    var(--bg) !important;
+}
+.appShellV4Light .mainV4 {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(226,171,65,.20), transparent 30%),
+    radial-gradient(circle at 95% 4%, rgba(139,92,246,.13), transparent 33%),
+    radial-gradient(circle at 64% 100%, rgba(56,189,248,.10), transparent 36%),
+    linear-gradient(180deg, rgba(255,255,255,.66), transparent 420px),
+    #f7f8fc !important;
+}
+.sidebarV4, .topbarV4 {
+  backdrop-filter: var(--wow-blur);
+  border-color: var(--wow-border) !important;
+}
+.sidebarV4LogoMark {
+  box-shadow: 0 12px 34px rgba(226,171,65,.30), inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+.navItemV4 {
+  border-radius: 16px !important;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.navItemV4:hover { transform: translateX(2px); background: rgba(226,171,65,.08) !important; }
+.navItemV4Active { box-shadow: 0 12px 32px rgba(226,171,65,.18), inset 0 1px 0 rgba(255,255,255,.14) !important; }
+.topbarV4SearchWrap, .topbarMetricChip, .topbarThemeBtn, .topbarLangBtn, .topbarV4ProfileBtn {
+  border: 1px solid var(--wow-border) !important;
+  background: var(--wow-panel) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.10) !important;
+}
+
+/* Universal page surfaces */
+.pageHeaderCard, .chartV3, .miniCard, .modalCard, .drawerPanel, .tasksTableWrap, .profileDropdown, .topbarV4SearchDropdown,
+.card, .panel, .sectionCard, .settingsCard, .billingCard, .reportCard, .auditCard, .logCard, .tableWrap, .formCard {
+  background: var(--wow-panel) !important;
+  border: 1px solid var(--wow-border) !important;
+  box-shadow: var(--wow-shadow-soft) !important;
+  backdrop-filter: var(--wow-blur);
+}
+.pageHeaderCard {
+  border-radius: 32px !important;
+  box-shadow: var(--wow-shadow) !important;
+}
+.pageHeaderCardTitle {
+  font-size: clamp(24px, 2.15vw, 36px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -1.15px !important;
+  background: linear-gradient(92deg, var(--text), var(--wow-gold-2), var(--text));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.pageHeaderCardSub { font-size: 13.5px !important; opacity: .92; }
+.pageHeaderCardMeta { gap: 8px !important; }
+.pageHeaderCardTag, .pill, .roleBadge, .navItemV4Badge {
+  border: 1px solid var(--wow-border) !important;
+  background: rgba(255,255,255,.07) !important;
+}
+
+/* Tables and logs */
+table { border-collapse: separate !important; border-spacing: 0 8px !important; }
+thead th {
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  letter-spacing: .085em !important;
+}
+tbody tr {
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 36px rgba(0,0,0,.12);
+}
+tbody td {
+  background: rgba(255,255,255,.035);
+  border-top: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+tbody td:first-child { border-left: 1px solid rgba(255,255,255,.06); border-radius: 16px 0 0 16px; }
+tbody td:last-child { border-right: 1px solid rgba(255,255,255,.06); border-radius: 0 16px 16px 0; }
+.logLine, .auditLine, pre, code {
+  border-radius: 14px;
+  border: 1px solid var(--wow-border);
+  background: rgba(2,6,23,.38);
+}
+.appShellV4Light .logLine, .appShellV4Light .auditLine, .appShellV4Light pre, .appShellV4Light code {
+  background: rgba(248,250,252,.78);
+}
+
+/* Forms */
+input, textarea, select, .selectTrigger, .inputInner, .textareaInner {
+  border-radius: 15px !important;
+  border-color: var(--wow-border) !important;
+  background: rgba(255,255,255,.055) !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease, transform .16s ease;
+}
+.appShellV4Light input, .appShellV4Light textarea, .appShellV4Light select, .appShellV4Light .selectTrigger, .appShellV4Light .inputInner, .appShellV4Light .textareaInner {
+  background: rgba(255,255,255,.84) !important;
+}
+input:focus, textarea:focus, select:focus, .selectTrigger:focus-within, .inputInner:focus, .textareaInner:focus {
+  border-color: rgba(226,171,65,.62) !important;
+  box-shadow: 0 0 0 4px rgba(226,171,65,.14) !important;
+  outline: none !important;
+}
+
+/* Buttons */
+button, .btn, .btnPrimary, .btnGhost, .btnSecondary {
+  border-radius: 15px !important;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+}
+button:hover:not(:disabled), .btn:hover:not(:disabled), .btnPrimary:hover:not(:disabled), .btnGhost:hover:not(:disabled), .btnSecondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btnPrimary {
+  background: linear-gradient(135deg, var(--wow-gold), var(--wow-gold-2)) !important;
+  color: #17120a !important;
+  box-shadow: 0 18px 40px rgba(226,171,65,.28), inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+.btnGhost, .btnSecondary {
+  border: 1px solid var(--wow-border) !important;
+  background: rgba(255,255,255,.055) !important;
+}
+
+/* KPI/charts/cards */
+.dashKpiStrip > *, .grid4 > *, .grid3 > *, .grid2 > *, .chartV3, .miniCard {
+  transform-origin: center;
+}
+.dashKpiStrip > *:hover, .grid4 > *:hover, .grid3 > *:hover, .grid2 > .chartV3:hover, .chartV3:hover, .miniCard:hover {
+  border-color: rgba(226,171,65,.30) !important;
+}
+.miniValue, .kpiValue, .statValue {
+  letter-spacing: -1px;
+}
+
+/* AI layer visual richness */
+.aiRiskBadge {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 8px 20px rgba(0,0,0,.10);
+}
+.aiRiskBadgeCritical, .aiRiskBadgeHigh {
+  animation: wowPulse 2.6s ease-in-out infinite;
+}
+@keyframes wowPulse {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 0 0 rgba(249,115,22,0); }
+  50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 0 22px rgba(249,115,22,.22); }
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .contentV4 { padding-inline: 12px !important; }
+  .pageHeaderCard { border-radius: 24px !important; }
+  .pageHeaderCardInner { padding: 18px !important; }
+  .pageHeaderCardTitle { font-size: 24px !important; }
+  .topbarMetricChip { display: none !important; }
+  table { min-width: 760px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
