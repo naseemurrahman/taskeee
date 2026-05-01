@@ -59,7 +59,7 @@ export function Select({
     const mobile = vw <= 640
     const minWidth = Math.min(220, vw - pad * 2)
     const maxWidth = Math.min(searchable ? 360 : 320, vw - pad * 2)
-    const width = mobile ? vw - pad * 2 : clamp(rect.width, minWidth, maxWidth)
+    const width = mobile ? vw - pad * 2 : clamp(Math.max(rect.width, minWidth), minWidth, maxWidth)
     const left = mobile ? pad : clamp(rect.left, pad, vw - width - pad)
     const spaceBelow = vh - rect.bottom - pad
     const spaceAbove = rect.top - pad
@@ -68,7 +68,16 @@ export function Select({
     const maxHeight = clamp(available - 8, 160, mobile ? 420 : 320)
     setOpenUp(shouldUp)
     setListMaxHeight(maxHeight)
-    setMenuStyle({ position: 'fixed', zIndex: 100600, left, top: shouldUp ? rect.top - 8 : rect.bottom + 8, width, maxWidth: width, transform: shouldUp ? 'translateY(-100%)' : 'none' })
+    setMenuStyle({
+      position: 'fixed',
+      zIndex: 100800,
+      left,
+      top: shouldUp ? rect.top - 8 : rect.bottom + 8,
+      width,
+      minWidth: width,
+      maxWidth: width,
+      transform: shouldUp ? 'translateY(-100%)' : 'none',
+    })
   }, [preferOpenUp, searchable])
 
   useEffect(() => {
@@ -125,20 +134,20 @@ export function Select({
   }
 
   const menu = open ? (
-    <div ref={dropdownRef} className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox" style={menuStyle}>
+    <div ref={dropdownRef} className={`selectV3PortalDropdown ${openUp ? 'selectV3PortalDropdownUp' : ''}`.trim()} role="listbox" style={menuStyle}>
       {searchable && (
-        <div className="selectV3SearchWrap">
+        <div className="selectV3SearchWrap selectV3PortalSearchWrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input ref={inputRef} className="selectV3SearchInput" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" onClick={e => e.stopPropagation()} />
         </div>
       )}
-      <div className="selectV3List" style={{ maxHeight: listMaxHeight }}>
+      <div className="selectV3PortalList" style={{ maxHeight: listMaxHeight }}>
         {filtered.length === 0 ? (
           <div className="selectV3Empty">No options found</div>
         ) : filtered.map(opt => (
-          <div key={opt.value} className={`selectV3Option ${opt.value === value ? 'selectV3OptionActive' : ''} ${opt.disabled ? 'selectV3OptionDisabled' : ''}`} onClick={() => handleSelect(opt)} role="option" aria-selected={opt.value === value}>
+          <div key={opt.value} className={`selectV3PortalOption ${opt.value === value ? 'selectV3PortalOptionActive' : ''} ${opt.disabled ? 'selectV3PortalOptionDisabled' : ''}`} onClick={() => handleSelect(opt)} role="option" aria-selected={opt.value === value}>
             {opt.icon && <span className="selectV3OptionIcon">{opt.icon}</span>}
             {opt.color && <span className="selectV3ColorDot" style={{ background: opt.color }} />}
             <div className="selectV3OptionText">
