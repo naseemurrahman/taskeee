@@ -57,9 +57,10 @@ export function Select({
     const vh = window.innerHeight
     const pad = vw <= 640 ? 8 : 12
     const mobile = vw <= 640
-    const minWidth = Math.min(220, vw - pad * 2)
-    const maxWidth = Math.min(searchable ? 360 : 320, vw - pad * 2)
-    const width = mobile ? vw - pad * 2 : clamp(rect.width, minWidth, maxWidth)
+    const triggerWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : 220
+    const normalWidth = searchable ? 320 : 260
+    const desktopWidth = Math.min(Math.max(220, normalWidth, Math.min(triggerWidth, 320)), vw - pad * 2)
+    const width = mobile ? vw - pad * 2 : desktopWidth
     const left = mobile ? pad : clamp(rect.left, pad, vw - width - pad)
     const spaceBelow = vh - rect.bottom - pad
     const spaceAbove = rect.top - pad
@@ -68,7 +69,16 @@ export function Select({
     const maxHeight = clamp(available - 8, 160, mobile ? 420 : 320)
     setOpenUp(shouldUp)
     setListMaxHeight(maxHeight)
-    setMenuStyle({ position: 'fixed', zIndex: 100600, left, top: shouldUp ? rect.top - 8 : rect.bottom + 8, width, maxWidth: width, transform: shouldUp ? 'translateY(-100%)' : 'none' })
+    setMenuStyle({
+      position: 'fixed',
+      zIndex: 100600,
+      left,
+      top: shouldUp ? rect.top - 8 : rect.bottom + 8,
+      width,
+      minWidth: width,
+      maxWidth: width,
+      transform: shouldUp ? 'translateY(-100%)' : 'none',
+    })
   }, [preferOpenUp, searchable])
 
   useEffect(() => {
