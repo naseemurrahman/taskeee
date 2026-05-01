@@ -1,9 +1,10 @@
 /* P10 UI patch */
 
 /* Shared Select uses a safe portal with inline fixed coordinates.
-   Do not override position/top/left here, otherwise menus get clipped inside cards. */
+   Width is intentionally forced here because previous measured trigger widths leaked page/card width. */
 .selectV3Wrap{position:relative!important;}
-.selectV3Dropdown{border-radius:16px!important;border:1px solid rgba(255,255,255,.16)!important;background:#101522!important;color:#f8fafc!important;box-shadow:0 24px 60px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:none!important;overflow:hidden!important;}
+.selectV3Dropdown{width:260px!important;min-width:220px!important;max-width:320px!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.16)!important;background:#101522!important;color:#f8fafc!important;box-shadow:0 24px 60px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:none!important;overflow:hidden!important;}
+.selectV3Dropdown:has(.selectV3SearchWrap){width:320px!important;max-width:320px!important;}
 .selectV3DropdownUp{transform:translateY(-100%)!important;}
 .selectV3List{overflow-y:auto!important;padding:6px!important;}
 .selectV3Option{min-height:40px!important;margin:2px 0!important;border-radius:11px!important;}
@@ -12,6 +13,7 @@
 .appShellV4Light .selectV3Dropdown,.appShellLight .selectV3Dropdown,[data-theme='light'] .selectV3Dropdown{background:#fff!important;color:#0f172a!important;border-color:rgba(15,23,42,.18)!important;box-shadow:0 22px 54px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.96)!important;}
 .appShellV4Light .selectV3SearchWrap,.appShellLight .selectV3SearchWrap,[data-theme='light'] .selectV3SearchWrap{background:#fff!important;}
 .appShellV4Light .selectV3SearchInput,.appShellLight .selectV3SearchInput,[data-theme='light'] .selectV3SearchInput{color:#0f172a!important;}
+@media(max-width:640px){.selectV3Dropdown,.selectV3Dropdown:has(.selectV3SearchWrap){left:8px!important;right:8px!important;width:auto!important;min-width:0!important;max-width:none!important;}}
 
 /* Stronger light-theme borders. */
 .appShellV4Light .card,.appShellV4Light .miniCard,.appShellV4Light .chartV3,.appShellV4Light .chartCardV2,.appShellV4Light .pageHeaderCard,.appShellV4Light .projectCard,.appShellV4Light .p4BoardColumn,.appShellV4Light .p4BoardCard,.appShellV4Light .tasksTableWrap,.appShellV4Light .tasksTable tbody tr,.appShellLight .card,.appShellLight .miniCard,.appShellLight .chartV3,.appShellLight .chartCardV2,.appShellLight .pageHeaderCard,.appShellLight .projectCard,.appShellLight .p4BoardColumn,.appShellLight .p4BoardCard,.appShellLight .tasksTableWrap,.appShellLight .tasksTable tbody tr,[data-theme='light'] .card,[data-theme='light'] .miniCard,[data-theme='light'] .chartV3,[data-theme='light'] .chartCardV2,[data-theme='light'] .pageHeaderCard,[data-theme='light'] .projectCard,[data-theme='light'] .p4BoardColumn,[data-theme='light'] .p4BoardCard,[data-theme='light'] .tasksTableWrap,[data-theme='light'] .tasksTable tbody tr{border-color:rgba(15,23,42,.20)!important;box-shadow:0 16px 38px rgba(15,23,42,.08)!important;}
@@ -33,13 +35,13 @@
 .taskFiltersRow .btn{min-height:36px!important;}
 @media(min-width:900px){.chartV3:has(.taskFiltersRow){grid-template-rows:auto auto!important}}
 
-/* Dashboard Weekly Velocity: compact, readable, no stretched/compressed label text. */
-.card:has(svg[viewBox^='0 0 280']){gap:10px!important;}
-.card:has(svg[viewBox^='0 0 280'])>div:last-child{overflow:hidden!important;}
-.card svg[viewBox^='0 0 280']{height:118px!important;max-height:118px!important;display:block!important;margin-top:2px!important;}
-.card svg[viewBox^='0 0 280'] text{display:none!important;}
-.card svg[viewBox^='0 0 280'] rect{rx:3px!important;}
-.card:has(svg[viewBox^='0 0 280']) div[style*='marginTop: 6']{margin-top:2px!important;}
+/* Dashboard Weekly Velocity: remove the distorted SVG label layer and normalize the bars. */
+.card svg[viewBox^='0 0 280'],div[style*='background: var(--bg1)'] svg[viewBox^='0 0 280']{height:116px!important;max-height:116px!important;display:block!important;margin-top:2px!important;overflow:hidden!important;}
+.card svg[viewBox^='0 0 280'] text,div[style*='background: var(--bg1)'] svg[viewBox^='0 0 280'] text{display:none!important;opacity:0!important;font-size:0!important;}
+.card svg[viewBox^='0 0 280'] rect,div[style*='background: var(--bg1)'] svg[viewBox^='0 0 280'] rect{rx:3px!important;transform-box:fill-box!important;}
+.card:has(svg[viewBox^='0 0 280']),div[style*='background: var(--bg1)']:has(svg[viewBox^='0 0 280']){gap:10px!important;}
+.card:has(svg[viewBox^='0 0 280'])>div:last-child,div[style*='background: var(--bg1)']:has(svg[viewBox^='0 0 280'])>div:last-child{overflow:hidden!important;}
+.card:has(svg[viewBox^='0 0 280']) div[style*='marginTop: 6'],div[style*='background: var(--bg1)']:has(svg[viewBox^='0 0 280']) div[style*='marginTop: 6']{margin-top:2px!important;}
 
 /* Chart cards should have visible plotting area without forcing every card/filter panel to be tall. */
 .chartCardV2Body{min-height:260px;}
