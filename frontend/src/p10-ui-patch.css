@@ -1,22 +1,47 @@
 /* P10 UI patch */
+
+/* Shared Select uses a safe portal with inline fixed coordinates.
+   Do not override position/top/left here, otherwise menus get clipped inside cards. */
 .selectV3Wrap{position:relative!important;}
-.selectV3Dropdown{position:absolute!important;top:calc(100% + 8px)!important;left:0!important;right:auto!important;width:max(100%,min(320px,calc(100vw - 32px)))!important;max-width:min(360px,calc(100vw - 32px))!important;min-width:min(220px,calc(100vw - 32px))!important;max-height:min(360px,62vh)!important;transform:none!important;z-index:100600!important;overflow:hidden!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.16)!important;background:#101522!important;color:#f8fafc!important;box-shadow:0 24px 60px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:none!important;}
-.selectV3DropdownUp{top:auto!important;bottom:calc(100% + 8px)!important;}
-.selectV3List{max-height:min(300px,54vh)!important;overflow-y:auto!important;padding:6px!important;}
+.selectV3Dropdown{border-radius:16px!important;border:1px solid rgba(255,255,255,.16)!important;background:#101522!important;color:#f8fafc!important;box-shadow:0 24px 60px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:none!important;overflow:hidden!important;}
+.selectV3DropdownUp{transform:translateY(-100%)!important;}
+.selectV3List{overflow-y:auto!important;padding:6px!important;}
 .selectV3Option{min-height:40px!important;margin:2px 0!important;border-radius:11px!important;}
 .selectV3SearchWrap{background:#101522!important;}
 .selectV3SearchInput{color:#f8fafc!important;}
-.appShellV4Light .selectV3Dropdown,.appShellLight .selectV3Dropdown,[data-theme='light'] .selectV3Dropdown{background:#fff!important;color:#0f172a!important;border-color:rgba(15,23,42,.16)!important;box-shadow:0 22px 54px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.96)!important;}
+.appShellV4Light .selectV3Dropdown,.appShellLight .selectV3Dropdown,[data-theme='light'] .selectV3Dropdown{background:#fff!important;color:#0f172a!important;border-color:rgba(15,23,42,.18)!important;box-shadow:0 22px 54px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.96)!important;}
 .appShellV4Light .selectV3SearchWrap,.appShellLight .selectV3SearchWrap,[data-theme='light'] .selectV3SearchWrap{background:#fff!important;}
 .appShellV4Light .selectV3SearchInput,.appShellLight .selectV3SearchInput,[data-theme='light'] .selectV3SearchInput{color:#0f172a!important;}
-.taskFiltersRow .selectV3Dropdown,.card .selectV3Dropdown,.chartV3 .selectV3Dropdown,.pageHeaderCard .selectV3Dropdown{width:max(100%,240px)!important;max-width:320px!important;}
-@media(max-width:640px){.selectV3Dropdown{position:fixed!important;left:8px!important;right:8px!important;top:auto!important;bottom:12px!important;width:auto!important;max-width:none!important;max-height:min(420px,70vh)!important}.selectV3DropdownUp{bottom:12px!important}}
-.appShellV4Light .card,.appShellV4Light .miniCard,.appShellV4Light .chartV3,.appShellV4Light .chartCardV2,.appShellV4Light .pageHeaderCard,.appShellV4Light .projectCard,.appShellV4Light .p4BoardColumn,.appShellV4Light .p4BoardCard,.appShellLight .card,.appShellLight .miniCard,.appShellLight .chartV3,.appShellLight .chartCardV2,.appShellLight .pageHeaderCard,.appShellLight .projectCard,.appShellLight .p4BoardColumn,.appShellLight .p4BoardCard,[data-theme='light'] .card,[data-theme='light'] .miniCard,[data-theme='light'] .chartV3,[data-theme='light'] .chartCardV2,[data-theme='light'] .pageHeaderCard,[data-theme='light'] .projectCard,[data-theme='light'] .p4BoardColumn,[data-theme='light'] .p4BoardCard{border-color:rgba(15,23,42,.18)!important;box-shadow:0 16px 38px rgba(15,23,42,.08)!important;}
+
+/* Stronger light-theme borders. */
+.appShellV4Light .card,.appShellV4Light .miniCard,.appShellV4Light .chartV3,.appShellV4Light .chartCardV2,.appShellV4Light .pageHeaderCard,.appShellV4Light .projectCard,.appShellV4Light .p4BoardColumn,.appShellV4Light .p4BoardCard,.appShellV4Light .tasksTableWrap,.appShellV4Light .tasksTable tbody tr,.appShellLight .card,.appShellLight .miniCard,.appShellLight .chartV3,.appShellLight .chartCardV2,.appShellLight .pageHeaderCard,.appShellLight .projectCard,.appShellLight .p4BoardColumn,.appShellLight .p4BoardCard,.appShellLight .tasksTableWrap,.appShellLight .tasksTable tbody tr,[data-theme='light'] .card,[data-theme='light'] .miniCard,[data-theme='light'] .chartV3,[data-theme='light'] .chartCardV2,[data-theme='light'] .pageHeaderCard,[data-theme='light'] .projectCard,[data-theme='light'] .p4BoardColumn,[data-theme='light'] .p4BoardCard,[data-theme='light'] .tasksTableWrap,[data-theme='light'] .tasksTable tbody tr{border-color:rgba(15,23,42,.20)!important;box-shadow:0 16px 38px rgba(15,23,42,.08)!important;}
+.appShellV4Light .tasksTable tbody tr,[data-theme='light'] .tasksTable tbody tr{box-shadow:none!important;border-bottom:1px solid rgba(15,23,42,.14)!important;}
+
+/* Restore primary-color header line and keep it aligned inside card bounds. */
 .pageHeaderCard{position:relative!important;overflow:hidden!important;border-top-color:rgba(226,171,65,.35)!important;}
 .pageHeaderCard:before{content:''!important;position:absolute!important;top:0!important;left:0!important;right:0!important;height:3px!important;background:linear-gradient(90deg,#e2ab41,#f4ca57,rgba(226,171,65,.35))!important;opacity:1!important;z-index:1!important;border-radius:inherit inherit 0 0!important;}
 .pageHeaderCardInner{position:relative!important;z-index:2!important;}
-.card svg text{font-size:8.5px!important;font-weight:700!important;fill:var(--muted)!important;}
-.card svg[viewBox*='0 0 280']{max-height:140px!important;}
-.card svg text[text-anchor='middle']{font-size:7.5px!important;letter-spacing:.02em!important;}
-.chartCardV2Body,.chartV3{min-height:260px;}
+
+/* Remove Create Task button from Dashboard header only. Dashboard title icon is the grid SVG with rects. */
+.pageHeaderCard:has(.pageHeaderCardTitle svg rect) .pageHeaderCardInner>.btnPrimary{display:none!important;}
+
+/* Compact oversized filter/header cards. */
+.chartV3:has(.taskFiltersRow){min-height:0!important;padding:14px 16px!important;gap:12px!important;}
+.chartV3:has(.taskFiltersRow)>div:first-child{margin:0!important;min-height:0!important;}
+.taskFiltersRow{align-items:center!important;margin-top:4px!important;}
+.taskFiltersRow .inputWrap,.taskFiltersRow .selectV3Wrap{min-height:42px!important;}
+.taskFiltersRow .btn{min-height:36px!important;}
+@media(min-width:900px){.chartV3:has(.taskFiltersRow){grid-template-rows:auto auto!important}}
+
+/* Dashboard Weekly Velocity: compact, readable, no stretched/compressed label text. */
+.card:has(svg[viewBox^='0 0 280']){gap:10px!important;}
+.card:has(svg[viewBox^='0 0 280'])>div:last-child{overflow:hidden!important;}
+.card svg[viewBox^='0 0 280']{height:118px!important;max-height:118px!important;display:block!important;margin-top:2px!important;}
+.card svg[viewBox^='0 0 280'] text{display:none!important;}
+.card svg[viewBox^='0 0 280'] rect{rx:3px!important;}
+.card:has(svg[viewBox^='0 0 280']) div[style*='marginTop: 6']{margin-top:2px!important;}
+
+/* Chart cards should have visible plotting area without forcing every card/filter panel to be tall. */
+.chartCardV2Body{min-height:260px;}
+.analyticsPriorityCharts .chartV3,.jeczoneChartFrame,.jeczoneChartFrame .chartV3{min-height:300px!important;}
 .recharts-wrapper svg,.recharts-surface{overflow:visible!important;}
