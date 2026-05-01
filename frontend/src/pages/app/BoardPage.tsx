@@ -20,7 +20,7 @@ type Task = {
   message_count?: number
 }
 
-type WorkloadRow = { employee_id: string; open_tasks: number }
+type WorkloadRow = { employee_id: string; employee_name?: string; open_tasks: number }
 
 const COLUMNS = [
   { key: 'pending', label: 'To Do', color: '#f59e0b', icon: '○' },
@@ -67,6 +67,12 @@ function DueLabel({ iso }: { iso?: string | null }) {
   return <span style={{ fontSize: 10, fontWeight: 750, color }}>{label}</span>
 }
 
+function loadTone(load: number, avg: number) {
+  if (load <= Math.max(1, avg * 0.65)) return { label: 'Available', color: '#22c55e' }
+  if (load <= Math.max(3, avg * 1.15)) return { label: 'Balanced', color: '#8B5CF6' }
+  return { label: 'High load', color: '#f97316' }
+}
+
 export function BoardPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
@@ -76,11 +82,15 @@ export function BoardPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [boardError, setBoardError] = useState<string | null>(null)
+  const [focusMode, setFocusMode] = useState(false)
+  const [aiSort, setAiSort] = useState(true)
 
   const tasksQ = useQuery({ queryKey: ['tasks', 'board'], queryFn: () => fetchTasks(isEmployee), staleTime: 30_000, refetchInterval: 60_000 })
   const workloadQ = useQuery({ queryKey: ['analytics-workload', 'board'], queryFn: fetchWorkload, staleTime: 45_000 })
   const tasks = tasksQ.data || []
-  const loadByUser = useMemo(() => new Map((workloadQ.data || []).map(w => [w.employee_id, Number(w.open_tasks || 0)])), [workloadQ.data])
+  const workloadRows = workloadQ.data || []
+  const loadByUser = useMemo(() => new Map(workloadRows.map(w => [w.employee_id, Number(w.open_tasks || 0)])), [workloadRows])
+  const avgLoad = workloadRows.length ? workloadRows.reduce((s, w) => s + Number(w.open_tasks || 0), 0) / workloadRows.length : 0
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => patchStatus(id, status),
@@ -88,30 +98,90 @@ export function BoardPage() {
     onSettled: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) },
   })
 
+  const intelligence = useMemo(() => {
+    const scored = tasks.map(task => ({ task, signal: buildTaskSignal(task, loadByUser) }))
+    const risky = scored.filter(item => item.signal.needsAttention)
+    const topRisk = scored.slice().sort((a, b) => b.signal.score - a.signal.score).slice(0, 3)
+    const overloaded = workloadRows.slice().sort((a, b) => Number(b.open_tasks || 0) - Number(a.open_tasks || 0)).slice(0, 4)
+    const available = workloadRows.slice().sort((a, b) => Number(a.open_tasks || 0) - Number(b.open_tasks || 0)).slice(0, 4)
+    const suggestions = topRisk
+      .filter(item => item.task.assigned_to && item.signal.score >= 55)
+      .slice(0, 3)
+      .map((item, index) => {
+        const target = available[index % Math.max(available.length, 1)]
+        return {
+          task: item.task.title,
+          from: item.task.assigned_to_name || 'current owner',
+          to: target?.employee_name || 'lower-load teammate',
+          score: item.signal.score,
+          reason: item.signal.loadNote || item.signal.note,
+        }
+      })
+    return { scored, risky, topRisk, overloaded, available, suggestions }
+  }, [tasks, loadByUser, workloadRows])
+
+  const visibleTasks = useMemo(() => {
+    let rows = intelligence.scored
+    if (focusMode) rows = rows.filter(item => item.signal.needsAttention)
+    if (aiSort) rows = rows.slice().sort((a, b) => b.signal.score - a.signal.score)
+    return rows.map(item => item.task)
+  }, [aiSort, focusMode, intelligence.scored])
+
   const byCol = useMemo(() => {
     const map: Record<string, Task[]> = {}
     for (const col of COLUMNS) map[col.key] = []
-    for (const task of tasks) map[COLUMNS.find(c => c.key === task.status)?.key || 'pending'].push(task)
+    for (const task of visibleTasks) map[COLUMNS.find(c => c.key === task.status)?.key || 'pending'].push(task)
     return map
-  }, [tasks])
+  }, [visibleTasks])
 
-  const riskyCount = useMemo(() => tasks.filter(task => buildTaskSignal(task, loadByUser).needsAttention).length, [tasks, loadByUser])
+  const signalFor = (task: Task) => buildTaskSignal(task, loadByUser)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">Board</div>
-            <div className="pageHeaderCardSub">AI-assisted task board with risk, workload, and deadline signals.</div>
+            <div className="pageHeaderCardTitle">Intelligent Board</div>
+            <div className="pageHeaderCardSub">Focus Mode, AI prioritization, workload heatmap, and safe reassignment suggestions.</div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
-              {byCol.overdue?.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {byCol.overdue.length} overdue</span>}
-              {riskyCount > 0 && <span className="pageHeaderCardTag" style={{ color: '#f97316', background: 'rgba(249,115,22,0.10)', borderColor: 'rgba(249,115,22,0.24)' }}>AI: {riskyCount} need attention</span>}
+              {focusMode && <span className="pageHeaderCardTag" style={{ color: '#f97316', background: 'rgba(249,115,22,0.10)', borderColor: 'rgba(249,115,22,0.24)' }}>Focus: {visibleTasks.length} risk tasks</span>}
+              {intelligence.risky.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#f97316', background: 'rgba(249,115,22,0.10)', borderColor: 'rgba(249,115,22,0.24)' }}>AI: {intelligence.risky.length} need attention</span>}
               {!canDrag && <span className="pageHeaderCardTag" style={{ color: '#9ca3af' }}>Read-only view</span>}
             </div>
           </div>
           {canManage && <button className="btn btnPrimary" onClick={() => setCreateOpen(true)}>Create Task</button>}
+        </div>
+      </div>
+
+      <div className="chartV3" style={{ padding: 14, display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className={focusMode ? 'btn btnPrimary' : 'btn btnGhost'} onClick={() => setFocusMode(v => !v)}>Focus Mode</button>
+            <button type="button" className={aiSort ? 'btn btnPrimary' : 'btn btnGhost'} onClick={() => setAiSort(v => !v)}>AI priority sort</button>
+          </div>
+          <div style={{ color: 'var(--text2)', fontSize: 12, fontWeight: 750 }}>Avg workload: {avgLoad.toFixed(1)} open tasks/person</div>
+        </div>
+
+        <div className="grid3">
+          <div className="miniCard">
+            <div className="miniLabel">Highest risk</div>
+            <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+              {intelligence.topRisk.length === 0 ? <span style={{ color: 'var(--text2)', fontSize: 12 }}>No tasks yet.</span> : intelligence.topRisk.map(item => <div key={item.task.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}><span style={{ fontSize: 12, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.task.title}</span><span className={signalBadgeClass(item.signal.level)}>{item.signal.score}%</span></div>)}
+            </div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">Workload heatmap</div>
+            <div style={{ display: 'grid', gap: 7, marginTop: 8 }}>
+              {intelligence.overloaded.length === 0 ? <span style={{ color: 'var(--text2)', fontSize: 12 }}>No workload data yet.</span> : intelligence.overloaded.map(row => { const tone = loadTone(Number(row.open_tasks || 0), avgLoad); return <div key={row.employee_id} style={{ display: 'grid', gap: 4 }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, fontWeight: 800 }}><span>{row.employee_name || 'Team member'}</span><span style={{ color: tone.color }}>{row.open_tasks} open · {tone.label}</span></div><div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.min(100, Number(row.open_tasks || 0) * 10)}%`, background: tone.color }} /></div></div> })}
+            </div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">Smart reassignment suggestions</div>
+            <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+              {intelligence.suggestions.length === 0 ? <span style={{ color: 'var(--text2)', fontSize: 12 }}>No reassignment pressure detected.</span> : intelligence.suggestions.map((s, i) => <div key={`${s.task}-${i}`} style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.45 }}><strong style={{ color: 'var(--text)' }}>{s.task}</strong><br />Review {s.from} → {s.to}. {s.reason}</div>)}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -132,7 +202,7 @@ export function BoardPage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {colTasks.map(task => {
-                    const signal = buildTaskSignal(task, loadByUser)
+                    const signal = signalFor(task)
                     const pColor = PRIORITY_COLOR[task.priority || ''] || 'transparent'
                     return (
                       <div key={task.id} className="p4BoardCard" onClick={() => setSelectedTaskId(task.id)} style={{ padding: '12px', border: '1px solid var(--border)', position: 'relative', cursor: 'pointer' }}>
@@ -155,7 +225,7 @@ export function BoardPage() {
                       </div>
                     )
                   })}
-                  {colTasks.length === 0 && <div className="p4BoardDropEmpty" style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 14, color: 'var(--muted)', fontSize: 11, fontWeight: 700 }}>No tasks</div>}
+                  {colTasks.length === 0 && <div className="p4BoardDropEmpty" style={{ padding: '24px 12px', textAlign: 'center', border: `2px dashed ${col.color}28`, borderRadius: 14, color: 'var(--muted)', fontSize: 11, fontWeight: 700 }}>{focusMode ? 'No risk tasks' : 'No tasks'}</div>}
                 </div>
               </div>
             )
