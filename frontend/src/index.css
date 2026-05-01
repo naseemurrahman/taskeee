@@ -46,7 +46,7 @@
   --transition-bounce: 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   color-scheme: dark;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -603,7 +603,7 @@
 .appShellLight .boardCardTitle,
 .appShellLight .profileCardHead {
   color: #1a1d2e;
-  font-family: "Inter", "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 }
 .appShellLight .taskListBody {
   border-color: #e2e8f0;
@@ -4890,7 +4890,7 @@ button.projectCard {
 .credBoxRow:last-child { border-bottom: none; }
 .credBoxField { color: var(--text2); font-weight: 700; min-width: 80px; }
 .credBoxValue {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-weight: 900; font-size: 14px;
   background: rgba(0,0,0,0.2); padding: 3px 10px;
   border-radius: 7px; letter-spacing: 0.05em;
@@ -5005,32 +5005,39 @@ select.input option { background: #1a1d2e; color: white; }
 }
 
 .appShellV4Light {
-  --bg0:       #f5f3eb;
+  --bg0:       #f4f6fb;
   --bg1:       #ffffff;
-  --bg2:       #f0f2f7;
+  --bg2:       #f0f3f9;
   --surface:   #ffffff;
-  --surfaceUp: #fff7e0;
-  --border:    #e4e7ef;
-  --borderUp:  #d0d4e0;
-  --text:      #1a1d2e;
-  --text2:     #4b5368;
-  --muted:     #8892a4;
-  --brand:     #e2ab41;
-  --brandDim:  rgba(226, 171, 65,0.12);
-  --brandBorder: rgba(226, 171, 65,0.35);
+  --surfaceUp: #fffbf0;
+  --border:    #e2e8f0;
+  --borderUp:  #cbd5e1;
+  --text:      #111827;
+  --text2:     #374151;
+  --muted:     #6b7280;
+  --brand:     #d97706;
+  --brandDim:  rgba(217,119,6,0.10);
+  --brandBorder: rgba(217,119,6,0.3);
   --danger:    #dc2626;
   --success:   #16a34a;
   --info:      #0284c7;
-  --shadow:    none;
-  --shadowLg:  none;
+  --shadow:    0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+  --shadowLg:  0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
   --radius:    14px;
   --radiusLg:  20px;
   /* chart */
   --chartGrid: rgba(0,0,0,0.06);
-  --chartTick: #8892a4;
-  --chartTickUp: #4b5368;
+  --chartTick: #6b7280;
+  --chartTickUp: #374151;
   --tooltipBg:  #ffffff;
-  --tooltipBorder: #e4e7ef;
+  --tooltipBorder: #e2e8f0;
+  /* glass */
+  --glass-bg: rgba(255,255,255,0.85);
+  --glass-border: rgba(0,0,0,0.08);
+  --card: rgba(255,255,255,0.9);
+  --primary: #d97706;
+  --primary-glow: rgba(217,119,6,0.25);
+  color-scheme: light;
 }
 
 /* ── App Shell Layout ──────────────────────────────────────────── */
@@ -8542,5 +8549,205 @@ textarea.input {
 
   .tasksTable td:first-child + td {
     min-width: 220px;
+  }
+}
+
+/* ─── UI/UX OVERHAUL ADDITIONS ─────────────────────────────────── */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Better grab cursor for draggable cards */
+.p4BoardCard[draggable="true"]:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.10) !important;
+  transform: translateY(-2px) !important;
+  transition: all 0.15s ease !important;
+}
+.p4BoardCard[draggable="true"]:active {
+  cursor: grabbing !important;
+}
+
+/* Column drop zone highlight */
+.p4BoardColumn[data-drop="true"] {
+  background: rgba(255,255,255,0.03);
+}
+
+/* Smoother nav items */
+.navItemV4 {
+  transition: background 0.12s ease, color 0.12s ease !important;
+}
+
+/* Better scrollbar */
+.p4BoardGrid {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.p4BoardGrid::-webkit-scrollbar { height: 6px; }
+.p4BoardGrid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+.p4BoardGrid::-webkit-scrollbar-track { background: transparent; }
+
+/* Toast slide-in override for stacking */
+@keyframes toastSlideIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Focus ring improvements */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid rgba(251,191,36,0.6);
+  outline-offset: 2px;
+}
+
+/* Better empty states */
+.emptyStateWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.emptyStateIcon {
+  width: 64px; height: 64px; border-radius: 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid; place-items: center; font-size: 28px;
+}
+.emptyStateTitle {
+  font-size: 16px; font-weight: 750; color: var(--text);
+}
+.emptyStateSub {
+  font-size: 13px; color: var(--text2); max-width: 280px; line-height: 1.6;
+}
+
+/* Improved card hover for all interactive cards */
+.p4BoardCard:hover {
+  border-color: rgba(255,255,255,0.18) !important;
+}
+
+/* Better badge pulse for overdue */
+@keyframes overdueGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+}
+
+/* Workload progress bars */
+.workloadBar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+.workloadBarFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+/* ─── LIGHT MODE CARD POLISH ─────────────────────────────────── */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .formCardV3,
+.appShellV4Light .miniCard {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04) !important;
+}
+
+.appShellV4Light .p4BoardCard {
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+}
+
+.appShellV4Light .p4BoardCard:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+
+.appShellV4Light .p4BoardColumn {
+  background: #f4f6fb !important;
+}
+
+.appShellV4Light .navItemV4:hover {
+  background: rgba(0,0,0,0.04) !important;
+}
+
+.appShellV4Light .navItemV4Active {
+  background: rgba(217,119,6,0.10) !important;
+  color: #d97706 !important;
+}
+
+.appShellV4Light .sidebarV4 {
+  background: #ffffff;
+  border-right-color: #e2e8f0;
+}
+
+.appShellV4Light .topbarV4 {
+  background: rgba(255,255,255,0.95);
+  border-bottom-color: #e2e8f0;
+}
+
+.appShellV4Light .mainV4 {
+  background: #f4f6fb;
+}
+
+.appShellV4Light .btn.btnGhost {
+  border-color: #e2e8f0;
+  color: #374151;
+}
+
+.appShellV4Light .btn.btnGhost:hover {
+  background: rgba(0,0,0,0.04);
+  border-color: #cbd5e1;
+}
+
+.appShellV4Light .modalCardV2 {
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08) !important;
+}
+
+.appShellV4Light .profileDropdown {
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+  border-color: #e2e8f0 !important;
+}
+
+.appShellV4Light .topbarV4SearchWrap {
+  background: #f0f3f9;
+  border-color: #e2e8f0;
+}
+
+.appShellV4Light .topbarV4SearchInput {
+  background: transparent;
+  color: #111827;
+}
+
+/* ─── DARK MODE TOPBAR GLOW ACCENT ──────────────────────────── */
+.appShellV4Dark .topbarV4 {
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* ─── RESPONSIVE IMPROVEMENTS ────────────────────────────────── */
+@media (max-width: 640px) {
+  .p4BoardGrid {
+    grid-template-columns: 1fr !important;
+  }
+  .grid3 {
+    grid-template-columns: 1fr !important;
+  }
+  .pageHeaderCardInner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbarV4Meta {
+    display: none !important;
+  }
+  .p4BoardGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }

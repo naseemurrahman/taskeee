@@ -6,6 +6,7 @@ import { clearAuth, getUser, setUser, type AuthUser } from '../../state/auth'
 import { Building2, CalendarClock, Clock, KeyRound, LogOut, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { avatarDisplaySrc, normalizeAvatarUrl } from '../../lib/avatarUrl'
+import { useToast } from '../../components/ui/ToastSystem'
 
 type UserDetail = {
   id: string
@@ -56,6 +57,7 @@ export function ProfilePage() {
   const userId = me?.id || ''
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['me', userId], queryFn: () => fetchMe(userId), enabled: !!userId })
+  const { success: toastSuccess, error: toastError } = useToast()
 
   const [error, setError] = useState<string | null>(null)
   const [pwError, setPwError] = useState<string | null>(null)
@@ -117,6 +119,7 @@ export function ProfilePage() {
         return { user: mergedUser }
       })
       await qc.invalidateQueries({ queryKey: ['me'] })
+      toastSuccess('Profile updated', 'Your changes have been saved.')
     },
     onError: (err) => {
       if (err instanceof ApiError) {
@@ -125,7 +128,11 @@ export function ProfilePage() {
         const msg = detailMsg || err.message
         if (/avatar|image|photo/i.test(msg)) setPhotoError(msg)
         else setError(msg)
-      } else setError('Failed to update profile.')
+        toastError('Update failed', msg)
+      } else {
+        setError('Failed to update profile.')
+        toastError('Update failed', 'Failed to update profile.')
+      }
     },
   })
 
@@ -136,10 +143,12 @@ export function ProfilePage() {
     onSuccess: () => {
       setPwError(null)
       setPwOk(true)
+      toastSuccess('Password changed', 'Your password has been updated successfully.')
     },
     onError: (err) => {
       if (err instanceof ApiError) setPwError(err.message)
       else setPwError('Could not change password.')
+      toastError('Password change failed', err instanceof ApiError ? err.message : 'Could not change password.')
     },
   })
 

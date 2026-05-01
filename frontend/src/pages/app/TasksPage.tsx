@@ -9,7 +9,7 @@ import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
-
+import { useToast } from '../../components/ui/ToastSystem'
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
   due_date?: string | null; category_id?: string | null; category_name?: string | null
@@ -202,17 +202,20 @@ function StatusBadge({ status }: { status: string }) {
 /** Inline status — native select, fully reliable cross-browser */
 function InlineStatus({ task, role, canChange }: { task: Task; role: string; canChange: boolean }) {
   const qc = useQueryClient()
+  const { success: toastSuccess } = useToast()
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const transitions = canChange ? getAllowedTransitions(task.status, role) : []
   const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
 
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
-    onSuccess: () => {
+    onSuccess: (_data, newStatus) => {
       setErrMsg(null)
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
       qc.invalidateQueries({ queryKey: ['tasks', 'board'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      const label = STATUS_OPTIONS[newStatus]?.label || newStatus
+      toastSuccess('Status updated', `Task moved to ${label}`)
     },
     onError: (err: any) => {
       const msg = err?.message || 'Failed to update status'

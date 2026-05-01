@@ -10,6 +10,7 @@ import './p8-ux-hardening.css'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/ui/ToastSystem'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,8 +34,10 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
           <BrowserRouter>
-            <App />
-          </BrowserRouter>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </BrowserRouter>
         </I18nProvider>
       </QueryClientProvider>
     </ErrorBoundary>

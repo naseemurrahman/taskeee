@@ -37,14 +37,19 @@ export function SignInPage() {
     <div className="authGrid" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#0a0a10' }}>
       <style>{`
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        .authInput{width:100%;padding:13px 44px 13px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:15px;outline:none;transition:all 0.15s;box-sizing:border-box}
-        .authInput:focus{border-color:#e2ab41;box-shadow:0 0 0 3px rgba(226,171,65,0.15)}
-        .authInput::placeholder{color:rgba(255,255,255,0.35)}
-        .authSubmit{width:100%;padding:14px;border-radius:12px;border:none;background:#e2ab41;color:#000;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.15s}
-        .authSubmit:hover:not(:disabled){background:#f0bc52;transform:translateY(-1px);box-shadow:0 8px 24px rgba(226,171,65,0.35)}
-        .authSubmit:disabled{opacity:0.6;cursor:not-allowed}
-        @media(max-width:980px){.authGrid{grid-template-columns:1fr!important}.authLeft{display:none!important}.authRight{padding:32px 20px!important;min-height:100vh}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes shimmerLine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+        .authInput{width:100%;padding:13px 48px 13px 18px;border-radius:13px;border:1.5px solid rgba(255,255,255,0.11);background:rgba(255,255,255,0.055);color:#fff;font-size:15px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:500;outline:none;transition:border-color 0.15s,box-shadow 0.15s,background 0.15s;box-sizing:border-box;letter-spacing:-0.01em}
+        .authInput:focus{border-color:#e2ab41;box-shadow:0 0 0 3px rgba(226,171,65,0.14),0 1px 3px rgba(0,0,0,0.3);background:rgba(255,255,255,0.07)}
+        .authInput:hover:not(:focus){border-color:rgba(255,255,255,0.18);background:rgba(255,255,255,0.065)}
+        .authInput::placeholder{color:rgba(255,255,255,0.3);font-weight:400}
+        .authSubmit{width:100%;padding:15px;border-radius:13px;border:none;background:linear-gradient(135deg,#e2ab41,#f59e0b);color:#000;font-size:15.5px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:850;cursor:pointer;transition:all 0.15s;letter-spacing:-0.02em}
+        .authSubmit:hover:not(:disabled){background:linear-gradient(135deg,#f0bc52,#fbbf24);transform:translateY(-1px);box-shadow:0 8px 28px rgba(226,171,65,0.4),0 2px 8px rgba(0,0,0,0.2)}
+        .authSubmit:active:not(:disabled){transform:translateY(0);box-shadow:0 4px 16px rgba(226,171,65,0.3)}
+        .authSubmit:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+        .authLabel{font-size:12.5px;font-weight:750;color:rgba(255,255,255,0.6);letter-spacing:0.03em;text-transform:uppercase;margin-bottom:7px;display:block}
+        @media(max-width:980px){.authGrid{grid-template-columns:1fr!important}.authLeft{display:none!important}.authRight{padding:32px 24px!important;min-height:100vh}}
+        @media(max-width:400px){.authRight{padding:24px 16px!important}}
       `}</style>
 
       {/* Left — branding panel */}

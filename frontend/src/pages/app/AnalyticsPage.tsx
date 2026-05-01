@@ -151,21 +151,38 @@ export function AnalyticsPage() {
             <div className="pageHeaderCardTitle">Analytics Intelligence</div>
             <div className="pageHeaderCardSub">Professional charts first, then AI insights and detailed recommendations.</div>
           </div>
-          <select value={days} onChange={(event) => setDays(Number(event.target.value))} style={{ height: 38, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', padding: '0 10px', fontWeight: 700 }}>
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-          </select>
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, border: '1px solid var(--border)' }}>
+            {[7, 30, 90].map(d => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDays(d)}
+                style={{
+                  padding: '6px 14px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                  fontWeight: 750, fontSize: 12, transition: 'all 0.15s',
+                  background: days === d ? 'var(--primary)' : 'transparent',
+                  color: days === d ? '#000' : 'var(--text2)',
+                }}
+              >
+                {d === 7 ? '7d' : d === 30 ? '30d' : '90d'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="analyticsSignalStrip">
-        {kpis.map((item) => (
-          <div key={item.label} className="miniCard">
-            <div className="miniLabel">{item.label}</div>
-            <div className="miniValue" style={item.tone ? { color: item.tone } : undefined}>{item.value}</div>
-          </div>
-        ))}
+        {summaryQ.isLoading
+          ? Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="miniCard skeleton" style={{ height: 68 }} />
+            ))
+          : kpis.map((item) => (
+              <div key={item.label} className="miniCard">
+                <div className="miniLabel">{item.label}</div>
+                <div className="miniValue" style={item.tone ? { color: item.tone } : undefined}>{item.value}</div>
+              </div>
+            ))
+        }
       </div>
 
       <div className="analyticsPriorityCharts">
