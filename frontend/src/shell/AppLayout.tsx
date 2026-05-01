@@ -11,15 +11,33 @@ import {
   BarChart3, BookOpen, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
+  UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  Dashboard: LayoutDashboard, Tasks: ListChecks, 'My tasks': ClipboardList,
-  Board: FolderKanban, Projects: Network, Calendar: Calendar, Analytics: BarChart3,
-  Billing: CreditCard, Contractors: Users, Jeczone: Gauge, Profile: Settings, Settings: Settings,
-  Directory: Users, Reports: ScrollText, Audit: Shield, Employees: Users,
-  'Time off': Calendar, Pipeline: Link2, Leads: BookOpen, Connections: Link2,
-  Insights: BarChart3, 'Org Settings': Building2, Logs: ScrollText,
+  Dashboard: LayoutDashboard,
+  Tasks: ListChecks,
+  'My tasks': ClipboardList,
+  Board: FolderKanban,
+  Projects: Network,
+  Calendar: Calendar,
+  Analytics: BarChart3,
+  Billing: CreditCard,
+  Contractors: Briefcase,
+  Jeczone: Gauge,
+  Profile: UserRound,
+  Settings: Settings,
+  Directory: Users,
+  Reports: ScrollText,
+  Audit: Shield,
+  Employees: UserCheck,
+  'Time off': Clock,
+  Pipeline: TrendingUp,
+  Leads: BookOpen,
+  Connections: Link2,
+  Insights: Zap,
+  'Org Settings': Building2,
+  Logs: FileText,
 }
 
 function labelKey(label: string): string {
@@ -182,6 +200,26 @@ export function AppLayout() {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [mobileOpen])
 
+  // Global keyboard shortcuts
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // '/' opens search (unless already in an input)
+      if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      }
+      // Escape clears search
+      if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+        setSearch(''); setSearchResults(null); setSearchOpen(false)
+        searchInputRef.current?.blur()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   const [failedAvatarSrc, setFailedAvatarSrc] = useState<string | null>(null)
   const avatarBroken = !!avatarSrc && failedAvatarSrc === avatarSrc
 
@@ -290,6 +328,7 @@ export function AppLayout() {
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
+              ref={searchInputRef}
               className="topbarV4SearchInput"
               value={search}
               onChange={e => runSearch(e.target.value)}
@@ -297,6 +336,9 @@ export function AppLayout() {
               onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
               placeholder="Search tasks, people, projects…"
             />
+            {!search && (
+              <kbd style={{ fontSize: 10, color: 'var(--muted)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 5, padding: '1px 5px', fontFamily: 'inherit', pointerEvents: 'none', flexShrink: 0 }}>/</kbd>
+            )}
             {search && (
               <button type="button" className="topbarV4SearchClear"
                 onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false) }}>

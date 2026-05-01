@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canViewAnalytics } from '../../lib/rbac'
+import { useToast } from '../../components/ui/ToastSystem'
 
 type OrgDetails = {
   id: string; name: string; slug: string; plan?: string | null
@@ -65,6 +66,7 @@ export function SettingsPage() {
   const qc = useQueryClient()
   const isAdmin = me?.role === 'admin'
   const canView = canViewAnalytics(me?.role)
+  const { success: toastSuccess, error: toastError } = useToast()
 
   const [tab, setTab] = useState<'org' | 'notifications' | 'security' | 'plan'>('org')
   const [saved, setSaved] = useState(false)
@@ -89,6 +91,10 @@ export function SettingsPage() {
       qc.invalidateQueries({ queryKey: ['org', 'me'] })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      toastSuccess('Settings saved', 'Organization settings have been updated.')
+    },
+    onError: (err) => {
+      toastError('Save failed', err instanceof ApiError ? err.message : 'Could not save settings.')
     },
   })
 

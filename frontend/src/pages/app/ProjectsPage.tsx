@@ -7,6 +7,7 @@ import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal'
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
+import { useToast } from '../../components/ui/ToastSystem'
 
 type Project = { id: string; name: string; description?: string | null; color?: string | null; status?: 'active' | 'paused' | 'completed' }
 
@@ -158,6 +159,7 @@ export function ProjectsPage() {
   const canCreate = canCreateTasksAndProjects(me?.role)
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2 })
+  const { success: toastSuccess, error: toastError } = useToast()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -170,12 +172,17 @@ export function ProjectsPage() {
 
   const m = useMutation({
     mutationFn: createProject,
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       setName(''); setDescription(''); setColor('#e2ab41'); setError(null)
       setCreateOpen(false)
       await qc.invalidateQueries({ queryKey: ['projects'] })
+      toastSuccess('Project created', `"${data.project?.name || name}" is ready.`)
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to create project.'),
+    onError: (err) => {
+      const msg = err instanceof ApiError ? err.message : 'Failed to create project.'
+      setError(msg)
+      toastError('Create failed', msg)
+    },
   })
 
   function onSubmit(e: FormEvent) {

@@ -7,6 +7,7 @@ import { EmployeeDetailModal } from '../../../components/employees/EmployeeDetai
 import { Select } from '../../../components/ui/Select'
 import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/Modal'
+import { useToast } from '../../../components/ui/ToastSystem'
 
 type Employee = {
   id: string; full_name: string; status: string; title?: string | null
@@ -77,6 +78,7 @@ const STATUS_OPTS = [
 export function EmployeesPage() {
   const me = getUser()
   const qc = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [pickId, setPickId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [acctSearch, setAcctSearch] = useState('')
@@ -112,7 +114,14 @@ export function EmployeesPage() {
 
   const deleteEmpM = useMutation({
     mutationFn: (empId: string) => apiFetch(`/api/v1/hris/employees/${empId}`, { method: 'DELETE' }),
-    onSuccess: () => { setDeleteTarget(null); qc.invalidateQueries({ queryKey: ['hris', 'employees'] }); qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] }) },
+    onSuccess: () => {
+      const name = deleteTarget?.full_name || 'Employee'
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
+      qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] })
+      toastSuccess('Employee removed', `${name} has been removed.`)
+    },
+    onError: (err: any) => toastError('Remove failed', err?.message || 'Could not remove employee'),
   })
 
   const m = useMutation({
@@ -123,12 +132,14 @@ export function EmployeesPage() {
       setAddOpen(false)
       qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
       qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] })
+      toastSuccess('Employee added', `${(data as any)?.employee?.full_name || fullName} has been added.`)
     },
     onError: (err) => {
       if (err instanceof ApiError) {
         if (err.message.toLowerCase().includes('email')) setFieldErrors(p => ({ ...p, email: err.message }))
         else setFormError(err.message)
       } else setFormError(err instanceof Error ? err.message : 'Failed to create employee.')
+      toastError('Create failed', err instanceof ApiError ? err.message : 'Failed to add employee.')
     },
   })
 

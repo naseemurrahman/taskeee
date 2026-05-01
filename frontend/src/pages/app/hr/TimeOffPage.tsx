@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { useToast } from '../../../components/ui/ToastSystem'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
 import { Select } from '../../../components/ui/Select'
@@ -33,6 +34,7 @@ async function updateRequest(input: { id: string; status: string }) {
 
 export function TimeOffPage() {
   const qc = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [status, setStatus] = useState<'all' | string>('all')
   const [error, setError] = useState<string | null>(null)
 
@@ -51,22 +53,26 @@ export function TimeOffPage() {
       setReason('')
       setError(null)
       await qc.invalidateQueries({ queryKey: ['hris', 'timeoff'] })
+      toastSuccess('Time off requested', 'Your request has been submitted for review.')
     },
     onError: (err) => {
-      if (err instanceof ApiError) setError(err.message)
-      else setError('Failed to request time off.')
+      const msg = err instanceof ApiError ? err.message : 'Failed to request time off.'
+      setError(msg)
+      toastError('Request failed', msg)
     },
   })
 
   const updateM = useMutation({
     mutationFn: updateRequest,
-    onSuccess: async () => {
+    onSuccess: async (_data, vars) => {
       setError(null)
       await qc.invalidateQueries({ queryKey: ['hris', 'timeoff'] })
+      toastSuccess('Request updated', `Time off request has been ${(vars as any).status}.`)
     },
     onError: (err) => {
-      if (err instanceof ApiError) setError(err.message)
-      else setError('Failed to update request.')
+      const msg = err instanceof ApiError ? err.message : 'Failed to update request.'
+      setError(msg)
+      toastError('Update failed', msg)
     },
   })
 

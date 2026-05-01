@@ -6,6 +6,7 @@ import { getUser } from '../../state/auth'
 import { Camera, MessageCircle } from 'lucide-react'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
+import { useToast } from '../../components/ui/ToastSystem'
 
 type TaskRow = {
   id: string
@@ -89,6 +90,7 @@ function formatDue(iso: string | null | undefined) {
 export function MyTasksPage() {
   const me = getUser()
   const qc = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -154,7 +156,9 @@ export function MyTasksPage() {
         qc.invalidateQueries({ queryKey: ['tasks', 'mine'] }),
         qc.invalidateQueries({ queryKey: ['tasks', 'detail', selectedId] }),
       ])
+      toastSuccess('Photo uploaded', 'Your proof photo has been submitted for AI review.')
     },
+    onError: (err) => toastError('Upload failed', err?.message || 'Could not upload photo.'),
   })
 
   const statusM = useMutation({
@@ -164,12 +168,14 @@ export function MyTasksPage() {
         json: { status: next },
       })
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, nextStatus) => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['tasks', 'mine'] }),
         qc.invalidateQueries({ queryKey: ['tasks', 'detail', selectedId] }),
       ])
+      toastSuccess('Status updated', `Task marked as "${nextStatus.replace(/_/g, ' ')}"`)
     },
+    onError: (err) => toastError('Update failed', err?.message || 'Could not update status.'),
   })
 
   const aiTaskM = useMutation({
@@ -179,7 +185,9 @@ export function MyTasksPage() {
         qc.invalidateQueries({ queryKey: ['tasks', 'mine'] }),
         qc.invalidateQueries({ queryKey: ['tasks', 'detail', selectedId] }),
       ])
+      toastSuccess('AI review started', 'The AI is reviewing this task. Results will appear shortly.')
     },
+    onError: (err) => toastError('AI review failed', err?.message || 'Could not start AI review.'),
   })
 
   const postMsgM = useMutation({
@@ -193,6 +201,7 @@ export function MyTasksPage() {
       setComment('')
       await qc.invalidateQueries({ queryKey: ['tasks', 'messages', selectedId] })
     },
+    onError: (err) => toastError('Message failed', err?.message || 'Could not send message.'),
   })
 
   const tasks = listQ.data || []

@@ -9,8 +9,7 @@ import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
-import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
-
+import { useToast } from '../../components/ui/ToastSystem'
 type Task = {
   id: string
   title?: string
@@ -155,13 +154,26 @@ function InlineTitle({ task, canEdit }: { task: Task; canEdit: boolean }) {
 
 function InlineStatus({ task, role, canChange }: { task: Task; role: string; canChange: boolean }) {
   const qc = useQueryClient()
+  const { success: toastSuccess } = useToast()
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const transitions = canChange ? getAllowedTransitions(task.status, role) : []
   const meta = STATUS_OPTIONS[task.status] || { label: task.status.replace(/_/g, ' '), color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
   const m = useMutation({
     mutationFn: (s: string) => changeStatus(task.id, s),
-    onSuccess: () => { setErrMsg(null); qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) },
-    onError: (err: any) => { setErrMsg(err?.message || 'Failed to update status'); setTimeout(() => setErrMsg(null), 6000) },
+    onSuccess: (_data, newStatus) => {
+      setErrMsg(null)
+      qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'board'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      const label = STATUS_OPTIONS[newStatus]?.label || newStatus
+      toastSuccess('Status updated', `Task moved to ${label}`)
+    },
+    onError: (err: any) => {
+      const msg = err?.message || 'Failed to update status'
+      console.error('[StatusChange] Error:', msg, err)
+      setErrMsg(msg)
+      setTimeout(() => setErrMsg(null), 6000)
+    },
   })
   if (!canChange || transitions.length === 0) {
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 850, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33`, whiteSpace: 'nowrap' }}>{meta.label}</span>
