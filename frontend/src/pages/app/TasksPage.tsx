@@ -10,6 +10,7 @@ import { TaskDetailDrawer } from '../../components/tasks/TaskDetailDrawer'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
+import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
   due_date?: string | null; category_id?: string | null; category_name?: string | null
@@ -403,6 +404,7 @@ export function TasksPage() {
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Task</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: 160 }}>AI Signal</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
                   {!isEmployee && <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Assignee</th>}
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
@@ -427,6 +429,23 @@ export function TasksPage() {
                       </td>
                       <td style={{ padding: '10px 14px', maxWidth: 260 }} onClick={e => e.stopPropagation()}>
                         <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
+                      </td>
+                      <td style={{ padding: '8px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
+                        {(() => {
+                          const sig = buildTaskSignal(task, new Map())
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              <span className={signalBadgeClass(sig.level)} style={{ alignSelf: 'flex-start' }}>
+                                {sig.score}%{sig.needsAttention ? ' Needs attention' : ''}
+                              </span>
+                              {(sig.note || sig.loadNote) && (
+                                <span style={{ fontSize: 10, color: sig.needsAttention ? '#f97316' : 'var(--muted)', lineHeight: 1.4, maxWidth: 155 }}>
+                                  {sig.loadNote || sig.note}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {task.category_name ? (

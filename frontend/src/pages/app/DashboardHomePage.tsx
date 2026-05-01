@@ -7,6 +7,10 @@ import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
+import {
+  BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
+  ResponsiveContainer,
+} from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────
 type DashData = {
@@ -162,56 +166,7 @@ function ProgressRow({ label, value, max, color, sub }: {
 }
 
 // ─── Mini bar chart ───────────────────────────────────────────────
-function BarChart({ data, keys, colors, labels, height = 100 }: {
-  data: Array<Record<string, any>>
-  keys: string[]
-  colors: string[]
-  labels: string[]
-  height?: number
-}) {
-  if (!data.length) return null
-  const all = data.flatMap(d => keys.map(k => Number(d[k] || 0)))
-  const max = Math.max(...all, 1)
-  const W = 280, H = height, gap = 3
-  const groupW = (W - gap * (data.length - 1)) / data.length
-  const barW = Math.max(3, (groupW - 2 * (keys.length - 1)) / keys.length)
-
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H + 18}`} preserveAspectRatio="none" style={{ width: '100%', height: H + 18 }}>
-        {data.map((d, i) => {
-          const gx = i * (groupW + gap)
-          return (
-            <g key={i}>
-              {keys.map((k, ki) => {
-                const val = Number(d[k] || 0)
-                const bh = Math.max(2, (val / max) * H)
-                return (
-                  <rect key={ki} x={gx + ki * (barW + 2)} y={H - bh} width={barW} height={bh}
-                    fill={colors[ki]} rx={2} opacity={0.9}
-                    style={{ transition: 'height 0.6s ease, y 0.6s ease' }}
-                  />
-                )
-              })}
-              <text x={gx + groupW / 2} y={H + 13} textAnchor="middle"
-                fill="var(--muted)" fontSize="8.5" fontWeight="600">
-                {String(d.label || d.week || '').slice(0, 6)}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-      <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-        {labels.map((l, i) => (
-          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: colors[i] }} />
-            <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// BarChart replaced by Recharts in Weekly Velocity section
 
 // ─── Card wrapper ─────────────────────────────────────────────────
 function Card({ title, sub, children, action }: {
@@ -481,52 +436,101 @@ export function DashboardHomePage() {
         </Card>
       </div>
 
-      {/* ── Row 3: Weekly velocity ── */}
-      <Card
-        title="Weekly Velocity"
-        sub="Tasks created vs. completed per week — net throughput"
-        action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
-      >
-        {isLoading ? <Skel h={130} /> : velocity.length < 2 ? (
-          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data</div>
-        ) : (
-          <div
-            role="button"
-            tabIndex={canOpenChartDetails ? 0 : -1}
-            style={{ cursor: canOpenChartDetails ? 'pointer' : 'default' }}
-            onClick={() => canOpenChartDetails ? setChartDetail('velocity') : null}
-            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('velocity') : null)}
-          >
-            <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
-              {[
-                { label: 'Created', color: C.brand, key: 'created' },
-                { label: 'Completed', color: C.green, key: 'completed' },
-              ].map(m => {
-                const total = velocity.reduce((s, v) => s + (v as any)[m.key], 0)
-                const avg = Math.round(total / velocity.length)
-                return (
-                  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.label}</span>
-                    <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text)' }}>avg {avg}/wk</span>
-                  </div>
-                )
-              })}
+      {/* ── Row 3: Weekly velocity (full Recharts) ── */}
+      <div className="dashGrid21" style={{ alignItems: 'start' }}>
+        <Card
+          title="Weekly Velocity"
+          sub="Tasks created vs. completed per week"
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
+        >
+          {isLoading ? <Skel h={180} /> : velocity.length < 2 ? (
+            <div style={{ height: 140, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data to display velocity</div>
+          ) : (
+            <div>
+              {/* Summary row */}
+              <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Created', color: C.brand, key: 'created' },
+                  { label: 'Completed', color: C.green, key: 'completed' },
+                ].map(m => {
+                  const total = velocity.reduce((s, v) => s + (v as any)[m.key], 0)
+                  const avg = Math.round(total / velocity.length)
+                  return (
+                    <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>avg {avg}/wk</span>
+                    </div>
+                  )
+                })}
+                {(() => {
+                  const lastCreated = velocity[velocity.length-1]?.created || 0
+                  const lastDone = velocity[velocity.length-1]?.completed || 0
+                  const net = lastDone - lastCreated
+                  return (
+                    <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: net >= 0 ? C.green : C.red, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {net >= 0 ? '▲' : '▼'} Net {Math.abs(net)} this week
+                    </span>
+                  )
+                })()}
+              </div>
+              {/* Recharts grouped bar chart */}
+              <ResponsiveContainer width="100%" height={180}>
+                <RBarChart data={velocity} margin={{ top: 4, right: 8, left: -24, bottom: 0 }} barGap={3} barCategoryGap="28%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 600 }} tickLine={false} axisLine={false}
+                    tickFormatter={v => String(v).slice(5)} />
+                  <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <RTooltip
+                    contentStyle={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--text)' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    labelFormatter={(v: any) => `Week of ${v}`}
+                  />
+                  <Bar dataKey="created" name="Created" fill={C.brand} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="completed" name="Completed" fill={C.green} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                </RBarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        {/* Velocity insight panel */}
+        <Card title="Throughput Insights" sub="Based on recent velocity trend">
+          {isLoading ? <Skel h={180} /> : (
+            <div style={{ display: 'grid', gap: 14 }}>
               {(() => {
-                const lastCreated = velocity[velocity.length-1]?.created || 0
-                const lastDone = velocity[velocity.length-1]?.completed || 0
-                const net = lastDone - lastCreated
-                return (
-                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: net >= 0 ? C.green : C.red }}>
-                    {net >= 0 ? '▲' : '▼'} Net {Math.abs(net)} this week
-                  </span>
-                )
+                if (velocity.length < 2) return <div style={{ color: C.muted, fontSize: 13 }}>Collecting data…</div>
+                const totalCreated = velocity.reduce((s, v) => s + v.created, 0)
+                const totalDone = velocity.reduce((s, v) => s + v.completed, 0)
+                const avgCreated = Math.round(totalCreated / velocity.length)
+                const avgDone = Math.round(totalDone / velocity.length)
+                const backlogGrowth = totalCreated - totalDone
+                const throughputRatio = totalCreated ? Math.round((totalDone / totalCreated) * 100) : 0
+                const recentW = velocity.slice(-3)
+                const recentTrend = recentW.length > 1
+                  ? recentW[recentW.length-1].completed - recentW[0].completed
+                  : 0
+                const metrics = [
+                  { label: 'Throughput rate', value: `${throughputRatio}%`, color: throughputRatio >= 80 ? C.green : throughputRatio >= 60 ? C.brand : C.red, desc: 'completed / created' },
+                  { label: 'Avg created/wk', value: avgCreated, color: C.brand, desc: 'new tasks per week' },
+                  { label: 'Avg completed/wk', value: avgDone, color: C.green, desc: 'tasks shipped per week' },
+                  { label: 'Net backlog', value: backlogGrowth > 0 ? `+${backlogGrowth}` : backlogGrowth, color: backlogGrowth > 0 ? C.red : C.green, desc: backlogGrowth > 0 ? 'backlog growing' : 'keeping up' },
+                  { label: 'Recent trend', value: recentTrend > 0 ? `↑ ${recentTrend}` : recentTrend < 0 ? `↓ ${Math.abs(recentTrend)}` : '→ steady', color: recentTrend > 0 ? C.green : recentTrend < 0 ? C.red : C.muted, desc: 'completions last 3 weeks' },
+                ]
+                return metrics.map(m => (
+                  <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>{m.label}</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{m.desc}</div>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 950, color: m.color }}>{m.value}</div>
+                  </div>
+                ))
               })()}
             </div>
-            <BarChart data={velocity} keys={['created', 'completed']} colors={[C.brand, C.green]} labels={['Created', 'Completed']} height={100} />
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
 
       {/* ── Row 4: Team leaderboard ── */}
       <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"

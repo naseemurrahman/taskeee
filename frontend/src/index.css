@@ -1985,7 +1985,8 @@ label.btn {
   padding: 20px;
   transition: all var(--transition-normal);
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden removed — was clipping native select dropdowns.
+     Use ::before pseudo to create visual top gradient instead */
 }
 
 .card::before {
@@ -4409,7 +4410,7 @@ button.projectCard {
   border-radius: 20px;
   padding: 22px;
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden removed — was clipping native select dropdowns */
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .chartV3:hover {
@@ -8750,4 +8751,94 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .p4BoardGrid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+}
+
+/* ─── DROPDOWN / SELECT FIX ─────────────────────────────────────── */
+/* Native selects inside cards must not be clipped by overflow:hidden */
+/* We achieve this by making the table-wrapping card use overflow:visible */
+.tasksPageCard {
+  overflow: visible !important;
+}
+.tasksPageCard .card,
+.tasksPageCard .chartV3 {
+  overflow: visible !important;
+}
+
+/* Ensure chartV3 wrapping the task table never clips */
+.chartV3.taskTableCard {
+  overflow: visible !important;
+}
+
+/* Fix tr hover not creating stacking context */
+.tasksTable tr {
+  position: static !important;
+}
+
+/* Custom select pill in task table */
+.tasksTable select {
+  -webkit-appearance: auto;
+  appearance: auto;
+}
+
+/* ─── LIGHT MODE BORDERS FIX ─────────────────────────────────────── */
+/* Cards have invisible borders in light mode — make them clearly visible */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .kpiV3,
+.appShellV4Light .formCardV3,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .miniCard,
+.appShellV4Light .modalCardV2 {
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04) !important;
+}
+
+.appShellV4Light .card:hover,
+.appShellV4Light .chartV3:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06) !important;
+}
+
+/* Light mode table styling */
+.appShellV4Light .tasksTable thead tr {
+  background: #f8fafc !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.appShellV4Light .tasksTable tr {
+  border-bottom-color: #f1f5f9 !important;
+}
+.appShellV4Light .tasksTable tr:hover {
+  background: #f8fafc !important;
+}
+
+/* KPI tiles light mode */
+.appShellV4Light .dashKpiStrip > * {
+  border: 1.5px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+/* Board cards light mode */
+.appShellV4Light .p4BoardCard {
+  border: 1.5px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+.appShellV4Light .p4BoardCard:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+}
+
+/* Light mode select dropdown styling */
+.appShellV4Light .tasksTable select {
+  border-color: currentColor !important;
+  background: white !important;
+  color: inherit !important;
+}
+
+/* ─── RECHARTS TOOLTIP DARK GLASS ─────────────────────────────────── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
 }
