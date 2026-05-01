@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 
 const _selectListeners = new Set<() => void>()
 function closeAllSelects() { _selectListeners.forEach(fn => fn()) }
@@ -27,10 +26,6 @@ interface SelectProps {
   preferOpenUp?: boolean
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n))
-}
-
 export function Select({
   value, onChange, options, placeholder = 'Select…', label,
   disabled, error, required, searchable, className, preferOpenUp,
@@ -38,12 +33,8 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [openUp, setOpenUp] = useState(false)
-  const [listMaxHeight, setListMaxHeight] = useState(240)
   const ref = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({})
 
   const selected = options.find(o => o.value === value)
   const filtered = searchable && search.trim()
@@ -52,46 +43,6 @@ export function Select({
 
   const closeMe = useCallback(() => { setOpen(false); setSearch('') }, [])
 
-  const updateMenuPosition = useCallback(() => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-
-    const rect = trigger.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const mobile = viewportWidth <= 720
-    const viewportPadding = mobile ? 8 : 12
-
-    const measuredWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : 260
-    const desktopMax = searchable ? 420 : 360
-    const desktopMin = Math.min(220, viewportWidth - viewportPadding * 2)
-    const dropdownWidth = mobile
-      ? viewportWidth - viewportPadding * 2
-      : clamp(measuredWidth, desktopMin, Math.min(desktopMax, viewportWidth - viewportPadding * 2))
-
-    const rawLeft = mobile ? viewportPadding : rect.left
-    const left = clamp(rawLeft, viewportPadding, viewportWidth - dropdownWidth - viewportPadding)
-
-    const spaceBelow = Math.max(0, viewportHeight - rect.bottom - viewportPadding)
-    const spaceAbove = Math.max(0, rect.top - viewportPadding)
-    const shouldOpenUp = !!preferOpenUp || (!mobile && spaceBelow < 220 && spaceAbove > spaceBelow)
-    const available = shouldOpenUp ? spaceAbove : spaceBelow
-    const maxHeight = clamp(available - 8, 160, mobile ? 420 : 320)
-    const top = shouldOpenUp ? rect.top - 8 : rect.bottom + 8
-
-    setOpenUp(shouldOpenUp)
-    setListMaxHeight(maxHeight)
-    setDropdownStyle({
-      position: 'fixed',
-      left,
-      top,
-      width: dropdownWidth,
-      maxWidth: viewportWidth - viewportPadding * 2,
-      zIndex: 100500,
-      transform: shouldOpenUp ? 'translateY(-100%)' : 'none',
-    })
-  }, [preferOpenUp, searchable])
-
   useEffect(() => {
     _selectListeners.add(closeMe)
     return () => { _selectListeners.delete(closeMe) }
@@ -99,10 +50,10 @@ export function Select({
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (ref.current?.contains(target) || dropdownRef.current?.contains(target)) return
-      setOpen(false)
-      setSearch('')
+      if (!ref.current?.contains(e.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -110,19 +61,14 @@ export function Select({
 
   useEffect(() => {
     if (!open) return
-    requestAnimationFrame(updateMenuPosition)
-    const handler = () => updateMenuPosition()
-    window.addEventListener('resize', handler)
-    window.addEventListener('scroll', handler, true)
-    return () => {
-      window.removeEventListener('resize', handler)
-      window.removeEventListener('scroll', handler, true)
+    const rect = ref.current?.getBoundingClientRect()
+    if (rect) {
+      const below = window.innerHeight - rect.bottom
+      const above = rect.top
+      setOpenUp(!!preferOpenUp || (below < 260 && above > below))
     }
-  }, [open, filtered.length, updateMenuPosition])
-
-  useEffect(() => {
-    if (open && searchable && inputRef.current) inputRef.current.focus()
-  }, [open, searchable])
+    if (searchable && inputRef.current) setTimeout(() => inputRef.current?.focus(), 20)
+  }, [open, preferOpenUp, searchable])
 
   function handleSelect(opt: SelectOption) {
     if (opt.disabled) return
@@ -153,7 +99,6 @@ export function Select({
         </label>
       )}
       <div
-        ref={triggerRef}
         className={`selectV3Trigger ${open ? 'selectV3Open' : ''} ${error ? 'selectV3Error' : ''} ${disabled ? 'selectV3Disabled' : ''}`}
         onClick={toggleOpen}
         onKeyDown={handleKeyDown}
@@ -179,8 +124,8 @@ export function Select({
         </svg>
       </div>
 
-      {open && createPortal((
-        <div ref={dropdownRef} className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox" style={dropdownStyle}>
+      {open && (
+        <div className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox">
           {searchable && (
             <div className="selectV3SearchWrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -189,7 +134,7 @@ export function Select({
               <input ref={inputRef} className="selectV3SearchInput" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" onClick={e => e.stopPropagation()} />
             </div>
           )}
-          <div className="selectV3List" style={{ maxHeight: listMaxHeight }}>
+          <div className="selectV3List">
             {filtered.length === 0 ? (
               <div className="selectV3Empty">No options found</div>
             ) : filtered.map(opt => (
@@ -209,7 +154,7 @@ export function Select({
             ))}
           </div>
         </div>
-      ), document.body)}
+      )}
       {error && <div className="selectV3ErrorMsg">{error}</div>}
     </div>
   )
