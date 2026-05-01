@@ -108,15 +108,17 @@ export function BoardPage() {
       .filter(item => item.task.assigned_to && item.signal.score >= 55)
       .slice(0, 3)
       .map((item, index) => {
-        const target = available[index % Math.max(available.length, 1)]
+        const eligibleTargets = available.filter(candidate => candidate.employee_id !== item.task.assigned_to)
+        const target = eligibleTargets[index % Math.max(eligibleTargets.length, 1)]
         return {
           task: item.task.title,
           from: item.task.assigned_to_name || 'current owner',
-          to: target?.employee_name || 'lower-load teammate',
+          to: target?.employee_name || 'another lower-load teammate',
           score: item.signal.score,
           reason: item.signal.loadNote || item.signal.note,
         }
       })
+      .filter(item => item.from !== item.to)
     return { scored, risky, topRisk, overloaded, available, suggestions }
   }, [tasks, loadByUser, workloadRows])
 
