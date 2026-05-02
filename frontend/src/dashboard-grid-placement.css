@@ -10,36 +10,35 @@
   .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip {
     grid-column: 1 / -1 !important;
   }
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21,
+
+  /* Keep the first analytics row as normal: Weekly Velocity, Throughput, Team Performance. */
+  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .5fr) minmax(360px, 1.45fr) !important;
+    gap: 16px !important;
+    margin: 0 !important;
+  }
+
+  /* The duplicate legacy Task Activity + Task Status row should become full width below the first analytics row. */
   .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 {
-    display: contents !important;
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) !important;
+    gap: 16px !important;
     margin: 0 !important;
+    align-items: start !important;
   }
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 > div:first-child {
-    grid-column: 1 !important;
-    grid-row: 4 !important;
-    align-self: start !important;
-    height: auto !important;
-    min-height: 0 !important;
-  }
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:first-child {
-    grid-column: 1 !important;
-    grid-row: 5 !important;
-    align-self: start !important;
-    margin: 0 !important;
-  }
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 > div:nth-child(2) {
-    grid-column: 2 !important;
-    grid-row: 4 / span 2 !important;
-    align-self: stretch !important;
-    height: 100% !important;
-    min-height: 0 !important;
-  }
+
+  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:first-child,
   .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:nth-child(2) {
-    grid-column: 2 !important;
-    grid-row: 6 !important;
-    align-self: start !important;
     margin: 0 !important;
+    align-self: start !important;
+  }
+
+  /* Prevent the old negative-margin dashboard activity hack from affecting the new top row. */
+  .dashKpiStrip + .dashGrid21 + .dashGrid12 {
+    margin-top: 0 !important;
   }
 }
 @media (max-width: 1100px) {
