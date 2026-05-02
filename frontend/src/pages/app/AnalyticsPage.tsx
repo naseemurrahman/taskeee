@@ -185,20 +185,34 @@ export function AnalyticsPage() {
         }
       </div>
 
-      {/* Charts: trend hero on top, then 2x2 grid below */}
+      {/* Charts: trend hero on top, then aligned 2-col grid */}
       <div style={{ display: 'grid', gap: 16 }}>
         {/* Hero: full-width trend chart */}
         <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Operational velocity over the last ${days} days.`}>
           <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} />
         </ChartCard>
-        {/* 2x3 grid of secondary charts */}
-        <div className="dashGrid2" style={{ alignItems: 'start' }}>
-          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state."><StatusDonutChart byStatus={byStatus} /></ChartCard>
-          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status."><StatusBarChart fillHeight byStatus={byStatus} /></ChartCard>
-          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure from current task state."><PriorityPieChart fillHeight byPriority={priorityPressure} /></ChartCard>
-          <ChartCard title="Workload Balance" subtitle="Overloaded, balanced, and underutilized team members."><WorkloadBalanceChart fillHeight userCount={workloadEmployees.length} workload={workload} /></ChartCard>
-          <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee." ><AssigneeScoreChart fillHeight rows={performanceRows} /></ChartCard>
+        {/* Row 1: Donut + Bar — same height */}
+        <div className="analyticsChartGrid">
+          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state.">
+            <StatusDonutChart byStatus={byStatus} />
+          </ChartCard>
+          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status.">
+            <StatusBarChart byStatus={byStatus} />
+          </ChartCard>
         </div>
+        {/* Row 2: Priority + Workload — same height */}
+        <div className="analyticsChartGrid">
+          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure from current task state.">
+            <PriorityPieChart byPriority={priorityPressure} />
+          </ChartCard>
+          <ChartCard title="Workload Balance" subtitle="Overloaded, balanced, and underutilized team members.">
+            <WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} />
+          </ChartCard>
+        </div>
+        {/* Row 3: Performance — full width */}
+        <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee.">
+          <AssigneeScoreChart fillHeight rows={performanceRows} />
+        </ChartCard>
       </div>
 
       <ChartCard title="Predictive Intelligence" subtitle={usingBackendAi ? 'Backend-powered operational risk intelligence from live task data.' : 'Fallback prediction mode until backend AI deploy is available.'}>

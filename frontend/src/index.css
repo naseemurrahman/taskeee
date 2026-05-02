@@ -46,7 +46,7 @@
   --transition-bounce: 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   color-scheme: dark;
-  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -603,7 +603,7 @@
 .appShellLight .boardCardTitle,
 .appShellLight .profileCardHead {
   color: #1a1d2e;
-  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-family: "Inter", "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 .appShellLight .taskListBody {
   border-color: #e2e8f0;
@@ -1985,8 +1985,7 @@ label.btn {
   padding: 20px;
   transition: all var(--transition-normal);
   position: relative;
-  /* overflow: hidden removed — was clipping native select dropdowns.
-     Use ::before pseudo to create visual top gradient instead */
+  overflow: hidden;
 }
 
 .card::before {
@@ -4410,7 +4409,7 @@ button.projectCard {
   border-radius: 20px;
   padding: 22px;
   position: relative;
-  /* overflow: hidden removed — was clipping native select dropdowns */
+  overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .chartV3:hover {
@@ -4891,7 +4890,7 @@ button.projectCard {
 .credBoxRow:last-child { border-bottom: none; }
 .credBoxField { color: var(--text2); font-weight: 700; min-width: 80px; }
 .credBoxValue {
-  font-family: 'DM Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-weight: 900; font-size: 14px;
   background: rgba(0,0,0,0.2); padding: 3px 10px;
   border-radius: 7px; letter-spacing: 0.05em;
@@ -5006,39 +5005,32 @@ select.input option { background: #1a1d2e; color: white; }
 }
 
 .appShellV4Light {
-  --bg0:       #f4f6fb;
+  --bg0:       #f5f3eb;
   --bg1:       #ffffff;
-  --bg2:       #f0f3f9;
+  --bg2:       #f0f2f7;
   --surface:   #ffffff;
-  --surfaceUp: #fffbf0;
-  --border:    #e2e8f0;
-  --borderUp:  #cbd5e1;
-  --text:      #111827;
-  --text2:     #374151;
-  --muted:     #6b7280;
-  --brand:     #d97706;
-  --brandDim:  rgba(217,119,6,0.10);
-  --brandBorder: rgba(217,119,6,0.3);
+  --surfaceUp: #fff7e0;
+  --border:    #e4e7ef;
+  --borderUp:  #d0d4e0;
+  --text:      #1a1d2e;
+  --text2:     #4b5368;
+  --muted:     #8892a4;
+  --brand:     #e2ab41;
+  --brandDim:  rgba(226, 171, 65,0.12);
+  --brandBorder: rgba(226, 171, 65,0.35);
   --danger:    #dc2626;
   --success:   #16a34a;
   --info:      #0284c7;
-  --shadow:    0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
-  --shadowLg:  0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow:    none;
+  --shadowLg:  none;
   --radius:    14px;
   --radiusLg:  20px;
   /* chart */
   --chartGrid: rgba(0,0,0,0.06);
-  --chartTick: #6b7280;
-  --chartTickUp: #374151;
+  --chartTick: #8892a4;
+  --chartTickUp: #4b5368;
   --tooltipBg:  #ffffff;
-  --tooltipBorder: #e2e8f0;
-  /* glass */
-  --glass-bg: rgba(255,255,255,0.85);
-  --glass-border: rgba(0,0,0,0.08);
-  --card: rgba(255,255,255,0.9);
-  --primary: #d97706;
-  --primary-glow: rgba(217,119,6,0.25);
-  color-scheme: light;
+  --tooltipBorder: #e4e7ef;
 }
 
 /* ── App Shell Layout ──────────────────────────────────────────── */
@@ -5051,11 +5043,7 @@ select.input option { background: #1a1d2e; color: white; }
   transition: background 0.2s ease, color 0.2s ease;
 }
 @media (max-width: 900px) {
-  .appShellV4 { 
-    grid-template-columns: 1fr;
-  }
-  /* On mobile: sidebar is position:fixed overlay, main fills full width */
-  
+  .appShellV4 { grid-template-columns: 1fr; }
 }
 
 /* ── Sidebar V4 ────────────────────────────────────────────────── */
@@ -6267,7 +6255,7 @@ select.input option { background: #1a1d2e; color: white; }
   padding: 20px 24px;
   margin-bottom: 2px;
   position: relative;
-  overflow: visible; /* Must be visible so dropdowns/portals show above */
+  overflow: hidden;
 }
 .pageHeaderCard::before {
   content: '';
@@ -6801,7 +6789,13 @@ button.btnPrimary,
    ═══════════════════════════════════════════════════════════════ */
 
 /* Topbar search pill */
-/* [removed — overridden in MASTER FIX] */
+.topbarV4SearchInput {
+  border-radius: 999px !important;
+}
+.topbarV4SearchWrap {
+  border-radius: 999px !important;
+  overflow: visible;
+}
 
 /* Input wrappers used in forms (Select, Input components) */
 .inputV3Field {
@@ -7563,7 +7557,11 @@ tr:hover .inlineEditBtn {
 }
 
 /* Dropdown always floats above everything */
-/* selectV3Dropdown: position set by JS inline via createPortal */
+.selectV3Dropdown {
+  position: fixed !important;  /* Fixed positioning escapes all overflow:hidden parents */
+  z-index: 999999 !important;
+  min-width: 200px;
+}
 
 /* Trigger stores its position so dropdown can be fixed-positioned */
 .selectV3Trigger {
@@ -7582,21 +7580,35 @@ tr:hover .inlineEditBtn {
    Safe because Select dropdowns use position:fixed via createPortal
    ═══════════════════════════════════════════════════════════════ */
 .pageHeaderCard {
-  overflow: visible !important;
+  overflow: hidden !important;
+  position: relative !important;
 }
 .pageHeaderCard::before {
   border-radius: 18px 18px 0 0;
 }
 
 /* Cards also clip normally — dropdowns escape via portal */
-/* .card overflow managed per instance */
+.card { overflow: hidden; }
 .chartV3 { overflow: hidden; }
 .formCardV3 { overflow: hidden; }
 .miniCard { overflow: hidden; }
 
 /* Final select behavior: keep dropdown visible and anchored to trigger */
-/* selectV3Dropdown position managed entirely by JS inline style via createPortal — no CSS position override */
-.selectV3Wrap { position: relative; }
+.selectV3Wrap {
+  position: relative !important;
+}
+.selectV3Dropdown {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  bottom: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+}
+.selectV3DropdownUp {
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
+}
 
 /* Textarea should be lightly rounded, not fully pill-shaped */
 .textareaField {
@@ -7861,7 +7873,9 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
    SIDEBAR MOBILE — reliable overlay behavior
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-
+  /* Content doesn't shift when sidebar opens */
+  .appShellV4Main { margin-left: 0 !important; }
+  .mainV4 { margin-left: 0 !important; }
 
   /* Sidebar slides in from left */
   .sidebarV4 {
@@ -7898,7 +7912,9 @@ input:required:valid { border-color: rgba(34,197,94,0.3); }
   }
 
   /* Page content padding */
-
+  .appV4PageWrap, .pageContentV4 {
+    padding: 16px !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -8215,1185 +8231,99 @@ textarea.input {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   DASHBOARD GRID SYSTEM — reliable cross-browser responsive layout
-   ═══════════════════════════════════════════════════════════════ */
-.dashGrid2  { display: grid; grid-template-columns: 1fr 1fr;    gap: 14px; }
-.dashGrid3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-.dashGrid21 { display: grid; grid-template-columns: 2fr 1fr;    gap: 14px; }
-.dashGrid12 { display: grid; grid-template-columns: 1fr 2fr;    gap: 14px; }
+/* ══════════════════════════════════════════════════════════════
+   SESSION ADDITIONS — appended to clean PR26 base
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Spin animation ── */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-rotate { animation: spin 1s linear infinite; }
+
+/* ── Grid utilities ── */
+.grid2  { display: grid; grid-template-columns: 1fr 1fr;           gap: 14px; }
+.grid3  { display: grid; grid-template-columns: repeat(3,1fr);     gap: 14px; }
+.grid4  { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.dashGrid2  { display: grid; grid-template-columns: 1fr 1fr;       gap: 14px; }
+.dashGrid3  { display: grid; grid-template-columns: 1fr 1fr 1fr;   gap: 14px; }
+.dashGrid21 { display: grid; grid-template-columns: 2fr 1fr;       gap: 14px; }
+.dashGrid12 { display: grid; grid-template-columns: 1fr 2fr;       gap: 14px; }
+.analyticsSignalStrip { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 
-/* KPI strip: horizontal scroll on mobile, wrap on desktop */
-.dashKpiStrip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
-.dashKpiStrip > * { flex: 0 0 auto; min-width: 140px; }
-
-@media (max-width: 700px) {
-  .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12 {
-    grid-template-columns: 1fr !important;
-  }
-  .dashKpiStrip > * { flex: 0 0 140px; }
-}
-@media (min-width: 701px) {
-  .dashKpiStrip { flex-wrap: wrap; }
-  .dashKpiStrip > * { flex: 1 1 140px; }
-}
-
-/* Board/CRM kanban: horizontal scroll on narrow screens */
-@media (max-width: 768px) {
-  .boardGrid {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px;
-  }
-  .boardGrid > * {
-    flex: 0 0 240px !important;
-    min-width: 240px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE MODAL — bottom sheet on small screens
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 600px) {
-  .modalOverlayV2 {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-  .modalCardV2, .modalCardV2Wide {
-    max-width: 100% !important;
-    width: 100% !important;
-    border-radius: 24px 24px 0 0 !important;
-    max-height: 92vh !important;
-    animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  @keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0.6; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
-
-  /* Task detail drawer — full screen on mobile */
-  [style*="width: min(520px"] {
-    width: 100% !important;
-  }
-
-  /* Select dropdowns — ensure they open upward on mobile */
-  [style*="zIndex: 100200"] {
-    max-height: 50vh !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE TOPBAR — tighter spacing
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 600px) {
-  .topbarV4 {
-    padding: 0 10px !important;
-    height: 52px !important;
-  }
-  .topbarSearch {
-    max-width: 160px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE TABLE — hide less important columns
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-  /* Tasks table: hide PROJECT and DUE columns on narrow screens */
-  .tasksTable th:nth-child(2),
-  .tasksTable td:nth-child(2),
-  .tasksTable th:nth-child(5),
-  .tasksTable td:nth-child(5) {
-    display: none !important;
-  }
-  /* Make task title wrap instead of truncate */
-  .tasksTable td:first-child {
-    white-space: normal !important;
-    max-width: 140px !important;
-  }
-  /* Status select — smaller on mobile */
-  .tasksTable select {
-    min-width: 90px !important;
-    font-size: 10px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   FIXED SELECT DROPDOWN POSITION — always visible on mobile
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 600px) {
-  /* Custom select portal dropdown — snap to screen edges */
-  div[style*="position: fixed"][style*="zIndex: 100200"] {
-    left: 8px !important;
-    right: 8px !important;
-    width: auto !important;
-    max-width: calc(100vw - 16px) !important;
-  }
-}
-
-/* [removed conflicting topbar gradient block — see MASTER FIX section below] */
-
-.topbarV4Meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 10px;
-}
-
-.topbarMetricChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.12);
-  padding: 0 10px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.topbarMetricChip strong { font-size: 12px; }
-.topbarMetricChip:hover { transform: translateY(-1px); }
-
-.topbarMetricDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
-}
-.topbarMetricDotWarn {
-  background: #f97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
-}
-.topbarMetricDotSuccess {
-  background: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-@media (max-width: 1260px) {
-  .topbarV4Meta { display: none; }
-}
-
-/* === Sidebar + language button clarity refresh === */
-.appShellV4Light .sidebarV4 {
-  background: linear-gradient(180deg, #fffdf7 0%, #f7f1e2 46%, #efe4cc 100%) !important;
-  border-right: 1px solid rgba(84, 63, 24, 0.22) !important;
-  box-shadow: inset -1px 0 0 rgba(84,63,24,0.1), 8px 0 24px rgba(84,63,24,0.14);
-}
-
-.appShellV4Dark .sidebarV4 {
-  background: linear-gradient(180deg, #161a21 0%, #1f2430 46%, #2a3040 100%) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.13) !important;
-  box-shadow: inset -1px 0 0 rgba(255,255,255,0.06), 8px 0 24px rgba(0,0,0,0.3);
-}
-
-.appShellV4Light .sidebarV4,
-.appShellV4Light .sidebarV4 * {
-  color: #1f1304 !important;
-}
-
-.appShellV4Dark .sidebarV4,
-.appShellV4Dark .sidebarV4 * {
-  color: rgba(245, 245, 245, 0.95) !important;
-}
-
-.appShellV4Dark .navItemV4,
-.appShellV4Light .navItemV4 {
-  border: 1px solid transparent;
-}
-
-.appShellV4Light .navItemV4:hover,
-.appShellV4Light .navItemV4Active {
-  background: rgba(255,255,255,0.14) !important;
-  border-color: rgba(255,255,255,0.28) !important;
-}
-
-.appShellV4Dark .navItemV4:hover,
-.appShellV4Dark .navItemV4Active {
-  background: rgba(255,255,255,0.12) !important;
-  border-color: rgba(255,255,255,0.24) !important;
-}
-
-.topbarLangBtn {
-  min-width: 96px;
-  justify-content: center;
-  font-weight: 900 !important;
-  letter-spacing: 0.02em;
-}
-
-.appShellV4Light .topbarLangBtn {
-  background: rgba(255,255,255,0.2) !important;
-  color: #fff !important;
-  border-color: rgba(255,255,255,0.42) !important;
-}
-
-.appShellV4Dark .topbarLangBtn {
-  background: rgba(255,255,255,0.5) !important;
-  color: #1f1304 !important;
-  border-color: rgba(31,19,4,0.3) !important;
-}
-
-.appShellV4Light .topbarLangBtn:hover,
-.appShellV4Dark .topbarLangBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.16);
-}
-
-/* === Sidebar scrollbar contrast + tasks mobile responsiveness === */
-.sidebarV4Nav::-webkit-scrollbar {
-  width: 7px !important;
-}
-.appShellV4Light .sidebarV4Nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.45) !important;
-  border-radius: 999px;
-}
-.appShellV4Dark .sidebarV4Nav::-webkit-scrollbar-thumb {
-  background: rgba(84, 63, 24, 0.35) !important;
-  border-radius: 999px;
-}
-
-@media (max-width: 768px) {
-  .taskFiltersRow {
-    align-items: stretch !important;
-  }
-  .taskFiltersRow > div {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-    min-width: 0 !important;
-  }
-
-  .tasksTableWrap {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .tasksTable {
-    min-width: 760px;
-  }
-
-  .tasksTable th,
-  .tasksTable td {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-  }
-
-  .tasksTable td:first-child + td {
-    min-width: 220px;
-  }
-}
-
-/* ─── UI/UX OVERHAUL ADDITIONS ─────────────────────────────────── */
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Better grab cursor for draggable cards */
-.p4BoardCard[draggable="true"]:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.10) !important;
-  transform: translateY(-2px) !important;
-  transition: all 0.15s ease !important;
-}
-.p4BoardCard[draggable="true"]:active {
-  cursor: grabbing !important;
-}
-
-/* Column drop zone highlight */
-.p4BoardColumn[data-drop="true"] {
-  background: rgba(255,255,255,0.03);
-}
-
-/* Smoother nav items */
-.navItemV4 {
-  transition: background 0.12s ease, color 0.12s ease !important;
-}
-
-/* Better scrollbar */
-.p4BoardGrid {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
-}
-.p4BoardGrid::-webkit-scrollbar { height: 6px; }
-.p4BoardGrid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
-.p4BoardGrid::-webkit-scrollbar-track { background: transparent; }
-
-/* Toast slide-in override for stacking */
-@keyframes toastSlideIn {
-  from { transform: translateX(110%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-/* Focus ring improvements */
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid rgba(251,191,36,0.6);
-  outline-offset: 2px;
-}
-
-/* Better empty states */
-.emptyStateWrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 60px 24px;
-  text-align: center;
-  color: var(--muted);
-}
-.emptyStateIcon {
-  width: 64px; height: 64px; border-radius: 20px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  display: grid; place-items: center; font-size: 28px;
-}
-.emptyStateTitle {
-  font-size: 16px; font-weight: 750; color: var(--text);
-}
-.emptyStateSub {
-  font-size: 13px; color: var(--text2); max-width: 280px; line-height: 1.6;
-}
-
-/* Improved card hover for all interactive cards */
-.p4BoardCard:hover {
-  border-color: rgba(255,255,255,0.18) !important;
-}
-
-/* Better badge pulse for overdue */
-@keyframes overdueGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
-  50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
-}
-
-/* Workload progress bars */
-.workloadBar {
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.08);
-  overflow: hidden;
-}
-.workloadBarFill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.6s ease;
-}
-
-/* ─── LIGHT MODE CARD POLISH ─────────────────────────────────── */
-.appShellV4Light .card,
-.appShellV4Light .chartV3,
-.appShellV4Light .pageHeaderCard,
-.appShellV4Light .formCardV3,
-.appShellV4Light .miniCard {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04) !important;
-}
-
-.appShellV4Light .p4BoardCard {
-  background: #ffffff !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
-}
-
-.appShellV4Light .p4BoardCard:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
-}
-
-.appShellV4Light .p4BoardColumn {
-  background: #f4f6fb !important;
-}
-
-.appShellV4Light .navItemV4:hover {
-  background: rgba(0,0,0,0.04) !important;
-}
-
-.appShellV4Light .navItemV4Active {
-  background: rgba(217,119,6,0.10) !important;
-  color: #d97706 !important;
-}
-
-.appShellV4Light .sidebarV4 {
-  background: #ffffff;
-  border-right-color: #e2e8f0;
-}
-
-.appShellV4Light .topbarV4 {
-  background: rgba(255,255,255,0.95);
-  border-bottom-color: #e2e8f0;
-}
-
-.appShellV4Light .mainV4 {
-  background: #f4f6fb;
-}
-
-.appShellV4Light .btn.btnGhost {
-  border-color: #e2e8f0;
-  color: #374151;
-}
-
-.appShellV4Light .btn.btnGhost:hover {
-  background: rgba(0,0,0,0.04);
-  border-color: #cbd5e1;
-}
-
-.appShellV4Light .modalCardV2 {
-  background: #ffffff;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08) !important;
-}
-
-.appShellV4Light .profileDropdown {
-  background: #ffffff;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
-  border-color: #e2e8f0 !important;
-}
-
-.appShellV4Light .topbarV4SearchWrap {
-  background: #f0f3f9;
-  border-color: #e2e8f0;
-}
-
-.appShellV4Light .topbarV4SearchInput {
-  background: transparent;
-  color: #111827;
-}
-
-/* ─── DARK MODE TOPBAR GLOW ACCENT ──────────────────────────── */
-.appShellV4Dark .topbarV4 {
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-
-/* ─── RESPONSIVE IMPROVEMENTS ────────────────────────────────── */
-@media (max-width: 640px) {
-  .p4BoardGrid {
-    grid-template-columns: 1fr !important;
-  }
-  .grid3 {
-    grid-template-columns: 1fr !important;
-  }
-  .pageHeaderCardInner {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .topbarV4Meta {
-    display: none !important;
-  }
-  .p4BoardGrid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-
-/* ─── DROPDOWN / SELECT FIX ─────────────────────────────────────── */
-/* Native selects inside cards must not be clipped by overflow:hidden */
-/* We achieve this by making the table-wrapping card use overflow:visible */
-.tasksPageCard {
-  overflow: visible !important;
-}
-.tasksPageCard .card,
-.tasksPageCard .chartV3 {
-  overflow: visible !important;
-}
-
-/* Ensure chartV3 wrapping the task table never clips */
-.chartV3.taskTableCard {
-  overflow: visible !important;
-}
-
-/* Fix tr hover not creating stacking context */
-.tasksTable tr {
-  position: static !important;
-}
-
-/* Custom select pill in task table */
-.tasksTable select {
-  -webkit-appearance: auto;
-  appearance: auto;
-}
-
-/* ─── LIGHT MODE BORDERS FIX ─────────────────────────────────────── */
-/* Cards have invisible borders in light mode — make them clearly visible */
-.appShellV4Light .card,
-.appShellV4Light .chartV3,
-.appShellV4Light .kpiV3,
-.appShellV4Light .formCardV3,
-.appShellV4Light .pageHeaderCard,
-.appShellV4Light .miniCard,
-.appShellV4Light .modalCardV2 {
-  border: 1.5px solid #e2e8f0 !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04) !important;
-}
-
-.appShellV4Light .card:hover,
-.appShellV4Light .chartV3:hover {
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06) !important;
-}
-
-/* Light mode table styling */
-.appShellV4Light .tasksTable thead tr {
-  background: #f8fafc !important;
-  border-bottom: 2px solid #e2e8f0 !important;
-}
-.appShellV4Light .tasksTable tr {
-  border-bottom-color: #f1f5f9 !important;
-}
-.appShellV4Light .tasksTable tr:hover {
-  background: #f8fafc !important;
-}
-
-/* KPI tiles light mode */
-.appShellV4Light .dashKpiStrip > * {
-  border: 1.5px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
-}
-
-/* Board cards light mode */
-.appShellV4Light .p4BoardCard {
-  border: 1.5px solid #e2e8f0 !important;
-  background: #ffffff !important;
-}
-.appShellV4Light .p4BoardCard:hover {
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
-}
-
-/* Light mode select dropdown styling */
-.appShellV4Light .tasksTable select {
-  border-color: currentColor !important;
-  background: white !important;
-  color: inherit !important;
-}
-
-/* ─── RECHARTS TOOLTIP DARK GLASS ─────────────────────────────────── */
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: var(--bg1) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
-}
-
-/* ════════════════════════════════════════════════════════════════
-   DEFINITIVE FIXES — clean overrides for all broken areas
-   ════════════════════════════════════════════════════════════════ */
-
-/* ── Missing grid classes that caused analytics/board to collapse ── */
-.grid3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
 @media (max-width: 900px) {
   .grid3 { grid-template-columns: 1fr 1fr !important; }
+  .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12, .grid2 { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 600px) {
-  .grid3 { grid-template-columns: 1fr !important; }
-  .grid2 { grid-template-columns: 1fr !important; }
+  .grid3, .grid4 { grid-template-columns: 1fr !important; }
 }
 
-/* ── Analytics page layout classes — were undefined, causing collapse ── */
-.analyticsSignalStrip {
+/* KPI strip */
+.dashKpiStrip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; flex-wrap: wrap; -webkit-overflow-scrolling: touch; }
+.dashKpiStrip > * { flex: 0 0 auto; min-width: 130px; }
+
+/* ── Kanban Board ── */
+.p4BoardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(6, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
-.analyticsPriorityCharts {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 16px;
-  align-items: start;
+.p4BoardColumn {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 300px;
+  transition: background 0.15s, border-color 0.15s;
 }
-.analyticsChartHero {
-  grid-column: 1 / 2;
-}
-@media (max-width: 1100px) {
-  .analyticsPriorityCharts {
-    grid-template-columns: 1fr 1fr;
-  }
-  .analyticsChartHero {
-    grid-column: 1 / -1;
-  }
-}
-@media (max-width: 700px) {
-  .analyticsPriorityCharts {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── SEARCH BAR — single canonical rule set, removes all conflicts ── */
-/* Reset ALL previous search wrap overrides */
-.topbarV4SearchWrap {
-  position: relative !important;
-  flex: 1 1 auto !important;
-  max-width: 400px !important;
-  min-width: 120px !important;
-  display: flex !important;
-  align-items: center !important;
-  height: 38px !important;
-  background: rgba(255,255,255,0.09) !important;
-  border: 1.5px solid rgba(255,255,255,0.14) !important;
-  border-radius: 10px !important;
-  overflow: visible !important;   /* must be visible so dropdown shows */
-  transition: border-color 0.15s, background 0.15s !important;
-}
-.topbarV4SearchWrap:focus-within {
-  border-color: rgba(226,171,65,0.55) !important;
-  background: rgba(255,255,255,0.12) !important;
-}
-.appShellV4Light .topbarV4SearchWrap {
-  background: #f0f3f9 !important;
-  border-color: #d1d5db !important;
-}
-.appShellV4Light .topbarV4SearchWrap:focus-within {
-  border-color: rgba(217,119,6,0.5) !important;
-  background: #fff !important;
-}
-
-/* Fix the search icon — make sure it's inside the flex container */
-.topbarV4SearchIcon {
-  position: absolute !important;
-  left: 11px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: var(--muted) !important;
-  pointer-events: none !important;
-  flex-shrink: 0 !important;
-  z-index: 1 !important;
-}
-
-/* The input itself */
-.topbarV4SearchInput {
-  flex: 1 !important;
-  height: 100% !important;
-  width: 100% !important;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  color: var(--text) !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  padding: 0 36px 0 34px !important;
-  border-radius: 0 !important;
-}
-.topbarV4SearchInput::placeholder {
-  color: var(--muted) !important;
-}
-.appShellV4Light .topbarV4SearchInput {
-  color: #111827 !important;
-}
-.appShellV4Light .topbarV4SearchInput::placeholder {
-  color: #9ca3af !important;
-}
-
-/* Clear button — absolutely positioned inside wrap */
-.topbarV4SearchClear {
-  position: absolute !important;
-  right: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 22px !important;
-  height: 22px !important;
-  border-radius: 6px !important;
-  background: rgba(255,255,255,0.08) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  color: var(--muted) !important;
-  cursor: pointer !important;
-  display: grid !important;
-  place-items: center !important;
-  z-index: 2 !important;
-}
-.appShellV4Light .topbarV4SearchClear {
-  background: rgba(0,0,0,0.06) !important;
-  border-color: rgba(0,0,0,0.1) !important;
-}
-
-/* ── SEARCH DROPDOWN — constrained width, correct position ── */
-.topbarV4SearchDropdown {
-  position: absolute !important;
-  top: calc(100% + 6px) !important;
-  left: 0 !important;
-  right: 0 !important;
-  min-width: 320px !important;
-  background: var(--bg1) !important;
-  border: 1.5px solid rgba(226,171,65,0.35) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.15) !important;
-  z-index: 9999 !important;
-  overflow: hidden !important;
-  animation: dropIn 0.14s ease !important;
-}
-.appShellV4Light .topbarV4SearchDropdown {
-  background: #ffffff !important;
-  border-color: rgba(217,119,6,0.3) !important;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
-}
-
-/* ── Profile dropdown — fix z-index and positioning ── */
-.profileDropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  min-width: 220px !important;
-  z-index: 9998 !important;
-}
-
-/* ── Topbar — reset conflicting z-index overrides ── */
-.topbarV4 {
-  z-index: 200 !important;
-}
-
-/* ── Card overflow — keep visible so dropdowns work ── */
-.card, .chartV3, .chartCardV2 {
-  overflow: visible !important;
-}
-/* But clip internal decorative elements */
-.card::before, .chartCardV2::before {
-  overflow: hidden !important;
-  border-radius: inherit !important;
-}
-
-/* ── Recharts / chart containers need explicit height ── */
-.recharts-responsive-container {
-  min-height: 60px !important;
-}
-
-/* ── Light mode card borders — final authoritative rule ── */
-.appShellV4Light .card,
-.appShellV4Light .chartV3,
-.appShellV4Light .chartCardV2,
-.appShellV4Light .miniCard,
-.appShellV4Light .pageHeaderCard,
-.appShellV4Light .kpiV3 {
-  border: 1.5px solid #e2e8f0 !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   MASTER FIX — highest specificity, fixes all visual bugs
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ── 1. Topbar z-index (must be above sidebar at 500) ── */
-.topbarV4 {
-  z-index: 600 !important;
-  position: sticky !important;
-}
-
-/* ── 2. Search wrap — canonical sizing, flex-item in topbar ── */
-.topbarV4 .topbarV4SearchWrap {
-  position: relative !important;
-  flex: 0 1 380px !important;       /* don't grow beyond 380px */
-  min-width: 160px !important;
-  max-width: 380px !important;
-  width: auto !important;
-  height: 36px !important;
-  display: flex !important;
-  align-items: center !important;
-  border-radius: 9px !important;
-  background: rgba(255,255,255,0.13) !important;
-  border: 1.5px solid rgba(255,255,255,0.18) !important;
-  overflow: visible !important;
-  transition: border-color 0.15s, background 0.15s !important;
-}
-.topbarV4 .topbarV4SearchWrap:focus-within {
-  background: rgba(255,255,255,0.18) !important;
-  border-color: rgba(255,255,255,0.38) !important;
-}
-
-/* In dark-golden mode the text on topbar is dark */
-.appShellV4Dark .topbarV4 .topbarV4SearchWrap {
-  background: rgba(0,0,0,0.14) !important;
-  border-color: rgba(0,0,0,0.2) !important;
-}
-
-/* ── 3. Search input fills the wrap ── */
-.topbarV4 .topbarV4SearchInput {
-  position: static !important;
-  flex: 1 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  padding: 0 30px 0 32px !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  color: rgba(255,255,255,0.9) !important;
-  border-radius: 0 !important;
-}
-.topbarV4 .topbarV4SearchInput::placeholder {
-  color: rgba(255,255,255,0.42) !important;
-}
-.appShellV4Dark .topbarV4 .topbarV4SearchInput {
-  color: rgba(20,12,0,0.85) !important;
-}
-.appShellV4Dark .topbarV4 .topbarV4SearchInput::placeholder {
-  color: rgba(20,12,0,0.45) !important;
-}
-
-/* ── 4. Search dropdown — constrained to wrap width, never full-screen ── */
-.topbarV4 .topbarV4SearchWrap .topbarV4SearchDropdown {
-  position: absolute !important;
-  top: calc(100% + 7px) !important;
-  left: 0 !important;
-  right: 0 !important;       /* bounded by the wrap, not screen */
-  width: 100% !important;
-  min-width: 280px !important;
-  max-width: 420px !important;   /* hard cap regardless of wrap width */
-  background: var(--bg1) !important;
-  border: 1.5px solid rgba(226,171,65,0.4) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2) !important;
-  z-index: 9999 !important;
-  overflow: hidden !important;
-  max-height: 60vh !important;
-  overflow-y: auto !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchWrap .topbarV4SearchDropdown {
-  background: #fff !important;
-  border-color: rgba(217,119,6,0.3) !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07) !important;
-}
-
-/* ── 5. Profile dropdown ── */
-.topbarProfileWrap {
-  position: relative !important;
-}
-.topbarProfileWrap .profileDropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  min-width: 220px !important;
-  max-width: 300px !important;
-  z-index: 9998 !important;
-}
-
-/* ── 6. Notification dropdown ── */
-.notifBell {
-  position: relative !important;
-}
-.notifPanel {
-  position: absolute !important;
-  right: 0 !important;
-  left: auto !important;
-  top: calc(100% + 8px) !important;
-  z-index: 9997 !important;
-  width: 360px !important;
-  max-width: 92vw !important;
-}
-
-/* ── 7. Tasks page — status select should not be full-width ── */
-.tasksTable td select,
-.tasksTable select {
-  width: auto !important;
-  min-width: 110px !important;
-  max-width: 160px !important;
-}
-
-/* ── 8. Status select overflow fix (native dropdown) ── */
-.tasksTable {
-  overflow: visible !important;
-}
-.tasksTable tr,
-.tasksTable td,
-.tasksTable th {
-  overflow: visible !important;
-  position: static !important;
-}
-
-/* ── Chart card body: ensure Recharts ResponsiveContainer has height ── */
-.chartCardV2Body {
-  position: relative;
-  width: 100%;
-  min-height: 40px;
-}
-
-/* ── Cards: clip visual overflow but portals/dropdowns escape via createPortal ── */
-.chartCardV2 {
-  overflow: clip;    /* clips visual content at border-radius; doesn't create scroll container */
-}
-.card {
-  overflow: visible; /* card can have dropdowns inside */
-}
-.chartV3 {
-  overflow: hidden;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   TOPBAR THEME — correct light vs dark (final, highest priority)
-   ══════════════════════════════════════════════════════════════════ */
-
-/* Dark mode topbar: keep app's dark glass look */
-.appShellV4Dark .topbarV4 {
-  background: var(--bg1) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
-  box-shadow: none !important;
-}
-
-/* Light mode topbar: clean white with subtle border */
-.appShellV4Light .topbarV4 {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
-}
-
-/* Light mode topbar text — must be DARK (not white) */
-.appShellV4Light .topbarV4 {
-  color: #111827 !important;
-}
-.appShellV4Light .topbarV4 .topbarV4PageTitle,
-.appShellV4Light .topbarV4 .topbarMetricChip,
-.appShellV4Light .topbarV4 .topbarLangBtn,
-.appShellV4Light .topbarV4 .topbarThemeBtn {
-  color: #374151 !important;
-}
-
-/* Dark mode topbar text — light */
-.appShellV4Dark .topbarV4 {
-  color: var(--text) !important;
-}
-
-/* Light mode search wrap inside topbar */
-.appShellV4Light .topbarV4 .topbarV4SearchWrap {
-  background: #f3f4f6 !important;
-  border-color: #d1d5db !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchInput {
-  color: #111827 !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder {
-  color: #9ca3af !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchIcon {
-  color: #9ca3af !important;
-}
-
-/* Light mode metric chips */
-.appShellV4Light .topbarV4 .topbarMetricChip {
-  background: rgba(0,0,0,0.04) !important;
-  border-color: rgba(0,0,0,0.1) !important;
-}
-
-/* Notification bell in topbar */
-.appShellV4Light .notifBellBtn {
-  color: #374151 !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   FINAL AUTHORITY — appended last, wins all conflicts
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ── 1. Select dropdown: NEVER override position — JS controls it ── */
-/* The Select component uses createPortal + getBoundingClientRect + position:fixed */
-/* Any CSS position override breaks it completely. Trust the inline style. */
-.selectV3Dropdown {
-  /* position: intentionally NOT SET — managed by JS inline style */
-  z-index: 100500;
-  min-width: 180px;
+.p4BoardCard {
   background: var(--bg1);
-  border: 1.5px solid var(--borderUp, rgba(255,255,255,0.15));
+  border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.40), 0 4px 16px rgba(0,0,0,0.20);
-  overflow: hidden;
-  animation: dropIn 0.14s ease;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
 }
-.appShellV4Light .selectV3Dropdown {
-  background: #ffffff;
-  border-color: #e2e8f0;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07);
-}
+.p4BoardCard:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.3); transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+.p4BoardCard[draggable="true"] { cursor: grab; }
+.p4BoardCard[draggable="true"]:active { cursor: grabbing; }
 
-/* ── 2. Search bar: PILL shape + primary color border (matches buttons) ── */
-.topbarV4 .topbarV4SearchWrap {
-  position: relative !important;
-  flex: 0 1 360px !important;
-  min-width: 140px !important;
-  max-width: 360px !important;
-  height: 36px !important;
-  display: flex !important;
-  align-items: center !important;
-  background: rgba(255,255,255,0.07) !important;
-  border: 1.5px solid var(--brand, #e2ab41) !important;
-  border-radius: 999px !important;   /* PILL — matches buttons */
-  overflow: visible !important;
-  transition: box-shadow 0.15s, border-color 0.15s !important;
-}
-.topbarV4 .topbarV4SearchWrap:focus-within {
-  border-color: var(--brand, #e2ab41) !important;
-  box-shadow: 0 0 0 3px rgba(226,171,65,0.18) !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchWrap {
-  background: rgba(255,255,255,0.08) !important;
-  border-color: var(--brand, #e2ab41) !important;
-}
-.topbarV4 .topbarV4SearchInput {
-  border-radius: 999px !important;
-}
+/* Board responsive */
+@media (max-width: 1200px) { .p4BoardGrid { grid-template-columns: repeat(3, minmax(200px, 1fr)); } }
+@media (max-width: 768px) { .p4BoardGrid { grid-template-columns: repeat(2, minmax(180px, 1fr)); } }
+@media (max-width: 500px) { .p4BoardGrid { grid-template-columns: 1fr; } }
 
-/* ── 3. Search dropdown: bounded to wrap, never full-screen ── */
-.topbarV4SearchDropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  left: 0 !important;
-  width: max(100%, 300px) !important;
-  max-width: 420px !important;
-  right: auto !important;
-  z-index: 99999 !important;
-  background: var(--bg1) !important;
-  border: 1.5px solid rgba(226,171,65,0.45) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 20px 48px rgba(0,0,0,0.40), 0 4px 16px rgba(0,0,0,0.18) !important;
-  overflow: hidden !important;
-  max-height: 60vh !important;
-  overflow-y: auto !important;
-}
-.appShellV4Light .topbarV4SearchDropdown {
-  background: #fff !important;
-  border-color: rgba(226,171,65,0.35) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.14) !important;
-}
+/* Board in light mode */
+.appShellV4Light .p4BoardColumn { background: #f4f6fb; border-color: #e2e8f0; }
+.appShellV4Light .p4BoardCard { background: #fff; border-color: #e2e8f0; }
+.appShellV4Light .p4BoardCard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); border-color: #cbd5e1; }
 
-/* ── 4. PageHeaderCard stripe — inset box-shadow technique ── */
-/* The stripe appears as a 3px golden line at the top INSIDE the border-radius */
-.pageHeaderCard {
-  position: relative !important;
-  overflow: hidden !important;           /* clip the pseudo-element to border-radius */
-  clip-path: none !important;
-  border-radius: 18px !important;
-}
-.pageHeaderCard::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important; left: 0 !important; right: 0 !important;
-  height: 3px !important;
-  background: linear-gradient(90deg, #c98317, #e2ab41, #f59e0b, #e2ab41, #c98317) !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-  display: block !important;
-}
+/* ── Charts: chartCardV2 clipping for border-radius ── */
+.chartCardV2 { overflow: hidden; }
+.chartCardV2Body { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
 
-/* ── 5. Modal wider, correct overflow ── */
+/* ── Modal wider ── */
 .modalCardV2 {
-  width: min(680px, 96vw) !important;   /* was 520px — now wider */
+  width: min(680px, 96vw) !important;
   max-height: calc(100vh - 48px) !important;
-  overflow: hidden !important;            /* clip modal edges */
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  border-radius: 24px !important;
 }
-.modalV2Body {
-  overflow-y: auto !important;            /* body scrolls if tall */
-  flex: 1 !important;
-  overflow-x: visible !important;         /* portals still escape */
-}
-.modalV2Body .selectV3Wrap {
-  position: static !important;            /* don't create stacking context */
-}
+.modalV2Body { overflow-y: auto !important; flex: 1 !important; }
 
-/* ── Card density: reduce excess padding/space ── */
-.card {
-  padding: 16px 18px;
-}
-.chartV3 {
-  padding: 18px 20px;
-}
-.miniCard {
-  padding: 14px 16px;
-}
-.pageHeaderCard {
-  padding: 16px 22px;
-}
-.pageHeaderCardTitle {
-  font-size: 20px;
-}
-.pageHeaderCardSub {
-  font-size: 12.5px;
-  margin-top: 3px;
-}
-.pageHeaderCardMeta {
-  margin-top: 8px;
-  gap: 6px;
-}
+/* ── Toast positioning ── */
+#toast-root { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column-reverse; gap: 10px; pointer-events: none; }
+#toast-root > * { pointer-events: auto; }
 
-/* Tighten dashboard KPI strip */
-.dashKpiStrip {
-  gap: 10px;
-}
+/* ── Empty states ── */
+.emptyStateWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 56px 24px; text-align: center; }
+.emptyStateIcon { width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); display: grid; place-items: center; font-size: 28px; }
+.emptyStateTitle { font-size: 16px; font-weight: 750; color: var(--text); }
+.emptyStateSub { font-size: 13px; color: var(--text2); max-width: 300px; line-height: 1.6; margin: 0 auto; }
 
-/* Team leaderboard rows — tighter */
-.dashGrid2 .card > div > div {
-  gap: 8px;
-}
-
-/* ════════════════════════════════════════════════════════════════
-   DEFINITIVE FINAL BLOCK — V2
-   ════════════════════════════════════════════════════════════════ */
-
-/* ── pageHeaderCard: clip the ::before stripe inside the card ── */
-/* overflow:hidden is required so the absolute stripe stays within border-radius */
-/* Dropdowns inside still work because Select uses createPortal to document.body */
-.pageHeaderCard {
-  overflow: hidden !important;       /* clips ::before to border-radius */
-  position: relative !important;
-}
-/* The filter/tab row inside pageHeaderCard needs overflow:visible for Select portals */
-/* But the card itself clips — portals escape via createPortal not overflow */
-
-/* ── chartCardV2: use overflow:clip so ResizeObserver works ── */
-/* overflow:clip clips visual content but doesn't create a scrollable container,
-   so ResizeObserver can still measure the element height correctly */
-.chartCardV2 {
-  overflow: clip !important;
-}
-
-/* ── Search bar: pill-shaped + brand border ── */
-.topbarV4SearchWrap,
-.topbarV4 .topbarV4SearchWrap {
-  border-radius: 999px !important;
-  border-color: var(--brand, #e2ab41) !important;
-}
-.topbarV4SearchInput,
-.topbarV4 .topbarV4SearchInput {
-  border-radius: 999px !important;
-}
-
-/* ── chartCardV2Body: ensure charts get proper height ── */
-.chartCardV2Body {
-  display: block;
-  width: 100%;
-}
-/* The Shell div inside has explicit height — make sure nothing collapses it */
-.chartCardV2Body > div[style*="height"] {
-  display: block !important;
-}
-
-/* ════════════════════════════════════════════════════════════════
-   MASTER FINAL v3 — Fixes search visibility, dropdown, charts
-   ════════════════════════════════════════════════════════════════ */
-
-/* ── CHARTS: chartCardV2 needs overflow:auto so fixed-width charts scroll ── */
-/* PR23 approach: charts use fixed pixel width, parent scrolls horizontally */
-.chartCardV2 {
-  overflow: hidden !important;   /* clip outer border-radius */
-}
-.chartCardV2Body {
-  overflow-x: auto !important;   /* scroll horizontally for fixed-width charts */
-  overflow-y: visible !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ── SEARCH BAR: visible in BOTH dark AND light mode ── */
-/* Dark mode — topbar is dark, need visible contrast border */
-.appShellV4Dark .topbarV4 .topbarV4SearchWrap,
+/* ── Search bar: pill + primary brand border, visible in BOTH themes ── */
 .topbarV4 .topbarV4SearchWrap {
   position: relative !important;
   flex: 0 1 340px !important;
@@ -9402,14 +8332,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display: flex !important;
   align-items: center !important;
   border-radius: 999px !important;
-  border: 2px solid #e2ab41 !important;       /* Golden - always visible */
+  border: 2px solid #e2ab41 !important;
   background: rgba(226,171,65,0.06) !important;
   overflow: visible !important;
 }
-/* Light mode search */
-.appShellV4Light .topbarV4 .topbarV4SearchWrap {
-  border: 2px solid #e2ab41 !important;
-  background: rgba(226,171,65,0.05) !important;
+.topbarV4 .topbarV4SearchWrap:focus-within {
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.18) !important;
 }
 .topbarV4 .topbarV4SearchInput {
   flex: 1 !important;
@@ -9421,48 +8349,64 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size: 13px !important;
   font-weight: 500 !important;
   border-radius: 999px !important;
-  color: var(--text) !important;
 }
-/* Force visible text in BOTH themes */
-.appShellV4Dark .topbarV4 .topbarV4SearchInput {
-  color: rgba(255,255,255,0.9) !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchInput {
-  color: #111827 !important;
-}
-.appShellV4Dark .topbarV4 .topbarV4SearchInput::placeholder {
-  color: rgba(255,255,255,0.4) !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder {
-  color: #9ca3af !important;
-}
-.appShellV4Dark .topbarV4 .topbarV4SearchIcon {
-  color: rgba(255,255,255,0.5) !important;
-}
-.appShellV4Light .topbarV4 .topbarV4SearchIcon {
-  color: #9ca3af !important;
-}
+/* Dark theme text */
+.appShellV4Dark .topbarV4 .topbarV4SearchInput { color: rgba(255,255,255,0.9) !important; }
+.appShellV4Dark .topbarV4 .topbarV4SearchInput::placeholder { color: rgba(255,255,255,0.38) !important; }
+.appShellV4Dark .topbarV4 .topbarV4SearchIcon { color: rgba(255,255,255,0.45) !important; }
+/* Light theme text */
+.appShellV4Light .topbarV4 .topbarV4SearchInput { color: #111827 !important; }
+.appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder { color: #9ca3af !important; }
+.appShellV4Light .topbarV4 .topbarV4SearchIcon { color: #9ca3af !important; }
 
-/* ── DROPDOWN: trust createPortal inline style, just set visual props ── */
-/* NEVER set position on .selectV3Dropdown — JS inline style controls it */
-.selectV3Dropdown {
-  /* position: NOT SET — controlled by JS via createPortal */
-  z-index: 100500 !important;
-  min-width: 180px;
-  background: var(--bg1, #161920) !important;
-  border: 1.5px solid rgba(255,255,255,0.15) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 20px 48px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.25) !important;
-  overflow: hidden !important;
-  animation: dropIn 0.13s ease !important;
-}
-.appShellV4Light .selectV3Dropdown {
+/* ── Light theme: clean white surfaces, visible borders everywhere ── */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .miniCard,
+.appShellV4Light .pageHeaderCard {
   background: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04) !important;
 }
+.appShellV4Light .card:hover,
+.appShellV4Light .chartCardV2:hover { border-color: #cbd5e1 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.05) !important; }
+/* Light topbar and sidebar */
+.appShellV4Light .topbarV4 { background: #ffffff !important; border-bottom: 1.5px solid #e2e8f0 !important; box-shadow: none !important; }
+.appShellV4Light .sidebarV4 { background: #ffffff !important; border-right: 1.5px solid #e2e8f0 !important; }
+.appShellV4Light .mainV4 { background: #f4f6fb !important; }
+/* Light nav items */
+.appShellV4Light .navItemV4Active { background: rgba(226,171,65,0.12) !important; color: #d97706 !important; }
+.appShellV4Light .navItemV4:hover { background: rgba(0,0,0,0.04) !important; }
+/* Light table */
+.appShellV4Light .tasksTable thead tr { background: #f8fafc !important; }
+.appShellV4Light .tasksTable tr { border-bottom-color: #f1f5f9 !important; }
+.appShellV4Light .tasksTable tr:hover { background: #f8fafc !important; }
 
-/* ── pageHeaderCard overflow:hidden to clip the ::before stripe ── */
-.pageHeaderCard {
-  overflow: hidden !important;
+/* ── Dark theme: correct deep backgrounds, visible borders ── */
+.appShellV4Dark .topbarV4 { background: var(--bg1) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
+.appShellV4Dark .sidebarV4 { border-right-color: rgba(255,255,255,0.08) !important; }
+
+/* ── Fonts: ensure Plus Jakarta Sans loads ── */
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
 }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+/* ── Global pill inputs (match button style) ── */
+.inputV3Field { border-radius: 999px !important; }
+.selectV3Trigger { border-radius: 999px !important; }
+/* Dropdown itself stays rounded but not pill */
+.selectV3Dropdown { border-radius: 14px !important; }
+/* Textarea stays rectangular */
+textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius: 14px !important; }
+
+/* ── Analytics charts: properly aligned 2-col grid ── */
+.analyticsChartGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) { .analyticsChartGrid { grid-template-columns: 1fr; } }
