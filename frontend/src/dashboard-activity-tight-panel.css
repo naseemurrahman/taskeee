@@ -110,6 +110,40 @@
   gap: 12px !important;
 }
 
+/* Final free-space fix: stop Task Activity from stretching to match neighboring dashboard panels. */
+.dashKpiStrip + .dashGrid21 {
+  align-items: start !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child {
+  align-self: start !important;
+  height: auto !important;
+  min-height: unset !important;
+  padding-bottom: 14px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+  grid-auto-rows: minmax(118px, auto) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div,
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  height: 100% !important;
+  min-height: 118px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 @media (max-width: 1100px) {
   .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
     grid-template-columns: minmax(0, 1fr) !important;
