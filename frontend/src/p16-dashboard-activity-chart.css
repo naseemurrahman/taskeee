@@ -1,0 +1,116 @@
+/* P16 Dashboard activity chart replacement
+   Replace the old three separated sparkline lanes with a compact operational chart treatment. */
+
+/* Target the Dashboard first activity card by its title text structure/position. */
+.dashGrid21 > div:first-child:has(button) {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.dashGrid21 > div:first-child:has(button)::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  background:
+    radial-gradient(circle at 14% 20%, rgba(226,171,65,.11), transparent 28%),
+    radial-gradient(circle at 84% 28%, rgba(34,197,94,.10), transparent 26%),
+    linear-gradient(135deg, rgba(255,255,255,.025), transparent 46%) !important;
+}
+
+/* The activity chart is the first dashboard card body. Make the old lanes read like compact operational rows. */
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  min-height: 150px !important;
+  align-items: stretch !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div {
+  position: relative !important;
+  display: grid !important;
+  grid-template-rows: auto 1fr !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  padding: 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(148,163,184,.18) !important;
+  background: rgba(15,23,42,.18) !important;
+  overflow: hidden !important;
+}
+
+.appShellV4Light .dashGrid21 > div:first-child > div:last-child > div[role='button'] > div,
+[data-theme='light'] .dashGrid21 > div:first-child > div:last-child > div[role='button'] > div {
+  background: rgba(248,250,252,.86) !important;
+  border-color: rgba(15,23,42,.14) !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: 14px !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  opacity: .92 !important;
+  background:
+    linear-gradient(90deg, currentColor 0 18%, transparent 18% 24%, currentColor 24% 46%, transparent 46% 52%, currentColor 52% 72%, transparent 72% 78%, currentColor 78% 100%) !important;
+  filter: saturate(1.1) !important;
+  transform-origin: bottom !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div:nth-child(1)::after {
+  clip-path: polygon(0 66%,18% 52%,24% 58%,46% 28%,52% 34%,72% 12%,78% 28%,100% 20%,100% 100%,0 100%) !important;
+}
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div:nth-child(2)::after {
+  clip-path: polygon(0 56%,18% 50%,24% 52%,46% 18%,52% 30%,72% 36%,78% 20%,100% 28%,100% 100%,0 100%) !important;
+}
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div:nth-child(3)::after {
+  clip-path: polygon(0 78%,18% 78%,24% 78%,46% 30%,52% 36%,72% 78%,78% 78%,100% 78%,100% 100%,0 100%) !important;
+}
+
+/* Hide the old inline SVG sparkline inside each mini-card. */
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] svg {
+  opacity: 0 !important;
+  height: 52px !important;
+  pointer-events: none !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div > div:first-child {
+  position: relative !important;
+  z-index: 2 !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div > div:first-child span:first-child {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, currentColor 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.dashGrid21 > div:first-child > div:last-child > div[role='button'] > div > div:first-child span:last-child {
+  font-size: 24px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.8px !important;
+}
+
+@media (max-width: 900px) {
+  .dashGrid21 > div:first-child > div:last-child > div[role='button'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0 !important;
+  }
+
+  .dashGrid21 > div:first-child > div:last-child > div[role='button'] > div {
+    min-height: 112px !important;
+  }
+}
