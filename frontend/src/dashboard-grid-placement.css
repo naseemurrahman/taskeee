@@ -1,46 +1,70 @@
 @media (min-width: 1101px) {
+  /* The prior placement file forced a two-column parent grid, leaving the entire right side unused.
+     Reset the dashboard root to normal full-width block flow. */
   .contentV4 > div:has(> .dashKpiStrip) {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) !important;
-    grid-auto-rows: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
     gap: 16px !important;
-    align-items: start !important;
+    align-items: stretch !important;
   }
+
   .contentV4 > div:has(> .dashKpiStrip) > .pageHeaderCard,
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip {
-    grid-column: 1 / -1 !important;
+  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid21,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid12,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid2,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid3,
+  .contentV4 > div:has(> .dashKpiStrip) > .grid2,
+  .contentV4 > div:has(> .dashKpiStrip) > .grid3,
+  .contentV4 > div:has(> .dashKpiStrip) > .grid4 {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
-  /* Keep the first analytics row as normal: Weekly Velocity, Throughput, Team Performance. */
+  /* Top analytics row: use the complete page width. */
   .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 {
-    grid-column: 1 / -1 !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, .5fr) minmax(360px, 1.45fr) !important;
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, .7fr) minmax(420px, 1.55fr) !important;
     gap: 16px !important;
     margin: 0 !important;
+    align-items: stretch !important;
   }
 
-  /* The duplicate legacy Task Activity + Task Status row should become full width below the first analytics row. */
+  /* Legacy activity/status row: full page width, no left-side constraint. */
   .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 {
-    grid-column: 1 / -1 !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, .95fr) !important;
+    gap: 16px !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+  }
+
+  /* Priority/project row: full page width and balanced. */
+  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 + .dashGrid12,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid12 {
+    display: grid !important;
+    grid-template-columns: minmax(0, .95fr) minmax(0, 1.45fr) !important;
     gap: 16px !important;
     margin: 0 !important;
     align-items: start !important;
   }
 
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:first-child,
-  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:nth-child(2) {
-    margin: 0 !important;
-    align-self: start !important;
-  }
-
-  /* Prevent the old negative-margin dashboard activity hack from affecting the new top row. */
-  .dashKpiStrip + .dashGrid21 + .dashGrid12 {
-    margin-top: 0 !important;
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid21 > *,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid12 > *,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid2 > *,
+  .contentV4 > div:has(> .dashKpiStrip) > .dashGrid3 > * {
+    min-width: 0 !important;
   }
 }
+
+@media (max-width: 1400px) and (min-width: 1101px) {
+  .contentV4 > div:has(> .dashKpiStrip) > .dashKpiStrip + .dashGrid21 {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .55fr) minmax(360px, 1.25fr) !important;
+  }
+}
+
 @media (max-width: 1100px) {
   .contentV4 > div:has(> .dashKpiStrip) {
     display: flex !important;
