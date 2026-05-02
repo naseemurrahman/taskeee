@@ -1,0 +1,122 @@
+/* Dashboard activity tight panel override
+   Loaded after consolidated overrides.css to fix the sparse three-card activity panel. */
+
+/* Main Task Activity card: compact height, no large empty bottom area. */
+.dashKpiStrip + .dashGrid21 > div:first-child {
+  min-height: 0 !important;
+  padding-bottom: 18px !important;
+  background:
+    linear-gradient(135deg, rgba(34,197,94,.055), transparent 34%),
+    linear-gradient(315deg, rgba(226,171,65,.055), transparent 38%),
+    var(--bg1) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+}
+
+/* Metric cards: smaller, more consistent, graph takes the available width. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  min-height: 118px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  grid-template-rows: auto 1fr !important;
+  gap: 8px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.014)) !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  border-color: rgba(15,23,42,.16) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child {
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:first-child {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:last-child {
+  font-size: 22px !important;
+  line-height: 1 !important;
+  letter-spacing: -.7px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg {
+  height: 48px !important;
+  min-height: 48px !important;
+  width: 100% !important;
+  border-radius: 10px !important;
+  background: rgba(148,163,184,.10) !important;
+  border: 1px solid rgba(148,163,184,.10) !important;
+  padding: 3px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg path[fill^='url'] {
+  opacity: .78 !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg path[fill='none'] {
+  stroke-width: 2.6 !important;
+}
+
+/* Zero-overdue state: make it look like a useful health state, not an empty error card. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  content: '✓ No overdue trend\AHealthy activity window' !important;
+  white-space: pre-line !important;
+  min-height: 118px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 6px !important;
+  border: 1px solid rgba(34,197,94,.24) !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34,197,94,.18), transparent 42%),
+    linear-gradient(180deg, rgba(34,197,94,.09), rgba(34,197,94,.025)) !important;
+  color: #86efac !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1.45 !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34,197,94,.16), transparent 42%),
+    linear-gradient(180deg, #ecfdf5, #ffffff) !important;
+  border-color: rgba(22,163,74,.24) !important;
+  color: #15803d !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']:has(> div:nth-child(3))::after {
+  display: none !important;
+}
+
+/* Reduce the card's perceived vertical mass by avoiding unused body expansion. */
+.dashKpiStrip + .dashGrid21 > div:first-child {
+  gap: 12px !important;
+}
+
+@media (max-width: 1100px) {
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div,
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+    min-height: 92px !important;
+  }
+}
