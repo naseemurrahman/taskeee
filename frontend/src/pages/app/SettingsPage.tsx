@@ -42,7 +42,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
+    <div className="settingsField">
       <div>
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text2)' }}>{label}</div>
         {hint && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, lineHeight: 1.5 }}>{hint}</div>}

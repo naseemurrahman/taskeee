@@ -8811,3 +8811,266 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
 .appShellV4Light .selectV3Option:hover:not(.selectV3OptionDisabled):not(.selectV3OptionActive) {
   background: rgba(15,23,42,0.06) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE RESPONSIVE SYSTEM — All pages, all breakpoints
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Token: container query unit ── */
+:root {
+  --content-pad-desktop: 24px;
+  --content-pad-tablet:  16px;
+  --content-pad-mobile:  12px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BREAKPOINT: tablet ≤ 1024px
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  /* Shell: sidebar collapses */
+  .appShellV4 { grid-template-columns: 200px 1fr !important; }
+  .sidebarV4 { width: 200px !important; min-width: 200px !important; }
+
+  /* Analytics: 2 columns → 1 */
+  .analyticsChartGrid { grid-template-columns: 1fr !important; }
+
+  /* Dashboard grids */
+  .dashGrid21 { grid-template-columns: 1fr !important; }
+  .dashGrid12 { grid-template-columns: 1fr !important; }
+
+  /* Settings: label+content stacks */
+  [style*="200px 1fr"] { grid-template-columns: 1fr !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BREAKPOINT: phablet ≤ 900px
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Shell: sidebar overlays */
+  .appShellV4 { grid-template-columns: 1fr !important; }
+  .sidebarV4 {
+    position: fixed !important;
+    left: 0 !important; top: 0 !important; bottom: 0 !important;
+    width: 240px !important;
+    z-index: 500 !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3) !important;
+  }
+  .sidebarMobileOpen .sidebarV4 { transform: translateX(0) !important; }
+
+  /* All multi-col grids stack */
+  .dashGrid2, .dashGrid21, .dashGrid12,
+  .analyticsChartGrid, .grid2, .grid3, .grid4 {
+    grid-template-columns: 1fr !important;
+  }
+  .dashGrid3 { grid-template-columns: 1fr 1fr !important; }
+
+  /* KPI strip: horizontal scroll */
+  .dashKpiStrip {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 8px !important;
+    gap: 10px !important;
+  }
+  .dashKpiStrip > * { flex: 0 0 130px !important; min-width: 130px !important; }
+
+  /* Content padding */
+  .contentV4 { padding: var(--content-pad-tablet) !important; }
+
+  /* Page header */
+  .pageHeaderCard { padding: 14px 16px !important; }
+  .pageHeaderCardTitle { font-size: 18px !important; }
+  .pageHeaderCardSub { font-size: 12px !important; }
+  .pageHeaderCardInner { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+
+  /* Topbar */
+  .topbarV4Meta { display: none !important; }
+  .topbarV4 .topbarV4SearchWrap { flex: 1 !important; max-width: 100% !important; }
+
+  /* Analytics KPI strip */
+  .analyticsSignalStrip { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Inline form grids → single col */
+  .form { grid-template-columns: 1fr !important; }
+
+  /* Tables: scroll */
+  .tasksTableWrap, [class*="TableGrid"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .tasksTable, .employeeTableV3 {
+    min-width: 640px !important;
+    display: block !important;
+    overflow-x: auto !important;
+  }
+
+  /* Board Kanban */
+  .p4BoardGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)) !important; }
+
+  /* Predictive / grid3 → 2 col */
+  .grid3 { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BREAKPOINT: mobile ≤ 640px
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Content */
+  .contentV4 { padding: var(--content-pad-mobile) !important; }
+  .pageHeaderCard { padding: 12px 14px !important; border-radius: 12px !important; }
+  .pageHeaderCardTitle { font-size: 16px !important; gap: 7px !important; }
+  .pageHeaderCardSub { font-size: 11.5px !important; }
+  .pageHeaderCardMeta { gap: 5px !important; margin-top: 6px !important; }
+  .pageHeaderCardTag { font-size: 10px !important; padding: 2px 7px !important; }
+
+  /* All grids → 1 col */
+  .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12,
+  .grid2, .grid3, .grid4, .analyticsChartGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Analytics KPI → 2 col mini */
+  .analyticsSignalStrip { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .miniCard { padding: 10px 12px !important; }
+  .miniValue { font-size: 20px !important; }
+  .miniLabel { font-size: 10px !important; }
+
+  /* Cards */
+  .card, .chartV3, .chartCardV2 { border-radius: 12px !important; }
+  .card { padding: 14px 14px !important; }
+  .chartV3 { padding: 14px 14px !important; }
+  .chartCardV2Head { padding: 14px 14px 10px !important; }
+  .chartCardV2Body { padding: 4px 10px 14px !important; }
+  .chartCardV2Title { font-size: 13px !important; }
+
+  /* Buttons */
+  .btn { padding: 0 14px !important; height: 36px !important; font-size: 12.5px !important; }
+  .btnPrimary, .btnGhost { font-size: 12.5px !important; }
+
+  /* Modals: full-screen bottom sheet */
+  .modalOverlayV2 { align-items: flex-end !important; padding: 0 !important; }
+  .modalCardV2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 94vh !important;
+    overflow-y: auto !important;
+  }
+  .modalV2Head { padding: 14px 16px 12px !important; }
+  .modalV2Body { padding: 14px 16px !important; }
+
+  /* Select dropdown: full-width bottom anchored */
+  .selectV3Dropdown {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 14px !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 62vh !important;
+    border-radius: 16px !important;
+    z-index: 100700 !important;
+  }
+
+  /* Tables */
+  .tasksTableWrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+  .tasksTable { min-width: 580px !important; }
+
+  /* Board */
+  .p4BoardGrid { grid-template-columns: 1fr !important; overflow-x: visible !important; }
+
+  /* Predictive risks */
+  .grid3 { grid-template-columns: 1fr !important; }
+
+  /* Topbar */
+  .topbarV4 { padding: 0 12px !important; gap: 8px !important; }
+  .topbarThemeBtn, .topbarLangBtn { width: 32px !important; height: 32px !important; font-size: 12px !important; }
+
+  /* SettingsPage: tab buttons wrap */
+  .pageHeaderCardInner > div[style*="gap: 4"] {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+  }
+  .pageHeaderCardInner > div[style*="gap: 4"] button {
+    flex: 1 !important;
+    min-width: calc(50% - 4px) !important;
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* CRM/HR inline table grids → scroll */
+  [style*="1.2fr 1fr 0.7fr"],
+  [style*="1.1fr 0.9fr"] {
+    overflow-x: auto !important;
+    display: block !important;
+  }
+
+  /* Form grids always 1-col */
+  .form, form[style*="grid"] { grid-template-columns: 1fr !important; }
+
+  /* Dashboard detail modal grids */
+  [style*="120px 1fr 1fr 1fr"],
+  [style*="2fr 1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BREAKPOINT: small mobile ≤ 400px
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 400px) {
+  .contentV4 { padding: 10px !important; }
+  .topbarV4SearchWrap { min-width: 80px !important; }
+  .analyticsSignalStrip { grid-template-columns: 1fr !important; }
+  .dashKpiStrip > * { flex: 0 0 110px !important; min-width: 110px !important; }
+  .pageHeaderCardTitle { font-size: 15px !important; }
+  .btn { height: 34px !important; padding: 0 10px !important; font-size: 12px !important; }
+}
+
+/* ── Prevent overflow on all pages ── */
+.contentV4 > * { max-width: 100% !important; overflow-x: hidden; }
+.contentV4 > * > .chartCardV2,
+.contentV4 > * > .card,
+.contentV4 > * > .chartV3 { overflow-x: hidden !important; }
+
+/* ── SettingsPage Field: label+input layout ── */
+.settingsField {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .settingsField {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+/* ── Chart cards inside analyticsChartGrid stretch to equal height ── */
+.analyticsChartGrid .chartCardV2 {
+  display: flex;
+  flex-direction: column;
+}
+.analyticsChartGrid .chartCardV2Body {
+  flex: 1;
+}
+
+/* ── Horizontal scroll hint for small screens ── */
+@media (max-width: 640px) {
+  .tasksTableWrap::after {
+    content: '';
+    display: block;
+    height: 0;
+    clear: both;
+  }
+}
+
+/* ── Mobile: chart cards reduce vertical padding for more chart space ── */
+@media (max-width: 640px) {
+  .chartCardV2Head { padding: 12px 12px 8px !important; }
+  .chartCardV2Body { padding: 0 8px 12px !important; }
+  .chartCardV2Title { font-size: 13px !important; }
+  .chartCardV2Sub { font-size: 11px !important; }
+}
