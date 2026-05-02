@@ -144,6 +144,33 @@
   justify-content: center !important;
 }
 
+/* Dashboard masonry fill: visually places Priority Breakdown below Task Activity instead of leaving a gap.
+   The right column remains Task Status over Project Progress. */
+.dashKpiStrip + .dashGrid21 + .dashGrid12 {
+  align-items: start !important;
+  margin-top: -120px !important;
+}
+
+.dashKpiStrip + .dashGrid21 + .dashGrid12 > div:first-child {
+  align-self: start !important;
+  margin-top: 0 !important;
+}
+
+.dashKpiStrip + .dashGrid21 + .dashGrid12 > div:nth-child(2) {
+  align-self: start !important;
+  margin-top: 120px !important;
+}
+
+@media (max-width: 1280px) {
+  .dashKpiStrip + .dashGrid21 + .dashGrid12 {
+    margin-top: -88px !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:nth-child(2) {
+    margin-top: 88px !important;
+  }
+}
+
 @media (max-width: 1100px) {
   .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -152,5 +179,13 @@
   .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div,
   .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
     min-height: 92px !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 + .dashGrid12 {
+    margin-top: 0 !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 + .dashGrid12 > div:nth-child(2) {
+    margin-top: 0 !important;
   }
 }
