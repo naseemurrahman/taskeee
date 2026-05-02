@@ -13,55 +13,54 @@ import {
   LayoutDashboard
 } from 'lucide-react'
 
-// ── Custom velocity bar chart — pure SVG, no sizing dependencies ──────
+// ── Velocity Bar chart — wide SVG viewBox, bars spread across full width ──────
 function VelocityBars({ data }: { data: Array<{ week: string; created: number; completed: number }> }) {
   if (!data.length) return null
   const maxVal = Math.max(...data.flatMap(d => [d.created, d.completed]), 1)
-  const VH = 140, padT = 8, padB = 22, padL = 24, padR = 4
+  const VW = 600, VH = 180
+  const padT = 14, padB = 36, padL = 32, padR = 12
+  const chartW = VW - padL - padR
   const chartH = VH - padT - padB
   const n = data.length
-  const W = 100 // viewBox units
-  const slotW = (W - padL - padR) / n
-  const barW = Math.min(6, slotW * 0.3)
-  const halfGap = barW * 0.3
-  const gridLines = [0, 0.5, 1]
+  const slotW = chartW / n
+  const barW = Math.min(slotW * 0.35, 28)
+  const gap = barW * 0.3
 
   return (
-    <svg viewBox={`0 0 ${W} ${VH}`} preserveAspectRatio="xMidYMid meet"
-      style={{ width: '100%', height: VH * 1.6, display: 'block' }}>
-      {/* Y-axis gridlines + labels */}
-      {gridLines.map(p => {
+    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
+      style={{ width: '100%', height: VH, display: 'block' }}>
+      {/* Gridlines */}
+      {[0, 0.25, 0.5, 0.75, 1].map(p => {
         const y = padT + chartH * (1 - p)
         return (
           <g key={p}>
-            <line x1={padL} y1={y} x2={W - padR} y2={y}
-              stroke="rgba(255,255,255,0.08)" strokeWidth={0.4} strokeDasharray="2 2" />
+            <line x1={padL} y1={y} x2={VW - padR} y2={y}
+              stroke="rgba(255,255,255,0.07)" strokeWidth={1} strokeDasharray={p === 0 ? "0" : "5 5"} />
             {p > 0 && (
-              <text x={padL - 2} y={y + 1.5} textAnchor="end"
-                fill="var(--muted)" fontSize={4.5} fontWeight="600">
+              <text x={padL - 5} y={y + 4} textAnchor="end"
+                fill="var(--muted)" fontSize={11} fontWeight="600">
                 {Math.round(maxVal * p)}
               </text>
             )}
           </g>
         )
       })}
-      {/* Bar groups */}
+      {/* Bars spread evenly */}
       {data.map((d, i) => {
-        const slotX = padL + i * slotW
-        const cx = slotX + slotW / 2
-        const bh1 = Math.max(1.5, (d.created / maxVal) * chartH)
-        const bh2 = Math.max(1.5, (d.completed / maxVal) * chartH)
-        const x1 = cx - halfGap - barW
-        const x2 = cx + halfGap
+        const cx = padL + i * slotW + slotW / 2
+        const bh1 = Math.max(3, (d.created / maxVal) * chartH)
+        const bh2 = Math.max(3, (d.completed / maxVal) * chartH)
+        const x1 = cx - gap / 2 - barW
+        const x2 = cx + gap / 2
         const label = String(d.week || '').slice(5, 10)
         return (
           <g key={i}>
             <rect x={x1} y={padT + chartH - bh1} width={barW} height={bh1}
-              fill="#e2ab41" rx={1.5} opacity={0.92} />
+              fill="#e2ab41" rx={3} opacity={0.92} />
             <rect x={x2} y={padT + chartH - bh2} width={barW} height={bh2}
-              fill="#22c55e" rx={1.5} opacity={0.92} />
-            <text x={cx} y={VH - padB + 8} textAnchor="middle"
-              fill="var(--muted)" fontSize={4} fontWeight="600">
+              fill="#22c55e" rx={3} opacity={0.92} />
+            <text x={cx} y={VH - padB + 18} textAnchor="middle"
+              fill="var(--muted)" fontSize={11} fontWeight="600">
               {label}
             </text>
           </g>

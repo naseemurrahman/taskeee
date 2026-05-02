@@ -358,11 +358,9 @@ export function TasksPage() {
             </button>
           )}
         </div>
-      </div>
 
-      {/* ── Filters ── */}
-      <div className="chartV3" style={{ padding: '12px 16px' }}>
-        <div className="taskFiltersRow" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Filters merged directly into header — no second card */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
             {[
               { k: 'all', label: 'All', count: counts.all },
@@ -384,10 +382,10 @@ export function TasksPage() {
               </button>
             ))}
           </div>
-          <div style={{ width: 160, flexShrink: 0 }}>
+          <div style={{ width: 150, flexShrink: 0 }}>
             <Select value={priority} onChange={setPriority} options={PRIORITY_OPTS} />
           </div>
-          <div style={{ width: 240, flexShrink: 0 }}>
+          <div style={{ width: 220, flexShrink: 0 }}>
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
               icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
             />

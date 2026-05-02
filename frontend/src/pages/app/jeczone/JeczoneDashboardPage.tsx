@@ -188,7 +188,7 @@ export function JeczoneDashboardPage() {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      {/* Page header card */}
+      {/* Unified header card — title + tabs + project selector */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
@@ -196,26 +196,12 @@ export function JeczoneDashboardPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
               JecZone AI
             </div>
-            <div className="pageHeaderCardSub">AI-powered project management hub. View portfolio overview, Gantt timelines, resource allocation, and get AI-assisted task insights.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤖</span> AI insights</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Portfolio overview</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🗓️</span> Gantt timelines</span>
-            </div>
+            <div className="pageHeaderCardSub">AI-powered project management hub — portfolio overview, Gantt timelines, resource allocation, and task insights.</div>
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <div>
-            <h2 style={{ margin: 0, letterSpacing: '-0.6px' }}>Jeczone Project Management</h2>
-            <div style={{ color: 'var(--text2)', marginTop: 4 }}>Portfolio overview, gantt, and resources.</div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <label className="label" style={{ margin: 0 }}>
-              Project
-<div style={{ minWidth: 220 }}>
+          {/* Project filter — right side of header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', whiteSpace: 'nowrap' }}>Project</span>
+            <div style={{ minWidth: 200 }}>
               <Select
                 value={projectId}
                 onChange={setProjectId}
@@ -225,18 +211,19 @@ export function JeczoneDashboardPage() {
                 ]}
               />
             </div>
-            </label>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        {/* Tab bar directly in header — no second card needed */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           {(['overview','projects','gantt','resources'] as Tab[]).map((t) => (
-            <button key={t} className={`btn ${tab === t ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px' }} onClick={() => setTab(t)}>
+            <button key={t} className={`btn ${tab === t ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 34, padding: '0 14px', fontSize: 13 }} onClick={() => setTab(t)}>
               {t[0].toUpperCase() + t.slice(1)}
             </button>
           ))}
-          <button className={`btn ${tab === 'ai' ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 40, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab('ai')}>
-            🤖 AI Assistant
+          <button className={`btn ${tab === 'ai' ? 'btnPrimary' : 'btnGhost'}`} style={{ height: 34, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab('ai')}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1H1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
+            AI Assistant
           </button>
         </div>
       </div>

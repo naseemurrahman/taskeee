@@ -9117,9 +9117,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   min-height: 40px;
 }
 
-/* ── Cards: overflow visible so dropdowns/tooltips are not clipped ── */
-.card, .chartV3, .chartCardV2 {
-  overflow: visible;
+/* ── Cards: clip visual overflow but portals/dropdowns escape via createPortal ── */
+.chartCardV2 {
+  overflow: clip;    /* clips visual content at border-radius; doesn't create scroll container */
+}
+.card {
+  overflow: visible; /* card can have dropdowns inside */
+}
+.chartV3 {
+  overflow: hidden;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -9206,7 +9212,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07);
 }
 
-/* ── 2. Search bar: primary-color border, correct size ── */
+/* ── 2. Search bar: PILL shape + primary color border (matches buttons) ── */
 .topbarV4 .topbarV4SearchWrap {
   position: relative !important;
   flex: 0 1 360px !important;
@@ -9216,21 +9222,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display: flex !important;
   align-items: center !important;
   background: rgba(255,255,255,0.07) !important;
-  border: 1.5px solid var(--brand, #e2ab41) !important;  /* PRIMARY COLOR */
-  border-radius: 10px !important;
+  border: 1.5px solid var(--brand, #e2ab41) !important;
+  border-radius: 999px !important;   /* PILL — matches buttons */
   overflow: visible !important;
   transition: box-shadow 0.15s, border-color 0.15s !important;
 }
 .topbarV4 .topbarV4SearchWrap:focus-within {
   border-color: var(--brand, #e2ab41) !important;
-  box-shadow: 0 0 0 3px rgba(226,171,65,0.20) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.18) !important;
 }
 .appShellV4Light .topbarV4 .topbarV4SearchWrap {
-  background: rgba(255,255,255,0.12) !important;
+  background: rgba(255,255,255,0.08) !important;
   border-color: var(--brand, #e2ab41) !important;
 }
-.appShellV4Light .topbarV4 .topbarV4SearchWrap:focus-within {
-  box-shadow: 0 0 0 3px rgba(226,171,65,0.18) !important;
+.topbarV4 .topbarV4SearchInput {
+  border-radius: 999px !important;
 }
 
 /* ── 3. Search dropdown: bounded to wrap, never full-screen ── */
@@ -9256,22 +9262,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: 0 8px 32px rgba(0,0,0,0.14) !important;
 }
 
-/* ── 4. PageHeaderCard stripe — must show ── */
+/* ── 4. PageHeaderCard stripe — inset box-shadow technique ── */
+/* The stripe appears as a 3px golden line at the top INSIDE the border-radius */
 .pageHeaderCard {
   position: relative !important;
-  overflow: visible !important;
+  overflow: hidden !important;           /* clip the pseudo-element to border-radius */
   clip-path: none !important;
+  border-radius: 18px !important;
 }
 .pageHeaderCard::before {
   content: '' !important;
   position: absolute !important;
   top: 0 !important; left: 0 !important; right: 0 !important;
   height: 3px !important;
-  background: linear-gradient(90deg, #e2ab41, #f59e0b, #e2ab41) !important;
-  border-radius: 18px 18px 0 0 !important;
-  display: block !important;
-  opacity: 1 !important;
+  background: linear-gradient(90deg, #c98317, #e2ab41, #f59e0b, #e2ab41, #c98317) !important;
+  z-index: 2 !important;
   pointer-events: none !important;
+  display: block !important;
 }
 
 /* ── 5. Modal wider, correct overflow ── */
@@ -9325,4 +9332,46 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Team leaderboard rows — tighter */
 .dashGrid2 .card > div > div {
   gap: 8px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DEFINITIVE FINAL BLOCK — V2
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── pageHeaderCard: clip the ::before stripe inside the card ── */
+/* overflow:hidden is required so the absolute stripe stays within border-radius */
+/* Dropdowns inside still work because Select uses createPortal to document.body */
+.pageHeaderCard {
+  overflow: hidden !important;       /* clips ::before to border-radius */
+  position: relative !important;
+}
+/* The filter/tab row inside pageHeaderCard needs overflow:visible for Select portals */
+/* But the card itself clips — portals escape via createPortal not overflow */
+
+/* ── chartCardV2: use overflow:clip so ResizeObserver works ── */
+/* overflow:clip clips visual content but doesn't create a scrollable container,
+   so ResizeObserver can still measure the element height correctly */
+.chartCardV2 {
+  overflow: clip !important;
+}
+
+/* ── Search bar: pill-shaped + brand border ── */
+.topbarV4SearchWrap,
+.topbarV4 .topbarV4SearchWrap {
+  border-radius: 999px !important;
+  border-color: var(--brand, #e2ab41) !important;
+}
+.topbarV4SearchInput,
+.topbarV4 .topbarV4SearchInput {
+  border-radius: 999px !important;
+}
+
+/* ── chartCardV2Body: ensure charts get proper height ── */
+.chartCardV2Body {
+  display: block;
+  width: 100%;
+}
+/* The Shell div inside has explicit height — make sure nothing collapses it */
+.chartCardV2Body > div[style*="height"] {
+  display: block !important;
 }
