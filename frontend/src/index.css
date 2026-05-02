@@ -7563,11 +7563,7 @@ tr:hover .inlineEditBtn {
 }
 
 /* Dropdown always floats above everything */
-.selectV3Dropdown {
-  position: fixed !important;  /* Fixed positioning escapes all overflow:hidden parents */
-  z-index: 999999 !important;
-  min-width: 200px;
-}
+/* selectV3Dropdown: position set by JS inline via createPortal */
 
 /* Trigger stores its position so dropdown can be fixed-positioned */
 .selectV3Trigger {
@@ -7599,21 +7595,8 @@ tr:hover .inlineEditBtn {
 .miniCard { overflow: hidden; }
 
 /* Final select behavior: keep dropdown visible and anchored to trigger */
-.selectV3Wrap {
-  position: relative !important;
-}
-.selectV3Dropdown {
-  position: absolute !important;
-  top: calc(100% + 6px) !important;
-  bottom: auto !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 99999 !important;
-}
-.selectV3DropdownUp {
-  top: auto !important;
-  bottom: calc(100% + 6px) !important;
-}
+/* selectV3Dropdown position managed entirely by JS inline style via createPortal — no CSS position override */
+.selectV3Wrap { position: relative; }
 
 /* Textarea should be lightly rounded, not fully pill-shaped */
 .textareaField {
@@ -9197,4 +9180,149 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Notification bell in topbar */
 .appShellV4Light .notifBellBtn {
   color: #374151 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FINAL AUTHORITY — appended last, wins all conflicts
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Select dropdown: NEVER override position — JS controls it ── */
+/* The Select component uses createPortal + getBoundingClientRect + position:fixed */
+/* Any CSS position override breaks it completely. Trust the inline style. */
+.selectV3Dropdown {
+  /* position: intentionally NOT SET — managed by JS inline style */
+  z-index: 100500;
+  min-width: 180px;
+  background: var(--bg1);
+  border: 1.5px solid var(--borderUp, rgba(255,255,255,0.15));
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.40), 0 4px 16px rgba(0,0,0,0.20);
+  overflow: hidden;
+  animation: dropIn 0.14s ease;
+}
+.appShellV4Light .selectV3Dropdown {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* ── 2. Search bar: primary-color border, correct size ── */
+.topbarV4 .topbarV4SearchWrap {
+  position: relative !important;
+  flex: 0 1 360px !important;
+  min-width: 140px !important;
+  max-width: 360px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: rgba(255,255,255,0.07) !important;
+  border: 1.5px solid var(--brand, #e2ab41) !important;  /* PRIMARY COLOR */
+  border-radius: 10px !important;
+  overflow: visible !important;
+  transition: box-shadow 0.15s, border-color 0.15s !important;
+}
+.topbarV4 .topbarV4SearchWrap:focus-within {
+  border-color: var(--brand, #e2ab41) !important;
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.20) !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchWrap {
+  background: rgba(255,255,255,0.12) !important;
+  border-color: var(--brand, #e2ab41) !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchWrap:focus-within {
+  box-shadow: 0 0 0 3px rgba(226,171,65,0.18) !important;
+}
+
+/* ── 3. Search dropdown: bounded to wrap, never full-screen ── */
+.topbarV4SearchDropdown {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  width: max(100%, 300px) !important;
+  max-width: 420px !important;
+  right: auto !important;
+  z-index: 99999 !important;
+  background: var(--bg1) !important;
+  border: 1.5px solid rgba(226,171,65,0.45) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.40), 0 4px 16px rgba(0,0,0,0.18) !important;
+  overflow: hidden !important;
+  max-height: 60vh !important;
+  overflow-y: auto !important;
+}
+.appShellV4Light .topbarV4SearchDropdown {
+  background: #fff !important;
+  border-color: rgba(226,171,65,0.35) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14) !important;
+}
+
+/* ── 4. PageHeaderCard stripe — must show ── */
+.pageHeaderCard {
+  position: relative !important;
+  overflow: visible !important;
+  clip-path: none !important;
+}
+.pageHeaderCard::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, #e2ab41, #f59e0b, #e2ab41) !important;
+  border-radius: 18px 18px 0 0 !important;
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* ── 5. Modal wider, correct overflow ── */
+.modalCardV2 {
+  width: min(680px, 96vw) !important;   /* was 520px — now wider */
+  max-height: calc(100vh - 48px) !important;
+  overflow: hidden !important;            /* clip modal edges */
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 24px !important;
+}
+.modalV2Body {
+  overflow-y: auto !important;            /* body scrolls if tall */
+  flex: 1 !important;
+  overflow-x: visible !important;         /* portals still escape */
+}
+.modalV2Body .selectV3Wrap {
+  position: static !important;            /* don't create stacking context */
+}
+
+/* ── Card density: reduce excess padding/space ── */
+.card {
+  padding: 16px 18px;
+}
+.chartV3 {
+  padding: 18px 20px;
+}
+.miniCard {
+  padding: 14px 16px;
+}
+.pageHeaderCard {
+  padding: 16px 22px;
+}
+.pageHeaderCardTitle {
+  font-size: 20px;
+}
+.pageHeaderCardSub {
+  font-size: 12.5px;
+  margin-top: 3px;
+}
+.pageHeaderCardMeta {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+/* Tighten dashboard KPI strip */
+.dashKpiStrip {
+  gap: 10px;
+}
+
+/* Team leaderboard rows — tighter */
+.dashGrid2 .card > div > div {
+  gap: 8px;
 }

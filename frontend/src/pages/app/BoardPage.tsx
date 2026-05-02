@@ -154,7 +154,7 @@ export function BoardPage() {
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">{tasks.length} tasks</span>
               {focusMode && <span className="pageHeaderCardTag" style={{color:'#f97316',background:'rgba(249,115,22,0.10)',borderColor:'rgba(249,115,22,0.24)'}}>Focus: {visibleTasks.length}</span>}
-              {intelligence.risky.length>0 && <span className="pageHeaderCardTag" style={{color:'#f97316',background:'rgba(249,115,22,0.10)',borderColor:'rgba(249,115,22,0.24)'}}>⚡ {intelligence.risky.length} need attention</span>}
+              {intelligence.risky.length>0 && <span className="pageHeaderCardTag" style={{color:'#f97316',background:'rgba(249,115,22,0.10)',borderColor:'rgba(249,115,22,0.24)'}}>{intelligence.risky.length} need attention</span>}
               {!canDrag && <span className="pageHeaderCardTag" style={{color:'#9ca3af'}}>Read-only view</span>}
             </div>
           </div>
@@ -169,15 +169,15 @@ export function BoardPage() {
       <div className="chartV3" style={{padding:16,display:'grid',gap:14}}>
         <div style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center',justifyContent:'space-between'}}>
           <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            <button type="button" className={focusMode?'btn btnPrimary':'btn btnGhost'} onClick={()=>setFocusMode(v=>!v)}>🎯 Focus Mode</button>
-            <button type="button" className={aiSort?'btn btnPrimary':'btn btnGhost'} onClick={()=>setAiSort(v=>!v)}>⚡ AI Sort</button>
+            <button type="button" className={focusMode?'btn btnPrimary':'btn btnGhost'} onClick={()=>setFocusMode(v=>!v)}>Focus Mode</button>
+            <button type="button" className={aiSort?'btn btnPrimary':'btn btnGhost'} onClick={()=>setAiSort(v=>!v)}>AI Sort</button>
           </div>
           <div style={{color:'var(--text2)',fontSize:12,fontWeight:700}}>Avg workload: {avgLoad.toFixed(1)} open/person</div>
         </div>
         <div className="grid3">
           {/* Top risk */}
           <div className="miniCard">
-            <div className="miniLabel">🔴 Highest Risk</div>
+            <div className="miniLabel">Highest Risk</div>
             <div style={{display:'grid',gap:8,marginTop:10}}>
               {intelligence.topRisk.length===0 ? <span style={{color:'var(--text2)',fontSize:12}}>No at-risk tasks 🎉</span>
               : intelligence.topRisk.map(item=>(
@@ -190,7 +190,7 @@ export function BoardPage() {
           </div>
           {/* Workload heatmap */}
           <div className="miniCard">
-            <div className="miniLabel">📊 Workload Heatmap</div>
+            <div className="miniLabel">Workload Heatmap</div>
             <div style={{display:'grid',gap:8,marginTop:10}}>
               {intelligence.overloaded.length===0 ? <span style={{color:'var(--text2)',fontSize:12}}>No workload data yet</span>
               : intelligence.overloaded.map(row=>{ const tone=loadTone(Number(row.open_tasks||0),avgLoad); return (
@@ -208,7 +208,7 @@ export function BoardPage() {
           </div>
           {/* Smart reassignment */}
           <div className="miniCard">
-            <div className="miniLabel">🔄 Smart Reassignment</div>
+            <div className="miniLabel">Smart Reassignment</div>
             <div style={{display:'grid',gap:10,marginTop:10}}>
               {intelligence.suggestions.length===0 ? <span style={{color:'var(--text2)',fontSize:12}}>No pressure detected ✓</span>
               : intelligence.suggestions.map((s,i)=>(
@@ -271,7 +271,7 @@ export function BoardPage() {
                           <div style={{fontWeight:750,fontSize:13,color:'var(--text)',lineHeight:1.4,flex:1}}>{task.title}</div>
                           <span className={signalBadgeClass(signal.level)} style={{flexShrink:0}}>{signal.score}%</span>
                         </div>
-                        {signal.needsAttention && <div style={{color:'#f97316',fontSize:11,fontWeight:700,marginBottom:6}}>⚡ {signal.note}</div>}
+                        {signal.needsAttention && <div style={{color:'#f97316',fontSize:11,fontWeight:700,marginBottom:6}}>{signal.note}</div>}
                         {signal.loadNote && <div style={{color:'#ef4444',fontSize:11,fontWeight:700,marginBottom:6}}>⚠ {signal.loadNote}</div>}
                         <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:task.assigned_to_name?8:0}}>
                           {task.category_name && <span style={{fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:999,background:(task.category_color||'#818cf8')+'22',color:task.category_color||'#818cf8',textTransform:'uppercase',letterSpacing:'0.05em',border:`1px solid ${(task.category_color||'#818cf8')}30`}}>{task.category_name}</span>}

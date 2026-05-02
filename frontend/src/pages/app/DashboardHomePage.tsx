@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import type React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
@@ -7,6 +8,10 @@ import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
+import {
+  ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
+  LayoutDashboard
+} from 'lucide-react'
 
 // ── Custom velocity bar chart — pure SVG, no sizing dependencies ──────
 function VelocityBars({ data }: { data: Array<{ week: string; created: number; completed: number }> }) {
@@ -242,12 +247,15 @@ function Card({ title, sub, children, action }: {
 
 // ─── KPI Tile ─────────────────────────────────────────────────────
 function KpiTile({ label, value, sub, color, icon }: {
-  label: string; value: number; sub?: string; color: string; icon: string
+  label: string; value: number; sub?: string; color: string; icon: React.ReactNode
 }) {
   return (
     <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '16px 18px', position: 'relative', overflow: 'hidden', flex: '1 1 130px', minWidth: 130 }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '18px 18px 0 0' }} />
-      <div style={{ position: 'absolute', bottom: -20, right: -10, fontSize: 52, opacity: 0.06, lineHeight: 1, userSelect: 'none' }}>{icon}</div>
+      {/* Lucide icon — watermark in corner */}
+      <div style={{ position: 'absolute', bottom: 12, right: 14, opacity: 0.08, color, lineHeight: 1, userSelect: 'none', pointerEvents: 'none' }}>
+        <span style={{ display: 'flex' }}>{icon}</span>
+      </div>
       <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1.5px', lineHeight: 1 }}>
         <AnimatedNumber value={value} />
@@ -310,7 +318,7 @@ export function DashboardHomePage() {
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+              <LayoutDashboard size={20} strokeWidth={2} />
               Dashboard
             </div>
             <div className="pageHeaderCardSub">
@@ -322,12 +330,6 @@ export function DashboardHomePage() {
               {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {tasks.completion_rate}% complete</span>}
             </div>
           </div>
-          {canCreate && (
-            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              + Create Task
-            </button>
-          )}
         </div>
       </div>
 
@@ -336,12 +338,12 @@ export function DashboardHomePage() {
       {/* ── KPI Row ── */}
       <div className="dashKpiStrip">
         {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, flex: '1 1 130px', minWidth: 130 }} />) : <>
-          <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon="📋" sub={`${tasks?.due_today||0} due today`} />
-          <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon="⚡" sub="active work" />
-          <KpiTile label="Completed"      value={tasks?.completed || 0}   color={C.green}  icon="✅" sub={`${tasks?.completion_rate||0}% rate`} />
-          <KpiTile label="Overdue"        value={tasks?.overdue || 0}     color={C.red}    icon="🚨" sub={`${tasks?.due_week||0} due this week`} />
-          <KpiTile label="Pending Review" value={tasks?.submitted || 0}   color={C.blue}   icon="📨" sub="awaiting approval" />
-          <KpiTile label="Projects"       value={projects.length}         color={C.teal}   icon="📁" sub={`${projects.filter(p=>p.progress===100).length} complete`} />
+          <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon={<ClipboardList size={36} />} sub={`${tasks?.due_today||0} due today`} />
+          <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon={<Zap size={36} />}           sub="active work" />
+          <KpiTile label="Completed"      value={tasks?.completed || 0}   color={C.green}  icon={<CheckCircle2 size={36} />}  sub={`${tasks?.completion_rate||0}% rate`} />
+          <KpiTile label="Overdue"        value={tasks?.overdue || 0}     color={C.red}    icon={<AlertTriangle size={36} />} sub={`${tasks?.due_week||0} due this week`} />
+          <KpiTile label="Pending Review" value={tasks?.submitted || 0}   color={C.blue}   icon={<Send size={36} />}          sub="awaiting approval" />
+          <KpiTile label="Projects"       value={projects.length}         color={C.teal}   icon={<FolderOpen size={36} />}    sub={`${projects.filter(p=>p.progress===100).length} complete`} />
         </>}
       </div>
 
@@ -607,7 +609,7 @@ export function DashboardHomePage() {
               return (
                 <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 44px', gap: 10, alignItems: 'center' }}>
                   <div style={{ width: 28, height: 28, borderRadius: 9, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0, border: `1.5px solid ${color}35` }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                    {i + 1}
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -629,7 +631,7 @@ export function DashboardHomePage() {
       {/* ── Row 5: At-risk tasks + Workload ── */}
       <div className="dashGrid2">
         {/* At-risk */}
-        <Card title="⚠ At-Risk Tasks" sub="Overdue items requiring immediate attention">
+        <Card title="At-Risk Tasks" sub="Overdue items requiring immediate attention">
           <AtRiskList />
         </Card>
 
