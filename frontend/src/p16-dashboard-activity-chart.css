@@ -1,0 +1,91 @@
+/* P16 Dashboard activity chart replacement
+   Converts the old 3-row sparkline block into compact professional metric cards. */
+
+/* First dashboard chart after the KPI strip is Task Activity. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  min-height: 170px !important;
+  align-items: stretch !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  display: grid !important;
+  grid-template-rows: auto 1fr !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  padding: 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+  overflow: hidden !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div,
+[data-theme='light'] .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  border-color: rgba(15,23,42,.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 28px rgba(15,23,42,.06) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: start !important;
+  margin: 0 !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:first-child {
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:last-child {
+  font-size: 26px !important;
+  line-height: 1 !important;
+  letter-spacing: -1px !important;
+}
+
+/* Replace the old separated sparkline with a compact distribution band. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg {
+  height: 52px !important;
+  min-height: 52px !important;
+  border-radius: 12px !important;
+  background: rgba(148,163,184,.08) !important;
+  padding: 4px !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] path:first-of-type {
+  opacity: .65 !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] path[fill='none'] {
+  stroke-width: 3 !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] circle {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0 !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, .85fr) !important;
+    grid-template-rows: auto !important;
+    align-items: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
