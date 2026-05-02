@@ -35,6 +35,7 @@ import { MarketingLayout } from './pages/marketing/MarketingLayout'
 import { MarketingHomePage } from './pages/marketing/MarketingHomePage'
 import { PricingPage } from './pages/marketing/PricingPage'
 import { OnboardingPage } from './pages/app/OnboardingPage'
+import { SessionGuard } from './components/SessionGuard'
 import React from 'react'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -51,10 +52,12 @@ export default function App() {
   const tasksHome = ['employee', 'supervisor'].includes(role) ? <MyTasksPage /> : <TasksPage />
 
   return (
-    <Routes>
-      <Route element={<MarketingLayout />}>
-        <Route path="/" element={<MarketingHomePage />} />
-        <Route path="/home" element={<Navigate to="/" replace />} />
+    <>
+      <SessionGuard />
+      <Routes>
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<MarketingHomePage />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="/pricing" element={<PricingPage />} />
       </Route>
       <Route path="/signin" element={<SignInPage />} />
@@ -98,5 +101,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

@@ -18,6 +18,7 @@ export function SignInPage() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const sessionExpired = params.get('reason') === 'session_expired'
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -110,6 +111,13 @@ export function SignInPage() {
             <h2 style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.8px', margin: '0 0 8px' }}>Welcome back</h2>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', margin: 0 }}>Sign in to your organization's workspace</p>
           </div>
+
+          {sessionExpired && (
+            <div style={{ padding: '12px 16px', borderRadius: 10, marginBottom: 12, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b', fontSize: 14, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Your session expired. Please sign in again.
+            </div>
+          )}
 
           {error && (
             <div style={{ padding: '12px 16px', borderRadius: 10, marginBottom: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 14, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center' }}>
