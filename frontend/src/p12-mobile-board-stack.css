@@ -1,0 +1,34 @@
+/* P12 mobile board stack fix */
+@media (max-width: 900px) {
+  .contentV4 > div[style*='flex-direction: column'] > div[style*='grid-template-columns: repeat'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    gap: 12px !important;
+    flex: initial !important;
+  }
+
+  .contentV4 > div[style*='flex-direction: column'] > div[style*='grid-template-columns: repeat'] > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .contentV4 > div[style*='flex-direction: column'] [draggable='true'] {
+    touch-action: manipulation !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .contentV4 > div[style*='flex-direction: column'] > div[style*='grid-template-columns: repeat'] {
+    gap: 10px !important;
+  }
+
+  .contentV4 > div[style*='flex-direction: column'] > div[style*='grid-template-columns: repeat'] > div {
+    border-radius: 14px !important;
+    padding: 10px !important;
+  }
+}
