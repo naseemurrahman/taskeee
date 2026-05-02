@@ -8667,3 +8667,94 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
   .pageHeaderCard { border-radius: 12px !important; }
   .btn { font-size: 13px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DEFINITIVE v5 — Dropdown stacking, charts responsive, contrast
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 1. DROPDOWN STACKING — pageHeaderCard gets z-index to float above table ── */
+/* Without this, the table card painted AFTER the header covers the dropdown */
+.pageHeaderCard {
+  position: relative !important;
+  z-index: 10 !important;           /* above sibling cards (z-index: auto = 0) */
+  overflow: visible !important;     /* dropdown must escape card boundary */
+  box-shadow: inset 0 3px 0 #e2ab41, 0 2px 12px rgba(0,0,0,0.08) !important;
+}
+.pageHeaderCard::before { display: none !important; }
+.pageHeaderCardInner { position: relative !important; z-index: 2 !important; }
+
+/* ALL card types: overflow:visible so absolute dropdown escapes */
+.card, .chartV3, .chartCardV2, .miniCard, .formCardV3 {
+  overflow: visible !important;
+}
+/* ChartCardV2 body specifically needs horizontal scrolling for any overflow charts */
+.chartCardV2Body {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* ── 2. DROPDOWN TEXT CONTRAST — explicit colors per theme ── */
+/* DARK theme dropdown */
+.selectV3Dropdown {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1.5px solid rgba(255,255,255,0.16) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.3) !important;
+  z-index: 100600 !important;
+}
+.selectV3Option { color: #e2e8f0 !important; }
+.selectV3OptionLabel { color: #e2e8f0 !important; }
+.selectV3OptionDesc { color: #94a3b8 !important; }
+.selectV3Empty { color: #94a3b8 !important; }
+.selectV3Placeholder { color: #64748b !important; }
+.selectV3Value span { color: #f1f5f9 !important; }
+.selectV3SearchInput { color: #f1f5f9 !important; background: transparent !important; }
+.selectV3SearchInput::placeholder { color: #64748b !important; }
+
+/* LIGHT theme — override all the dark rules above */
+.appShellV4Light .selectV3Dropdown {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15,23,42,0.15) !important;
+  box-shadow: 0 20px 48px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.08) !important;
+}
+.appShellV4Light .selectV3Option { color: #1e293b !important; }
+.appShellV4Light .selectV3OptionLabel { color: #1e293b !important; }
+.appShellV4Light .selectV3OptionDesc { color: #64748b !important; }
+.appShellV4Light .selectV3Empty { color: #94a3b8 !important; }
+.appShellV4Light .selectV3Placeholder { color: #94a3b8 !important; }
+.appShellV4Light .selectV3Value span { color: #0f172a !important; }
+.appShellV4Light .selectV3SearchInput { color: #0f172a !important; }
+.appShellV4Light .selectV3SearchInput::placeholder { color: #94a3b8 !important; }
+.appShellV4Light .selectV3SearchWrap { background: #f8fafc !important; }
+.appShellV4Light .selectV3OptionActive { background: rgba(226,171,65,0.12) !important; }
+.appShellV4Light .selectV3OptionActive .selectV3OptionLabel { color: #b45309 !important; }
+
+/* ── 3. RECHARTS RESPONSIVE — ensure recharts fills container ── */
+/* When ResponsiveContainer is used, the SVG must fill its wrapper */
+.recharts-wrapper,
+.recharts-surface { overflow: visible !important; }
+.recharts-responsive-container { display: block !important; }
+
+/* ── 4. CHART CARD empty-space fix ── */
+/* chartCardV2Body must NOT have min-height that creates empty space */
+.chartCardV2Body {
+  min-height: 0 !important;
+  padding: 4px 16px 16px !important;
+}
+/* chartCardV2 itself needs no min-height */
+.chartCardV2 { min-height: 0 !important; }
+
+/* ── 5. ANALYTICS GRID — equal-height chart cards in each row ── */
+.analyticsChartGrid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
+  align-items: stretch !important;   /* cards in same row get same height */
+}
+.analyticsChartGrid .chartCardV2 { height: 100% !important; }
+@media (max-width: 900px) {
+  .analyticsChartGrid { grid-template-columns: 1fr !important; }
+}
