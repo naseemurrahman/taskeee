@@ -6801,13 +6801,7 @@ button.btnPrimary,
    ═══════════════════════════════════════════════════════════════ */
 
 /* Topbar search pill */
-.topbarV4SearchInput {
-  border-radius: 999px !important;
-}
-.topbarV4SearchWrap {
-  border-radius: 999px !important;
-  overflow: visible;
-}
+/* [removed — overridden in MASTER FIX] */
 
 /* Input wrappers used in forms (Select, Input components) */
 .inputV3Field {
@@ -8356,50 +8350,7 @@ textarea.input {
   }
 }
 
-/* === Topbar gradient refresh (light + dark themes) === */
-.topbarV4 {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.appShellV4Light .topbarV4 {
-  background: linear-gradient(120deg, #020203 0%, #101114 42%, #1a1b20 100%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-}
-
-.appShellV4Dark .topbarV4 {
-  background: linear-gradient(120deg, #f5c35a 0%, #e2ab41 48%, #c98317 100%) !important;
-  border-bottom: 1px solid rgba(18, 14, 6, 0.22) !important;
-  box-shadow: 0 10px 30px rgba(201, 131, 23, 0.35);
-}
-
-.appShellV4Light .topbarV4,
-.appShellV4Light .topbarV4 * {
-  color: rgba(255, 255, 255, 0.94);
-}
-
-.appShellV4Dark .topbarV4,
-.appShellV4Dark .topbarV4 * {
-  color: #1f1304;
-}
-
-.appShellV4Light .topbarV4SearchWrap,
-.appShellV4Dark .topbarV4SearchWrap {
-  background: rgba(255, 255, 255, 0.14) !important;
-  border-color: rgba(255, 255, 255, 0.26) !important;
-}
-
-.appShellV4Light .topbarV4SearchInput,
-.appShellV4Dark .topbarV4SearchInput {
-  background: transparent !important;
-}
-
-.appShellV4Dark .topbarV4SearchInput::placeholder,
-.appShellV4Dark .topbarV4SearchIcon {
-  color: rgba(31, 19, 4, 0.7) !important;
-}
+/* [removed conflicting topbar gradient block — see MASTER FIX section below] */
 
 .topbarV4Meta {
   display: flex;
@@ -8841,4 +8792,409 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--border) !important;
   border-radius: 10px !important;
   box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DEFINITIVE FIXES — clean overrides for all broken areas
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Missing grid classes that caused analytics/board to collapse ── */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .grid3 { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 600px) {
+  .grid3 { grid-template-columns: 1fr !important; }
+  .grid2 { grid-template-columns: 1fr !important; }
+}
+
+/* ── Analytics page layout classes — were undefined, causing collapse ── */
+.analyticsSignalStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.analyticsPriorityCharts {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.analyticsChartHero {
+  grid-column: 1 / 2;
+}
+@media (max-width: 1100px) {
+  .analyticsPriorityCharts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .analyticsChartHero {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .analyticsPriorityCharts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── SEARCH BAR — single canonical rule set, removes all conflicts ── */
+/* Reset ALL previous search wrap overrides */
+.topbarV4SearchWrap {
+  position: relative !important;
+  flex: 1 1 auto !important;
+  max-width: 400px !important;
+  min-width: 120px !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 38px !important;
+  background: rgba(255,255,255,0.09) !important;
+  border: 1.5px solid rgba(255,255,255,0.14) !important;
+  border-radius: 10px !important;
+  overflow: visible !important;   /* must be visible so dropdown shows */
+  transition: border-color 0.15s, background 0.15s !important;
+}
+.topbarV4SearchWrap:focus-within {
+  border-color: rgba(226,171,65,0.55) !important;
+  background: rgba(255,255,255,0.12) !important;
+}
+.appShellV4Light .topbarV4SearchWrap {
+  background: #f0f3f9 !important;
+  border-color: #d1d5db !important;
+}
+.appShellV4Light .topbarV4SearchWrap:focus-within {
+  border-color: rgba(217,119,6,0.5) !important;
+  background: #fff !important;
+}
+
+/* Fix the search icon — make sure it's inside the flex container */
+.topbarV4SearchIcon {
+  position: absolute !important;
+  left: 11px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--muted) !important;
+  pointer-events: none !important;
+  flex-shrink: 0 !important;
+  z-index: 1 !important;
+}
+
+/* The input itself */
+.topbarV4SearchInput {
+  flex: 1 !important;
+  height: 100% !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 0 36px 0 34px !important;
+  border-radius: 0 !important;
+}
+.topbarV4SearchInput::placeholder {
+  color: var(--muted) !important;
+}
+.appShellV4Light .topbarV4SearchInput {
+  color: #111827 !important;
+}
+.appShellV4Light .topbarV4SearchInput::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Clear button — absolutely positioned inside wrap */
+.topbarV4SearchClear {
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 6px !important;
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: var(--muted) !important;
+  cursor: pointer !important;
+  display: grid !important;
+  place-items: center !important;
+  z-index: 2 !important;
+}
+.appShellV4Light .topbarV4SearchClear {
+  background: rgba(0,0,0,0.06) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+/* ── SEARCH DROPDOWN — constrained width, correct position ── */
+.topbarV4SearchDropdown {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  min-width: 320px !important;
+  background: var(--bg1) !important;
+  border: 1.5px solid rgba(226,171,65,0.35) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.15) !important;
+  z-index: 9999 !important;
+  overflow: hidden !important;
+  animation: dropIn 0.14s ease !important;
+}
+.appShellV4Light .topbarV4SearchDropdown {
+  background: #ffffff !important;
+  border-color: rgba(217,119,6,0.3) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Profile dropdown — fix z-index and positioning ── */
+.profileDropdown {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  min-width: 220px !important;
+  z-index: 9998 !important;
+}
+
+/* ── Topbar — reset conflicting z-index overrides ── */
+.topbarV4 {
+  z-index: 200 !important;
+}
+
+/* ── Card overflow — keep visible so dropdowns work ── */
+.card, .chartV3, .chartCardV2 {
+  overflow: visible !important;
+}
+/* But clip internal decorative elements */
+.card::before, .chartCardV2::before {
+  overflow: hidden !important;
+  border-radius: inherit !important;
+}
+
+/* ── Recharts / chart containers need explicit height ── */
+.recharts-responsive-container {
+  min-height: 60px !important;
+}
+
+/* ── Light mode card borders — final authoritative rule ── */
+.appShellV4Light .card,
+.appShellV4Light .chartV3,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .miniCard,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .kpiV3 {
+  border: 1.5px solid #e2e8f0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MASTER FIX — highest specificity, fixes all visual bugs
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Topbar z-index (must be above sidebar at 500) ── */
+.topbarV4 {
+  z-index: 600 !important;
+  position: sticky !important;
+}
+
+/* ── 2. Search wrap — canonical sizing, flex-item in topbar ── */
+.topbarV4 .topbarV4SearchWrap {
+  position: relative !important;
+  flex: 0 1 380px !important;       /* don't grow beyond 380px */
+  min-width: 160px !important;
+  max-width: 380px !important;
+  width: auto !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 9px !important;
+  background: rgba(255,255,255,0.13) !important;
+  border: 1.5px solid rgba(255,255,255,0.18) !important;
+  overflow: visible !important;
+  transition: border-color 0.15s, background 0.15s !important;
+}
+.topbarV4 .topbarV4SearchWrap:focus-within {
+  background: rgba(255,255,255,0.18) !important;
+  border-color: rgba(255,255,255,0.38) !important;
+}
+
+/* In dark-golden mode the text on topbar is dark */
+.appShellV4Dark .topbarV4 .topbarV4SearchWrap {
+  background: rgba(0,0,0,0.14) !important;
+  border-color: rgba(0,0,0,0.2) !important;
+}
+
+/* ── 3. Search input fills the wrap ── */
+.topbarV4 .topbarV4SearchInput {
+  position: static !important;
+  flex: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  padding: 0 30px 0 32px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.9) !important;
+  border-radius: 0 !important;
+}
+.topbarV4 .topbarV4SearchInput::placeholder {
+  color: rgba(255,255,255,0.42) !important;
+}
+.appShellV4Dark .topbarV4 .topbarV4SearchInput {
+  color: rgba(20,12,0,0.85) !important;
+}
+.appShellV4Dark .topbarV4 .topbarV4SearchInput::placeholder {
+  color: rgba(20,12,0,0.45) !important;
+}
+
+/* ── 4. Search dropdown — constrained to wrap width, never full-screen ── */
+.topbarV4 .topbarV4SearchWrap .topbarV4SearchDropdown {
+  position: absolute !important;
+  top: calc(100% + 7px) !important;
+  left: 0 !important;
+  right: 0 !important;       /* bounded by the wrap, not screen */
+  width: 100% !important;
+  min-width: 280px !important;
+  max-width: 420px !important;   /* hard cap regardless of wrap width */
+  background: var(--bg1) !important;
+  border: 1.5px solid rgba(226,171,65,0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2) !important;
+  z-index: 9999 !important;
+  overflow: hidden !important;
+  max-height: 60vh !important;
+  overflow-y: auto !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchWrap .topbarV4SearchDropdown {
+  background: #fff !important;
+  border-color: rgba(217,119,6,0.3) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07) !important;
+}
+
+/* ── 5. Profile dropdown ── */
+.topbarProfileWrap {
+  position: relative !important;
+}
+.topbarProfileWrap .profileDropdown {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  left: auto !important;
+  min-width: 220px !important;
+  max-width: 300px !important;
+  z-index: 9998 !important;
+}
+
+/* ── 6. Notification dropdown ── */
+.notifBell {
+  position: relative !important;
+}
+.notifPanel {
+  position: absolute !important;
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 8px) !important;
+  z-index: 9997 !important;
+  width: 360px !important;
+  max-width: 92vw !important;
+}
+
+/* ── 7. Tasks page — status select should not be full-width ── */
+.tasksTable td select,
+.tasksTable select {
+  width: auto !important;
+  min-width: 110px !important;
+  max-width: 160px !important;
+}
+
+/* ── 8. Status select overflow fix (native dropdown) ── */
+.tasksTable {
+  overflow: visible !important;
+}
+.tasksTable tr,
+.tasksTable td,
+.tasksTable th {
+  overflow: visible !important;
+  position: static !important;
+}
+
+/* ── Chart card body: ensure Recharts ResponsiveContainer has height ── */
+.chartCardV2Body {
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+}
+
+/* ── Cards: overflow visible so dropdowns/tooltips are not clipped ── */
+.card, .chartV3, .chartCardV2 {
+  overflow: visible;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TOPBAR THEME — correct light vs dark (final, highest priority)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Dark mode topbar: keep app's dark glass look */
+.appShellV4Dark .topbarV4 {
+  background: var(--bg1) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: none !important;
+}
+
+/* Light mode topbar: clean white with subtle border */
+.appShellV4Light .topbarV4 {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+}
+
+/* Light mode topbar text — must be DARK (not white) */
+.appShellV4Light .topbarV4 {
+  color: #111827 !important;
+}
+.appShellV4Light .topbarV4 .topbarV4PageTitle,
+.appShellV4Light .topbarV4 .topbarMetricChip,
+.appShellV4Light .topbarV4 .topbarLangBtn,
+.appShellV4Light .topbarV4 .topbarThemeBtn {
+  color: #374151 !important;
+}
+
+/* Dark mode topbar text — light */
+.appShellV4Dark .topbarV4 {
+  color: var(--text) !important;
+}
+
+/* Light mode search wrap inside topbar */
+.appShellV4Light .topbarV4 .topbarV4SearchWrap {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchInput {
+  color: #111827 !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder {
+  color: #9ca3af !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchIcon {
+  color: #9ca3af !important;
+}
+
+/* Light mode metric chips */
+.appShellV4Light .topbarV4 .topbarMetricChip {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+/* Notification bell in topbar */
+.appShellV4Light .notifBellBtn {
+  color: #374151 !important;
 }

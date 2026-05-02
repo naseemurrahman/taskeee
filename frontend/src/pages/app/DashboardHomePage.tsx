@@ -7,10 +7,64 @@ import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
-import {
-  BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
-  ResponsiveContainer,
-} from 'recharts'
+
+// ── Custom velocity bar chart — pure SVG, no sizing dependencies ──────
+function VelocityBars({ data }: { data: Array<{ week: string; created: number; completed: number }> }) {
+  if (!data.length) return null
+  const maxVal = Math.max(...data.flatMap(d => [d.created, d.completed]), 1)
+  const VH = 140, padT = 8, padB = 22, padL = 24, padR = 4
+  const chartH = VH - padT - padB
+  const n = data.length
+  const W = 100 // viewBox units
+  const slotW = (W - padL - padR) / n
+  const barW = Math.min(6, slotW * 0.3)
+  const halfGap = barW * 0.3
+  const gridLines = [0, 0.5, 1]
+
+  return (
+    <svg viewBox={`0 0 ${W} ${VH}`} preserveAspectRatio="xMidYMid meet"
+      style={{ width: '100%', height: VH * 1.6, display: 'block' }}>
+      {/* Y-axis gridlines + labels */}
+      {gridLines.map(p => {
+        const y = padT + chartH * (1 - p)
+        return (
+          <g key={p}>
+            <line x1={padL} y1={y} x2={W - padR} y2={y}
+              stroke="rgba(255,255,255,0.08)" strokeWidth={0.4} strokeDasharray="2 2" />
+            {p > 0 && (
+              <text x={padL - 2} y={y + 1.5} textAnchor="end"
+                fill="var(--muted)" fontSize={4.5} fontWeight="600">
+                {Math.round(maxVal * p)}
+              </text>
+            )}
+          </g>
+        )
+      })}
+      {/* Bar groups */}
+      {data.map((d, i) => {
+        const slotX = padL + i * slotW
+        const cx = slotX + slotW / 2
+        const bh1 = Math.max(1.5, (d.created / maxVal) * chartH)
+        const bh2 = Math.max(1.5, (d.completed / maxVal) * chartH)
+        const x1 = cx - halfGap - barW
+        const x2 = cx + halfGap
+        const label = String(d.week || '').slice(5, 10)
+        return (
+          <g key={i}>
+            <rect x={x1} y={padT + chartH - bh1} width={barW} height={bh1}
+              fill="#e2ab41" rx={1.5} opacity={0.92} />
+            <rect x={x2} y={padT + chartH - bh2} width={barW} height={bh2}
+              fill="#22c55e" rx={1.5} opacity={0.92} />
+            <text x={cx} y={VH - padB + 8} textAnchor="middle"
+              fill="var(--muted)" fontSize={4} fontWeight="600">
+              {label}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
 
 // ─── Types ────────────────────────────────────────────────────────
 type DashData = {
@@ -474,22 +528,19 @@ export function DashboardHomePage() {
                   )
                 })()}
               </div>
-              {/* Recharts grouped bar chart */}
-              <ResponsiveContainer width="100%" height={180}>
-                <RBarChart data={velocity} margin={{ top: 4, right: 8, left: -24, bottom: 0 }} barGap={3} barCategoryGap="28%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis dataKey="week" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 600 }} tickLine={false} axisLine={false}
-                    tickFormatter={v => String(v).slice(5)} />
-                  <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <RTooltip
-                    contentStyle={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--text)' }}
-                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                    labelFormatter={(v: any) => `Week of ${v}`}
-                  />
-                  <Bar dataKey="created" name="Created" fill={C.brand} radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="completed" name="Completed" fill={C.green} radius={[4, 4, 0, 0]} maxBarSize={28} />
-                </RBarChart>
-              </ResponsiveContainer>
+              {/* Custom SVG bar chart */}
+              <div style={{ marginTop: 4, minHeight: 140 }}>
+                <VelocityBars data={velocity} />
+              </div>
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                {[{ color: '#e2ab41', label: 'Created' }, { color: '#22c55e', label: 'Completed' }].map(m => (
+                  <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{m.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </Card>
@@ -762,8 +813,13 @@ function AtRiskList() {
   return (
     <div style={{ display: 'grid', gap: 7 }}>
       {tasks.slice(0, 8).map(t => {
-        const due = t.due_date ? new Date(t.due_date) : null
-        const daysOverdue = due ? Math.floor((Date.now() - due.getTime()) / 86400000) : null
+        const numeric = Number(t.due_date)
+        const due = t.due_date
+          ? (!isNaN(numeric) && numeric > 1_000_000_000 ? new Date(numeric * 1000) : new Date(t.due_date))
+          : null
+        const daysOverdue = (due && !isNaN(due.getTime()) && due.getFullYear() >= 2020 && due.getFullYear() <= 2040)
+          ? Math.floor((Date.now() - due.getTime()) / 86400000)
+          : null
         return (
           <div key={t.id} style={{ padding: '9px 12px', borderRadius: 11, background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
             <div style={{ minWidth: 0 }}>

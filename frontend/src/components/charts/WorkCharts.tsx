@@ -33,8 +33,8 @@ function GlassTooltip({ active, payload, label }: any) {
 
 function Shell({ children, height = H }: { children: ReactNode; height?: number }) {
   return (
-    <div style={{ width: '100%', minWidth: 0 }}>
-      <ResponsiveContainer width="100%" height={height} minWidth={0} debounce={48}>
+    <div style={{ width: '100%', minWidth: 0, height: height }}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={48}>
         {children as any}
       </ResponsiveContainer>
     </div>

@@ -43,7 +43,11 @@ function Initials({ name, size=20 }: { name:string; size?:number }) {
 }
 function DueLabel({ iso }: { iso?: string|null }) {
   if (!iso) return null
-  const d=new Date(iso); const today=new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0)
+  const numeric = Number(iso)
+  const d = (!isNaN(numeric) && numeric > 1_000_000_000) ? new Date(numeric * 1000) : new Date(iso)
+  if (isNaN(d.getTime())) return null
+  const yr = d.getFullYear(); if (yr < 2020 || yr > 2040) return null
+  const today=new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0)
   const days=Math.round((d.getTime()-today.getTime())/86400000)
   const color=days<0?'#ef4444':days<=1?'#f59e0b':'#9ca3af'
   const label=days<0?`${Math.abs(days)}d overdue`:days===0?'Today':days===1?'Tomorrow':new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'})

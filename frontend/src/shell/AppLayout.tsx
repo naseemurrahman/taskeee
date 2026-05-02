@@ -337,7 +337,13 @@ export function AppLayout() {
               placeholder="Search tasks, people, projects…"
             />
             {!search && (
-              <kbd style={{ fontSize: 10, color: 'var(--muted)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 5, padding: '1px 5px', fontFamily: 'inherit', pointerEvents: 'none', flexShrink: 0 }}>/</kbd>
+              <kbd style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 10, color: 'var(--muted)', background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5,
+                padding: '1px 5px', fontFamily: 'inherit', pointerEvents: 'none',
+                lineHeight: 1.6, zIndex: 1,
+              }}>/</kbd>
             )}
             {search && (
               <button type="button" className="topbarV4SearchClear"

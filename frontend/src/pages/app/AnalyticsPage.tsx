@@ -185,17 +185,20 @@ export function AnalyticsPage() {
         }
       </div>
 
-      <div className="analyticsPriorityCharts">
-        <div className="analyticsChartHero">
-          <ChartCard title="Created / completed / overdue trend" subtitle={`Primary operational velocity across the last ${days} days.`}>
-            <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} />
-          </ChartCard>
+      {/* Charts: trend hero on top, then 2x2 grid below */}
+      <div style={{ display: 'grid', gap: 16 }}>
+        {/* Hero: full-width trend chart */}
+        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Operational velocity over the last ${days} days.`}>
+          <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} />
+        </ChartCard>
+        {/* 2x3 grid of secondary charts */}
+        <div className="dashGrid2" style={{ alignItems: 'start' }}>
+          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state."><StatusDonutChart byStatus={byStatus} /></ChartCard>
+          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status."><StatusBarChart fillHeight byStatus={byStatus} /></ChartCard>
+          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure from current task state."><PriorityPieChart fillHeight byPriority={priorityPressure} /></ChartCard>
+          <ChartCard title="Workload Balance" subtitle="Overloaded, balanced, and underutilized team members."><WorkloadBalanceChart fillHeight userCount={workloadEmployees.length} workload={workload} /></ChartCard>
+          <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee." ><AssigneeScoreChart fillHeight rows={performanceRows} /></ChartCard>
         </div>
-        <ChartCard title="Task status distribution" subtitle="Current task mix by lifecycle state."><StatusDonutChart byStatus={byStatus} /></ChartCard>
-        <ChartCard title="Tasks by status" subtitle="Operational workload grouped by status."><StatusBarChart fillHeight byStatus={byStatus} /></ChartCard>
-        <ChartCard title="Priority pressure" subtitle="Risk-weighted work pressure inferred from current task state."><PriorityPieChart fillHeight byPriority={priorityPressure} /></ChartCard>
-        <ChartCard title="Workload balance" subtitle="Overloaded, balanced, and underutilized team members."><WorkloadBalanceChart fillHeight userCount={workloadEmployees.length} workload={workload} /></ChartCard>
-        <ChartCard title="Employee performance" subtitle="Completion and delivery score by employee."><AssigneeScoreChart fillHeight rows={performanceRows} /></ChartCard>
       </div>
 
       <ChartCard title="Predictive Intelligence" subtitle={usingBackendAi ? 'Backend-powered operational risk intelligence from live task data.' : 'Fallback prediction mode until backend AI deploy is available.'}>

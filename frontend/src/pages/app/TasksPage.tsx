@@ -40,7 +40,19 @@ async function changeStatus(id: string, status: string) {
 
 function dueStat(iso?: string | null): { label: string; tone: string } {
   if (!iso) return { label: '—', tone: '' }
-  const d = new Date(iso); if (Number.isNaN(d.getTime())) return { label: '—', tone: '' }
+  // Handle Unix timestamp (seconds) — backend may send numeric strings
+  let d: Date
+  const numeric = Number(iso)
+  if (!isNaN(numeric) && numeric > 1_000_000_000) {
+    // Looks like a Unix timestamp in seconds — convert to ms
+    d = new Date(numeric * 1000)
+  } else {
+    d = new Date(iso)
+  }
+  if (Number.isNaN(d.getTime())) return { label: '—', tone: '' }
+  // Sanity check: if year is wildly off, ignore
+  const yr = d.getFullYear()
+  if (yr < 2020 || yr > 2040) return { label: '—', tone: '' }
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const t = new Date(d); t.setHours(0, 0, 0, 0)
   const days = Math.round((t.getTime() - today.getTime()) / 86400000)
@@ -297,6 +309,14 @@ export function TasksPage() {
     refetchOnWindowFocus: true,
   })
 
+  // Workload data for AI signal scoring
+  const workloadQ = useQuery({
+    queryKey: ['analytics-workload', 'tasks-page'],
+    queryFn: () => apiFetch<{ employees: Array<{ employee_id: string; open_tasks: number }> }>('/api/v1/analytics/workload?days=30').then(d => d.employees || []).catch(() => []),
+    staleTime: 60_000,
+  })
+  const loadByUser = useMemo(() => new Map((workloadQ.data || []).map(w => [w.employee_id, Number(w.open_tasks || 0)])), [workloadQ.data])
+
   const tasks = q.data || []
 
   const counts = useMemo(() => {
@@ -432,7 +452,7 @@ export function TasksPage() {
                       </td>
                       <td style={{ padding: '8px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
                         {(() => {
-                          const sig = buildTaskSignal(task, new Map())
+                          const sig = buildTaskSignal(task, loadByUser)
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                               <span className={signalBadgeClass(sig.level)} style={{ alignSelf: 'flex-start' }}>
