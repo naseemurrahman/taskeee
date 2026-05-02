@@ -8736,7 +8736,7 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
 /* When ResponsiveContainer is used, the SVG must fill its wrapper */
 .recharts-wrapper,
 .recharts-surface { overflow: visible !important; }
-.recharts-responsive-container { display: block !important; }
+/* [removed bad recharts-responsive-container override] */
 
 /* ── 4. CHART CARD empty-space fix ── */
 /* chartCardV2Body must NOT have min-height that creates empty space */
@@ -8763,14 +8763,7 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
    FINAL v6 — Charts render + OptionActive contrast
    ══════════════════════════════════════════════════════════════ */
 
-/* ── FIX 1: ResponsiveContainer must NOT have display:block forced ── */
-/* The earlier rule ".recharts-responsive-container { display: block !important }"
-   breaks recharts' internal positioning. Undo it: */
-.recharts-responsive-container {
-  display: block !important;
-  position: relative !important;   /* recharts needs this for inner absolute elements */
-  width: 100% !important;
-}
+/* [removed bad recharts-responsive-container override] */
 
 /* ── FIX 2: Make sure Shell div is visible and measured ── */
 /* chartCardV2 must not have any height:0 or display:none */
