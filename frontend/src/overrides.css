@@ -146,7 +146,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   6. TOPBAR — search bar pill + primary border
+   6. TOPBAR — search bar pill + primary border + colored KPI chips
 ═══════════════════════════════════════════════════════════════ */
 .topbarV4 .topbarV4SearchWrap {
   position: relative;
@@ -182,6 +182,41 @@ code, kbd, pre { font-family: var(--font-mono); }
 .appShellV4Light .topbarV4 .topbarV4SearchInput { color: #0f172a; }
 .appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder { color: #9ca3af; }
 .appShellV4Light .topbarV4 .topbarV4SearchIcon { color: #9ca3af; }
+.topbarMetricChip {
+  border-width: 1px;
+  font-weight: 850;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 28px rgba(0,0,0,.10);
+}
+.topbarV4Meta .topbarMetricChip:nth-child(1) {
+  background: linear-gradient(135deg, rgba(59,130,246,.18), rgba(59,130,246,.08));
+  border-color: rgba(59,130,246,.34);
+  color: #bfdbfe;
+}
+.topbarV4Meta .topbarMetricChip:nth-child(2) {
+  background: linear-gradient(135deg, rgba(239,68,68,.20), rgba(249,115,22,.10));
+  border-color: rgba(239,68,68,.38);
+  color: #fecaca;
+}
+.topbarV4Meta .topbarMetricChip:nth-child(3) {
+  background: linear-gradient(135deg, rgba(34,197,94,.20), rgba(20,184,166,.10));
+  border-color: rgba(34,197,94,.38);
+  color: #bbf7d0;
+}
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(1) {
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  border-color: rgba(37,99,235,.28);
+  color: #1d4ed8;
+}
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(2) {
+  background: linear-gradient(135deg, #fee2e2, #fff7ed);
+  border-color: rgba(220,38,38,.30);
+  color: #b91c1c;
+}
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(3) {
+  background: linear-gradient(135deg, #dcfce7, #ecfdf5);
+  border-color: rgba(22,163,74,.30);
+  color: #15803d;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    7. LIGHT THEME — visible borders on every card
@@ -255,7 +290,94 @@ code, kbd, pre { font-family: var(--font-mono); }
 .appShellV4Light .p4BoardCard { background: #fff; border-color: #e2e8f0; }
 
 /* ═══════════════════════════════════════════════════════════════
-   10. ANIMATIONS
+   10. DASHBOARD PRIORITY CHART POLISH
+═══════════════════════════════════════════════════════════════ */
+.dashGrid21,
+.dashGrid12 { align-items: stretch; }
+.dashKpiStrip + .dashGrid21 > div:first-child {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,197,94,.08), transparent 34%),
+    radial-gradient(circle at 68% 10%, rgba(226,171,65,.08), transparent 34%),
+    var(--bg1);
+}
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,197,94,.09), transparent 34%),
+    radial-gradient(circle at 68% 10%, rgba(226,171,65,.10), transparent 34%),
+    #ffffff;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  min-height: 0;
+  align-items: stretch;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  min-height: 138px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: hidden;
+}
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-color: rgba(15,23,42,.16);
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  margin: 0 0 10px 0;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:first-child {
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: normal;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:last-child {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg {
+  height: 58px;
+  min-height: 58px;
+  border-radius: 12px;
+  background: rgba(148,163,184,.10);
+  border: 1px solid rgba(148,163,184,.10);
+  padding: 4px;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] circle { display: none; }
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  content: '⚠ Overdue\A0\A No overdue activity in this window';
+  white-space: pre-line;
+  display: grid;
+  align-content: center;
+  min-height: 138px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(239,68,68,.22);
+  background: linear-gradient(180deg, rgba(239,68,68,.075), rgba(239,68,68,.025));
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']:has(> div:nth-child(3))::after { display: none; }
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  background: linear-gradient(180deg, #fff1f2, #ffffff);
+  border-color: rgba(220,38,38,.22);
+  color: #b91c1c;
+}
+.dashGrid12 > div:first-child { border-color: rgba(249,115,22,.22); }
+.dashGrid12 > div:nth-child(2) { border-color: rgba(20,184,166,.22); }
+
+/* ═══════════════════════════════════════════════════════════════
+   11. ANIMATIONS
 ═══════════════════════════════════════════════════════════════ */
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes dropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -263,12 +385,12 @@ code, kbd, pre { font-family: var(--font-mono); }
 .selectV3Dropdown { animation: dropIn 0.13s ease; }
 
 /* ═══════════════════════════════════════════════════════════════
-   11. SETTINGS FIELD
+   12. SETTINGS FIELD
 ═══════════════════════════════════════════════════════════════ */
 .settingsField { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: start; }
 
 /* ═══════════════════════════════════════════════════════════════
-   12. MODAL — wider, bottom-sheet on mobile
+   13. MODAL — wider, bottom-sheet on mobile
 ═══════════════════════════════════════════════════════════════ */
 .modalCardV2 {
   width: min(680px, 96vw);
@@ -280,7 +402,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 .modalV2Body { overflow-y: auto; flex: 1; }
 
 /* ═══════════════════════════════════════════════════════════════
-   13. SESSION EXPIRY BANNER
+   14. SESSION EXPIRY BANNER
 ═══════════════════════════════════════════════════════════════ */
 .sessionExpiredBanner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 999999;
@@ -293,7 +415,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   14. PAGINATION CONTROLS
+   15. PAGINATION CONTROLS
 ═══════════════════════════════════════════════════════════════ */
 .paginationBar {
   display: flex;
@@ -318,7 +440,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 .paginationBtnActive { background: var(--brand); color: #1a1d2e; border-color: var(--brand); }
 
 /* ═══════════════════════════════════════════════════════════════
-   15. RESPONSIVE — single clean cascade, no conflicting !important
+   16. RESPONSIVE — single clean cascade, no conflicting !important
 ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .appShellV4 { grid-template-columns: 200px 1fr; }
@@ -355,6 +477,8 @@ code, kbd, pre { font-family: var(--font-mono); }
   .tasksTable { min-width: 640px; display: block; overflow-x: auto; }
   .p4BoardGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
   .form { grid-template-columns: 1fr; }
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] { grid-template-columns: minmax(0, 1fr); }
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after { min-height: 92px; }
 }
 
 @media (max-width: 640px) {
