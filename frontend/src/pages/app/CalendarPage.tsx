@@ -1,7 +1,11 @@
 import { useMemo, useState, type CSSProperties } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
+import { getUser } from '../../state/auth'
+import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { Modal } from '../../components/Modal'
+import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
+import { useRealtimeInvalidation } from '../../lib/socket'
 
 type Task = {
   id: string
@@ -59,11 +63,17 @@ function firstAccentColor(bucket: DayBucket | null | undefined) {
 }
 
 export function CalendarPage() {
+  const me = getUser()
+  const qc = useQueryClient()
+  const canCreate = canCreateTasksAndProjects(me?.role)
   const [cursor, setCursor] = useState(() => {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
   })
   const [pick, setPick] = useState<DayBucket | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [_createDueDate, setCreateDueDate] = useState<string | null>(null)
+  useRealtimeInvalidation({ tasks: true })
 
   const tq = useQuery({ queryKey: ['calendar', 'tasks'], queryFn: fetchDatedTasks })
   const pq = useQuery({ queryKey: ['calendar', 'projects'], queryFn: fetchProjects })
@@ -187,9 +197,10 @@ export function CalendarPage() {
           ))}
           {cells.map((c, idx) => {
             if (!c.date) return <div key={`empty-${idx}`} />
-            const inMonth = c.date.getMonth() === cursor.getMonth()
-            const isToday = ymd(c.date) === ymd(new Date())
-            const cellKey = c.date.toISOString()
+            const date = c.date as Date
+            const inMonth = date.getMonth() === cursor.getMonth()
+            const isToday = ymd(date) === ymd(new Date())
+            const cellKey = date.toISOString()
             const accent = inMonth ? firstAccentColor(c.bucket) : undefined
             const cellStyle: CSSProperties | undefined =
               accent && inMonth
@@ -226,11 +237,30 @@ export function CalendarPage() {
                 style={cellStyle}
                 disabled={!inMonth}
                 onClick={() => {
-                  if (!inMonth || !c.bucket) return
-                  setPick(c.bucket)
+                  if (!inMonth) return
+                  if (c.bucket) { setPick(c.bucket); return }
+                  // Click on empty in-month day: open create task with due date
+                  if (canCreate) {
+                    setCreateDueDate(ymd(date))
+                    setCreateOpen(true)
+                  }
                 }}
               >
-                <div className="calCellNum">{c.date.getDate()}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="calCellNum">{date.getDate()}</div>
+                  {inMonth && canCreate && (
+                    <button
+                      type="button"
+                      className="calCellAddBtn"
+                      title="Create task on this date"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setCreateDueDate(ymd(date))
+                        setCreateOpen(true)
+                      }}
+                    >+</button>
+                  )}
+                </div>
                 {dotItems.length > 0 && inMonth ? (
                   <div className="calCellDots" aria-hidden>
                     {dotItems.map((d) => (
@@ -308,6 +338,13 @@ export function CalendarPage() {
           </div>
         ) : null}
       </Modal>
+
+      {canCreate && (
+        <CreateTaskModal
+          open={createOpen}
+          onClose={() => { setCreateOpen(false); setCreateDueDate(null); qc.invalidateQueries({ queryKey: ['calendar'] }) }}
+        />
+      )}
     </div>
   )
 }

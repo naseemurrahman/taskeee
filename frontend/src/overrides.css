@@ -397,3 +397,29 @@ code, kbd, pre { font-family: var(--font-mono); }
   .dashKpiStrip > * { flex: 0 0 110px; min-width: 110px; }
   .pageHeaderCardTitle { font-size: 15px; }
 }
+
+/* ── Calendar: add task button on date cells ── */
+.calCellAddBtn {
+  display: none;
+  width: 18px; height: 18px;
+  border-radius: 5px; border: none;
+  background: rgba(226,171,65,0.18);
+  color: #e2ab41; font-size: 14px; font-weight: 900;
+  cursor: pointer; line-height: 1;
+  align-items: center; justify-content: center;
+  transition: background 0.12s, transform 0.1s;
+  flex-shrink: 0;
+}
+.calCell:hover .calCellAddBtn { display: flex; }
+.calCellAddBtn:hover { background: rgba(226,171,65,0.35); transform: scale(1.1); }
+
+/* ── Pagination bar overrides for light mode ── */
+.appShellV4Light .paginationBtn {
+  background: #ffffff; color: #374151; border-color: #d1d9e6;
+}
+.appShellV4Light .paginationBtn:hover:not(:disabled) {
+  background: #f8fafc; border-color: #e2ab41; color: #b45309;
+}
+.appShellV4Light .paginationBtnActive {
+  background: #e2ab41 !important; color: #1a1d2e !important; border-color: #e2ab41 !important;
+}

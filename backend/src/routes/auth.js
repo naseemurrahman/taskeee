@@ -412,6 +412,35 @@ router.post('/mfa/enroll/confirm', authenticate, async (req, res, next) => {
   }
 });
 
+// POST /api/v1/auth/mfa/disable
+router.post('/mfa/disable', authenticate, async (req, res, next) => {
+  try {
+    const { code } = req.body || {};
+    if (!code) return res.status(400).json({ error: 'code is required' });
+
+    const [user] = await query(
+      `SELECT mfa_enabled, mfa_secret_enc FROM users WHERE id = $1`,
+      [req.user.id]
+    );
+    if (!user?.mfa_enabled) return res.status(400).json({ error: 'MFA is not enabled' });
+
+    const secret = decryptString(user.mfa_secret_enc, 'MFA_ENCRYPTION_KEY');
+    authenticator.options = { window: 1 };
+    const ok = authenticator.check(String(code).replace(/\s+/g, ''), secret);
+    if (!ok) return res.status(401).json({ error: 'Invalid MFA code' });
+
+    await query(
+      `UPDATE users SET mfa_enabled = FALSE, mfa_secret_enc = NULL, mfa_enrolled_at = NULL WHERE id = $1`,
+      [req.user.id]
+    );
+    await query(`DELETE FROM mfa_recovery_codes WHERE user_id = $1`, [req.user.id]);
+
+    res.json({ message: 'MFA disabled' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/auth/subscription/plans
 router.get('/subscription/plans', async (_req, res) => {
   res.json({

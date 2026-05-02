@@ -23,20 +23,34 @@ async function generateReport(reportType: string) {
   return await apiFetch(`/api/v1/reports/generate`, { method: 'POST', json: { reportType } })
 }
 
-function downloadReportCsv(rows: ReportRow[]) {
+function downloadReportCsv(rows: ReportRow[], orgName?: string) {
   const now = new Date()
   const dateStr = now.toISOString().slice(0, 10)
   const timeStr = now.toTimeString().slice(0, 5).replace(':', '-')
+  const org = orgName ? orgName.replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'org'
   const csvRows = [
+    // Header with metadata
+    [`# TaskFlow Pro — Report Export`],
+    [`# Organization: ${orgName || 'Unknown'}`],
+    [`# Exported: ${now.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}`],
+    [`# Total records: ${rows.length}`],
+    [],
     ['Report Type', 'Scope', 'Period Start', 'Period End', 'Emailed', 'Created At'],
-    ...rows.map(r => [r.report_type, r.scope_type, r.period_start || '', r.period_end || '', String(r.email_sent), r.created_at]),
+    ...rows.map(r => [
+      r.report_type,
+      r.scope_type,
+      r.period_start ? new Date(r.period_start).toLocaleDateString() : '',
+      r.period_end   ? new Date(r.period_end).toLocaleDateString()   : '',
+      r.email_sent ? 'Yes' : 'No',
+      r.created_at  ? new Date(r.created_at).toLocaleString() : '',
+    ]),
   ]
   const csv = csvRows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }) // BOM for Excel compatibility
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `taskflow-reports-${dateStr}-${timeStr}.csv`
+  a.download = `taskflow-${org}-reports-${dateStr}-${timeStr}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -57,6 +71,11 @@ async function downloadReportPdf(reportId: string) {
 
 export function ReportsPage() {
   const qc = useQueryClient()
+  const orgQ = useQuery({
+    queryKey: ['org', 'reports-page'],
+    queryFn: () => apiFetch<{ organization?: { name?: string } }>('/api/v1/organizations/me').then(d => d.organization?.name || ''),
+    staleTime: 300_000,
+  })
   const q = useQuery({
     queryKey: ['reports', 'list'],
     queryFn: fetchReports,
@@ -105,7 +124,7 @@ export function ReportsPage() {
             <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('project_summary')}>
               Project Summary
             </button>
-            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => downloadReportCsv(q.data?.reports || [])}>
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => downloadReportCsv(q.data?.reports || [], orgQ.data || '')}>
               Export CSV
             </button>
             <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => {

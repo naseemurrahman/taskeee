@@ -63,10 +63,11 @@ function inputStyle(): React.CSSProperties {
 function TwoFactorSection() {
   const { success: toastSuccess, error: toastError } = useToast()
   const me = getUser()
-  const [step, setStep] = useState<'idle' | 'setup' | 'confirm' | 'done'>('idle')
+  const [step, setStep] = useState<'idle' | 'setup' | 'confirm' | 'done' | 'disabling'>('idle')
   const [qrUrl, setQrUrl] = useState('')
   const [secret, setSecret] = useState('')
   const [code, setCode] = useState('')
+  const [disableCode, setDisableCode] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
   const [enabled, setEnabled] = useState(false)
 
@@ -85,7 +86,6 @@ function TwoFactorSection() {
     mutationFn: () => apiFetch<{ secret: string; otpauthUrl: string }>('/api/v1/auth/mfa/enroll/start', { method: 'POST' }),
     onSuccess: (d) => {
       setSecret(d.secret)
-      // Build QR URL using Google Charts API (no external dep)
       setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(d.otpauthUrl)}&size=200x200&format=png&bgcolor=ffffff&color=000000`)
       setStep('setup')
     },
@@ -103,6 +103,17 @@ function TwoFactorSection() {
     onError: () => toastError('Invalid code', 'The code you entered is incorrect. Try again.'),
   })
 
+  const disableM = useMutation({
+    mutationFn: () => apiFetch('/api/v1/auth/mfa/disable', { method: 'POST', json: { code: disableCode.replace(/\s/g, '') } }),
+    onSuccess: () => {
+      setEnabled(false)
+      setStep('idle')
+      setDisableCode('')
+      toastSuccess('2FA Disabled', 'Two-factor authentication has been removed from your account.')
+    },
+    onError: () => toastError('Invalid code', 'The verification code is incorrect. Try again.'),
+  })
+
   return (
     <Section title="Two-Factor Authentication" sub="Protect your account with TOTP (Google Authenticator, Authy, etc.)">
       {step === 'idle' && (
@@ -115,11 +126,46 @@ function TwoFactorSection() {
               {enabled ? 'Your account is protected with 2FA.' : 'Add an extra layer of security to your account.'}
             </div>
           </div>
-          {!enabled && (
-            <button className="btn btnPrimary" onClick={() => startM.mutate()} disabled={startM.isPending}>
-              {startM.isPending ? 'Starting…' : 'Enable 2FA'}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {!enabled && (
+              <button className="btn btnPrimary" onClick={() => startM.mutate()} disabled={startM.isPending}>
+                {startM.isPending ? 'Starting…' : 'Enable 2FA'}
+              </button>
+            )}
+            {enabled && (
+              <button className="btn btnGhost" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+                onClick={() => { setStep('disabling'); setDisableCode('') }}>
+                Disable 2FA
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {step === 'disabling' && (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', marginBottom: 4 }}>⚠ Disabling 2FA reduces account security</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Enter your current authenticator code to confirm.</div>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 6 }}>Authenticator Code</label>
+            <input
+              value={disableCode} onChange={e => setDisableCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+              placeholder="000000" maxLength={6}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 20, letterSpacing: '0.3em', textAlign: 'center', fontFamily: 'var(--font-mono)', boxSizing: 'border-box' }}
+              onKeyDown={e => e.key === 'Enter' && disableCode.length === 6 && disableM.mutate()}
+              autoFocus
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btnGhost" onClick={() => setStep('idle')} style={{ flex: 1 }}>Cancel</button>
+            <button className="btn" style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}
+              disabled={disableCode.length !== 6 || disableM.isPending}
+              onClick={() => disableM.mutate()}>
+              {disableM.isPending ? 'Disabling…' : 'Confirm Disable'}
             </button>
-          )}
+          </div>
         </div>
       )}
 

@@ -8,6 +8,7 @@ import { canCreateTasksAndProjects, canViewAnalytics } from '../../lib/rbac'
 import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
   LayoutDashboard
@@ -271,6 +272,7 @@ export function DashboardHomePage() {
   const canOpenChartDetails = canCreateTasksAndProjects(me?.role)
   const canOpenAdvancedDetails = canViewAnalytics(me?.role)
   const [createOpen, setCreateOpen] = useState(false)
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const [chartDetail, setChartDetail] = useState<null | 'activity' | 'status' | 'priority' | 'projects' | 'velocity' | 'team' | 'workload'>(null)
 
   const { data, isLoading } = useQuery({

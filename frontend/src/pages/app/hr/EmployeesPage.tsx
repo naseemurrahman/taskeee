@@ -8,6 +8,7 @@ import { Select } from '../../../components/ui/Select'
 import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/Modal'
 import { useToast } from '../../../components/ui/ToastSystem'
+import { useRealtimeInvalidation } from '../../../lib/socket'
 
 type Employee = {
   id: string; full_name: string; status: string; title?: string | null
@@ -81,6 +82,7 @@ export function EmployeesPage() {
   const me = getUser()
   const qc = useQueryClient()
   const { success: toastSuccess, error: toastError } = useToast()
+  useRealtimeInvalidation({ employees: true })
   const [pickId, setPickId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [acctSearch, setAcctSearch] = useState('')
