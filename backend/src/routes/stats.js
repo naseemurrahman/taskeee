@@ -104,7 +104,6 @@ router.get('/', authenticate, async (req, res, next) => {
   }
 });
 
-
 // GET /stats/dashboard — comprehensive real-time dashboard data
 router.get('/dashboard', authenticate, async (req, res, next) => {
   try {
@@ -123,52 +122,48 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
         COUNT(*) FILTER (WHERE status='overdue')::int AS overdue,
         COUNT(*) FILTER (WHERE status='cancelled')::int AS cancelled,
         ROUND(100.0 * COUNT(*) FILTER (WHERE status IN ('completed','manager_approved')) / NULLIF(COUNT(*),0),1)::float AS completion_rate,
-        COUNT(*) FILTER (WHERE due_date::date = CURRENT_DATE AND status NOT IN ('completed','manager_approved'))::int AS due_today,
-        COUNT(*) FILTER (WHERE due_date::date <= CURRENT_DATE + 7 AND status NOT IN ('completed','manager_approved'))::int AS due_week
+        COUNT(*) FILTER (WHERE due_date IS NOT NULL AND due_date::date = CURRENT_DATE AND status NOT IN ('completed','manager_approved'))::int AS due_today,
+        COUNT(*) FILTER (WHERE due_date IS NOT NULL AND due_date::date <= CURRENT_DATE + 7 AND status NOT IN ('completed','manager_approved'))::int AS due_week
       FROM tasks WHERE org_id=$1 AND assigned_to=ANY($2)
     `, [orgId, scopedIds]);
 
-    // 2. Daily completion trend (last 30 days)
-    const { rows: trendRows } = await query(`
+    // 2. Daily activity trend (last 30 days)
+    // Created, completed, and overdue have different natural date sources.
+    // This query builds a calendar first, then counts each metric against its correct day:
+    // - created: created_at::date
+    // - completed: completed_at::date when present, otherwise updated_at::date for approved/completed tasks
+    // - overdue: due_date::date for currently overdue tasks
+    const { rows: trend } = await query(`
+      WITH days AS (
+        SELECT generate_series(CURRENT_DATE - INTERVAL '29 days', CURRENT_DATE, INTERVAL '1 day')::date AS day
+      )
       SELECT
-        DATE(COALESCE(completed_at, updated_at))::text AS day,
-        COUNT(*) FILTER (WHERE status IN ('completed','manager_approved'))::int AS completed,
-        COUNT(*) FILTER (WHERE status='overdue')::int AS overdue,
-        COUNT(*) FILTER (WHERE created_at::date = DATE(COALESCE(completed_at, updated_at)))::int AS created
-      FROM tasks
-      WHERE org_id=$1 AND assigned_to=ANY($2)
-        AND COALESCE(completed_at, updated_at) >= NOW() - INTERVAL '30 days'
-      GROUP BY day ORDER BY day
+        d.day::text AS day,
+        TO_CHAR(d.day, 'Mon DD') AS label,
+        COUNT(t.id) FILTER (WHERE t.created_at::date = d.day)::int AS created,
+        COUNT(t.id) FILTER (
+          WHERE t.status IN ('completed','manager_approved')
+            AND COALESCE(t.completed_at, t.updated_at)::date = d.day
+        )::int AS completed,
+        COUNT(t.id) FILTER (
+          WHERE t.status = 'overdue'
+            AND t.due_date IS NOT NULL
+            AND t.due_date::date = d.day
+        )::int AS overdue
+      FROM days d
+      LEFT JOIN tasks t
+        ON t.org_id = $1
+       AND t.assigned_to = ANY($2)
+       AND (
+          t.created_at::date = d.day
+          OR COALESCE(t.completed_at, t.updated_at)::date = d.day
+          OR (t.due_date IS NOT NULL AND t.due_date::date = d.day)
+       )
+      GROUP BY d.day
+      ORDER BY d.day
     `, [orgId, scopedIds]);
 
-    // 3. Created per day trend (last 30 days)
-    const { rows: createdRows } = await query(`
-      SELECT DATE(created_at)::text AS day, COUNT(*)::int AS created
-      FROM tasks
-      WHERE org_id=$1 AND assigned_to=ANY($2)
-        AND created_at >= NOW() - INTERVAL '30 days'
-      GROUP BY day ORDER BY day
-    `, [orgId, scopedIds]);
-
-    // Build 30-day calendar
-    const trendMap = {};
-    const createdMap = {};
-    for (const r of trendRows) trendMap[r.day] = r;
-    for (const r of createdRows) createdMap[r.day] = r.created;
-    const trend = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      const label = d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
-      trend.push({
-        day: key, label,
-        completed: trendMap[key]?.completed || 0,
-        overdue: trendMap[key]?.overdue || 0,
-        created: createdMap[key] || 0,
-      });
-    }
-
-    // 4. Project progress
+    // 3. Project progress
     const { rows: projRows } = await query(`
       SELECT
         c.id, c.name, c.color,
@@ -193,7 +188,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       progress: p.total ? Math.round((p.completed / p.total) * 100) : 0,
     }));
 
-    // 5. Leaderboard with completion rates
+    // 4. Leaderboard with completion rates
     const { rows: lbRows } = await query(`
       SELECT
         u.id, u.full_name AS name, u.department, u.role,
@@ -210,7 +205,6 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       LIMIT 10
     `, [orgId, scopedIds]);
 
-    // Score = 40% completion_rate + 30% on_time - 30% overdue_ratio
     const leaderboard = lbRows.map(r => {
       const overdueRatio = r.total ? (r.overdue / r.total) * 100 : 0;
       const score = Math.max(0, Math.min(100, Math.round(
@@ -219,7 +213,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       return { ...r, score };
     });
 
-    // 6. Priority breakdown
+    // 5. Priority breakdown
     const { rows: prioRows } = await query(`
       SELECT priority, COUNT(*)::int AS count
       FROM tasks WHERE org_id=$1 AND assigned_to=ANY($2) AND priority IS NOT NULL
@@ -227,7 +221,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
     `, [orgId, scopedIds]);
     const priority = Object.fromEntries(prioRows.map(r => [r.priority, r.count]));
 
-    // 7. Weekly velocity (last 8 weeks)
+    // 6. Weekly velocity (last 8 weeks)
     const { rows: velRows } = await query(`
       SELECT
         TO_CHAR(DATE_TRUNC('week', created_at), 'Mon DD') AS week,
@@ -240,7 +234,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       GROUP BY week, week_start ORDER BY week_start
     `, [orgId, scopedIds]);
 
-    // 8. Status by project (for stacked chart)
+    // 7. Status by project (for stacked chart)
     const { rows: statusByProjRows } = await query(`
       SELECT c.name AS project, t.status, COUNT(*)::int AS count
       FROM tasks t
@@ -250,7 +244,6 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       LIMIT 100
     `, [orgId, scopedIds]);
 
-    // Pivot status by project
     const projStatusMap = {};
     for (const r of statusByProjRows) {
       if (!projStatusMap[r.project]) projStatusMap[r.project] = { project: r.project };
