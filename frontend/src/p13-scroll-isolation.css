@@ -1,0 +1,112 @@
+/* P13 scroll isolation
+   Sidebar navigation and page content must scroll independently. */
+
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden !important;
+}
+
+.appShellV4 {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+.sidebarV4 {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-gutter: stable !important;
+}
+
+.mainV4 {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.topbarV4 {
+  flex: 0 0 auto !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 900 !important;
+}
+
+.contentV4 {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-gutter: stable !important;
+}
+
+/* Keep internal wide surfaces scrolling inside themselves only. */
+.tasksTableWrap,
+.tableWrap,
+.employeeTableWrap,
+.contractorsTableWrap,
+.reportsTableWrap,
+.auditTableWrap,
+.logsTableWrap,
+[class*='TableWrap'],
+[class*='TableGrid'] {
+  overscroll-behavior: contain !important;
+}
+
+/* Prevent nested board/table gestures from moving the whole document horizontally. */
+.p4BoardGrid,
+.tasksTableWrap,
+.tableWrap,
+[class*='TableWrap'] {
+  touch-action: pan-x pan-y !important;
+}
+
+@media (min-width: 901px) {
+  .sidebarV4 {
+    position: sticky !important;
+    top: 0 !important;
+    align-self: stretch !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    overflow: hidden !important;
+  }
+
+  .appShellV4,
+  .mainV4 {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .sidebarV4 {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .contentV4 {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+  }
+}
