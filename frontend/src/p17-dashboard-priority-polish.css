@@ -1,0 +1,177 @@
+/* P17 Dashboard priority polish
+   Improves Dashboard chart density/order perception and colors the topbar KPI chips. */
+
+/* Topbar KPI chips: relevant colors in both dark and light themes. */
+.topbarMetricChip {
+  border-width: 1px !important;
+  font-weight: 850 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 28px rgba(0,0,0,.10) !important;
+}
+
+.topbarMetricChip:nth-of-type(1),
+.topbarV4Meta .topbarMetricChip:nth-child(1) {
+  background: linear-gradient(135deg, rgba(59,130,246,.18), rgba(59,130,246,.08)) !important;
+  border-color: rgba(59,130,246,.34) !important;
+  color: #bfdbfe !important;
+}
+
+.topbarMetricChip:nth-of-type(2),
+.topbarV4Meta .topbarMetricChip:nth-child(2) {
+  background: linear-gradient(135deg, rgba(239,68,68,.20), rgba(249,115,22,.10)) !important;
+  border-color: rgba(239,68,68,.38) !important;
+  color: #fecaca !important;
+}
+
+.topbarMetricChip:nth-of-type(3),
+.topbarV4Meta .topbarMetricChip:nth-child(3) {
+  background: linear-gradient(135deg, rgba(34,197,94,.20), rgba(20,184,166,.10)) !important;
+  border-color: rgba(34,197,94,.38) !important;
+  color: #bbf7d0 !important;
+}
+
+.appShellV4Light .topbarMetricChip:nth-of-type(1),
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(1),
+[data-theme='light'] .topbarMetricChip:nth-of-type(1),
+[data-theme='light'] .topbarV4Meta .topbarMetricChip:nth-child(1) {
+  background: linear-gradient(135deg, #dbeafe, #eff6ff) !important;
+  border-color: rgba(37,99,235,.28) !important;
+  color: #1d4ed8 !important;
+}
+
+.appShellV4Light .topbarMetricChip:nth-of-type(2),
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(2),
+[data-theme='light'] .topbarMetricChip:nth-of-type(2),
+[data-theme='light'] .topbarV4Meta .topbarMetricChip:nth-child(2) {
+  background: linear-gradient(135deg, #fee2e2, #fff7ed) !important;
+  border-color: rgba(220,38,38,.30) !important;
+  color: #b91c1c !important;
+}
+
+.appShellV4Light .topbarMetricChip:nth-of-type(3),
+.appShellV4Light .topbarV4Meta .topbarMetricChip:nth-child(3),
+[data-theme='light'] .topbarMetricChip:nth-of-type(3),
+[data-theme='light'] .topbarV4Meta .topbarMetricChip:nth-child(3) {
+  background: linear-gradient(135deg, #dcfce7, #ecfdf5) !important;
+  border-color: rgba(22,163,74,.30) !important;
+  color: #15803d !important;
+}
+
+/* Dashboard chart priority order:
+   1. task activity (wide)
+   2. task status
+   3. priority breakdown
+   4. project progress
+   5. weekly velocity/team sections below
+   Keep this visual hierarchy tighter and denser. */
+.dashGrid21,
+.dashGrid12 {
+  align-items: stretch !important;
+}
+
+/* Task Activity: stop the two-card sparse look and let available cards fill the full width. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  gap: 14px !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,197,94,.08), transparent 34%),
+    radial-gradient(circle at 68% 10%, rgba(226,171,65,.08), transparent 34%),
+    var(--bg1) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  min-height: 138px !important;
+  padding: 16px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018)) !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child,
+[data-theme='light'] .dashKpiStrip + .dashGrid21 > div:first-child {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,197,94,.09), transparent 34%),
+    radial-gradient(circle at 68% 10%, rgba(226,171,65,.10), transparent 34%),
+    #ffffff !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div,
+[data-theme='light'] .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div {
+  background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  border-color: rgba(15,23,42,.16) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] svg {
+  height: 58px !important;
+  min-height: 58px !important;
+  background: rgba(148,163,184,.10) !important;
+  border: 1px solid rgba(148,163,184,.10) !important;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] > div > div:first-child span:last-child {
+  font-size: 30px !important;
+}
+
+/* If the overdue metric is not present because the current value is zero, visually add a compact zero-risk tile.
+   This removes the empty dead area without touching backend data. */
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  content: '⚠ Overdue\A0\A No overdue activity in this window';
+  white-space: pre-line;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-height: 138px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(239,68,68,.22);
+  background: linear-gradient(180deg, rgba(239,68,68,.075), rgba(239,68,68,.025));
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']:has(> div:nth-child(3))::after {
+  display: none !important;
+}
+
+.appShellV4Light .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after,
+[data-theme='light'] .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+  background: linear-gradient(180deg, #fff1f2, #ffffff);
+  border-color: rgba(220,38,38,.22);
+  color: #b91c1c;
+}
+
+/* Make the highest-value dashboard sections appear denser near the top. */
+.dashKpiStrip + .dashGrid21 > div:first-child,
+.dashKpiStrip + .dashGrid21 > div:nth-child(2),
+.dashGrid12 > div:first-child,
+.dashGrid12 > div:nth-child(2) {
+  min-height: 0 !important;
+}
+
+.dashGrid12 > div:first-child {
+  border-color: rgba(249,115,22,.22) !important;
+}
+
+.dashGrid12 > div:nth-child(2) {
+  border-color: rgba(20,184,166,.22) !important;
+}
+
+/* Weekly Velocity is useful, but lower priority than risks/status/projects. Keep it compact. */
+.dashGrid21:not(:first-of-type) > div:first-child,
+.dashGrid21[style*='align-items'] > div:first-child {
+  min-height: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashKpiStrip + .dashGrid21 > div:first-child > div[role='button']::after {
+    min-height: 92px;
+  }
+}
