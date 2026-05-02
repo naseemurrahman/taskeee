@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, apiUpload, ApiError } from '../../lib/api'
@@ -158,7 +157,7 @@ export function MyTasksPage() {
       ])
       toastSuccess('Photo uploaded', 'Your proof photo has been submitted for AI review.')
     },
-    onError: (err) => toastError('Upload failed', err?.message || 'Could not upload photo.'),
+    onError: (err) => toastError('Upload failed', (err as any)?.message || 'Could not upload photo.'),
   })
 
   const statusM = useMutation({
@@ -187,7 +186,7 @@ export function MyTasksPage() {
       ])
       toastSuccess('AI review started', 'The AI is reviewing this task. Results will appear shortly.')
     },
-    onError: (err) => toastError('AI review failed', err?.message || 'Could not start AI review.'),
+    onError: (err) => toastError('AI review failed', (err as any)?.message || 'Could not start AI review.'),
   })
 
   const postMsgM = useMutation({
@@ -201,7 +200,7 @@ export function MyTasksPage() {
       setComment('')
       await qc.invalidateQueries({ queryKey: ['tasks', 'messages', selectedId] })
     },
-    onError: (err) => toastError('Message failed', err?.message || 'Could not send message.'),
+    onError: (err) => toastError('Message failed', (err as any)?.message || 'Could not send message.'),
   })
 
   const tasks = listQ.data || []

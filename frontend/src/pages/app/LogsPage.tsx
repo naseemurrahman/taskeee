@@ -18,10 +18,12 @@ type ActivityLog = {
   created_at: string
 }
 
-async function fetchOrgLogs(days: number, type: string) {
-  const qs = new URLSearchParams({ days: String(days), limit: '300' })
+const LOG_PAGE_SIZE = 50
+
+async function fetchOrgLogs(days: number, type: string, page: number) {
+  const qs = new URLSearchParams({ days: String(days), limit: String(LOG_PAGE_SIZE), page: String(page) })
   if (type) qs.set('type', type)
-  return await apiFetch<{ logs: ActivityLog[] }>(`/api/v1/activity?${qs.toString()}`)
+  return await apiFetch<{ logs: ActivityLog[]; total?: number }>(`/api/v1/activity?${qs.toString()}`)
 }
 
 const TYPE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
@@ -71,13 +73,14 @@ export function LogsPage() {
   const me = getUser()
   const canSee = !!me?.role && ['admin', 'hr', 'director'].includes(me.role)
   const [days, setDays] = useState(30)
+  const [logPage, _setLogPage] = useState(1)
   const [type, setType] = useState('')
   const [search, setSearch] = useState('')
   const [pick, setPick] = useState<ActivityLog | null>(null)
 
   const q = useQuery({
-    queryKey: ['logs', days, type],
-    queryFn: () => fetchOrgLogs(days, type),
+    queryKey: ['logs', days, type, logPage],
+    queryFn: () => fetchOrgLogs(days, type, logPage),
     enabled: canSee,
   })
 

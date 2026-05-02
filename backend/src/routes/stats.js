@@ -128,45 +128,57 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
       FROM tasks WHERE org_id=$1 AND assigned_to=ANY($2)
     `, [orgId, scopedIds]);
 
-    // 2. Daily completion trend (last 30 days)
+    // 2. Daily trend, last 30 days.
+    // Count each metric from the correct source date:
+    // - created: created_at date
+    // - completed: completed_at when available, otherwise updated_at for completed statuses
+    // - overdue: due_date when available, otherwise updated_at for overdue status
     const { rows: trendRows } = await query(`
+      WITH days AS (
+        SELECT generate_series(CURRENT_DATE - INTERVAL '29 days', CURRENT_DATE, INTERVAL '1 day')::date AS day
+      ), created AS (
+        SELECT created_at::date AS day, COUNT(*)::int AS created
+        FROM tasks
+        WHERE org_id=$1 AND assigned_to=ANY($2)
+          AND created_at >= CURRENT_DATE - INTERVAL '29 days'
+        GROUP BY created_at::date
+      ), completed AS (
+        SELECT COALESCE(completed_at, updated_at)::date AS day, COUNT(*)::int AS completed
+        FROM tasks
+        WHERE org_id=$1 AND assigned_to=ANY($2)
+          AND status IN ('completed','manager_approved')
+          AND COALESCE(completed_at, updated_at) >= CURRENT_DATE - INTERVAL '29 days'
+        GROUP BY COALESCE(completed_at, updated_at)::date
+      ), overdue AS (
+        SELECT COALESCE(due_date, updated_at)::date AS day, COUNT(*)::int AS overdue
+        FROM tasks
+        WHERE org_id=$1 AND assigned_to=ANY($2)
+          AND status='overdue'
+          AND COALESCE(due_date, updated_at) >= CURRENT_DATE - INTERVAL '29 days'
+        GROUP BY COALESCE(due_date, updated_at)::date
+      )
       SELECT
-        DATE(COALESCE(completed_at, updated_at))::text AS day,
-        COUNT(*) FILTER (WHERE status IN ('completed','manager_approved'))::int AS completed,
-        COUNT(*) FILTER (WHERE status='overdue')::int AS overdue,
-        COUNT(*) FILTER (WHERE created_at::date = DATE(COALESCE(completed_at, updated_at)))::int AS created
-      FROM tasks
-      WHERE org_id=$1 AND assigned_to=ANY($2)
-        AND COALESCE(completed_at, updated_at) >= NOW() - INTERVAL '30 days'
-      GROUP BY day ORDER BY day
+        days.day::text AS day,
+        COALESCE(created.created, 0)::int AS created,
+        COALESCE(completed.completed, 0)::int AS completed,
+        COALESCE(overdue.overdue, 0)::int AS overdue
+      FROM days
+      LEFT JOIN created ON created.day = days.day
+      LEFT JOIN completed ON completed.day = days.day
+      LEFT JOIN overdue ON overdue.day = days.day
+      ORDER BY days.day
     `, [orgId, scopedIds]);
 
-    // 3. Created per day trend (last 30 days)
-    const { rows: createdRows } = await query(`
-      SELECT DATE(created_at)::text AS day, COUNT(*)::int AS created
-      FROM tasks
-      WHERE org_id=$1 AND assigned_to=ANY($2)
-        AND created_at >= NOW() - INTERVAL '30 days'
-      GROUP BY day ORDER BY day
-    `, [orgId, scopedIds]);
-
-    // Build 30-day calendar
-    const trendMap = {};
-    const createdMap = {};
-    for (const r of trendRows) trendMap[r.day] = r;
-    for (const r of createdRows) createdMap[r.day] = r.created;
-    const trend = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      const label = d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
-      trend.push({
-        day: key, label,
-        completed: trendMap[key]?.completed || 0,
-        overdue: trendMap[key]?.overdue || 0,
-        created: createdMap[key] || 0,
-      });
-    }
+    const trend = trendRows.map((row) => {
+      const d = new Date(`${row.day}T00:00:00Z`);
+      return {
+        day: row.day,
+        label: d.toLocaleDateString('en', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        completed: Number(row.completed) || 0,
+        overdue: Number(row.overdue) || 0,
+        created: Number(row.created) || 0,
+      };
+    });
 
     // 4. Project progress
     const { rows: projRows } = await query(`

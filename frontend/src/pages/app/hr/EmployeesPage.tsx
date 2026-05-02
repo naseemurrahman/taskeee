@@ -22,12 +22,14 @@ type OrgUser = {
   department?: string | null; last_login_at?: string | null
 }
 
-async function fetchEmployees(search: string, status: string) {
-  const qs = new URLSearchParams({ page: '1', limit: '50' })
+const EMP_PAGE_SIZE = 25
+
+async function fetchEmployees(search: string, status: string, page: number) {
+  const qs = new URLSearchParams({ page: String(page), limit: String(EMP_PAGE_SIZE) })
   if (search.trim()) qs.set('search', search.trim())
   if (status !== 'all') qs.set('status', status)
-  const d = await apiFetch<{ employees: Employee[] }>(`/api/v1/hris/employees?${qs}`)
-  return d.employees || []
+  const d = await apiFetch<{ employees: Employee[]; total?: number }>(`/api/v1/hris/employees?${qs}`)
+  return { employees: d.employees || [], total: d.total || 0 }
 }
 async function createEmployee(input: Record<string, string>) {
   const d = await apiFetch<CreatedEmployee>('/api/v1/hris/employees', { method: 'POST', json: input })
@@ -84,6 +86,9 @@ export function EmployeesPage() {
   const [acctSearch, setAcctSearch] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
+  const [empPage, setEmpPage] = useState(1)
+  const handleEmpSearch = (v: string) => { setSearch(v); setEmpPage(1) }
+  const handleEmpStatus = (v: string) => { setStatus(v); setEmpPage(1) }
   const [formError, setFormError] = useState<string | null>(null)
   const [createdData, setCreatedData] = useState<CreatedEmployee & { loginEmail?: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -98,8 +103,8 @@ export function EmployeesPage() {
   const [designation, setDesignation] = useState('')
   const [roleType, setRoleType] = useState('')
 
-  const q = useQuery({ queryKey: ['hris', 'employees', search, status], queryFn: () => fetchEmployees(search, status) })
-  const employees = useMemo(() => q.data || [], [q.data])
+  const q = useQuery({ queryKey: ['hris', 'employees', search, status, empPage], queryFn: () => fetchEmployees(search, status, empPage) })
+  const employees = useMemo(() => q.data?.employees || [], [q.data])
   const canSeeAccounts = !!me?.role && ['hr', 'director', 'admin'].includes(me.role)
   const acctQ = useQuery({ queryKey: ['hris', 'orgUsers', acctSearch], queryFn: () => fetchOrgUsers(acctSearch), enabled: canSeeAccounts })
   const orgUsers = useMemo(() => acctQ.data || [], [acctQ.data])
@@ -224,13 +229,13 @@ export function EmployeesPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ width: 160 }}>
-              <Select value={status} onChange={setStatus} options={STATUS_OPTS} />
+              <Select value={status} onChange={handleEmpStatus} options={STATUS_OPTS} />
             </div>
             <div style={{ width: 200 }}>
               <Input
                 placeholder="Search name, email…"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => handleEmpSearch(e.target.value)}
                 icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
               />
             </div>

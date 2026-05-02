@@ -18,14 +18,16 @@ type Task = {
   message_count?: number
 }
 
-function fetchTasks(status: string, priority: string, search: string, mine: boolean) {
-  const qs = new URLSearchParams({ limit: '200', page: '1' })
+const PAGE_SIZE = 50
+
+function fetchTasks(status: string, priority: string, search: string, mine: boolean, page: number) {
+  const qs = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) })
   if (status !== 'all') qs.set('status', status)
   if (priority !== 'all') qs.set('priority', priority)
   if (search.trim()) qs.set('search', search.trim())
-  if (mine) qs.set('mine', 'true')   // employee: only own tasks
-  return apiFetch<{ tasks?: Task[]; rows?: Task[] }>(`/api/v1/tasks?${qs}`)
-    .then(d => (d.tasks || d.rows || []) as Task[])
+  if (mine) qs.set('mine', 'true')
+  return apiFetch<{ tasks?: Task[]; rows?: Task[]; pagination?: { total: number; pages: number } }>(`/api/v1/tasks?${qs}`)
+    .then(d => ({ tasks: (d.tasks || d.rows || []) as Task[], pagination: d.pagination }))
 }
 
 async function renameTask(id: string, title: string) {
@@ -292,17 +294,23 @@ export function TasksPage() {
   const canChangeStatus = canChangeTaskStatus(me?.role)
   const role = me?.role || 'employee'
 
-  const [status, setStatus] = useState('all')
+  const [status, setStatus]   = useState('all')
   const [priority, setPriority] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch]   = useState('')
+  const [page, setPage]       = useState(1)
+
+  // Reset to page 1 when any filter changes
+  const handleStatusChange   = (v: string) => { setStatus(v);   setPage(1) }
+  const handlePriorityChange = (v: string) => { setPriority(v); setPage(1) }
+  const handleSearchChange   = (v: string) => { setSearch(v);   setPage(1) }
   const location = useLocation()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>((location.state as any)?.openTaskId || null)
   const [drawerTab, setDrawerTab] = useState<'details' | 'comments'>('details')
 
   const q = useQuery({
-    queryKey: ['tasks', 'list', status, priority, search, isEmployee],
-    queryFn: () => fetchTasks(status, priority, search, isEmployee),
+    queryKey: ['tasks', 'list', status, priority, search, isEmployee, page],
+    queryFn: () => fetchTasks(status, priority, search, isEmployee, page),
     staleTime: 20_000,
     refetchInterval: 30_000,
     refetchOnMount: true,
@@ -317,7 +325,8 @@ export function TasksPage() {
   })
   const loadByUser = useMemo(() => new Map((workloadQ.data || []).map(w => [w.employee_id, Number(w.open_tasks || 0)])), [workloadQ.data])
 
-  const tasks = q.data || []
+  const tasks       = q.data?.tasks || []
+  const pagination  = q.data?.pagination
 
   const counts = useMemo(() => {
     const c = { all: 0, pending: 0, in_progress: 0, completed: 0, overdue: 0 }
@@ -369,7 +378,7 @@ export function TasksPage() {
               { k: 'completed', label: 'Done', count: counts.completed },
               { k: 'overdue', label: 'Overdue', count: counts.overdue },
             ].map(f => (
-              <button key={f.k} type="button" onClick={() => setStatus(f.k)} style={{
+              <button key={f.k} type="button" onClick={() => handleStatusChange(f.k)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '5px 10px', borderRadius: 999, border: 'none', cursor: 'pointer',
                 fontSize: 12, fontWeight: 800,
@@ -383,10 +392,10 @@ export function TasksPage() {
             ))}
           </div>
           <div style={{ width: 150, flexShrink: 0 }}>
-            <Select value={priority} onChange={setPriority} options={PRIORITY_OPTS} />
+            <Select value={priority} onChange={handlePriorityChange} options={PRIORITY_OPTS} />
           </div>
           <div style={{ width: 220, flexShrink: 0 }}>
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+            <Input value={search} onChange={e => handleSearchChange(e.target.value)} placeholder="Search tasks…"
               icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
             />
           </div>
@@ -416,6 +425,7 @@ export function TasksPage() {
             )}
           </div>
         ) : (
+          <>
           <div className="tasksTableWrap" style={{ overflow: 'visible' }}>
             <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -528,6 +538,24 @@ export function TasksPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination bar */}
+          {pagination && pagination.pages > 1 && (
+            <div className="paginationBar">
+              <span className="paginationInfo">
+                {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, pagination.total)} of {pagination.total} tasks
+              </span>
+              <div className="paginationButtons">
+                <button className="paginationBtn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+                {Array.from({ length: Math.min(pagination.pages, 7) }, (_, i) => {
+                  const p = pagination.pages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= pagination.pages - 3 ? pagination.pages - 6 + i : page - 3 + i
+                  return <button key={p} className={`paginationBtn ${p === page ? 'paginationBtnActive' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                })}
+                <button className="paginationBtn" disabled={page >= pagination.pages} onClick={() => setPage(p => p + 1)}>Next →</button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
