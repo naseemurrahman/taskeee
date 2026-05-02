@@ -1,0 +1,399 @@
+/* P11 Mobile responsive shell fix
+   Applied after the comprehensive responsive system so these rules win. */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.appShellV4,
+.mainV4,
+.contentV4 {
+  min-width: 0 !important;
+  max-width: 100vw !important;
+}
+
+.mainV4 {
+  overflow-x: hidden !important;
+}
+
+.contentV4 {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: visible !important;
+}
+
+.contentV4 > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: visible !important;
+}
+
+.card,
+.chartV3,
+.chartCardV2,
+.pageHeaderCard,
+.miniCard,
+.projectCard,
+.p4BoardCard,
+.p4BoardColumn,
+.modalCard,
+.modalCardV2,
+.drawerPanel {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+/* Tables and wide operational surfaces should scroll inside themselves, not overflow the app shell. */
+.tasksTableWrap,
+.tableWrap,
+.employeeTableWrap,
+.contractorsTableWrap,
+.reportsTableWrap,
+.auditTableWrap,
+.logsTableWrap,
+[class*='TableWrap'],
+[class*='TableGrid'] {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.tasksTable,
+.employeeTableV3,
+table {
+  max-width: none;
+}
+
+/* Topbar hamburger: visible and tappable on tablet/mobile. */
+.topbarV4MenuBtn {
+  display: none;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: rgba(255,255,255,.07) !important;
+  color: var(--text) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 1200 !important;
+}
+
+.topbarV4MenuBtn:hover {
+  background: rgba(226,171,65,.14) !important;
+  border-color: rgba(226,171,65,.30) !important;
+}
+
+.appShellV4Light .topbarV4MenuBtn,
+[data-theme='light'] .topbarV4MenuBtn {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15,23,42,.16) !important;
+  box-shadow: 0 8px 20px rgba(15,23,42,.08) !important;
+}
+
+/* Sidebar drawer mechanics. */
+.sidebarScrim {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .appShellV4 {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .topbarV4MenuBtn {
+    display: inline-flex !important;
+  }
+
+  .sidebarCollapseBtn {
+    display: none !important;
+  }
+
+  .sidebarV4 {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: min(82vw, 280px) !important;
+    min-width: 0 !important;
+    max-width: min(82vw, 280px) !important;
+    z-index: 1100 !important;
+    transform: translateX(-104%) !important;
+    transition: transform .22s ease !important;
+    box-shadow: 18px 0 48px rgba(0,0,0,.36) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebarMobileOpen .sidebarV4 {
+    transform: translateX(0) !important;
+  }
+
+  .sidebarMobileOpen .sidebarScrim {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1050 !important;
+    background: rgba(0,0,0,.48) !important;
+    backdrop-filter: blur(2px) !important;
+  }
+
+  .mainV4 {
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .topbarV4 {
+    position: sticky !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 58px !important;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    overflow: visible !important;
+    z-index: 900 !important;
+  }
+
+  .topbarV4SearchWrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    height: 40px !important;
+  }
+
+  .topbarV4SearchInput {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .topbarV4Meta,
+  .topbarMetricChip {
+    display: none !important;
+  }
+
+  .topbarLangBtn span {
+    display: none !important;
+  }
+
+  .topbarLangBtn,
+  .topbarThemeBtn,
+  .topbarV4ProfileBtn {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+  }
+
+  .contentV4 {
+    padding: 14px !important;
+    overflow-x: visible !important;
+  }
+
+  .pageHeaderCardInner {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .pageHeaderCardLeft,
+  .pageHeaderCardTitle,
+  .pageHeaderCardSub,
+  .pageHeaderCardMeta {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .pageHeaderCardSub {
+    overflow-wrap: anywhere;
+  }
+
+  .grid2,
+  .grid3,
+  .grid4,
+  .dashGrid2,
+  .dashGrid3,
+  .dashGrid21,
+  .dashGrid12,
+  .analyticsChartGrid,
+  .analyticsPriorityCharts,
+  .projectGrid,
+  .reportsGrid,
+  .settingsGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .taskFiltersRow,
+  .pageHeaderCardInner,
+  .capacityGuideHeader,
+  .capacityGuideItem {
+    flex-wrap: wrap !important;
+  }
+
+  .taskFiltersRow > *,
+  .pageHeaderCardInner > *,
+  .capacityGuideHeader > *,
+  .capacityGuideItem > * {
+    min-width: 0 !important;
+  }
+
+  .taskFiltersRow .selectV3Wrap,
+  .taskFiltersRow .inputWrap,
+  .taskFiltersRow input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .tasksTableWrap {
+    border-radius: 14px !important;
+  }
+
+  .tasksTable {
+    min-width: 760px !important;
+    width: 760px !important;
+  }
+
+  .p4BoardGrid {
+    grid-template-columns: minmax(260px, 1fr) !important;
+    overflow-x: visible !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .contentV4 {
+    padding: 10px !important;
+  }
+
+  .topbarV4 {
+    min-height: 54px !important;
+    padding: 7px 8px !important;
+  }
+
+  .topbarV4SearchWrap {
+    height: 38px !important;
+  }
+
+  .topbarV4SearchInput::placeholder {
+    font-size: 0 !important;
+  }
+
+  .topbarV4SearchInput::before {
+    content: 'Search';
+  }
+
+  .topbarThemeBtn {
+    display: none !important;
+  }
+
+  .topbarLangBtn {
+    display: none !important;
+  }
+
+  .pageHeaderCard,
+  .card,
+  .chartV3,
+  .chartCardV2 {
+    border-radius: 14px !important;
+  }
+
+  .card,
+  .chartV3,
+  .chartCardV2Body {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .miniCard {
+    min-width: 0 !important;
+  }
+
+  .analyticsSignalStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .tasksTable {
+    min-width: 700px !important;
+    width: 700px !important;
+  }
+
+  .selectV3Dropdown {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 12px !important;
+    top: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 68vh !important;
+    transform: none !important;
+    z-index: 1300 !important;
+  }
+
+  .profileDropdown,
+  .topbarV4SearchDropdown {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .topbarV4SearchDropdown {
+    top: 58px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .contentV4 {
+    padding: 8px !important;
+  }
+
+  .topbarV4MenuBtn,
+  .topbarV4ProfileBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+  }
+
+  .analyticsSignalStrip {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .tasksTable {
+    min-width: 660px !important;
+    width: 660px !important;
+  }
+}
