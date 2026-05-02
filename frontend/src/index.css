@@ -8758,3 +8758,63 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
 @media (max-width: 900px) {
   .analyticsChartGrid { grid-template-columns: 1fr !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   FINAL v6 — Charts render + OptionActive contrast
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── FIX 1: ResponsiveContainer must NOT have display:block forced ── */
+/* The earlier rule ".recharts-responsive-container { display: block !important }"
+   breaks recharts' internal positioning. Undo it: */
+.recharts-responsive-container {
+  display: block !important;
+  position: relative !important;   /* recharts needs this for inner absolute elements */
+  width: 100% !important;
+}
+
+/* ── FIX 2: Make sure Shell div is visible and measured ── */
+/* chartCardV2 must not have any height:0 or display:none */
+.chartCardV2 {
+  display: block !important;
+}
+.chartCardV2Body {
+  display: block !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+/* ── FIX 3: Selected option MUST have golden highlight + dark text ── */
+/* Both themes: clear golden background, always readable */
+.selectV3OptionActive {
+  background: rgba(226,171,65,0.22) !important;
+  border-left: 3px solid #e2ab41 !important;
+}
+.selectV3OptionActive .selectV3OptionLabel,
+.selectV3OptionActive .selectV3OptionText,
+.selectV3OptionActive span:not(.selectV3Check) {
+  color: #e2ab41 !important;
+  font-weight: 800 !important;
+}
+.selectV3Check { color: #e2ab41 !important; }
+
+/* Light theme active option */
+.appShellV4Light .selectV3OptionActive {
+  background: rgba(226,171,65,0.18) !important;
+  border-left: 3px solid #d97706 !important;
+}
+.appShellV4Light .selectV3OptionActive .selectV3OptionLabel,
+.appShellV4Light .selectV3OptionActive span:not(.selectV3Check) {
+  color: #b45309 !important;
+  font-weight: 800 !important;
+}
+.appShellV4Light .selectV3Check { color: #d97706 !important; }
+
+/* Option hover — slightly visible */
+.selectV3Option:hover:not(.selectV3OptionDisabled):not(.selectV3OptionActive) {
+  background: rgba(255,255,255,0.08) !important;
+}
+.appShellV4Light .selectV3Option:hover:not(.selectV3OptionDisabled):not(.selectV3OptionActive) {
+  background: rgba(15,23,42,0.06) !important;
+}
