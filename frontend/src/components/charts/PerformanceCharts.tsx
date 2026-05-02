@@ -249,19 +249,23 @@ export function WorkloadBalanceChart(props: {
     <div style={{ display:'grid', gap:12 }}>
       <div style={{ position:'relative' }}>
         <Shell height={h}>
-          {(w) => (
-            <RadialBarChart width={w} height={h} cx={w/2} cy={h/2}
-              innerRadius={Math.min(w,h)*0.3} outerRadius={Math.min(w,h)*0.46}
-              barSize={14} startAngle={90} endAngle={-270}
-              data={[{ name:'Balanced', value:balancedPct, fill:'#22c55e' }]}>
-              <RadialBar dataKey="value" cornerRadius={8} background={{ fill:'rgba(148,163,184,0.16)' }} />
-            </RadialBarChart>
-          )}
+          {(w) => {
+            const r = Math.min(w, h) * 0.38
+            return (
+              <RadialBarChart width={w} height={h} cx={w/2} cy={h/2}
+                innerRadius={r * 0.76} outerRadius={r}
+                barSize={16} startAngle={90} endAngle={-270}
+                data={[{ name:'Balanced', value:balancedPct, fill:'#22c55e' }]}>
+                <RadialBar dataKey="value" cornerRadius={10} background={{ fill:'rgba(148,163,184,0.14)' }} />
+              </RadialBarChart>
+            )
+          }}
         </Shell>
-        <div style={{ position:'absolute', inset:0, display:'grid', placeItems:'center', pointerEvents:'none' }}>
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:24, fontWeight:950, color:'#22c55e' }}>{balancedPct}%</div>
-            <div style={{ fontSize:10, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Balanced</div>
+        {/* Centered overlay — sits inside the donut hole, guaranteed no overlap */}
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+          <div style={{ textAlign:'center', lineHeight:1.2 }}>
+            <div style={{ fontSize:22, fontWeight:950, color:'#22c55e', letterSpacing:'-0.5px' }}>{balancedPct}%</div>
+            <div style={{ fontSize:9, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', marginTop:2 }}>Balanced</div>
           </div>
         </div>
       </div>
@@ -301,17 +305,19 @@ export function AssigneeScoreChart(props: {
     <Shell height={h}>
       {(w) => (
         <BarChart width={w} height={h} data={data} layout="vertical"
-          barCategoryGap="34%" margin={{ top:8, right:72, left:4, bottom:0 }}>
+          barCategoryGap="32%" margin={{ top:8, right:16, left:4, bottom:24 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" horizontal={false} />
           <XAxis xAxisId="score" type="number" domain={[0,100]} tick={AXIS} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
           <XAxis xAxisId="count" type="number" domain={[0,maxCount]} hide />
-          <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={88} />
+          <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
           <Tooltip content={<GlassTooltip />} cursor={{ fill:'rgba(99,102,241,0.05)' }} />
-          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:12, fontWeight:700, color:'var(--chart-tick2)', paddingTop:8 }} />
-          <Bar dataKey="score"  xAxisId="score" name="Score %" fill="#8b5cf6" radius={[0,8,8,0]} barSize={12}
-            label={{ position:'right', fill:'var(--chart-tick2)', fontSize:10, formatter:(v:any)=>`${Number(v||0)}%` }} />
-          <Bar dataKey="done"   xAxisId="count" name="Done"    fill="#22c55e" radius={[0,8,8,0]} barSize={8} />
-          <Bar dataKey="active" xAxisId="count" name="Active"  fill="#f4ca57" radius={[0,8,8,0]} barSize={8} />
+          <Legend iconType="circle" iconSize={8}
+            verticalAlign="bottom" align="center"
+            wrapperStyle={{ fontSize:11, fontWeight:700, color:'var(--chart-tick2)', paddingTop:12 }} />
+          {/* Score bar — no label (was overlapping legend) — shown via tooltip */}
+          <Bar dataKey="score"  xAxisId="score" name="Score %" fill="#8b5cf6" radius={[0,6,6,0]} barSize={11} />
+          <Bar dataKey="done"   xAxisId="count" name="Done"    fill="#22c55e" radius={[0,6,6,0]} barSize={7} />
+          <Bar dataKey="active" xAxisId="count" name="Active"  fill="#f4ca57" radius={[0,6,6,0]} barSize={7} />
         </BarChart>
       )}
     </Shell>

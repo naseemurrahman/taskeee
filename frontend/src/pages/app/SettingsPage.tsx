@@ -419,7 +419,7 @@ export function SettingsPage() {
       {/* ── Security tab ── */}
       {tab === 'security' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <Section title="Access & Security" sub="Control authentication and session settings">
+          <Section title="Access & Security" sub="Current authentication and access configuration">
             <div style={{ display: 'grid', gap: 10 }}>
               {[
                 { label: 'Role-based access control', status: 'Active', color: '#22c55e', desc: '5 roles: Admin, HR, Manager, Supervisor, Employee' },
@@ -435,6 +435,25 @@ export function SettingsPage() {
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.desc}</div>
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 9px', borderRadius: 999, background: item.color + '18', color: item.color }}>{item.status}</span>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Planned Security Features" sub="Features on the roadmap — not yet available">
+            <div style={{ display: 'grid', gap: 8 }}>
+              {[
+                { label: 'IP allowlist', desc: 'Restrict access to specific IP ranges or CIDR blocks', eta: 'Q3 2026' },
+                { label: 'SSO / SAML', desc: 'Enterprise single sign-on via SAML 2.0 or OIDC', eta: 'Q3 2026' },
+                { label: 'Device trust', desc: 'Require device registration before accessing sensitive data', eta: 'Q4 2026' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)', opacity: 0.75 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--muted)', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 9px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>ETA {item.eta}</span>
                 </div>
               ))}
             </div>

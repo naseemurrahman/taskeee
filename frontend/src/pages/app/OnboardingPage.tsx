@@ -32,7 +32,7 @@ export function OnboardingPage() {
 
   const saveM = useMutation({
     mutationFn: async () =>
-      apiFetch('/api/v1/organizations/onboarding/complete', {
+      apiFetch<{ organization: { settings?: { onboardingCompleted?: boolean } } }>('/api/v1/organizations/onboarding/complete', {
         method: 'POST',
         json: {
           onboarding: {
@@ -43,8 +43,10 @@ export function OnboardingPage() {
         },
       }),
     onSuccess: () => {
+      // Refetch org query so onboardingCompleted is reflected immediately
+      orgQ.refetch()
       toastSuccess('Setup complete! 🎉', 'Your workspace is ready. Let\'s get to work.')
-      setTimeout(() => navigate('/app/dashboard'), 1200)
+      setTimeout(() => navigate('/app/dashboard'), 1400)
     },
     onError: (err: any) => toastError('Setup failed', err?.message || 'Could not complete onboarding.'),
   })

@@ -289,8 +289,18 @@ export function BoardPage() {
                     )
                   })}
                   {colTasks.length===0 && (
-                    <div style={{padding:'28px 16px',textAlign:'center',border:`2px dashed ${isDragOver?col.color:col.color+'30'}`,borderRadius:14,background:isDragOver?col.color+'08':'transparent',transition:'all 0.2s ease',color:'var(--muted)',fontSize:11,fontWeight:700}}>
-                      {isDragOver?`Drop → ${col.label}`:'No tasks'}
+                    <div style={{
+                      padding:'28px 16px', textAlign:'center',
+                      border:`2px dashed ${isDragOver ? col.color : col.color+'28'}`,
+                      borderRadius:14,
+                      background: isDragOver ? col.color+'10' : 'transparent',
+                      transition:'all 0.15s ease',
+                      color: isDragOver ? col.color : 'var(--muted)',
+                      fontSize:12, fontWeight:700,
+                    }}>
+                      {draggedTaskId
+                        ? (isDragOver ? `⊕ Drop here → ${col.label}` : `Drop to move to ${col.label}`)
+                        : 'No tasks'}
                     </div>
                   )}
                 </div>

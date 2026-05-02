@@ -103,6 +103,13 @@ export function AppLayout() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
+  // RTL support — set document direction when language changes
+  useEffect(() => {
+    const dir = lang === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.dir = dir
+    document.documentElement.lang = lang || 'en'
+  }, [lang])
+
   // Sidebar collapse — persisted
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     const s = typeof window !== 'undefined' ? window.localStorage.getItem('tf_sidebar_collapsed') : null
@@ -141,7 +148,7 @@ export function AppLayout() {
     setSearchBusy(true); setSearchOpen(true)
     searchTimer.current = setTimeout(async () => {
       try {
-        const r = await apiFetch<any>(`/api/v1/search?q=${encodeURIComponent(v.trim())}&limit=5`)
+        const r = await apiFetch<any>(`/api/v1/search?q=${encodeURIComponent(v.trim())}&limit=8`)
         setSearchResults(r)
       } catch { setSearchResults(null) }
       setSearchBusy(false)
@@ -357,42 +364,73 @@ export function AppLayout() {
               <div className="topbarV4SearchDropdown">
                 {searchBusy && <div className="topbarV4SearchEmpty">Searching…</div>}
                 {!searchBusy && !hasResults && search.length >= 2 && <div className="topbarV4SearchEmpty">No results for "{search}"</div>}
-                {!searchBusy && search.length < 2 && <div className="topbarV4SearchEmpty">Type at least 2 characters</div>}
+                {!searchBusy && search.length < 2 && <div className="topbarV4SearchEmpty">Type at least 2 characters to search</div>}
                 {!searchBusy && hasResults && (
                   <>
                     {searchResults?.tasks?.length > 0 && (
                       <div className="topbarV4SearchGroup">
-                        <div className="topbarV4SearchGroupTitle">Tasks</div>
-                        {searchResults.tasks.map((t: any) => (
-                          <button key={t.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/tasks', { state: { openTaskId: t.id } }) }}>
+                        <div className="topbarV4SearchGroupTitle">
+                          Tasks
+                          <span className="topbarV4SearchGroupCount">{searchResults.tasks.length}</span>
+                        </div>
+                        {searchResults.tasks.slice(0, 5).map((t: any) => (
+                          <button key={t.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false); navigate('/app/tasks', { state: { openTaskId: t.id } }) }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
-                            <div><div className="topbarV4SearchItemTitle">{t.title}</div><div className="topbarV4SearchItemSub">{t.status?.replace(/_/g, ' ')}</div></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="topbarV4SearchItemTitle">{t.title}</div>
+                              <div className="topbarV4SearchItemSub">{t.status?.replace(/_/g, ' ')} {t.priority ? `· ${t.priority}` : ''}</div>
+                            </div>
                           </button>
                         ))}
+                        {searchResults.tasks.length > 5 && (
+                          <button className="topbarV4SearchSeeAll" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate(`/app/tasks?q=${encodeURIComponent(search)}`) }}>
+                            See all {searchResults.tasks.length} tasks →
+                          </button>
+                        )}
                       </div>
                     )}
                     {searchResults?.users?.length > 0 && (
                       <div className="topbarV4SearchGroup">
-                        <div className="topbarV4SearchGroupTitle">People</div>
-                        {searchResults.users.map((u: any) => (
-                          <button key={u.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/hr/employees') }}>
+                        <div className="topbarV4SearchGroupTitle">
+                          People
+                          <span className="topbarV4SearchGroupCount">{searchResults.users.length}</span>
+                        </div>
+                        {searchResults.users.slice(0, 3).map((u: any) => (
+                          <button key={u.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false); navigate('/app/hr/employees') }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <div><div className="topbarV4SearchItemTitle">{u.full_name || u.email}</div><div className="topbarV4SearchItemSub">{u.role}</div></div>
+                            <div><div className="topbarV4SearchItemTitle">{u.full_name || u.email}</div><div className="topbarV4SearchItemSub">{u.role} {u.department ? `· ${u.department}` : ''}</div></div>
                           </button>
                         ))}
+                        {searchResults.users.length > 3 && (
+                          <button className="topbarV4SearchSeeAll" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/hr/employees') }}>
+                            See all {searchResults.users.length} people →
+                          </button>
+                        )}
                       </div>
                     )}
                     {searchResults?.projects?.length > 0 && (
                       <div className="topbarV4SearchGroup">
-                        <div className="topbarV4SearchGroupTitle">Projects</div>
-                        {searchResults.projects.map((p: any) => (
-                          <button key={p.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/projects') }}>
+                        <div className="topbarV4SearchGroupTitle">
+                          Projects
+                          <span className="topbarV4SearchGroupCount">{searchResults.projects.length}</span>
+                        </div>
+                        {searchResults.projects.slice(0, 3).map((p: any) => (
+                          <button key={p.id} className="topbarV4SearchItem" onMouseDown={e => e.preventDefault()} onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false); navigate('/app/projects') }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                            <div><div className="topbarV4SearchItemTitle">{p.name}</div><div className="topbarV4SearchItemSub">Project</div></div>
+                            <div><div className="topbarV4SearchItemTitle">{p.name}</div><div className="topbarV4SearchItemSub">Project{p.task_count != null ? ` · ${p.task_count} tasks` : ''}</div></div>
                           </button>
                         ))}
+                        {searchResults.projects.length > 3 && (
+                          <button className="topbarV4SearchSeeAll" onMouseDown={e => e.preventDefault()} onClick={() => { setSearchOpen(false); navigate('/app/projects') }}>
+                            See all {searchResults.projects.length} projects →
+                          </button>
+                        )}
                       </div>
                     )}
+                    {/* Keyboard hint */}
+                    <div className="topbarV4SearchFooter">
+                      <span>↑↓ navigate</span><span>Enter to open</span><span>Esc to close</span>
+                    </div>
                   </>
                 )}
               </div>
