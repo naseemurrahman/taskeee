@@ -346,8 +346,8 @@ export function DashboardHomePage() {
         </>}
       </div>
 
-      {/* ── Row 1: Activity trend (wide) + Status donut ── */}
-      <div className="dashGrid21">
+      {/* ── Row 1: Activity (wide) + Status Donut + Priority side-by-side ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 14 }}>
         <Card
           title="Task Activity — Last 14 Days"
           sub="Created · Completed · Overdue by day"
@@ -399,17 +399,17 @@ export function DashboardHomePage() {
               onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('status') : null)}
             >
               <div style={{ position: 'relative' }}>
-                <DonutRing segments={statusSegs} size={130} strokeW={14} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(0deg)' }}>
-                  <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{tasks?.total || 0}</div>
+                <DonutRing segments={statusSegs} size={120} strokeW={13} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{tasks?.total || 0}</div>
                   <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>tasks</div>
                 </div>
               </div>
-              <div style={{ width: '100%', display: 'grid', gap: 6 }}>
+              <div style={{ width: '100%', display: 'grid', gap: 5 }}>
                 {statusSegs.map(s => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>{s.label}</span>
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>{s.label}</span>
                     <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text)' }}>{s.value}</span>
                   </div>
                 ))}
@@ -417,10 +417,7 @@ export function DashboardHomePage() {
             </div>
           )}
         </Card>
-      </div>
 
-      {/* ── Row 2: Project progress + Priority ── */}
-      <div className="dashGrid12">
         <Card
           title="Priority Breakdown"
           sub="Tasks by urgency level"
@@ -445,51 +442,51 @@ export function DashboardHomePage() {
             )
           })()}
         </Card>
-
-        <Card title="Project Progress" sub="Completion % per project"
-          action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('projects')}>Details</button> : null}
-            <Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>
-          </div>}>
-          {isLoading ? <Skel h={200} /> : !projects.length ? (
-            <div style={{ height: 120, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No projects yet</div>
-          ) : (
-            <div
-              role="button"
-              tabIndex={canOpenChartDetails ? 0 : -1}
-              style={{ display: 'grid', gap: 12, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
-              onClick={() => canOpenChartDetails ? setChartDetail('projects') : null}
-              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('projects') : null)}
-            >
-              {projects.slice(0, 6).map((p, i) => {
-                const color = p.color || [C.brand, C.purple, C.blue, C.teal, C.orange][i % 5]
-                return (
-                  <div key={p.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
-                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 10, color: C.muted }}>{p.completed}/{p.total}</span>
-                        <span style={{ fontSize: 14, fontWeight: 950, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text)', minWidth: 36, textAlign: 'right' }}>{p.progress}%</span>
-                      </div>
-                    </div>
-                    {/* Segmented bar */}
-                    <div style={{ height: 7, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 0 }}>
-                      <div style={{ flex: p.completed, background: C.green, transition: 'flex 0.8s ease' }} />
-                      <div style={{ flex: p.in_progress, background: color, opacity: 0.7, transition: 'flex 0.8s ease' }} />
-                      <div style={{ flex: p.overdue, background: C.red, transition: 'flex 0.8s ease' }} />
-                      <div style={{ flex: p.pending, background: 'var(--border)', transition: 'flex 0.8s ease' }} />
-                    </div>
-                    {p.overdue > 0 && <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginTop: 3 }}>⚠ {p.overdue} overdue</div>}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </Card>
       </div>
+
+      {/* ── Row 2: Project Progress full-width ── */}
+      <Card title="Project Progress" sub="Completion % per active project"
+        action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('projects')}>Details</button> : null}
+          <Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>
+        </div>}>
+        {isLoading ? <Skel h={200} /> : !projects.length ? (
+          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No projects yet</div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('projects') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('projects') : null)}
+          >
+            {projects.slice(0, 8).map((p, i) => {
+              const color = p.color || [C.brand, C.purple, C.blue, C.teal, C.orange, C.green][i % 6]
+              return (
+                <div key={p.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 10, color: C.muted }}>{p.completed}/{p.total}</span>
+                      <span style={{ fontSize: 14, fontWeight: 950, color: p.progress === 100 ? C.green : p.overdue > 0 ? C.red : 'var(--text)', minWidth: 36, textAlign: 'right' }}>{p.progress}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 7, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 0 }}>
+                    <div style={{ flex: p.completed, background: C.green, transition: 'flex 0.8s ease' }} />
+                    <div style={{ flex: p.in_progress, background: color, opacity: 0.7, transition: 'flex 0.8s ease' }} />
+                    <div style={{ flex: p.overdue, background: C.red, transition: 'flex 0.8s ease' }} />
+                    <div style={{ flex: p.pending, background: 'var(--border)', transition: 'flex 0.8s ease' }} />
+                  </div>
+                  {p.overdue > 0 && <div style={{ fontSize: 10, color: C.red, fontWeight: 700, marginTop: 3 }}>⚠ {p.overdue} overdue</div>}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* ── Row 3: Weekly velocity (full Recharts) ── */}
       <div className="dashGrid21" style={{ alignItems: 'start' }}>
@@ -584,85 +581,89 @@ export function DashboardHomePage() {
         </Card>
       </div>
 
-      {/* ── Row 4: Team leaderboard ── */}
-      <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
-        action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('team')}>Details</button> : null}
-          <Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>
-        </div>}>
-        {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: C.muted, fontSize: 13 }}>No team data yet</div>
-        ) : (
-          <div
-            role="button"
-            tabIndex={canOpenChartDetails ? 0 : -1}
-            style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
-            onClick={() => canOpenChartDetails ? setChartDetail('team') : null}
-            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('team') : null)}
-          >
-            {leaderboard.slice(0, 8).map((u, i) => {
-              const colors = [C.brand, C.purple, C.blue, C.teal, C.orange, C.green]
-              const color = colors[i % colors.length]
-              const rate = u.completion_rate || 0
-              const rateColor = rate >= 75 ? C.green : rate >= 40 ? C.brand : C.red
-              return (
-                <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 44px', gap: 10, alignItems: 'center' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 9, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0, border: `1.5px solid ${color}35` }}>
-                    {i + 1}
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{u.name}</span>
-                      <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{u.completed}/{u.total} done</span>
-                    </div>
-                    <div style={{ height: 5, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${rate}%`, background: rateColor, borderRadius: 999, transition: 'width 0.8s ease' }} />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 950, color: rateColor, textAlign: 'right' }}>{rate}%</div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-
-      {/* ── Row 5: At-risk tasks + Workload ── */}
+      {/* ── Row 4: Team Performance + At-Risk side-by-side ── */}
       <div className="dashGrid2">
-        {/* At-risk */}
+        <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
+          action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('team')}>Details</button> : null}
+            <Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>
+          </div>}>
+          {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
+            <div style={{ padding: '24px 0', textAlign: 'center', color: C.muted, fontSize: 13 }}>No team data yet</div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={canOpenChartDetails ? 0 : -1}
+              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              onClick={() => canOpenChartDetails ? setChartDetail('team') : null}
+              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('team') : null)}
+            >
+              {leaderboard.slice(0, 6).map((u, i) => {
+                const colors = [C.brand, C.purple, C.blue, C.teal, C.orange, C.green]
+                const color = colors[i % colors.length]
+                const rate = u.completion_rate || 0
+                const rateColor = rate >= 75 ? C.green : rate >= 40 ? C.brand : C.red
+                return (
+                  <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 44px', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 9, background: color+'20', color, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, flexShrink: 0, border: `1.5px solid ${color}35` }}>
+                      {i + 1}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{u.name}</span>
+                        <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{u.completed}/{u.total} done</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 999, background: 'var(--bg2)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${rate}%`, background: rateColor, borderRadius: 999, transition: 'width 0.8s ease' }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 950, color: rateColor, textAlign: 'right' }}>{rate}%</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+
         <Card title="At-Risk Tasks" sub="Overdue items requiring immediate attention">
           <AtRiskList />
         </Card>
+      </div>
 
-        {/* Workload stacked bars */}
-        <Card
-          title="Team Workload"
-          sub="Active · Overdue · Done per person"
-          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('workload')}>Details</button> : undefined}
-        >
+      {/* ── Row 5: Team Workload (full-width stacked bars) ── */}
+      <Card
+        title="Team Workload"
+        sub="Active · Overdue · Done per person"
+        action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('workload')}>Details</button> : undefined}
+      >
           {leaderboard.length === 0 ? (
             <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
           ) : (
             <div
               role="button"
               tabIndex={canOpenChartDetails ? 0 : -1}
-              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
               onClick={() => canOpenChartDetails ? setChartDetail('workload') : null}
               onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('workload') : null)}
             >
-              {leaderboard.slice(0, 6).map((u, i) => {
+              {leaderboard.slice(0, 8).map((u, i) => {
                 const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
                 if (u.total === 0) return null
                 return (
                   <div key={u.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
-                      <span style={{ fontSize: 10, color: C.muted }}>{u.total} tasks</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
+                      <span style={{ fontSize: 11, color: C.muted }}>{u.total} tasks</span>
                     </div>
-                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
+                    <div style={{ height: 9, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
                       {u.completed > 0 && <div style={{ flex: u.completed, background: C.green, transition: 'flex 0.6s ease' }} />}
                       {active > 0 && <div style={{ flex: active, background: [C.brand, C.purple, C.blue, C.teal][i%4], opacity: 0.8, transition: 'flex 0.6s ease' }} />}
                       {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red, transition: 'flex 0.6s ease' }} />}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 3 }}>
+                      <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{u.completed} done</span>
+                      {active > 0 && <span style={{ fontSize: 10, color: C.brand, fontWeight: 700 }}>{active} active</span>}
+                      {(u.overdue||0) > 0 && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>{u.overdue} overdue</span>}
                     </div>
                   </div>
                 )
@@ -678,7 +679,6 @@ export function DashboardHomePage() {
             </div>
           )}
         </Card>
-      </div>
 
       <Modal
         title={

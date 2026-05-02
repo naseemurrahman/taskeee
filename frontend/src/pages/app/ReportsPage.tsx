@@ -24,16 +24,19 @@ async function generateReport(reportType: string) {
 }
 
 function downloadReportCsv(rows: ReportRow[]) {
+  const now = new Date()
+  const dateStr = now.toISOString().slice(0, 10)
+  const timeStr = now.toTimeString().slice(0, 5).replace(':', '-')
   const csvRows = [
     ['Report Type', 'Scope', 'Period Start', 'Period End', 'Emailed', 'Created At'],
     ...rows.map(r => [r.report_type, r.scope_type, r.period_start || '', r.period_end || '', String(r.email_sent), r.created_at]),
   ]
-  const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const csv = csvRows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }) // BOM for Excel compatibility
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reports-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `taskflow-reports-${dateStr}-${timeStr}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

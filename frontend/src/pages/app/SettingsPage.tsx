@@ -4,7 +4,6 @@ import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canViewAnalytics } from '../../lib/rbac'
 import { useToast } from '../../components/ui/ToastSystem'
-
 type OrgDetails = {
   id: string; name: string; slug: string; plan?: string | null
   timezone?: string | null; logoUrl?: string | null
@@ -59,6 +58,128 @@ function inputStyle(): React.CSSProperties {
     color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' as const,
     transition: 'border-color 0.15s',
   }
+}
+
+function TwoFactorSection() {
+  const { success: toastSuccess, error: toastError } = useToast()
+  const me = getUser()
+  const [step, setStep] = useState<'idle' | 'setup' | 'confirm' | 'done'>('idle')
+  const [qrUrl, setQrUrl] = useState('')
+  const [secret, setSecret] = useState('')
+  const [code, setCode] = useState('')
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+  const [enabled, setEnabled] = useState(false)
+
+  // Check current MFA status from /me endpoint
+  useQuery({
+    queryKey: ['me-mfa-status'],
+    queryFn: () => apiFetch<{ user?: { mfa_enabled?: boolean } }>(`/api/v1/users/${me?.id}`).then(d => {
+      setEnabled(!!d?.user?.mfa_enabled)
+      return d
+    }).catch(() => null),
+    enabled: !!me?.id,
+    staleTime: 30_000,
+  })
+
+  const startM = useMutation({
+    mutationFn: () => apiFetch<{ secret: string; otpauthUrl: string }>('/api/v1/auth/mfa/enroll/start', { method: 'POST' }),
+    onSuccess: (d) => {
+      setSecret(d.secret)
+      // Build QR URL using Google Charts API (no external dep)
+      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(d.otpauthUrl)}&size=200x200&format=png&bgcolor=ffffff&color=000000`)
+      setStep('setup')
+    },
+    onError: () => toastError('2FA Error', 'Failed to start 2FA enrollment.'),
+  })
+
+  const confirmM = useMutation({
+    mutationFn: () => apiFetch<{ recoveryCodes: string[] }>('/api/v1/auth/mfa/enroll/confirm', { method: 'POST', json: { secret, code: code.replace(/\s/g, '') } }),
+    onSuccess: (d) => {
+      setRecoveryCodes(d.recoveryCodes || [])
+      setEnabled(true)
+      setStep('done')
+      toastSuccess('2FA Enabled', 'Two-factor authentication is now active on your account.')
+    },
+    onError: () => toastError('Invalid code', 'The code you entered is incorrect. Try again.'),
+  })
+
+  return (
+    <Section title="Two-Factor Authentication" sub="Protect your account with TOTP (Google Authenticator, Authy, etc.)">
+      {step === 'idle' && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>
+              Status: <span style={{ color: enabled ? '#22c55e' : '#f59e0b', fontWeight: 900 }}>{enabled ? '✓ Enabled' : '○ Not enabled'}</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+              {enabled ? 'Your account is protected with 2FA.' : 'Add an extra layer of security to your account.'}
+            </div>
+          </div>
+          {!enabled && (
+            <button className="btn btnPrimary" onClick={() => startM.mutate()} disabled={startM.isPending}>
+              {startM.isPending ? 'Starting…' : 'Enable 2FA'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {step === 'setup' && (
+        <div style={{ display: 'grid', gap: 18 }}>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>1. Scan this QR code</div>
+              <img src={qrUrl} alt="2FA QR Code" width={180} height={180} style={{ borderRadius: 12, border: '2px solid var(--border)', display: 'block' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Or enter this key manually:</div>
+              <code style={{ fontSize: 12, background: 'var(--bg2)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', display: 'block', wordBreak: 'break-all', letterSpacing: '0.08em', fontWeight: 700, color: 'var(--brand)' }}>{secret}</code>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>
+                Use <strong>Google Authenticator</strong>, <strong>Authy</strong>, or any TOTP app to scan the QR code. Then enter the 6-digit code below.
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>2. Enter the 6-digit code to confirm</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000" maxLength={6}
+                style={{ width: 140, padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '0.2em', textAlign: 'center', outline: 'none', fontFamily: 'monospace' }}
+                onKeyDown={e => e.key === 'Enter' && code.length === 6 && confirmM.mutate()}
+              />
+              <button className="btn btnPrimary" onClick={() => confirmM.mutate()} disabled={code.length !== 6 || confirmM.isPending}>
+                {confirmM.isPending ? 'Verifying…' : 'Verify & Enable'}
+              </button>
+              <button className="btn btnGhost" onClick={() => { setStep('idle'); setCode(''); setSecret(''); setQrUrl('') }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 'done' && (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(34,197,94,0.08)', border: '1.5px solid rgba(34,197,94,0.25)', color: '#22c55e', fontWeight: 700, fontSize: 14 }}>
+            ✓ Two-factor authentication is now active!
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>⚠️ Save your recovery codes — they won't be shown again</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, background: 'var(--bg2)', padding: 14, borderRadius: 10, border: '1px solid var(--border)' }}>
+              {recoveryCodes.map(c => (
+                <code key={c} style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--text)', letterSpacing: '0.05em' }}>{c}</code>
+              ))}
+            </div>
+            <button className="btn btnGhost" style={{ marginTop: 10 }} onClick={() => {
+              const blob = new Blob([recoveryCodes.join('\n')], { type: 'text/plain' })
+              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'recovery-codes.txt'; a.click()
+            }}>
+              Download recovery codes
+            </button>
+          </div>
+          <button className="btn btnGhost" onClick={() => setStep('idle')}>Done</button>
+        </div>
+      )}
+    </Section>
+  )
 }
 
 export function SettingsPage() {
@@ -260,7 +381,6 @@ export function SettingsPage() {
                 { label: 'API rate limiting', status: 'Active', color: '#22c55e', desc: 'Per-endpoint limits to prevent abuse' },
                 { label: 'Input sanitization', status: 'Active', color: '#22c55e', desc: 'All inputs validated against SQL injection & XSS' },
                 { label: 'Audit logging', status: 'Active', color: '#22c55e', desc: 'All sensitive actions logged with actor + timestamp' },
-                { label: 'Two-factor authentication', status: 'Coming soon', color: '#9ca3af', desc: 'TOTP-based 2FA for admin accounts' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
@@ -273,6 +393,7 @@ export function SettingsPage() {
               ))}
             </div>
           </Section>
+          <TwoFactorSection />
         </div>
       )}
 

@@ -11,6 +11,7 @@ import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
+import { useRealtimeInvalidation } from '../../lib/socket'
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
   due_date?: string | null; category_id?: string | null; category_name?: string | null
@@ -294,6 +295,9 @@ export function TasksPage() {
   const canChangeStatus = canChangeTaskStatus(me?.role)
   const role = me?.role || 'employee'
 
+  // Auto-invalidate when any task changes via socket
+  useRealtimeInvalidation({ tasks: true, dashboard: true })
+
   const [status, setStatus]   = useState('all')
   const [priority, setPriority] = useState('all')
   const [search, setSearch]   = useState('')
@@ -459,7 +463,9 @@ export function TasksPage() {
                         <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
                       </td>
                       <td style={{ padding: '8px 14px', minWidth: 160 }} onClick={e => e.stopPropagation()}>
-                        {(() => {
+                        {workloadQ.isLoading ? (
+                          <div style={{ width: 48, height: 20, borderRadius: 999, background: 'var(--border)', opacity: 0.5 }} />
+                        ) : (() => {
                           const sig = buildTaskSignal(task, loadByUser)
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

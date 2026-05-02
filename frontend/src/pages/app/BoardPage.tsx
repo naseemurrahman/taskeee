@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
@@ -65,6 +66,7 @@ export function BoardPage() {
   const canDrag = canChangeTaskStatus(me?.role); const isEmployee = isEmployeeRole(me?.role)
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
+  useRealtimeInvalidation({ tasks: true, board: true, dashboard: true })
   const [selectedTaskId, setSelectedTaskId] = useState<string|null>(null)
   const [boardError, setBoardError] = useState<string|null>(null)
   const [focusMode, setFocusMode] = useState(false)
