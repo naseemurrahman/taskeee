@@ -9375,3 +9375,94 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .chartCardV2Body > div[style*="height"] {
   display: block !important;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   MASTER FINAL v3 — Fixes search visibility, dropdown, charts
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── CHARTS: chartCardV2 needs overflow:auto so fixed-width charts scroll ── */
+/* PR23 approach: charts use fixed pixel width, parent scrolls horizontally */
+.chartCardV2 {
+  overflow: hidden !important;   /* clip outer border-radius */
+}
+.chartCardV2Body {
+  overflow-x: auto !important;   /* scroll horizontally for fixed-width charts */
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── SEARCH BAR: visible in BOTH dark AND light mode ── */
+/* Dark mode — topbar is dark, need visible contrast border */
+.appShellV4Dark .topbarV4 .topbarV4SearchWrap,
+.topbarV4 .topbarV4SearchWrap {
+  position: relative !important;
+  flex: 0 1 340px !important;
+  min-width: 120px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 999px !important;
+  border: 2px solid #e2ab41 !important;       /* Golden - always visible */
+  background: rgba(226,171,65,0.06) !important;
+  overflow: visible !important;
+}
+/* Light mode search */
+.appShellV4Light .topbarV4 .topbarV4SearchWrap {
+  border: 2px solid #e2ab41 !important;
+  background: rgba(226,171,65,0.05) !important;
+}
+.topbarV4 .topbarV4SearchInput {
+  flex: 1 !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  padding: 0 32px 0 32px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border-radius: 999px !important;
+  color: var(--text) !important;
+}
+/* Force visible text in BOTH themes */
+.appShellV4Dark .topbarV4 .topbarV4SearchInput {
+  color: rgba(255,255,255,0.9) !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchInput {
+  color: #111827 !important;
+}
+.appShellV4Dark .topbarV4 .topbarV4SearchInput::placeholder {
+  color: rgba(255,255,255,0.4) !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchInput::placeholder {
+  color: #9ca3af !important;
+}
+.appShellV4Dark .topbarV4 .topbarV4SearchIcon {
+  color: rgba(255,255,255,0.5) !important;
+}
+.appShellV4Light .topbarV4 .topbarV4SearchIcon {
+  color: #9ca3af !important;
+}
+
+/* ── DROPDOWN: trust createPortal inline style, just set visual props ── */
+/* NEVER set position on .selectV3Dropdown — JS inline style controls it */
+.selectV3Dropdown {
+  /* position: NOT SET — controlled by JS via createPortal */
+  z-index: 100500 !important;
+  min-width: 180px;
+  background: var(--bg1, #161920) !important;
+  border: 1.5px solid rgba(255,255,255,0.15) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.25) !important;
+  overflow: hidden !important;
+  animation: dropIn 0.13s ease !important;
+}
+.appShellV4Light .selectV3Dropdown {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* ── pageHeaderCard overflow:hidden to clip the ::before stripe ── */
+.pageHeaderCard {
+  overflow: hidden !important;
+}

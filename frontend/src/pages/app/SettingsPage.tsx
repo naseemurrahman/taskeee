@@ -130,21 +130,22 @@ export function SettingsPage() {
             </div>
             <div className="pageHeaderCardSub">Manage your organization, notifications, and account preferences</div>
           </div>
+          {/* Tab bar on right side of header */}
+          <div style={{ display: 'flex', gap: 4, padding: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: 12, border: '1px solid var(--border)', flexShrink: 0 }}>
+            {TABS.map(t => (
+              <button key={t.key} type="button" onClick={() => setTab(t.key as any)} style={{
+                padding: '7px 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
+                background: tab === t.key ? 'var(--brand)' : 'transparent',
+                color: tab === t.key ? '#1a1d2e' : 'var(--text2)',
+                boxShadow: tab === t.key ? '0 1px 6px rgba(226,171,65,0.3)' : 'none',
+                transition: 'all 0.15s', whiteSpace: 'nowrap',
+              }}>{t.label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 4, padding: '4px', background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--border)', width: 'fit-content' }}>
-        {TABS.map(t => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key as any)} style={{
-            padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 800,
-            background: tab === t.key ? 'var(--bg1)' : 'transparent',
-            color: tab === t.key ? 'var(--text)' : 'var(--muted)',
-            boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-            transition: 'all 0.15s',
-          }}>{t.label}</button>
-        ))}
-      </div>
+      {/* REMOVED: separate tab bar card (now inside header) */}
 
       {/* ── Org tab ── */}
       {tab === 'org' && (
