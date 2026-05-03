@@ -146,8 +146,8 @@ export function CrmPipelinePage() {
 
       {error && <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>{error}</div>}
 
-      {/* Kanban Board — desktop */}
-      <div className="crmKanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(240px, 1fr))`, gap: 12, overflowX: 'auto', flex: 1, alignItems: 'start' }}>
+      {/* Single adaptive kanban — scrolls horizontally, works on all screens */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 8, flex: 1, alignItems: 'start' }}>
         {stages.map(stage => {
           const stageDeals = grouped[stage.id] || []
           const stageValue = stageDeals.reduce((sum, d) => sum + (d.value_amount || 0), 0)
@@ -232,52 +232,6 @@ export function CrmPipelinePage() {
         })}
       </div>
 
-      {/* Mobile: stacked stage view — matches Board page card style */}
-      <div className="crmPipelineMobile">
-        {stages.map(stage => {
-          const stageDeals = grouped[stage.id] || []
-          const color = stage.color || '#e2ab41'
-          const stageValue = stageDeals.reduce((s: number, d: Deal) => s + (d.value_amount || 0), 0)
-          return (
-            <div key={stage.id} className="crmStageBlock">
-              {/* Stage header */}
-              <div className="crmStageHeader">
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                <span style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)', flex: 1 }}>{stage.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 9px', borderRadius: 999, background: color + '18', color }}>{stageDeals.length}</span>
-              </div>
-              {/* Deals */}
-              <div className="crmStageDeals">
-                {stageDeals.length === 0 ? (
-                  <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 12, fontWeight: 700, border: `2px dashed ${color}30`, borderRadius: 10 }}>
-                    No deals in this stage
-                  </div>
-                ) : stageDeals.map((deal: Deal) => (
-                  <div key={deal.id} className="crmDealCard">
-                    {/* Color stripe — crmDealCard has position:relative + overflow:hidden */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
-                    <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', paddingTop: 6, marginBottom: 4, lineHeight: 1.3 }}>{deal.title}</div>
-                    {deal.company && <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{deal.company}</div>}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {deal.value_amount != null && (
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#22c55e', background: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: 999 }}>
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: deal.value_currency || 'USD', maximumFractionDigits: 0 }).format(deal.value_amount)}
-                        </span>
-                      )}
-
-                    </div>
-                  </div>
-                ))}
-                {stageValue > 0 && (
-                  <div style={{ padding: '6px 4px 2px', fontSize: 11, fontWeight: 800, color: 'var(--muted)', textAlign: 'right' }}>
-                    Stage total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(stageValue)}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }

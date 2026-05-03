@@ -251,120 +251,42 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* Table — OUTSIDE formCardV3 so overflow:hidden doesn't clip it */}
-      <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden' }}>
-        {/* Desktop table — hidden on mobile via CSS */}
-        <div className="empTableWrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table className="employeeTableV3">
-            <thead>
-              <tr><th style={{ width: 52 }}></th><th>Employee</th><th>Department</th><th>Title</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {q.isLoading ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>Loading…</td></tr>
-              ) : employees.length > 0 ? employees.map(e => (
-                <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => window.location.href = `/app/hr/employees/${e.id}`}>
-                  <td style={{ padding: '10px 8px 10px 16px' }}>
-                    <div className="avatarV3" style={{ background: hashColor(e.full_name) }}>
-                      {e.full_name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 800, fontSize: 13 }}>{e.full_name}</div>
-                    <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 1 }}>{e.work_email || '—'}</div>
-                  </td>
-                  <td><span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>{e.department || '—'}</span></td>
-                  <td><span style={{ fontSize: 12 }}>{e.title || '—'}</span></td>
-                  <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : e.status === 'on_leave' ? 'statusSubmitted' : 'statusPending'}`}>
-                      {e.status.replace(/_/g, ' ')}
-                    </span>
-                    {canSeeAccounts && (
-                      <button
-                        type="button"
-                        title="Remove employee"
-                        onClick={evt => { evt.stopPropagation(); setDeleteTarget(e) }}
-                        className="employeeDeleteBtn"
-                        style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: 0, transition: 'all 0.15s' }}
-                        onMouseEnter={ev => { ev.currentTarget.style.opacity = '1'; ev.currentTarget.style.background = 'rgba(239,68,68,0.18)' }}
-                        onMouseLeave={ev => { ev.currentTarget.style.opacity = '0'; ev.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )) : canSeeAccounts && orgUsers.length > 0 ? (
-                // Fallback: show workspace accounts in the table when no HRIS records exist
-                <>
-                  <tr>
-                    <td colSpan={5} style={{ padding: '8px 16px 2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--brandDim)', border: '1px solid var(--brandBorder)', marginBottom: 4 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand)' }}>
-                          Showing workspace accounts — use "Add Employee" to create full HRIS records with departments, titles and more.
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  {orgUsers.map(u => (
-                    <tr key={u.id} style={{ cursor: 'pointer' }} onClick={() => setPickId(u.id)}>
-                      <td style={{ padding: '10px 8px 10px 16px' }}>
-                        <div className="avatarV3" style={{ background: hashColor(u.email) }}>
-                          {(u.full_name || u.email).charAt(0).toUpperCase()}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 800, fontSize: 13 }}>{u.full_name || u.email}</div>
-                        <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 1 }}>{u.email}</div>
-                      </td>
-                      <td><span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>—</span></td>
-                      <td>
-                        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(99,102,241,0.10)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.22)', textTransform: 'capitalize' }}>{u.role}</span>
-                      </td>
-                      <td>
-                        <span className={`statusBadge ${u.last_login_at ? 'statusCompleted' : 'statusPending'}`}>{u.last_login_at ? 'Active' : 'New'}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              ) : (
-                <tr><td colSpan={5}>
-                  <div className="emptyStateV3">
-                    <div className="emptyStateV3Icon">👥</div>
-                    <div className="emptyStateV3Title">No employees yet</div>
-                    <div className="emptyStateV3Body">Click "Add Employee" to create your first employee record.</div>
-                  </div>
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile card list — ALSO outside formCardV3, no overflow:hidden parent */}
-        <div className="empCardList" style={{ padding: '10px 12px', gap: 10 }}>
-          {q.isLoading ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
-          ) : employees.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>No employees found</div>
-          ) : employees.map(e => (
-            <a key={e.id} href={`/app/hr/employees/${e.id}`} className="empCard">
-              <div className="empCardAvatar" style={{ background: hashColor(e.full_name) }}>
-                {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
+      {/* Employee list — single card layout, no dual-render, works on all screens */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {q.isLoading ? (
+          <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>Loading employees…</div>
+        ) : employees.length === 0 ? (
+          <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>No employees found</div>
+            <div style={{ fontSize: 13, marginTop: 6, color: 'var(--muted)' }}>Try adjusting your search or status filter</div>
+          </div>
+        ) : employees.map(e => (
+          <a key={e.id} href={`/app/hr/employees/${e.id}`}
+            style={{ display: 'grid', gridTemplateColumns: '44px 1fr', gap: '0 12px', alignItems: 'center', padding: '14px 16px', borderRadius: 14, background: 'var(--bg1)', border: '1px solid var(--border)', textDecoration: 'none', color: 'inherit', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+            onMouseEnter={ev => { ev.currentTarget.style.borderColor = 'rgba(226,171,65,0.4)'; ev.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)' }}
+            onMouseLeave={ev => { ev.currentTarget.style.borderColor = 'var(--border)'; ev.currentTarget.style.boxShadow = '' }}
+          >
+            {/* Avatar */}
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: hashColor(e.full_name), display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+              {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
+            </div>
+            {/* Info row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.full_name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {e.work_email || '—'}{e.department ? ` · ${e.department}` : ''}{e.title ? ` · ${e.title}` : ''}
+                </div>
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="empCardName">{e.full_name}</div>
-                <div className="empCardSub">{e.work_email || e.department || '—'}</div>
-              </div>
-              <div className="empCardMeta">
-                <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : 'statusPending'}`} style={{ fontSize: 10 }}>
-                  {e.status || 'active'}
-                </span>
-                {e.department && <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{e.department}</span>}
-              </div>
-            </a>
-          ))}
-        </div>
+              {/* Status badge — constrained width, never overflows */}
+              <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : e.status === 'on_leave' ? 'statusSubmitted' : 'statusPending'}`}
+                style={{ fontSize: 10, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                {(e.status || 'active').replace(/_/g, ' ')}
+              </span>
+            </div>
+          </a>
+        ))}
       </div>
 
       {/* Workspace Accounts — only show when HRIS employees exist (otherwise directory table above already shows them) */}
