@@ -204,7 +204,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 .crmStageBlock { border-radius: 14px; background: var(--bg2); border: 1px solid var(--border); overflow: hidden; }
 .crmStageHeader { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--bg1); }
 .crmStageDeals { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
-.crmDealCard { background: var(--bg1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.crmDealCard { background: var(--bg1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; position: relative; overflow: hidden; }
 
 /* CRM Leads mobile */
 .crmLeadCardList { display: none; flex-direction: column; gap: 10px; padding: 8px 0; }
@@ -328,4 +328,65 @@ code, kbd, pre { font-family: var(--font-mono); }
   .analyticsSignalStrip { grid-template-columns: 1fr; }
   .dashKpiStrip > * { flex: 0 0 110px; min-width: 110px; }
   .pageHeaderCardTitle { font-size: 15px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE PAGE-SPECIFIC FIXES — same pattern as Board page
+═══════════════════════════════════════════════════════════════ */
+
+/* CRM Pipeline kanban: horizontal scroll on all sizes (like Board) */
+.crmKanban {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding-bottom: 8px !important;
+}
+/* Employee table: always scrollable */
+.empTableWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  /* Ensure table has enough space to scroll correctly */
+  display: block !important;
+}
+/* Workspace accounts filter bar */
+.acctFilterBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.acctFilterBar > div { flex: 1 1 140px; min-width: 120px; max-width: 240px; }
+
+/* ─── Responsive: hide card-list duplicates on desktop ─── */
+@media (min-width: 901px) {
+  .empCardList     { display: none !important; }
+  .crmPipelineMobile { display: none !important; }
+  .crmLeadCardList { display: none !important; }
+  .contractorCardList { display: none !important; }
+  /* Desktop: show the table/kanban */
+  .empTableWrap    { display: block !important; }
+  .crmKanban       { display: grid !important; }
+  .crmLeadsTable   { display: block !important; }
+  .contractorsTable { display: block !important; }
+}
+
+/* ─── Mobile: show cards, scroll the kanban ─── */
+@media (max-width: 900px) {
+  /* Employee: use card list, hide table */
+  .empTableWrap  { display: none !important; }
+  .empCardList   { display: flex !important; }
+
+  /* CRM Pipeline: stack stages vertically — hide the wide grid */
+  .crmKanban     { display: none !important; }
+  .crmPipelineMobile { display: flex !important; }
+
+  /* CRM Leads: card list */
+  .crmLeadsTable { display: none !important; }
+  .crmLeadCardList { display: flex !important; }
+
+  /* Contractors: card list */
+  .contractorsTable { display: none !important; }
+  .contractorCardList { display: flex !important; }
+
+  /* Workspace accounts filter — stack on mobile */
+  .acctFilterBar > div { flex: 1 1 100%; max-width: 100%; }
 }
