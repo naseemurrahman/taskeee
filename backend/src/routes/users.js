@@ -246,7 +246,8 @@ router.get('/profile', authenticate, async (req, res, next) => {
     const profileSql = `
       SELECT u.id, u.email, u.full_name, u.role, u.department, u.employee_code,
              u.manager_id, m.full_name AS manager_name, u.last_login_at, u.created_at,
-             u.org_id, u.avatar_url
+             u.org_id, u.avatar_url, u.phone_e164, u.whatsapp_e164,
+             u.notification_prefs, u.mfa_enabled
       FROM users u LEFT JOIN users m ON m.id = u.manager_id`;
     const { rows } = await query(`${profileSql} WHERE u.id = $1::uuid`, [sessionUserId]);
     if (!rows.length) return res.status(404).json({ error: 'User not found' });
@@ -282,7 +283,8 @@ router.get('/:id', authenticate, async (req, res, next) => {
     const profileSql = `
       SELECT u.id, u.email, u.full_name, u.role, u.department, u.employee_code,
              u.manager_id, m.full_name AS manager_name, u.last_login_at, u.created_at,
-             u.org_id, u.avatar_url
+             u.org_id, u.avatar_url, u.phone_e164, u.whatsapp_e164,
+             u.notification_prefs, u.mfa_enabled
       FROM users u LEFT JOIN users m ON m.id = u.manager_id`;
 
     let { rows } = await query(
@@ -400,7 +402,7 @@ router.patch('/:id', authenticate, ...validateUserUpdate, async (req, res, next)
     }
 
     const allowed = isSelf
-      ? ['fullName', 'department', 'avatarUrl']
+      ? ['fullName', 'department', 'avatarUrl', 'phoneE164', 'whatsappE164', 'notificationPrefs']
       : ['fullName', 'role', 'managerId', 'department', 'employeeCode', 'isActive'];
 
     const updates = [];
@@ -412,6 +414,9 @@ router.patch('/:id', authenticate, ...validateUserUpdate, async (req, res, next)
       employeeCode: 'employee_code',
       isActive: 'is_active',
       avatarUrl: 'avatar_url',
+      phoneE164: 'phone_e164',
+      whatsappE164: 'whatsapp_e164',
+      notificationPrefs: 'notification_prefs',
     };
 
     for (const key of allowed) {

@@ -20,13 +20,16 @@ type UserDetail = {
   last_login_at?: string | null
   created_at?: string | null
   org_id?: string | null
+  phone_e164?: string | null
+  whatsapp_e164?: string | null
+  mfa_enabled?: boolean
 }
 
 async function fetchMe(userId: string) {
   return await apiFetch<{ user: UserDetail }>(`/api/v1/users/${encodeURIComponent(userId)}`)
 }
 
-async function patchMe(userId: string, patch: { fullName?: string; department?: string }) {
+async function patchMe(userId: string, patch: { fullName?: string; department?: string; phoneE164?: string; whatsappE164?: string }) {
   return await apiFetch<{ user: UserDetail }>(`/api/v1/users/${encodeURIComponent(userId)}`, { method: 'PATCH', json: patch })
 }
 
@@ -77,12 +80,16 @@ export function ProfilePage() {
       lastLogin: u?.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—',
       memberSince: u?.created_at ? new Date(u.created_at).toLocaleDateString() : '—',
       orgId: u?.org_id || me?.orgId || '—',
+      phoneE164: u?.phone_e164 || '',
+      whatsappE164: u?.whatsapp_e164 || '',
     }
   }, [q.data, me])
 
   type ProfileSavePayload = {
     fullName: string
     department?: string
+    phoneE164?: string
+    whatsappE164?: string
     avatarDraft: AvatarDraft
   }
 
@@ -97,7 +104,12 @@ export function ProfilePage() {
       } else if (payload.avatarDraft?.kind === 'remove') {
         await patchAvatar(userId, null)
       }
-      return await patchMe(userId, { fullName: payload.fullName, department: payload.department })
+      return await patchMe(userId, {
+        fullName: payload.fullName,
+        department: payload.department,
+        phoneE164: payload.phoneE164,
+        whatsappE164: payload.whatsappE164,
+      })
     },
     onSuccess: async (data) => {
       setError(null)
@@ -159,8 +171,10 @@ export function ProfilePage() {
     const fd = new FormData(e.currentTarget as HTMLFormElement)
     const fullName = String(fd.get('fullName') || '').trim()
     const department = String(fd.get('department') || '').trim()
+    const phoneE164 = String(fd.get('phoneE164') || '').trim() || undefined
+    const whatsappE164 = String(fd.get('whatsappE164') || '').trim() || undefined
     if (!fullName) return setError('Name is required.')
-    m.mutate({ fullName, department: department || undefined, avatarDraft })
+    m.mutate({ fullName, department: department || undefined, phoneE164, whatsappE164, avatarDraft })
   }
 
   const rawAvatarUrl = q.data?.user?.avatar_url ?? null
@@ -354,6 +368,33 @@ export function ProfilePage() {
                 placeholder="e.g. Engineering"
               />
             </label>
+
+            <label className="profileFormLabel">
+              Phone number
+              <input
+                className="input"
+                name="phoneE164"
+                type="tel"
+                key={current.phoneE164}
+                defaultValue={current.phoneE164 || ''}
+                placeholder="+1 555 000 0000 (international format)"
+              />
+              <span className="profileFormHintInline">Used for SMS delivery if WhatsApp is not set.</span>
+            </label>
+
+            <label className="profileFormLabel">
+              WhatsApp number
+              <input
+                className="input"
+                name="whatsappE164"
+                type="tel"
+                key={current.whatsappE164}
+                defaultValue={current.whatsappE164 || ''}
+                placeholder="+1 555 000 0000 (must match your WhatsApp account)"
+              />
+              <span className="profileFormHintInline">Enable WhatsApp notifications in Settings → Notifications.</span>
+            </label>
+
             <div className="profileFormActions">
               <button className="btn btnPrimary" type="submit" disabled={m.isPending}>
                 {m.isPending ? 'Saving…' : 'Save changes'}

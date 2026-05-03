@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -228,6 +228,120 @@ function TwoFactorSection() {
   )
 }
 
+const NOTIF_PREFS = [
+  { key: 'task_assigned',   label: 'Task assigned to me',       desc: 'When a manager assigns a new task',              defaultOn: true },
+  { key: 'task_approved',   label: 'Task approved / rejected',  desc: 'Status decisions on your submissions',           defaultOn: true },
+  { key: 'task_comment',    label: 'New comment on my task',    desc: 'When someone replies in a task thread',          defaultOn: true },
+  { key: 'task_file',       label: 'File uploaded to my task',  desc: 'When evidence or documents are attached',        defaultOn: true },
+  { key: 'task_overdue',    label: 'Task deadline approaching', desc: '24 hours before due date',                       defaultOn: true },
+  { key: 'reports_weekly',  label: 'Weekly performance reports',desc: 'Weekly summary email (managers only)',            defaultOn: false },
+]
+
+function ToggleSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)}
+      style={{ position:'relative', width:44, height:24, borderRadius:999, border:'none', cursor:'pointer',
+        background: on ? 'var(--brand)' : 'rgba(148,163,184,0.25)', transition:'background 0.2s', flexShrink:0, padding:0 }}>
+      <span style={{ position:'absolute', top:2, left: on ? 'calc(100% - 22px)' : 2, width:20, height:20,
+        borderRadius:'50%', background:'#fff', transition:'left 0.18s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)', display:'block' }} />
+    </button>
+  )
+}
+
+function NotificationsTab({ me }: { me: ReturnType<typeof getUser> }) {
+  const { success: toastSuccess, error: toastError } = useToast()
+  const userId = me?.id || ''
+
+  // Load current prefs from DB
+  const q = useQuery({
+    queryKey: ['user-notif-prefs', userId],
+    queryFn: () => apiFetch<{ user?: { notification_prefs?: Record<string, unknown> } }>(`/api/v1/users/${userId}`)
+      .then(d => d.user?.notification_prefs || {}),
+    enabled: !!userId,
+    staleTime: 60_000,
+  })
+
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({})
+
+  // Sync prefs from DB on load
+  useEffect(() => {
+    if (!q.data) return
+    const p: Record<string, boolean> = {}
+    for (const n of NOTIF_PREFS) {
+      p[n.key] = q.data[n.key] !== false // default true unless explicitly false
+    }
+    // Channel prefs
+    const channels = (q.data.channels || {}) as Record<string, boolean>
+    p['ch_email']    = channels.email     !== false
+    p['ch_whatsapp'] = channels.whatsapp  === true
+    setPrefs(p)
+  }, [q.data])
+
+  const saveM = useMutation({
+    mutationFn: () => {
+      const channels = { email: !!prefs['ch_email'], whatsapp: !!prefs['ch_whatsapp'] }
+      const notifPrefs: Record<string, unknown> = { channels }
+      for (const n of NOTIF_PREFS) notifPrefs[n.key] = !!prefs[n.key]
+      return apiFetch(`/api/v1/users/${userId}`, { method: 'PATCH', json: { notificationPrefs: notifPrefs } })
+    },
+    onSuccess: () => toastSuccess('Preferences saved', 'Your notification settings have been updated.'),
+    onError: () => toastError('Save failed', 'Could not save your notification preferences.'),
+  })
+
+  const toggle = useCallback((key: string) => setPrefs(p => ({ ...p, [key]: !p[key] })), [])
+
+  if (q.isLoading) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <Section title="Notification Events" sub="Choose which events trigger a notification">
+        <div style={{ display: 'grid', gap: 8 }}>
+          {NOTIF_PREFS.map(n => (
+            <div key={n.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'13px 16px', borderRadius:12, background:'var(--bg2)', border:'1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>{n.label}</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{n.desc}</div>
+              </div>
+              <ToggleSwitch on={prefs[n.key] ?? n.defaultOn} onChange={() => toggle(n.key)} />
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Delivery Channels" sub="How notifications are delivered to you">
+        <div style={{ display: 'grid', gap: 8 }}>
+          {[
+            { key: 'ch_email',    label: 'Email',    desc: 'Sent to your account email address',         icon: '✉️' },
+            { key: 'ch_whatsapp', label: 'WhatsApp', desc: 'Sent to your WhatsApp number (set in Profile)', icon: '💬' },
+          ].map(ch => (
+            <div key={ch.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'13px 16px', borderRadius:12, background:'var(--bg2)', border:'1px solid var(--border)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:16 }}>{ch.icon}</span>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>{ch.label}</div>
+                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{ch.desc}</div>
+                </div>
+              </div>
+              <ToggleSwitch on={prefs[ch.key] ?? false} onChange={() => toggle(ch.key)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ padding:'12px 14px', borderRadius:10, background:'rgba(226,171,65,0.07)', border:'1px solid rgba(226,171,65,0.18)', marginTop:4 }}>
+          <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.7 }}>
+            <strong style={{ color:'var(--brand)' }}>Setup required:</strong> Email needs <code style={{ fontSize:10, background:'var(--bg2)', padding:'1px 5px', borderRadius:4 }}>SMTP_HOST</code> in Railway. WhatsApp needs <code style={{ fontSize:10, background:'var(--bg2)', padding:'1px 5px', borderRadius:4 }}>WHATSAPP_TOKEN</code> + your number in Profile.
+          </div>
+        </div>
+      </Section>
+
+      <div>
+        <button className="btn btnPrimary" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
+          {saveM.isPending ? 'Saving…' : 'Save notification preferences'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function SettingsPage() {
   const me = getUser()
   const qc = useQueryClient()
@@ -384,36 +498,7 @@ export function SettingsPage() {
 
       {/* ── Notifications tab ── */}
       {tab === 'notifications' && (
-        <Section title="Notification Preferences" sub="Control how and when you receive alerts">
-          <div style={{ display: 'grid', gap: 12 }}>
-            {[
-              { label: 'Task assigned to me', desc: 'When a manager assigns a new task', default: true },
-              { label: 'Task approved / rejected', desc: 'Status decisions on your submissions', default: true },
-              { label: 'New comment on my task', desc: 'When someone replies in a task thread', default: true },
-              { label: 'File uploaded to my task', desc: 'When evidence or documents are attached', default: true },
-              { label: 'Task deadline approaching', desc: '24 hours before due date', default: false },
-              { label: 'Team performance reports', desc: 'Weekly summary emails (managers only)', default: false },
-            ].map(pref => (
-              <div key={pref.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{pref.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{pref.desc}</div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, flexShrink: 0 }}>
-                  <input type="checkbox" defaultChecked={pref.default} style={{ opacity: 0, width: 0, height: 0 }} />
-                  <span style={{ position: 'absolute', inset: 0, borderRadius: 999, background: pref.default ? 'var(--brand)' : 'var(--border)', transition: 'background 0.2s', cursor: 'pointer' }} />
-                  <span style={{ position: 'absolute', top: 2, left: pref.default ? 'calc(100% - 22px)' : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                </label>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(226,171,65,0.08)', border: '1px solid rgba(226,171,65,0.2)' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--brand)', marginBottom: 4 }}>WhatsApp & Email Notifications</div>
-            <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
-              To enable WhatsApp and email delivery, configure <code style={{ background: 'var(--bg2)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>SMTP_*</code> and <code style={{ background: 'var(--bg2)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>WHATSAPP_TOKEN</code> environment variables in your Railway dashboard.
-            </div>
-          </div>
-        </Section>
+        <NotificationsTab me={me} />
       )}
 
       {/* ── Security tab ── */}
