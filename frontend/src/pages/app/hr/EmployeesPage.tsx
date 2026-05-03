@@ -249,7 +249,12 @@ export function EmployeesPage() {
             </button>
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }} className="empTableWrap">
+      </div>
+
+      {/* Table — OUTSIDE formCardV3 so overflow:hidden doesn't clip it */}
+      <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden' }}>
+        {/* Desktop table — hidden on mobile via CSS */}
+        <div className="empTableWrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table className="employeeTableV3">
             <thead>
               <tr><th style={{ width: 52 }}></th><th>Employee</th><th>Department</th><th>Title</th><th>Status</th></tr>
@@ -336,8 +341,8 @@ export function EmployeesPage() {
           </table>
         </div>
 
-        {/* Mobile: card list (shown via CSS at ≤900px, table hidden) */}
-        <div className="empCardList">
+        {/* Mobile card list — ALSO outside formCardV3, no overflow:hidden parent */}
+        <div className="empCardList" style={{ padding: '10px 12px', gap: 10 }}>
           {q.isLoading ? (
             <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
           ) : employees.length === 0 ? (
@@ -347,7 +352,7 @@ export function EmployeesPage() {
               <div className="empCardAvatar" style={{ background: hashColor(e.full_name) }}>
                 {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div className="empCardName">{e.full_name}</div>
                 <div className="empCardSub">{e.work_email || e.department || '—'}</div>
               </div>

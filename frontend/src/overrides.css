@@ -184,7 +184,7 @@ code, kbd, pre { font-family: var(--font-mono); }
    15. MOBILE TABLE CARDS — card view replaces table rows on mobile
 ═══════════════════════════════════════════════════════════════ */
 /* Employee cards (mobile) */
-.empCardList { display: none; flex-direction: column; gap: 10px; padding: 12px 0; }
+.empCardList { display: none; flex-direction: column; gap: 10px; }  /* shown on mobile */
 .empCard {
   display: grid; grid-template-columns: 44px 1fr auto;
   gap: 0 12px; align-items: center;
@@ -200,7 +200,7 @@ code, kbd, pre { font-family: var(--font-mono); }
 .empCardMeta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 
 /* CRM Pipeline mobile — stacked stages */
-.crmPipelineMobile { display: none; flex-direction: column; gap: 16px; }
+.crmPipelineMobile { display: none; }  /* shown only on mobile — see responsive section */
 .crmStageBlock { border-radius: 14px; background: var(--bg2); border: 1px solid var(--border); overflow: hidden; }
 .crmStageHeader { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--bg1); }
 .crmStageDeals { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
@@ -280,21 +280,14 @@ code, kbd, pre { font-family: var(--font-mono); }
   .tasksTable { min-width: 640px; display: block; overflow-x: auto; }
   .p4BoardGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 
-  /* Employee: show card list, hide table */
-  .empTableWrap { display: none; }
-  .empCardList { display: flex; }
+  /* Employee mobile: see explicit block below */
 
   /* CRM Pipeline: show stacked stages, hide kanban */
-  .crmKanban { display: none !important; }
-  .crmPipelineMobile { display: flex; }
+  /* handled below in explicit mobile block */
 
-  /* CRM Leads: show cards, hide table */
-  .crmLeadsTable { display: none; }
-  .crmLeadCardList { display: flex; }
+  /* CRM Leads mobile: see explicit block below */
 
-  /* Contractors: show cards, hide table */
-  .contractorsTable { display: none; }
-  .contractorCardList { display: flex; }
+  /* Contractors mobile: see explicit block below */
 
   /* Form grids → 1 col */
   .form { grid-template-columns: 1fr; }
