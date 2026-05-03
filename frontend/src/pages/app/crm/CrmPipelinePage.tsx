@@ -146,8 +146,9 @@ export function CrmPipelinePage() {
 
       {error && <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>{error}</div>}
 
-      {/* Single adaptive kanban — scrolls horizontally, works on all screens */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 8, flex: 1, alignItems: 'start' }}>
+      {/* Single adaptive kanban — scrolls horizontally on wide screens, stacks on mobile */}
+      <div className="crmKanbanGrid"
+        style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 8, flex: 1, alignItems: 'start' }}>
         {stages.map(stage => {
           const stageDeals = grouped[stage.id] || []
           const stageValue = stageDeals.reduce((sum, d) => sum + (d.value_amount || 0), 0)

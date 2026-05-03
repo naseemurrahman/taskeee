@@ -343,3 +343,80 @@ code, kbd, pre { font-family: var(--font-mono); }
 .acctFilterBar > div { flex: 1 1 140px; min-width: 120px; max-width: 240px; }
 
 
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE FIXES — notification popover + employees + pipeline
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Notification popover: never overflow viewport on mobile ── */
+.topbarNotifyPopover {
+  position: fixed !important;
+  top: 58px !important;
+  right: 8px !important;
+  left: 8px !important;
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: calc(100dvh - 80px) !important;
+  z-index: 9999 !important;
+  border-radius: 16px !important;
+}
+@media (min-width: 480px) {
+  .topbarNotifyPopover {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    width: 380px !important;
+    max-height: min(420px, 70vh) !important;
+  }
+}
+
+/* ── formCardV3Head: stack on mobile ── */
+@media (max-width: 640px) {
+  .formCardV3Head {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 16px !important;
+    gap: 10px !important;
+  }
+  .formCardV3Head > div:last-child {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .formCardV3Head > div:last-child > div,
+  .formCardV3Head > div:last-child > a,
+  .formCardV3Head > div:last-child > button {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+  .formCardV3Body { padding: 14px 16px !important; }
+
+  /* Pipeline kanban: force single column on mobile */
+  .crmKanbanGrid {
+    grid-template-columns: 1fr !important;
+    overflow-x: visible !important;
+  }
+}
+
+/* ── Employees page: the employee card list always works ── */
+.empList { display: flex; flex-direction: column; gap: 8px; }
+.empListItem {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
+}
+.empListItem:hover {
+  border-color: rgba(226,171,65,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
