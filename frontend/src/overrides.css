@@ -329,14 +329,32 @@ code, kbd, pre { font-family: var(--font-mono); }
 
 @media (max-width: 900px) {
   .appShellV4 { grid-template-columns: 1fr; }
+  /* Sidebar: hidden off-screen LEFT, slides in via transform only.
+     Must override index.css's left:-260px approach. */
   .sidebarV4 {
-    position: fixed; left: 0; top: 0; bottom: 0;
-    width: 240px; z-index: 500;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+    position: fixed !important;
+    left: 0 !important;           /* anchor at left edge */
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 240px !important;
+    height: 100dvh !important;
+    z-index: 500 !important;
+    transform: translateX(-100%) !important;   /* hidden by default */
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+    box-shadow: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
-  .sidebarMobileOpen .sidebarV4 { transform: translateX(0); }
+  /* Hamburger opens it */
+  .sidebarMobileOpen .sidebarV4 {
+    transform: translateX(0) !important;
+    box-shadow: 8px 0 40px rgba(0,0,0,0.4) !important;
+  }
+  /* Main area fills full width */
+  .mainV4 {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
   .dashGrid2, .dashGrid21, .dashGrid12,
   .analyticsChartGrid, .grid2 { grid-template-columns: 1fr; }
   .dashGrid3 { grid-template-columns: 1fr 1fr; }

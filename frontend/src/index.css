@@ -5055,22 +5055,16 @@ select.input option { background: #1a1d2e; color: white; }
   overflow: hidden;
   z-index: 200;
 }
+/* Mobile sidebar: handled by overrides.css using transform approach */
 @media (max-width: 900px) {
-  .sidebarV4 {
-    position: fixed; left: -260px; top: 0; bottom: 0; width: 240px;
-    transition: left 0.25s ease; z-index: 500;
-    box-shadow: none;
-  }
-  .sidebarMobileOpen .sidebarV4 {
-    left: 0;
-    box-shadow: 8px 0 32px rgba(0,0,0,0.35);
-  }
-  .sidebarMobileOpen .sidebarScrim {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    z-index: 499; backdrop-filter: blur(2px);
-    display: block;
-  }
   .sidebarScrim { display: none; }
+  .sidebarMobileOpen .sidebarScrim {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 499;
+    backdrop-filter: blur(2px);
+  }
 }
 
 /* Logo */
@@ -7631,8 +7625,7 @@ tr:hover .inlineEditBtn {
 /* ── Base mobile fixes ── */
 @media (max-width: 768px) {
   /* Sidebar collapses to bottom nav on mobile */
-  .sidebarV4 { transform: translateX(-100%); transition: transform 0.25s ease; }
-  .sidebarV4.sidebarOpen { transform: translateX(0); }
+  /* sidebar mobile handled by overrides.css */
 
   /* Main content full width */
   .appShellV4Main { margin-left: 0 !important; }
@@ -8611,8 +8604,7 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
 @media (max-width: 768px) {
   /* Page layout */
   .mainV4 { margin-left: 0 !important; }
-  .sidebarV4 { transform: translateX(-100%); transition: transform 0.25s ease; }
-  .sidebarV4.sidebarOpen { transform: translateX(0); }
+  /* sidebar mobile handled by overrides.css */
 
   /* Cards: full-width, stacked */
   .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12,
@@ -8857,7 +8849,7 @@ textarea.inputV3Native, .textareaField .inputV3Native, textarea { border-radius:
     transition: transform 0.25s ease !important;
     box-shadow: 4px 0 24px rgba(0,0,0,0.3) !important;
   }
-  .sidebarMobileOpen .sidebarV4 { transform: translateX(0) !important; }
+  /* handled by overrides.css */
 
   /* All multi-col grids stack */
   .dashGrid2, .dashGrid21, .dashGrid12,
