@@ -147,7 +147,7 @@ export function CrmLeadsPage() {
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!q.isLoading && leads.length === 0 ? <div style={{ color: 'var(--text2)' }}>No leads found.</div> : null}
 
-        <div className="tableWrapThemed">
+        <div className="tableWrapThemed crmLeadsTable">
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.7fr 0.7fr 0.9fr', padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
             <div>Lead</div>
             <div>Contact</div>

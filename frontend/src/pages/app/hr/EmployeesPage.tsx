@@ -230,10 +230,10 @@ export function EmployeesPage() {
             <div className="formCardV3Sub">Manage your organization's employees, view profiles, and track workspace accounts.</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ width: 160 }}>
+            <div style={{ flex: '1 1 130px', minWidth: 120, maxWidth: 200 }}>
               <Select value={status} onChange={handleEmpStatus} options={STATUS_OPTS} />
             </div>
-            <div style={{ width: 200 }}>
+            <div style={{ flex: '2 1 160px', minWidth: 140, maxWidth: 300 }}>
               <Input
                 placeholder="Search name, email…"
                 value={search}
@@ -249,7 +249,7 @@ export function EmployeesPage() {
             </button>
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto' }} className="empTableWrap">
           <table className="employeeTableV3">
             <thead>
               <tr><th style={{ width: 52 }}></th><th>Employee</th><th>Department</th><th>Title</th><th>Status</th></tr>
@@ -334,6 +334,31 @@ export function EmployeesPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: card list (shown via CSS at ≤900px, table hidden) */}
+        <div className="empCardList">
+          {q.isLoading ? (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          ) : employees.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>No employees found</div>
+          ) : employees.map(e => (
+            <a key={e.id} href={`/app/hr/employees/${e.id}`} className="empCard">
+              <div className="empCardAvatar" style={{ background: hashColor(e.full_name) }}>
+                {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
+              <div>
+                <div className="empCardName">{e.full_name}</div>
+                <div className="empCardSub">{e.work_email || e.department || '—'}</div>
+              </div>
+              <div className="empCardMeta">
+                <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : 'statusPending'}`} style={{ fontSize: 10 }}>
+                  {e.status || 'active'}
+                </span>
+                {e.department && <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{e.department}</span>}
+              </div>
+            </a>
+          ))}
         </div>
       </div>
 

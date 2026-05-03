@@ -165,7 +165,7 @@ export function ContractorsPage() {
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {!q.isLoading && contractors.length === 0 ? <div style={{ color: 'var(--text2)' }}>No contractors found.</div> : null}
 
-        <div className="contractorsTableWrap tableWrapThemed" style={{ overflowX: 'auto' }}>
+        <div className="contractorsTableWrap tableWrapThemed contractorsTable" style={{ overflowX: 'auto' }}>
           <div className="contractorsTableGrid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr 0.7fr 0.6fr', minWidth: 520, padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text2)', fontWeight: 900, fontSize: 12 }}>
             <div>Contractor</div>
             <div>Company</div>
@@ -193,6 +193,27 @@ export function ContractorsPage() {
             </Link>
           ))}
         </div>
+      </div>
+
+      {/* Mobile: contractor card list */}
+      <div className="contractorCardList">
+        {contractors.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No contractors found</div>
+        ) : contractors.map((ct: any) => (
+          <a key={ct.id} href={`/app/contractors/${ct.id}`} className="contractorCard" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', marginBottom: 3 }}>{ct.full_name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{ct.specialty || ct.contractor_type || 'Contractor'}</div>
+              {ct.work_email && <div style={{ fontSize: 11, color: 'var(--muted)' }}>✉ {ct.work_email}</div>}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
+              <span className={`statusBadge ${ct.status === 'active' ? 'statusCompleted' : ct.status === 'terminated' ? 'statusOverdue' : 'statusPending'}`} style={{ fontSize: 10 }}>
+                {ct.status || 'active'}
+              </span>
+              {ct.rate_per_hour && <span style={{ fontSize: 11, fontWeight: 800, color: '#22c55e' }}>${ct.rate_per_hour}/hr</span>}
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   )
