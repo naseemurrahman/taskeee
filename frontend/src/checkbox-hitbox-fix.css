@@ -1,0 +1,74 @@
+.tasksTable td:has(input[type='checkbox']),
+.tasksTable th:has(input[type='checkbox']) {
+  cursor: default !important;
+  position: relative;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.tasksTable input[type='checkbox'] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  margin: -8px 0 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #111827 !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 20 !important;
+  vertical-align: middle !important;
+  outline: none !important;
+}
+
+.tasksTable input[type='checkbox']::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(203, 213, 225, 0.55);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-sizing: border-box;
+}
+
+.tasksTable input[type='checkbox']:hover,
+.tasksTable input[type='checkbox']:focus-visible {
+  background: rgba(226, 171, 65, 0.09) !important;
+}
+
+.tasksTable input[type='checkbox']:checked::before {
+  background: #e2ab41;
+  border-color: #e2ab41;
+  box-shadow: 0 0 0 3px rgba(226, 171, 65, 0.14);
+}
+
+.tasksTable input[type='checkbox']:checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 1000;
+  line-height: 1;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .tasksTable input[type='checkbox'] {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    margin: -10px 0 !important;
+  }
+}
