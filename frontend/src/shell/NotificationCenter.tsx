@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 import { useToast } from '../components/ui/ToastSystem'
+import { subscribeToOrg } from '../lib/socket'
 
 type InAppNotification = {
   id: string
@@ -19,20 +20,29 @@ function taskIdFromData(data: unknown): string | undefined {
   if (data == null) return undefined
   if (typeof data === 'string') {
     try {
-      const o = JSON.parse(data) as { taskId?: string }
-      return o.taskId
+      const o = JSON.parse(data) as { taskId?: string; task_id?: string }
+      return o.taskId || o.task_id
     } catch {
       return undefined
     }
   }
-  if (typeof data === 'object' && 'taskId' in (data as object)) {
-    const v = (data as { taskId?: string }).taskId
-    return v ? String(v) : undefined
+  if (typeof data === 'object') {
+    const v = data as { taskId?: string; task_id?: string }
+    return v.taskId || v.task_id
   }
   return undefined
 }
 
-import { subscribeToOrg } from '../lib/socket'
+function formatWhen(value: string): string {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  const minutes = Math.floor((Date.now() - d.getTime()) / 60000)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
 
 export function NotificationCenter() {
   const navigate = useNavigate()
@@ -49,7 +59,6 @@ export function NotificationCenter() {
     refetchInterval: open ? 20_000 : 45_000,
   })
 
-  // Real-time: socket push invalidates notification + task queries immediately
   useEffect(() => {
     const unsub = subscribeToOrg({
       onNotification: () => {
@@ -83,8 +92,17 @@ export function NotificationCenter() {
     function onDoc(e: MouseEvent) {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    if (open) document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) {
+      document.addEventListener('mousedown', onDoc)
+      document.addEventListener('keydown', onKey)
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [open])
 
   const unread = q.data?.unreadCount ?? 0
@@ -93,7 +111,7 @@ export function NotificationCenter() {
   function goFromNotif(n: InAppNotification) {
     setOpen(false)
     const tid = taskIdFromData(n.data)
-    if (tid) navigate('/app/tasks')
+    if (tid) navigate('/app/tasks', { state: { openTaskId: tid } })
     else navigate('/app/dashboard')
   }
 
@@ -112,16 +130,19 @@ export function NotificationCenter() {
       {open ? (
         <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications">
           <div className="topbarNotifyHead">
-            <span style={{ fontWeight: 900 }}>Notifications</span>
+            <div>
+              <div className="topbarNotifyTitle">Notifications</div>
+              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread` : 'All caught up'}</div>
+            </div>
             {unread > 0 ? (
               <button type="button" className="topbarNotifyMarkAll" onClick={() => markAllM.mutate()} disabled={markAllM.isPending}>
                 Mark all read
               </button>
             ) : null}
           </div>
-          {q.isLoading ? <div className="topbarNotifyEmpty">Loading…</div> : null}
+          {q.isLoading ? <div className="topbarNotifyEmpty">Loading notifications...</div> : null}
           {q.isError ? <div className="topbarNotifyEmpty">Could not load notifications.</div> : null}
-          {!q.isLoading && !list.length ? <div className="topbarNotifyEmpty">You’re all caught up.</div> : null}
+          {!q.isLoading && !list.length ? <div className="topbarNotifyEmpty">You are all caught up.</div> : null}
           <div className="topbarNotifyList">
             {list.map((n) => (
               <button
@@ -133,9 +154,14 @@ export function NotificationCenter() {
                   goFromNotif(n)
                 }}
               >
-                <div className="topbarNotifyItemTitle">{n.title}</div>
-                {n.body ? <div className="topbarNotifyItemBody">{n.body}</div> : null}
-                <div className="topbarNotifyItemMeta">{new Date(n.created_at).toLocaleString()}</div>
+                <div className="topbarNotifyItemRow">
+                  <span className="topbarNotifyDot" />
+                  <div className="topbarNotifyItemText">
+                    <div className="topbarNotifyItemTitle">{n.title || 'Notification'}</div>
+                    {n.body ? <div className="topbarNotifyItemBody">{n.body}</div> : null}
+                    <div className="topbarNotifyItemMeta">{formatWhen(n.created_at)}</div>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
