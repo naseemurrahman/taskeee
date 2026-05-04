@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { getUser, isAuthed } from './state/auth'
+import { isAuthed } from './state/auth'
 import { SessionGuard } from './components/SessionGuard'
 
 // ── Eagerly loaded (needed immediately on any first paint) ────────────────────
@@ -62,10 +62,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const role      = getUser()?.role || 'employee'
-  const isEmp     = ['employee', 'supervisor'].includes(role)
-  const TasksHome = isEmp ? <MyTasksPage /> : <TasksPage />
-
   return (
     <>
       <SessionGuard />
@@ -92,8 +88,8 @@ export default function App() {
             <Route path="dashboard"             element={<DashboardHomePage />} />
             <Route path="diagnostics"           element={<DiagnosticsPage />} />
             <Route path="search"                element={<SearchPage />} />
-            <Route path="tasks"                 element={TasksHome} />
-            <Route path="my-tasks"              element={<Navigate to="/app/tasks" replace />} />
+            <Route path="tasks"                 element={<TasksPage />} />
+            <Route path="my-tasks"              element={<MyTasksPage />} />
             <Route path="projects"              element={<ProjectsPage />} />
             <Route path="board"                 element={<BoardPage />} />
             <Route path="calendar"              element={<CalendarPage />} />
