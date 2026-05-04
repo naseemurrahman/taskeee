@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react'
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, MessageCircle } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, MessageCircle, Trash2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -65,6 +65,9 @@ export function TaskDetailDrawer({
   const canManage = canCreateTasksAndProjects(me?.role)
   const { success: toastSuccess, error: toastError } = useToast()
   const [comment, setComment] = useState('')
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'files'>(initialTab as 'details' | 'comments' | 'files')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -170,6 +173,49 @@ export function TaskDetailDrawer({
     }
   })
 
+  const deleteM = useMutation({
+    mutationFn: () => apiFetch(`/api/v1/tasks/${taskId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toastSuccess('Task deleted', 'The task has been permanently deleted.')
+      onClose()
+    },
+    onError: (err: any) => toastError('Delete failed', err instanceof ApiError ? err.message : 'Could not delete task'),
+  })
+
+  // @mention autocomplete
+  const allUsers = assigneesQ.data || []
+  const mentionMatches = useMemo(() => {
+    if (mentionQuery === null) return []
+    const q = mentionQuery.toLowerCase()
+    return allUsers.filter(u => u.name.toLowerCase().includes(q)).slice(0, 6)
+  }, [mentionQuery, allUsers])
+
+  function handleCommentChange(val: string) {
+    setComment(val)
+    const match = val.match(/@(\w*)$/)
+    if (match) { setMentionQuery(match[1]); setMentionIndex(0) }
+    else setMentionQuery(null)
+  }
+
+  function insertMention(user: AssignableUser) {
+    const newComment = comment.replace(/@\w*$/, `@${user.name.replace(/ /g, '_')} `)
+    setComment(newComment)
+    setMentionQuery(null)
+    setTimeout(() => textRef.current?.focus(), 0)
+  }
+
+  function handleCommentKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery !== null && mentionMatches.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => (i + 1) % mentionMatches.length); return }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setMentionIndex(i => (i - 1 + mentionMatches.length) % mentionMatches.length); return }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionMatches[mentionIndex]); return }
+      if (e.key === 'Escape') { setMentionQuery(null); return }
+    }
+    if (e.key === 'Enter' && !e.shiftKey && mentionQuery === null) { e.preventDefault(); sendComment() }
+  }
+
   function sendComment() {
     const t = comment.trim()
     if (!t || commentM.isPending) return
@@ -237,9 +283,17 @@ export function TaskDetailDrawer({
               )}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text2)', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {canManage && (
+              <button onClick={() => setShowDeleteConfirm(true)} title="Delete task"
+                style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                <Trash2 size={14} />
+              </button>
+            )}
+            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text2)', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -487,13 +541,29 @@ export function TaskDetailDrawer({
             <div style={{ flex: 1, borderRadius: 14, border: '1.5px solid var(--border)', background: 'var(--bg2)', overflow: 'hidden', transition: 'border-color 0.15s' }}
               onFocusCapture={e => (e.currentTarget.style.borderColor = 'var(--brandBorder)')}
               onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
-              <textarea ref={textRef} value={comment} onChange={e => setComment(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment() } }}
-                placeholder="Add a comment… (Enter to send, Shift+Enter for newline)"
+              <div style={{ position: 'relative' }}>
+                <textarea ref={textRef} value={comment} onChange={e => handleCommentChange(e.target.value)}
+                  onKeyDown={handleCommentKeyDown}
+                  placeholder="Add a comment… (@ to mention, Enter to send)"
                 style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', resize: 'none', minHeight: 40, maxHeight: 120, overflowY: 'auto', boxSizing: 'border-box', display: 'block' }}
                 rows={1}
               />
-            </div>
+              {/* @mention dropdown */}
+              {mentionQuery !== null && mentionMatches.length > 0 && (
+                <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg1)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 200, overflow: 'hidden' }}>
+                  {mentionMatches.map((u, i) => (
+                    <button key={u.id} type="button"
+                      onMouseDown={e => { e.preventDefault(); insertMention(u) }}
+                      style={{ width: '100%', padding: '9px 14px', border: 'none', background: i === mentionIndex ? 'rgba(226,171,65,0.12)' : 'transparent', color: i === mentionIndex ? '#e2ab41' : 'var(--text)', fontSize: 13, fontWeight: i === mentionIndex ? 800 : 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 26, height: 26, borderRadius: '50%', background: hashColor(u.name), display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{initials(u.name)}</span>
+                      <span>{u.name}</span>
+                      {u.role && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{u.role}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              </div>{/* end position:relative */}
+            </div>{/* end textarea border div */}
             <button onClick={sendComment} disabled={!comment.trim() || commentM.isPending}
               style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'var(--brand)', color: '#1a1d2e', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s', opacity: !comment.trim() || commentM.isPending ? 0.45 : 1 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -503,6 +573,35 @@ export function TaskDetailDrawer({
           </div>
         )}
       </div>
+
+      {/* Delete confirm modal */}
+      {showDeleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'grid', placeItems: 'center', padding: 16 }} onClick={() => setShowDeleteConfirm(false)}>
+          <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: 24, maxWidth: 360, width: '100%', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <Trash2 size={18} color="#ef4444" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--text)' }}>Delete Task?</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>This action cannot be undone.</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              <strong>"{task?.title}"</strong> — all comments, files, and timeline history will be permanently deleted.
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowDeleteConfirm(false)} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text2)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={() => { setShowDeleteConfirm(false); deleteM.mutate() }} disabled={deleteM.isPending}
+                style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', opacity: deleteM.isPending ? 0.7 : 1 }}>
+                {deleteM.isPending ? 'Deleting…' : 'Delete Task'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

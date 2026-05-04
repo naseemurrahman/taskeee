@@ -291,12 +291,33 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
 export function TasksPage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
+  const canManage = canCreate
   const isEmployee = isEmployeeRole(me?.role)
   const canChangeStatus = canChangeTaskStatus(me?.role)
   const role = me?.role || 'employee'
+  const qc = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
 
   // Auto-invalidate when any task changes via socket
   useRealtimeInvalidation({ tasks: true, dashboard: true })
+
+  // Bulk task selection
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const toggleSelect = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  const toggleAll = (ids: string[]) => setSelected(prev => prev.size === ids.length ? new Set() : new Set(ids))
+  const clearSelected = () => setSelected(new Set())
+
+  const bulkStatusM = useMutation({
+    mutationFn: (newStatus: string) => Promise.all([...selected].map(id => apiFetch(`/api/v1/tasks/${id}/status`, { method: 'PATCH', json: { status: newStatus } }))),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', 'list'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); toastSuccess('Updated', `${selected.size} tasks updated`); clearSelected() },
+    onError: () => toastError('Bulk update failed', 'Could not update selected tasks'),
+  })
+
+  const bulkDeleteM = useMutation({
+    mutationFn: () => Promise.all([...selected].map(id => apiFetch(`/api/v1/tasks/${id}`, { method: 'DELETE' }))),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', 'list'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); toastSuccess('Deleted', `${selected.size} tasks deleted`); clearSelected() },
+    onError: () => toastError('Delete failed', 'Could not delete selected tasks'),
+  })
 
   const [status, setStatus]   = useState('all')
   const [priority, setPriority] = useState('all')
@@ -311,6 +332,7 @@ export function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>((location.state as any)?.openTaskId || null)
   const [drawerTab, setDrawerTab] = useState<'details' | 'comments'>('details')
+
 
   const q = useQuery({
     queryKey: ['tasks', 'list', status, priority, search, isEmployee, page],
@@ -406,6 +428,28 @@ export function TasksPage() {
         </div>
       </div>
 
+      {/* Bulk action bar — shown when items are selected */}
+      {selected.size > 0 && canManage && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 12, background: 'rgba(226,171,65,0.10)', border: '1.5px solid rgba(226,171,65,0.3)', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--brand)' }}>{selected.size} selected</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(['in_progress','submitted','completed'] as const).map(s => (
+              <button key={s} className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 12 }}
+                onClick={() => bulkStatusM.mutate(s)} disabled={bulkStatusM.isPending}>
+                → {s.replace(/_/g,' ')}
+              </button>
+            ))}
+            {canCreate && (
+              <button className="btn" style={{ height: 30, padding: '0 10px', fontSize: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}
+                onClick={() => { if (confirm(`Delete ${selected.size} tasks? This cannot be undone.`)) bulkDeleteM.mutate() }} disabled={bulkDeleteM.isPending}>
+                Delete {selected.size}
+              </button>
+            )}
+          </div>
+          <button onClick={clearSelected} style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="chartV3" style={{ padding: 0, overflow: 'visible' }}>
         {q.isLoading ? (
@@ -435,6 +479,13 @@ export function TasksPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
                   <th style={{ width: 4, padding: 0 }} />
+                  {canManage && (
+                    <th style={{ width: 36, padding: '10px 8px 10px 14px' }}>
+                      <input type="checkbox" checked={tasks.length > 0 && selected.size === tasks.length}
+                        onChange={() => toggleAll(tasks.map(t => t.id))}
+                        style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                    </th>
+                  )}
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Task</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: 160 }}>AI Signal</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
@@ -451,14 +502,21 @@ export function TasksPage() {
                   const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
                   const dueColor = due.tone === 'danger' ? 'var(--danger)' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
                   const commentCount = Number(task.message_count || 0)
+                  const isChecked = selected.has(task.id)
                   return (
-                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s', cursor: 'pointer' }}
+                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s', cursor: 'pointer', background: isChecked ? 'rgba(226,171,65,0.06)' : undefined }}
                       onClick={() => { setDrawerTab('details'); setSelectedTaskId(task.id) }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                      onMouseEnter={e => { if (!isChecked) e.currentTarget.style.background = 'var(--bg2)' }}
+                      onMouseLeave={e => { if (!isChecked) e.currentTarget.style.background = '' }}>
                       <td style={{ padding: 0, width: 4 }} onClick={e => e.stopPropagation()}>
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
+                      {canManage && (
+                        <td style={{ padding: '10px 8px 10px 14px', width: 36 }} onClick={e => { e.stopPropagation(); toggleSelect(task.id) }}>
+                          <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(task.id)}
+                            style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                        </td>
+                      )}
                       <td style={{ padding: '10px 14px', maxWidth: 260 }} onClick={e => e.stopPropagation()}>
                         <InlineTitle task={task} canEdit={canCreate} onSaved={() => {}} />
                       </td>

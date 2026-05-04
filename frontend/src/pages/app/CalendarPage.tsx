@@ -72,7 +72,7 @@ export function CalendarPage() {
   })
   const [pick, setPick] = useState<DayBucket | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  const [_createDueDate, setCreateDueDate] = useState<string | null>(null)
+  const [createDueDate, setCreateDueDate] = useState<string | null>(null)
   useRealtimeInvalidation({ tasks: true })
 
   const tq = useQuery({ queryKey: ['calendar', 'tasks'], queryFn: fetchDatedTasks })
@@ -342,6 +342,7 @@ export function CalendarPage() {
       {canCreate && (
         <CreateTaskModal
           open={createOpen}
+          initialDueDate={createDueDate}
           onClose={() => { setCreateOpen(false); setCreateDueDate(null); qc.invalidateQueries({ queryKey: ['calendar'] }) }}
         />
       )}

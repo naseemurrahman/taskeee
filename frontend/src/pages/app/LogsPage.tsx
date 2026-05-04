@@ -155,6 +155,40 @@ export function LogsPage() {
                 searchable
               />
             </div>
+            <button
+              className="btn btnGhost"
+              style={{ height: 38, padding: '0 14px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+              onClick={() => {
+                const rows = logs
+                const now = new Date()
+                const dateStr = now.toISOString().slice(0, 10)
+                const csvRows = [
+                  ['# TaskFlow Pro — Activity Log Export'],
+                  [`# Exported: ${now.toLocaleString()}`],
+                  [`# Period: last ${days} days · Type filter: ${type || 'all'}`],
+                  [`# Total records: ${rows.length}`],
+                  [],
+                  ['Timestamp', 'User', 'Event Type', 'Target Type', 'Target ID', 'Details'],
+                  ...rows.map(l => [
+                    new Date(l.created_at).toLocaleString(),
+                    l.user_name || '—',
+                    l.activity_type || '—',
+                    l.task_id ? 'task' : '—',
+                    l.task_id || '—',
+                    JSON.stringify(l.metadata || {}),
+                  ])
+                ]
+                const csv = csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url; a.download = `taskflow-activity-logs-${dateStr}.csv`; a.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
           </div>
         </div>
       </div>

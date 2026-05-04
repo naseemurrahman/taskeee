@@ -44,6 +44,52 @@ async function fetchReport(id: string) {
   return await apiFetch<{ report: Report }>(`/api/v1/reports/${encodeURIComponent(id)}`)
 }
 
+function ReportFormattedFallback({ data, reportType }: { data: unknown; reportType?: string }) {
+  if (!data || typeof data !== 'object') return (
+    <div style={{ padding: 16, color: 'var(--muted)', fontSize: 13 }}>No report data available.</div>
+  )
+  const obj = data as Record<string, unknown>
+  const entries = Object.entries(obj).filter(([k]) => k !== 'generatedAt' && k !== 'orgId')
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+      {reportType && <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{reportType.replace(/_/g, ' ')}</div>}
+      {entries.map(([key, val]) => (
+        <div key={key}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>
+            {key.replace(/_/g, ' ')}
+          </div>
+          {Array.isArray(val) ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {(val as Record<string, unknown>[]).slice(0, 20).map((row, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 12px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                  {Object.entries(row).map(([k, v]) => (
+                    <span key={k} style={{ fontSize: 12 }}>
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>{k.replace(/_/g, ' ')}: </span>
+                      <span style={{ color: 'var(--text)', fontWeight: 800 }}>{String(v ?? '—')}</span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+              {(val as unknown[]).length > 20 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>… and {(val as unknown[]).length - 20} more rows</div>}
+            </div>
+          ) : typeof val === 'object' && val !== null ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {Object.entries(val as Record<string, unknown>).map(([k, v]) => (
+                <div key={k} style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--border)', minWidth: 100 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>{k.replace(/_/g, ' ')}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--brand)', marginTop: 4 }}>{String(v ?? '—')}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg2)', fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{String(val ?? '—')}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function ReportDetailPage() {
   const { id } = useParams()
   const rid = id || ''
@@ -84,7 +130,7 @@ export function ReportDetailPage() {
         {q.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
         {q.isError ? <div className="alert alertError">Failed to load report.</div> : null}
         {report && !payload ? (
-          <pre className="reportRawFallback">{JSON.stringify(report.data ?? report, null, 2)}</pre>
+          <ReportFormattedFallback data={report.data ?? report} reportType={report.report_type} />
         ) : null}
         {payload ? (
           <div className="reportDashboard">
