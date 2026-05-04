@@ -28,6 +28,7 @@ const SettingsPage          = lazy(() => import('./pages/app/SettingsPage').then
 const BillingPage           = lazy(() => import('./pages/app/BillingPage').then(m => ({ default: m.BillingPage })))
 const OnboardingPage        = lazy(() => import('./pages/app/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
 const DiagnosticsPage       = lazy(() => import('./pages/app/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })))
+const SearchPage            = lazy(() => import('./pages/app/SearchPage').then(m => ({ default: m.SearchPage })))
 const JeczoneDashboardPage  = lazy(() => import('./pages/app/jeczone/JeczoneDashboardPage').then(m => ({ default: m.JeczoneDashboardPage })))
 const EmployeesPage         = lazy(() => import('./pages/app/hr/EmployeesPage').then(m => ({ default: m.EmployeesPage })))
 const EmployeeProfilePage   = lazy(() => import('./pages/app/hr/EmployeeProfilePage').then(m => ({ default: m.EmployeeProfilePage })))
@@ -90,6 +91,7 @@ export default function App() {
             <Route index                        element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard"             element={<DashboardHomePage />} />
             <Route path="diagnostics"           element={<DiagnosticsPage />} />
+            <Route path="search"                element={<SearchPage />} />
             <Route path="tasks"                 element={TasksHome} />
             <Route path="my-tasks"              element={<Navigate to="/app/tasks" replace />} />
             <Route path="projects"              element={<ProjectsPage />} />
