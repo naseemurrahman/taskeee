@@ -61,6 +61,7 @@ const billingRoutes = require('./routes/billing');
 const contractorsRoutes = require('./routes/contractors');
 const statsRoutes       = require('./routes/stats');
 const analyticsRoutes   = require('./routes/analytics');
+const adminRoutes       = require('./routes/admin');
 
 const app    = express();
 const server = http.createServer(app);
@@ -82,8 +83,8 @@ const allowedOrigins = (
 console.log('Allowed CORS origins:', allowedOrigins);
 
 const io = new Server(server, {
-  cors: { 
-    origin: '*', 
+  cors: {
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma']
@@ -206,6 +207,7 @@ app.use('/api/v1/billing',       billingRoutes);
 app.use('/api/v1/contractors',   contractorsRoutes);
 app.use('/api/v1/stats',         statsRoutes);
 app.use('/api/v1/analytics',     analyticsRoutes);
+app.use('/api/v1/admin',         adminRoutes);
 
 app.get('/', (_req, res) => {
   res.status(200).json({
@@ -248,37 +250,12 @@ app.get('/api/v1/health', async (_req, res) => {
   res.status(200).json(payload);
 });
 
-// Admin: check which optional services are configured
-app.get('/api/v1/admin/env-status', (req, res) => {
-  // Only admins (checked via Authorization header presence — full RBAC on /admin routes)
-  const services = {
-    email: {
-      configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
-      missing: ['SMTP_HOST','SMTP_USER','SMTP_PASS','SMTP_FROM'].filter(v => !process.env[v]),
-    },
-    whatsapp: {
-      configured: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
-      missing: ['WHATSAPP_TOKEN','WHATSAPP_PHONE_NUMBER_ID'].filter(v => !process.env[v]),
-    },
-    stripe: {
-      configured: !!(process.env.STRIPE_SECRET_KEY),
-      missing: ['STRIPE_SECRET_KEY','STRIPE_PRICE_BASIC','STRIPE_PRICE_PRO'].filter(v => !process.env[v]),
-    },
-    s3: {
-      configured: !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET),
-      missing: ['AWS_ACCESS_KEY_ID','S3_BUCKET'].filter(v => !process.env[v]),
-    },
-  };
-  const allOk = Object.values(services).every(s => s.configured);
-  res.json({ ok: allOk, services });
-});
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10);
 
 async function start() {
-  // Check optional service configuration upfront
   try {
     const { runEnvCheck } = require('./utils/envCheck');
     runEnvCheck();
