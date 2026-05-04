@@ -41,6 +41,7 @@ if (!process.env.JWT_REFRESH_SECRET) {
 const authRoutes  = require('./routes/auth');
 const userRoutes  = require('./routes/users');
 const taskRoutes  = require('./routes/tasks');
+const taskBulkActionsRoutes = require('./routes/taskBulkActions');
 const photoRoutes = require('./routes/photos');
 const reportRoutes= require('./routes/reports');
 const notifRoutes = require('./routes/notifications');
@@ -187,6 +188,7 @@ app.use('/api/v1/users',         userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
 app.use('/api/v1/ai',    require('./routes/ai'));
+app.use('/api/v1/tasks',         taskBulkActionsRoutes);
 app.use('/api/v1/tasks',         taskRoutes);
 app.use('/api/v1/photos',        photoRoutes);
 app.use('/api/v1/reports',       reportRoutes);
