@@ -49,6 +49,28 @@ const MIGRATIONS = [
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS email_sent    BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS whatsapp_sent BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS delivery_error TEXT`,
+
+  // ── Migration 021: Stripe-backed subscription fields on organizations ──────
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_plan TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active'`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS seat_limit INTEGER`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_email TEXT`,
+  `CREATE INDEX IF NOT EXISTS idx_orgs_stripe_customer ON organizations(stripe_customer_id) WHERE stripe_customer_id IS NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_orgs_stripe_subscription ON organizations(stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL`,
+
+  // ── Migration 022: Search performance indexes ──────────────────────────────
+  `CREATE EXTENSION IF NOT EXISTS pg_trgm`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_org_updated ON tasks(org_id, updated_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_title_trgm ON tasks USING gin (title gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_description_trgm ON tasks USING gin (description gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_full_name_trgm ON users USING gin (full_name gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_email_trgm ON users USING gin (email gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_task_categories_name_trgm ON task_categories USING gin (name gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)`,
 ];
 
 async function runAutoMigrations() {
@@ -59,8 +81,7 @@ async function runAutoMigrations() {
       await query(sql);
       ok++;
     } catch (err) {
-      // Table doesn't exist yet or other non-critical error
-      if (err.code === '42P01') { skip++; } // table not found — skip
+      if (err.code === '42P01') { skip++; }
       else { fail++; console.warn('[migrate] Non-fatal:', err.message); }
     }
   }
