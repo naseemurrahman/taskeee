@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { isAuthed, clearAuth, isSessionPolicyExpired, isAccessTokenExpired, touchSessionActivity } from '../state/auth'
 
@@ -7,24 +7,43 @@ export function SessionGuard() {
   const navigate = useNavigate()
   const location = useLocation()
   const [expired, setExpired] = useState(false)
+  const redirectTimer = useRef<number | null>(null)
+
+  function clearRedirectTimer() {
+    if (redirectTimer.current != null) {
+      window.clearTimeout(redirectTimer.current)
+      redirectTimer.current = null
+    }
+  }
 
   function expireSession() {
     if (!location.pathname.startsWith('/app')) return
     setExpired(true)
     clearAuth()
-    const t = setTimeout(() => {
+    clearRedirectTimer()
+    redirectTimer.current = window.setTimeout(() => {
       navigate('/signin?reason=session_expired', { replace: true })
+      redirectTimer.current = null
     }, 1200)
-    return () => clearTimeout(t)
   }
 
   useEffect(() => {
-    if (!location.pathname.startsWith('/app')) return
-    if (!isAuthed() || isSessionPolicyExpired() || isAccessTokenExpired()) {
-      return expireSession()
+    // Hide stale expiry banner immediately after successful login/navigation away.
+    if (!location.pathname.startsWith('/app')) {
+      setExpired(false)
+      clearRedirectTimer()
+      return
     }
+
+    if (isAuthed() && !isSessionPolicyExpired() && !isAccessTokenExpired()) {
+      setExpired(false)
+      clearRedirectTimer()
+      return
+    }
+
+    expireSession()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
+  }, [location.pathname, location.search])
 
   useEffect(() => {
     if (!location.pathname.startsWith('/app')) return
@@ -49,18 +68,28 @@ export function SessionGuard() {
   useEffect(() => {
     function handleStorage(e: StorageEvent) {
       if ((e.key === 'tf_access_token' || e.key === 'tf_user') && !e.newValue) {
-        if (location.pathname.startsWith('/app')) {
-          setExpired(true)
-          clearAuth()
-          setTimeout(() => navigate('/signin?reason=session_expired', { replace: true }), 1000)
-        }
+        if (location.pathname.startsWith('/app')) expireSession()
+      }
+      if ((e.key === 'tf_access_token' || e.key === 'tf_user') && e.newValue) {
+        setExpired(false)
+        clearRedirectTimer()
       }
     }
     window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    window.addEventListener('focus', () => {
+      if (isAuthed() && !isSessionPolicyExpired() && !isAccessTokenExpired()) {
+        setExpired(false)
+        clearRedirectTimer()
+      }
+    })
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      clearRedirectTimer()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, navigate])
 
-  if (!expired) return null
+  if (!expired || !location.pathname.startsWith('/app')) return null
 
   return (
     <div className="sessionExpiredBanner" role="alert">
