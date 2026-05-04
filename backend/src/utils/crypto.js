@@ -9,15 +9,20 @@ function randomToken(bytes = 32) {
 }
 
 function getAesKeyFromEnv(envName) {
-  const raw = process.env[envName];
-  if (!raw) throw new Error(`Missing env var: ${envName}`);
-  // Prefer base64 key; accept raw 32+ chars for dev, but normalize to 32 bytes.
-  let buf;
-  try {
-    buf = Buffer.from(raw, 'base64');
-  } catch {
-    buf = Buffer.from(raw, 'utf8');
+  let raw = process.env[envName];
+
+  // Keep MFA usable in existing test/staging deployments that do not yet have a
+  // dedicated MFA_ENCRYPTION_KEY. Production should set MFA_ENCRYPTION_KEY.
+  if (!raw && envName === 'MFA_ENCRYPTION_KEY') {
+    raw = process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET;
+    if (raw) console.warn('MFA_ENCRYPTION_KEY missing — deriving MFA encryption key from JWT secret. Set MFA_ENCRYPTION_KEY before production.');
   }
+
+  if (!raw) throw new Error(`Missing env var: ${envName}`);
+
+  let buf = Buffer.from(raw, 'base64');
+  // If the base64 interpretation is too short, treat the raw value as UTF-8.
+  if (buf.length < 32) buf = Buffer.from(raw, 'utf8');
   if (buf.length < 32) throw new Error(`${envName} must be at least 32 bytes (base64 or utf8).`);
   return buf.subarray(0, 32);
 }
@@ -29,7 +34,6 @@ function encryptString(plaintext, envKeyName) {
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const enc = Buffer.concat([cipher.update(String(plaintext), 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
-  // format: v1.<iv>.<tag>.<ciphertext> (base64url)
   return `v1.${iv.toString('base64url')}.${tag.toString('base64url')}.${enc.toString('base64url')}`;
 }
 
@@ -53,4 +57,3 @@ module.exports = {
   encryptString,
   decryptString,
 };
-
