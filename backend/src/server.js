@@ -39,6 +39,7 @@ if (!process.env.JWT_REFRESH_SECRET) {
 }
 
 const authRoutes  = require('./routes/auth');
+const mfaRoutes   = require('./routes/mfa');
 const userRoutes  = require('./routes/users');
 const taskRoutes  = require('./routes/tasks');
 const photoRoutes = require('./routes/photos');
@@ -182,6 +183,7 @@ app.get('/api/v1/insights/overview', (_req, res) => {
   });
 });
 
+app.use('/api/v1/auth',          mfaRoutes);
 app.use('/api/v1/auth',          authRoutes);
 app.use('/api/v1/users',         userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
