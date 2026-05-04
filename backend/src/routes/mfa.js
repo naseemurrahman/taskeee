@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { authenticator } = require('otplib');
 const { authenticate } = require('../middleware/auth');
@@ -7,6 +8,34 @@ const { query } = require('../utils/db');
 const { sha256Hex, randomToken, encryptString } = require('../utils/crypto');
 
 const router = express.Router();
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+function base32Encode(buffer) {
+  let bits = '';
+  for (const byte of buffer) bits += byte.toString(2).padStart(8, '0');
+  let out = '';
+  for (let i = 0; i < bits.length; i += 5) {
+    const chunk = bits.slice(i, i + 5).padEnd(5, '0');
+    out += BASE32_ALPHABET[parseInt(chunk, 2)];
+  }
+  return out;
+}
+
+function makeTotpSecret() {
+  return base32Encode(crypto.randomBytes(20));
+}
+
+function makeOtpAuthUrl({ issuer, accountName, secret }) {
+  const label = `${issuer}:${accountName}`;
+  const params = new URLSearchParams({
+    secret,
+    issuer,
+    algorithm: 'SHA1',
+    digits: '6',
+    period: '30',
+  });
+  return `otpauth://totp/${encodeURIComponent(label)}?${params.toString()}`;
+}
 
 async function ensureMfaSchema() {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE`);
@@ -24,9 +53,9 @@ async function ensureMfaSchema() {
 router.post('/mfa/enroll/start', authenticate, async (req, res) => {
   try {
     const issuer = String(process.env.MFA_ISSUER || 'Taskee').trim() || 'Taskee';
-    const accountName = String(req.user?.email || req.user?.id || 'user');
-    const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(accountName, issuer, secret);
+    const accountName = String(req.user?.email || req.user?.id || 'user').trim() || 'user';
+    const secret = makeTotpSecret();
+    const otpauthUrl = makeOtpAuthUrl({ issuer, accountName, secret });
     return res.json({ issuer, accountName, secret, otpauthUrl });
   } catch (err) {
     console.error('[MFA enroll/start] failed:', err?.stack || err?.message || err);
