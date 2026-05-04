@@ -21,7 +21,7 @@ async function getUserContact(userId) {
 
 /**
  * Check if a specific notification type is enabled for a user.
- * Falls back to true (opt-in by default) if prefs are missing.
+ * Falls back to true if prefs are missing.
  */
 function isNotifEnabled(prefs, type) {
   if (!prefs || typeof prefs !== 'object') return true;
@@ -43,39 +43,53 @@ async function logDelivery(userId, notifType, channel, status, errorMsg = null) 
   } catch { /* silent */ }
 }
 
+function normalizePrefs(rawPrefs) {
+  if (!rawPrefs) return {};
+  if (typeof rawPrefs === 'object') return rawPrefs;
+  try { return JSON.parse(rawPrefs); } catch { return {}; }
+}
+
 /**
  * Core notification emitter.
  * 1. Inserts DB notification record
  * 2. Pushes via WebSocket (real-time)
  * 3. Sends email if user has it enabled + SMTP configured
- * 4. Sends WhatsApp if user has it enabled + WHATSAPP_TOKEN configured
+ * 4. Sends WhatsApp if user has it enabled + WhatsApp credentials configured
  * 5. Logs every delivery attempt
  */
 async function emitNotification(userId, { type, title, body, data = {} }) {
   if (!userId) return;
+
+  let notificationId = null;
+  let emailSent = false;
+  let whatsappSent = false;
+  const deliveryErrors = [];
+
   try {
     // 1. DB record
-    await query(`
+    const inserted = await query(`
       INSERT INTO notifications (user_id, type, title, body, data)
       VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
     `, [userId, type, title, body, JSON.stringify(data)]);
+    notificationId = inserted.rows?.[0]?.id || null;
 
     // 2. WebSocket push (real-time, non-blocking)
     try {
       const { app } = require('../server');
       const io = app.get('io');
-      if (io) io.to(`user:${userId}`).emit('notification', { type, title, body, data });
+      if (io) io.to(`user:${userId}`).emit('notification', { id: notificationId, type, title, body, data });
     } catch { /* optional */ }
 
     // 3 & 4. Email + WhatsApp (respect user prefs)
     const contact = await getUserContact(userId);
     if (!contact) return;
 
-    const prefs = contact.notification_prefs || {};
+    const prefs = normalizePrefs(contact.notification_prefs);
     const channels = prefs.channels || {};
-    const emailEnabled  = channels.email     !== false; // default true
-    const waEnabled     = channels.whatsapp  === true;  // default false (opt-in)
-    const typeEnabled   = isNotifEnabled(prefs, type);
+    const emailEnabled = channels.email !== false;       // default true
+    const waEnabled = channels.whatsapp !== false;       // default true for configured phone numbers
+    const typeEnabled = isNotifEnabled(prefs, type);
 
     if (!typeEnabled) {
       logger.debug(`Notification suppressed by user pref: ${type} for user ${userId}`);
@@ -94,21 +108,25 @@ async function emitNotification(userId, { type, title, body, data = {} }) {
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
             <div style="background:#161920;border-radius:12px;padding:24px">
               <h2 style="color:#e2ab41;margin:0 0 8px">${title}</h2>
-              <p style="color:#cbd5e1;margin:0;line-height:1.6">${(body || '').replace(/\n/g,'<br>')}</p>
+              <p style="color:#cbd5e1;margin:0;line-height:1.6">${String(body || '').replace(/\n/g,'<br>')}</p>
             </div>
             <p style="color:#94a3b8;font-size:12px;margin-top:16px;text-align:center">
-              TaskFlow Pro · <a href="#" style="color:#e2ab41">Manage notifications</a>
+              TaskFlow Pro
             </p>
           </div>
         `
       }).catch(e => ({ error: e.message }));
 
+      emailSent = !!result?.sent;
       await logDelivery(
         userId, type, 'email',
         result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent',
         result?.error || null
       );
-      if (result?.error) logger.warn(`Email failed for ${userId}: ${result.error}`);
+      if (result?.error) {
+        deliveryErrors.push(`email: ${result.error}`);
+        logger.warn(`Email failed for ${userId}: ${result.error}`);
+      }
     }
 
     // WhatsApp
@@ -118,12 +136,29 @@ async function emitNotification(userId, { type, title, body, data = {} }) {
         body: text
       }).catch(e => ({ error: e.message }));
 
+      whatsappSent = !!result?.sent;
       await logDelivery(
         userId, type, 'whatsapp',
         result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent',
         result?.error || null
       );
-      if (result?.error) logger.warn(`WhatsApp failed for ${userId}: ${result.error}`);
+      if (result?.error) {
+        deliveryErrors.push(`whatsapp: ${result.error}`);
+        logger.warn(`WhatsApp failed for ${userId}: ${result.error}`);
+      }
+    }
+
+    if (notificationId) {
+      try {
+        await query(
+          `UPDATE notifications
+              SET email_sent = COALESCE($2, email_sent),
+                  whatsapp_sent = COALESCE($3, whatsapp_sent),
+                  delivery_error = NULLIF($4, '')
+            WHERE id = $1`,
+          [notificationId, emailSent, whatsappSent, deliveryErrors.join('; ')]
+        );
+      } catch { /* older schemas may not have these columns yet */ }
     }
 
     logger.debug(`Notification emitted to user ${userId}: ${type}`);
