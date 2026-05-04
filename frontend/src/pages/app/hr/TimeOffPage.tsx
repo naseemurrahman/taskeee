@@ -122,7 +122,7 @@ export function TimeOffPage() {
         {error ? <div className="alert alertError" style={{ marginBottom: 12 }}>{error}</div> : null}
         {q.isError ? <div className="alert alertError" style={{ marginBottom: 12 }}>Failed to load requests.</div> : null}
 
-        <form onSubmit={onSubmit} className="form" style={{ marginTop: 12, gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
+        <form onSubmit={onSubmit} className="form timeOffRequestForm" style={{ marginTop: 12, gridTemplateColumns: '1fr 1fr', alignItems: 'end' }}>
           <label className="label">
             Start date
             <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -150,14 +150,14 @@ export function TimeOffPage() {
 
         <div style={{ display: 'grid', gap: 10 }}>
           {requests.map((r) => (
-            <div key={r.id} className="miniCard" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+            <div key={r.id} className="miniCard timeOffCard" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 900, letterSpacing: '-0.2px' }}>{r.employee_name || 'Employee'}</div>
                 <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>
                   {r.start_date} → {r.end_date}{r.reason ? ` · ${r.reason}` : ''}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              <div className="timeOffCardActions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                 <span className="pill pillMuted">{r.status}</span>
                 {r.status === 'pending' ? (
                   <>

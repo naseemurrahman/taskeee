@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { SkeletonRows, ErrorRetry, EmptyState } from '../../components/ui/PageStates'
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
   due_date?: string | null; category_id?: string | null; category_name?: string | null
@@ -453,25 +454,20 @@ export function TasksPage() {
       {/* ── Table ── */}
       <div className="chartV3" style={{ padding: 0, overflow: 'visible' }}>
         {q.isLoading ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>
-            <svg className="animate-rotate" width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 8px', display: 'block' }}>
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/>
-              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-            Loading tasks…
-          </div>
+          <div style={{ padding: '8px 16px' }}><SkeletonRows count={6} /></div>
+        ) : q.isError ? (
+          <ErrorRetry queryKey={['tasks', 'list', status, priority, search, isEmployee, page]} message="Could not load tasks. Check your connection and try again." />
         ) : tasks.length === 0 ? (
-          <div className="emptyStateV3" style={{ padding: '48px 24px' }}>
-            <div className="emptyStateV3Icon">📋</div>
-            <div className="emptyStateV3Title">{search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : isEmployee ? 'No tasks assigned to you yet' : 'No tasks yet'}</div>
-            <div className="emptyStateV3Body">{search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Tasks assigned to you by your manager will appear here.'}</div>
-            {canCreate && (
-              <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Create First Task
+          <EmptyState
+            icon="📋"
+            title={search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : isEmployee ? 'No tasks assigned to you yet' : 'No tasks yet'}
+            sub={search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Tasks assigned to you will appear here.'}
+            action={canCreate ? (
+              <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button" style={{ height: 36, padding: '0 16px', fontSize: 13 }}>
+                + Create First Task
               </button>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : (
           <>
           <div className="tasksTableWrap" style={{ overflow: 'visible' }}>

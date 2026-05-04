@@ -329,7 +329,7 @@ router.get('/', authenticate, async (req, res, next) => {
       ? `(t.assigned_to = ANY($1) OR t.assigned_to IS NULL)`
       : `t.assigned_to = ANY($1)`;
 
-    const conditions = [assigneeCondition, `t.org_id = $2`];
+    const conditions = [assigneeCondition, `t.org_id = $2`, `t.deleted_at IS NULL`];
     const params = [targetUserIds, orgId];
     let p = 3;
 
@@ -484,6 +484,33 @@ router.get('/assignable-users', authenticate, async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// DELETE /tasks/:id — soft delete (sets deleted_at)
+router.delete('/:id', authenticate, requireAnyRole('manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { rows } = await query(
+      `UPDATE tasks SET deleted_at = NOW(), deleted_by = $1
+       WHERE id = $2 AND org_id = $3 AND deleted_at IS NULL
+       RETURNING id, title`,
+      [req.user.id, req.params.id, orgId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Task not found or already deleted' });
+
+    // Log the deletion
+    try {
+      await query(
+        `INSERT INTO task_timeline (task_id, actor_id, event_type, note)
+         VALUES ($1, $2, 'task_deleted', $3)`,
+        [req.params.id, req.user.id, `Task "${rows[0].title}" deleted`]
+      );
+    } catch { /* non-fatal */ }
+
+    res.json({ ok: true, id: rows[0].id });
+  } catch (err) {
+    next(err);
   }
 });
 
