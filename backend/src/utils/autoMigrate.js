@@ -23,6 +23,32 @@ const MIGRATIONS = [
   `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS approval_flow JSONB DEFAULT '[]'`,
   `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL`,
   `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`,
+
+  // ── Migration 018: User notification prefs + contact channels ──────────────
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_e164 VARCHAR(32)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_e164 VARCHAR(32)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB NOT NULL DEFAULT '{"task_assigned":true,"task_approved":true,"task_comment":true,"task_file":true,"task_overdue":true,"reports_weekly":false,"channels":{"email":true,"whatsapp":false}}'::jsonb`,
+  `CREATE INDEX IF NOT EXISTS idx_users_whatsapp_e164 ON users(whatsapp_e164) WHERE whatsapp_e164 IS NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_users_phone_e164    ON users(phone_e164)    WHERE phone_e164 IS NOT NULL`,
+
+  // ── Migration 019: Notification delivery log ──────────────────────────────
+  `CREATE TABLE IF NOT EXISTS notification_delivery_log (
+     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+     notif_type VARCHAR(64)  NOT NULL,
+     channel    VARCHAR(16)  NOT NULL,
+     status     VARCHAR(16)  NOT NULL,
+     error_msg  TEXT,
+     sent_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_notif_log_user_sent ON notification_delivery_log(user_id, sent_at DESC)`,
+
+  // ── Migration 020: Task soft delete + notification delivery columns ────────
+  `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`,
+  `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES users(id) ON DELETE SET NULL`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS email_sent    BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS whatsapp_sent BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS delivery_error TEXT`,
 ];
 
 async function runAutoMigrations() {

@@ -1,0 +1,398 @@
+/* Mobile overflow fixes for CRM Pipeline and Employee Directory.
+   Keep this file imported last so it can override page-level inline widths. */
+
+.appShellV4,
+.mainV4,
+.contentV4 {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.contentV4 > *,
+.pageHeaderCard,
+.formCardV3,
+.card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pageHeaderCardInner,
+.pageHeaderCardLeft,
+.formCardV3Head,
+.formCardV3Head > div,
+.formCardV3Body {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pageHeaderCardTitle,
+.formCardV3Title {
+  overflow-wrap: anywhere;
+}
+
+.pageHeaderCardSub,
+.formCardV3Sub {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+/* CRM Pipeline: use responsive columns instead of a fixed-width kanban on small screens. */
+.crmKanbanGrid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.crmKanbanGrid > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.crmKanbanGrid [draggable="true"],
+.crmKanbanGrid input,
+.crmKanbanGrid button {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .crmKanbanGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow-x: visible !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .crmKanbanGrid {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    gap: 12px !important;
+    padding-bottom: 0 !important;
+  }
+
+  .crmKanbanGrid > * {
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
+/* Employee Directory / Workspace Accounts: prevent badges and long emails from forcing page width. */
+.contentV4 a[href^="/app/hr/employees/"] {
+  grid-template-columns: 44px minmax(0, 1fr) !important;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.contentV4 a[href^="/app/hr/employees/"] > div,
+.workspaceUserRow,
+.workspaceUserRow > div,
+.workspaceUserRow div {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.workspaceUserRow div,
+.contentV4 a[href^="/app/hr/employees/"] div {
+  overflow-wrap: anywhere;
+}
+
+.workspaceUserRow > div:first-child {
+  flex: 1 1 auto;
+}
+
+.workspaceUserRow > div:first-child > div:last-child > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspaceUserRow > div:last-child {
+  flex: 0 1 auto !important;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.workspaceUserRow .statusBadge,
+.contentV4 a[href^="/app/hr/employees/"] .statusBadge {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .formCardV3 {
+    border-radius: 16px;
+  }
+
+  .formCardV3Head {
+    width: 100%;
+    text-align: center;
+  }
+
+  .formCardV3Head > div:first-child {
+    display: grid !important;
+    justify-items: center !important;
+    width: 100% !important;
+  }
+
+  .formCardV3Head > div:first-child > div:first-child {
+    justify-content: center !important;
+  }
+
+  .formCardV3Sub {
+    max-width: 32ch;
+    margin-inline: auto;
+  }
+
+  .formCardV3Head > div:last-child {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .formCardV3Head > div:last-child > *,
+  .formCardV3Head > div:last-child > div {
+    width: min(100%, 520px) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    margin-inline: auto !important;
+  }
+
+  .formCardV3Head .inputV3Wrap,
+  .formCardV3Head .inputV3Field,
+  .formCardV3Head .selectV3Wrap,
+  .formCardV3Head .selectV3Control {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] {
+    padding: 12px 14px !important;
+  }
+
+  .workspaceUserRow {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+  }
+
+  .workspaceUserRow > div:first-child {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .workspaceUserRow > div:first-child > div:last-child {
+    width: 100% !important;
+  }
+
+  .workspaceUserRow > div:first-child > div:last-child > div {
+    text-align: center !important;
+  }
+
+  .workspaceUserRow > div:last-child {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .contentV4 a[href^="/app/hr/employees/"] {
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .pageHeaderCardMeta {
+    gap: 6px;
+  }
+
+  .pageHeaderCardTag {
+    font-size: 10px;
+    padding-inline: 7px;
+  }
+}
+
+/* HR mobile polish pass 1: remove the workspace gap and center employee cards. */
+@media (max-width: 640px) {
+  .formCardV3:has(.workspaceUserRow) {
+    display: grid !important;
+    gap: 0 !important;
+  }
+
+  .formCardV3:has(.workspaceUserRow) .formCardV3Head {
+    min-height: 0 !important;
+    padding: 18px 16px 14px !important;
+    gap: 14px !important;
+  }
+
+  .formCardV3:has(.workspaceUserRow) .formCardV3Body {
+    padding: 14px 16px 16px !important;
+    min-height: 0 !important;
+  }
+
+  .formCardV3:has(.workspaceUserRow) .formCardV3Body > div {
+    gap: 10px !important;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 10px !important;
+    min-height: 118px !important;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] > div:nth-child(2) {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] > div:nth-child(2) > div:first-child {
+    width: 100% !important;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] > div:nth-child(2) > div:first-child > div {
+    text-align: center !important;
+  }
+
+  .contentV4 a[href^="/app/hr/employees/"] .statusBadge {
+    align-self: center !important;
+  }
+}
+
+/* Mobile polish pass 2: tighten the topbar search/actions on narrow screens. */
+@media (max-width: 640px) {
+  .topbarV4 {
+    gap: 8px !important;
+    padding-inline: 10px !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .topbarV4MenuBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    padding: 0 !important;
+    flex: 0 0 38px !important;
+  }
+
+  .topbarV4 .topbarV4SearchWrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 38px !important;
+  }
+
+  .topbarV4 .topbarV4SearchInput {
+    min-width: 0 !important;
+    font-size: 12.5px !important;
+    padding-left: 32px !important;
+    padding-right: 28px !important;
+  }
+
+  .topbarV4SearchDropdown {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    top: 62px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbarV4 {
+    gap: 6px !important;
+    padding-inline: 8px !important;
+  }
+
+  .topbarV4MenuBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    flex-basis: 34px !important;
+  }
+
+  .topbarV4 .topbarV4SearchWrap {
+    height: 34px !important;
+    border-width: 1.5px !important;
+  }
+
+  .topbarV4 .topbarV4SearchInput {
+    font-size: 12px !important;
+    padding-left: 30px !important;
+    padding-right: 22px !important;
+  }
+
+  .topbarV4 .topbarV4SearchInput::placeholder {
+    font-size: 0 !important;
+  }
+
+  .topbarV4 .topbarV4SearchInput::before {
+    content: '';
+  }
+
+  .topbarV4 .topbarV4SearchWrap:focus-within .topbarV4SearchInput::placeholder {
+    font-size: 12px !important;
+  }
+
+  .topbarLangBtn svg {
+    display: none !important;
+  }
+
+  .topbarLangBtn span {
+    font-size: 11px !important;
+  }
+
+  .topbarV4SearchWrap kbd {
+    display: none !important;
+  }
+}
+
+@media (max-width: 370px) {
+  .topbarThemeBtn {
+    display: none !important;
+  }
+
+  .topbarV4MenuBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    flex-basis: 32px !important;
+  }
+
+  .topbarV4 .topbarV4SearchWrap {
+    height: 32px !important;
+  }
+}

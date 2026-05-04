@@ -342,10 +342,45 @@ function NotificationsTab({ me }: { me: ReturnType<typeof getUser> }) {
   )
 }
 
+function ServiceHealthBanner() {
+  const q = useQuery({
+    queryKey: ['admin', 'env-status'],
+    queryFn: () => apiFetch<{
+      ok: boolean
+      services: Record<string, { configured: boolean; missing: string[] }>
+    }>('/api/v1/admin/env-status'),
+    staleTime: 300_000,
+  })
+  if (!q.data || q.data.ok) return null
+  const broken = Object.entries(q.data.services).filter(([, s]) => !s.configured)
+  return (
+    <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(245,158,11,0.09)', border: '1.5px solid rgba(245,158,11,0.3)', marginBottom: 8 }}>
+      <div style={{ fontWeight: 900, fontSize: 13, color: '#f59e0b', marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Services not configured — some features are inactive
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {broken.map(([name, s]) => (
+          <div key={name} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+            <span style={{ color: '#ef4444', fontWeight: 800, flexShrink: 0 }}>✗</span>
+            <div>
+              <span style={{ fontWeight: 800, color: 'var(--text)', textTransform: 'capitalize' }}>{name}</span>
+              <span style={{ color: 'var(--muted)', marginLeft: 6 }}>missing: {s.missing.join(', ')}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>
+        → Add these in Railway dashboard: <strong>Settings → Variables</strong>
+      </div>
+    </div>
+  )
+}
+
 export function SettingsPage() {
   const me = getUser()
   const qc = useQueryClient()
-  const isAdmin = me?.role === 'admin'
+  const isAdmin = ['admin', 'director'].includes(me?.role || '')
   const canView = canViewAnalytics(me?.role)
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -549,7 +584,9 @@ export function SettingsPage() {
 
       {/* ── Plan tab ── */}
       {tab === 'plan' && (
-        <Section title="Plan & Billing" sub="Manage your subscription and payment details">
+        <>
+          {isAdmin && <ServiceHealthBanner />}
+          <Section title="Plan & Billing" sub="Manage your subscription and payment details">
           <div style={{ padding: '20px', borderRadius: 14, background: 'var(--brandDim)', border: '1.5px solid var(--brandBorder)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Current Plan</div>
@@ -575,6 +612,7 @@ export function SettingsPage() {
             ))}
           </div>
         </Section>
+        </>
       )}
     </div>
   )
