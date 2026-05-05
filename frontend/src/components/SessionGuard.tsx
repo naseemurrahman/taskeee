@@ -1,41 +1,98 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { isAuthed, clearAuth } from '../state/auth'
+import { isAuthed, clearAuth, isSessionPolicyExpired, isAccessTokenExpired, touchSessionActivity } from '../state/auth'
 
-/** Detects auth loss and redirects cleanly with a brief banner */
+/** Detects auth loss/session expiry and redirects cleanly. */
 export function SessionGuard() {
   const navigate = useNavigate()
   const location = useLocation()
   const [expired, setExpired] = useState(false)
+  const redirectTimer = useRef<number | null>(null)
+
+  function clearRedirectTimer() {
+    if (redirectTimer.current != null) {
+      window.clearTimeout(redirectTimer.current)
+      redirectTimer.current = null
+    }
+  }
+
+  function expireSession() {
+    if (!location.pathname.startsWith('/app')) return
+    setExpired(true)
+    clearAuth()
+    clearRedirectTimer()
+    redirectTimer.current = window.setTimeout(() => {
+      navigate('/signin?reason=session_expired', { replace: true })
+      redirectTimer.current = null
+    }, 1200)
+  }
 
   useEffect(() => {
-    // Check on every route change
-    if (!isAuthed() && location.pathname.startsWith('/app')) {
-      setExpired(true)
-      clearAuth()
-      const t = setTimeout(() => {
-        navigate('/signin?reason=session_expired', { replace: true })
-      }, 2000)
-      return () => clearTimeout(t)
+    if (!location.pathname.startsWith('/app')) {
+      setExpired(false)
+      clearRedirectTimer()
+      return
     }
+
+    if (isAuthed() && !isSessionPolicyExpired() && !isAccessTokenExpired()) {
+      setExpired(false)
+      clearRedirectTimer()
+      return
+    }
+
+    expireSession()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search])
+
+  useEffect(() => {
+    if (!location.pathname.startsWith('/app')) return
+
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'] as const
+    const onActivity = () => {
+      if (!isSessionPolicyExpired() && !isAccessTokenExpired()) touchSessionActivity()
+    }
+    for (const event of activityEvents) window.addEventListener(event, onActivity, { passive: true })
+
+    const interval = window.setInterval(() => {
+      if (isSessionPolicyExpired() || isAccessTokenExpired()) expireSession()
+    }, 30_000)
+
+    return () => {
+      for (const event of activityEvents) window.removeEventListener(event, onActivity)
+      window.clearInterval(interval)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, navigate])
 
-  // Listen for storage events (logout in another tab)
   useEffect(() => {
     function handleStorage(e: StorageEvent) {
       if ((e.key === 'tf_access_token' || e.key === 'tf_user') && !e.newValue) {
-        if (location.pathname.startsWith('/app')) {
-          setExpired(true)
-          clearAuth()
-          setTimeout(() => navigate('/signin?reason=session_expired', { replace: true }), 1800)
-        }
+        if (location.pathname.startsWith('/app')) expireSession()
+      }
+      if ((e.key === 'tf_access_token' || e.key === 'tf_user') && e.newValue) {
+        setExpired(false)
+        clearRedirectTimer()
       }
     }
+
+    function handleFocus() {
+      if (isAuthed() && !isSessionPolicyExpired() && !isAccessTokenExpired()) {
+        setExpired(false)
+        clearRedirectTimer()
+      }
+    }
+
     window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('focus', handleFocus)
+      clearRedirectTimer()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, navigate])
 
-  if (!expired) return null
+  if (!expired || !location.pathname.startsWith('/app')) return null
 
   return (
     <div className="sessionExpiredBanner" role="alert">

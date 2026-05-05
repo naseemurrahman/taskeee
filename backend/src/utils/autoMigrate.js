@@ -49,6 +49,70 @@ const MIGRATIONS = [
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS email_sent    BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS whatsapp_sent BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS delivery_error TEXT`,
+
+  // ── Migration 021: Stripe-backed subscription fields on organizations ──────
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_plan TEXT`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active'`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS seat_limit INTEGER`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_email TEXT`,
+  `CREATE INDEX IF NOT EXISTS idx_orgs_stripe_customer ON organizations(stripe_customer_id) WHERE stripe_customer_id IS NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_orgs_stripe_subscription ON organizations(stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL`,
+
+  // ── Migration 022: Search performance indexes ──────────────────────────────
+  `CREATE EXTENSION IF NOT EXISTS pg_trgm`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_org_updated ON tasks(org_id, updated_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_title_trgm ON tasks USING gin (title gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_tasks_description_trgm ON tasks USING gin (description gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_full_name_trgm ON users USING gin (full_name gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_email_trgm ON users USING gin (email gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_task_categories_name_trgm ON task_categories USING gin (name gin_trgm_ops)`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)`,
+
+  // ── Migration 023: MFA/2FA support ─────────────────────────────────────────
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret_enc TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enrolled_at TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_last_used_at TIMESTAMPTZ`,
+  `CREATE TABLE IF NOT EXISTS mfa_challenges (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     challenge_hash TEXT NOT NULL,
+     expires_at TIMESTAMPTZ NOT NULL,
+     consumed_at TIMESTAMPTZ,
+     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_mfa_challenges_hash ON mfa_challenges(challenge_hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_mfa_challenges_user ON mfa_challenges(user_id, expires_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     code_hash TEXT NOT NULL,
+     used_at TIMESTAMPTZ,
+     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_mfa_recovery_codes_user_hash ON mfa_recovery_codes(user_id, code_hash)`,
+
+  // ── Migration 024: refresh-token lifecycle columns ─────────────────────────
+  `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revoked BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS rotated_at TIMESTAMPTZ`,
+  `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ`,
+  `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+  `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_expires ON refresh_tokens(user_id, expires_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash)`,
+
+  // ── Migration 025: notification deduplication + delivery retry metadata ────
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS dedupe_key TEXT`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS group_count INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS last_grouped_at TIMESTAMPTZ`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_recent ON notifications(user_id, dedupe_key, created_at DESC) WHERE dedupe_key IS NOT NULL`,
+  `ALTER TABLE notification_delivery_log ADD COLUMN IF NOT EXISTS notification_id UUID REFERENCES notifications(id) ON DELETE SET NULL`,
+  `ALTER TABLE notification_delivery_log ADD COLUMN IF NOT EXISTS retry_of UUID REFERENCES notification_delivery_log(id) ON DELETE SET NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_notif_log_notification ON notification_delivery_log(notification_id, sent_at DESC)`,
 ];
 
 async function runAutoMigrations() {
@@ -59,8 +123,7 @@ async function runAutoMigrations() {
       await query(sql);
       ok++;
     } catch (err) {
-      // Table doesn't exist yet or other non-critical error
-      if (err.code === '42P01') { skip++; } // table not found — skip
+      if (err.code === '42P01') { skip++; }
       else { fail++; console.warn('[migrate] Non-fatal:', err.message); }
     }
   }

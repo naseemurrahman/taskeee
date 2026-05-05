@@ -1,0 +1,124 @@
+/* PR #70 — Project visibility and view toggle final QA */
+.projectScopeBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(226,171,65,0.20);
+  background:
+    radial-gradient(circle at top left, rgba(226,171,65,0.10), transparent 34%),
+    rgba(255,255,255,0.025);
+}
+
+.projectScopeTitle {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.projectScopeBody {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 3px;
+}
+
+.projectScopePill {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--brand);
+  background: rgba(226,171,65,0.10);
+  border: 1px solid rgba(226,171,65,0.22);
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.projectViewToggleBtn:focus-visible,
+.projectCardButton:focus-visible {
+  outline: 3px solid rgba(226,171,65,0.32);
+  outline-offset: 3px;
+}
+
+.projectsCollectionGrid .projectCardButton {
+  min-height: 132px;
+  align-items: flex-start;
+}
+
+.projectsCollectionGrid .projectCardBody {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.projectsCollectionGrid .projectCardMetaRow {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+
+.projectCardStats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--text2);
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.projectMobileHint {
+  display: none;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+.projectListSkeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.projectListSkeletonRow {
+  height: 78px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.045), rgba(255,255,255,0.085), rgba(255,255,255,0.045));
+  background-size: 200% 100%;
+  animation: projectSkeleton 1.2s infinite linear;
+}
+
+@keyframes projectSkeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 720px) {
+  .projectScopeBanner {
+    display: grid;
+  }
+
+  .projectScopePill {
+    width: fit-content;
+  }
+
+  .projectMobileHint {
+    display: block;
+  }
+
+  .projectCardButton {
+    border-radius: 18px;
+    padding: 14px;
+  }
+
+  .projectCardStats {
+    margin-top: 2px;
+  }
+}
