@@ -1,8 +1,16 @@
-/* Final override: project cards must be rectangular, not capsule/oval. */
+/* FINAL AUTHORITY: project cards are small-corner rectangles, never capsule/oval. */
+
+:root { --project-card-radius-final: 12px; }
+
+.projectsCollection,
+.projectsCollectionGrid,
+.projectsCollectionList {
+  width: 100% !important;
+}
 
 .projectsCollectionGrid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   gap: 16px !important;
   align-items: stretch !important;
 }
@@ -13,44 +21,58 @@
   gap: 12px !important;
 }
 
-.projectCardButton,
 .projectsCollection .projectCardButton,
 .projectsCollectionGrid .projectCardButton,
 .projectsCollectionList .projectCardButton,
-.chartV3 .projectCardButton,
-button.projectCardButton {
+.chartV3 .projectsCollection .projectCardButton,
+.chartV3 .projectsCollectionGrid .projectCardButton,
+.chartV3 .projectsCollectionList .projectCardButton,
+button.projectCardButton,
+button[class~="projectCardButton"] {
   box-sizing: border-box !important;
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 44px !important;
+  grid-template-rows: auto auto auto !important;
+  column-gap: 14px !important;
+  row-gap: 8px !important;
+  align-items: start !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
-  min-height: 138px !important;
+  min-height: 128px !important;
   height: auto !important;
   padding: 16px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(226, 171, 65, 0.38) !important;
-  border-top: 3px solid rgba(20, 184, 166, 0.86) !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), #151a24 !important;
+  border-radius: var(--project-card-radius-final) !important;
+  border-start-start-radius: var(--project-card-radius-final) !important;
+  border-start-end-radius: var(--project-card-radius-final) !important;
+  border-end-start-radius: var(--project-card-radius-final) !important;
+  border-end-end-radius: var(--project-card-radius-final) !important;
+  border: 1px solid rgba(226, 171, 65, .36) !important;
+  border-top: 3px solid rgba(20, 184, 166, .9) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.016)), #151a24 !important;
   box-shadow: none !important;
-  clip-path: none !important;
+  clip-path: inset(0 round var(--project-card-radius-final)) !important;
   overflow: hidden !important;
   transform: none !important;
   aspect-ratio: auto !important;
+  text-align: left !important;
 }
 
-.projectCardButton:hover,
 .projectsCollection .projectCardButton:hover,
 .projectsCollectionGrid .projectCardButton:hover,
 .projectsCollectionList .projectCardButton:hover,
-.chartV3 .projectCardButton:hover,
-button.projectCardButton:hover {
-  border-color: rgba(226, 171, 65, 0.66) !important;
+.chartV3 .projectsCollection .projectCardButton:hover,
+.chartV3 .projectsCollectionGrid .projectCardButton:hover,
+.chartV3 .projectsCollectionList .projectCardButton:hover,
+button.projectCardButton:hover,
+button[class~="projectCardButton"]:hover {
+  border-color: rgba(226, 171, 65, .62) !important;
   border-top-color: rgba(20, 184, 166, 1) !important;
-  box-shadow: 0 10px 26px rgba(0,0,0,.22) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.22) !important;
   transform: none !important;
 }
 
-.projectCardButton::before,
-.projectCardButton::after,
 .projectsCollection .projectCardButton::before,
 .projectsCollection .projectCardButton::after,
 .projectsCollectionGrid .projectCardButton::before,
@@ -60,58 +82,138 @@ button.projectCardButton:hover {
 .chartV3 .projectCardButton::before,
 .chartV3 .projectCardButton::after,
 button.projectCardButton::before,
-button.projectCardButton::after {
+button.projectCardButton::after,
+button[class~="projectCardButton"]::before,
+button[class~="projectCardButton"]::after {
   display: none !important;
   content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
   border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
-.projectCardButton *,
-.projectsCollection .projectCardButton *,
-.projectsCollectionGrid .projectCardButton *,
-.projectsCollectionList .projectCardButton * {
-  border-radius: revert-layer;
-}
-
-.projectCardButton > div:first-child,
 .projectsCollection .projectCardButton > div:first-child,
 .projectsCollectionGrid .projectCardButton > div:first-child,
 .projectsCollectionList .projectCardButton > div:first-child,
 .chartV3 .projectCardButton > div:first-child,
-button.projectCardButton > div:first-child {
-  border-radius: 8px !important;
+button.projectCardButton > div:first-child,
+button[class~="projectCardButton"] > div:first-child {
+  grid-column: 2 !important;
+  grid-row: 1 / span 2 !important;
+  justify-self: end !important;
+  align-self: start !important;
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
+  border-radius: 8px !important;
+  margin: 0 !important;
 }
 
 .projectCardButton > div:first-child > div {
   border-radius: 4px !important;
 }
 
-.projectCardStats {
+.projectsCollection .projectCardBody,
+.projectsCollectionGrid .projectCardBody,
+.projectsCollectionList .projectCardBody,
+.chartV3 .projectCardBody {
+  grid-column: 1 / -1 !important;
+  grid-row: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 44px !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 8px 14px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-right: 0 !important;
+}
+
+.projectCardBody .inlineEditWrap {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  max-width: 100% !important;
+}
+
+.projectCardMetaRow {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 / span 2 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+  padding-right: 0 !important;
+  margin-top: 0 !important;
+}
+
+.projectCardStats,
+.projectCardBody select {
   border-radius: 7px !important;
 }
 
 .projectCardBody select {
-  border-radius: 8px !important;
+  height: 36px !important;
+  width: 100% !important;
+  border: 1px solid rgba(226,171,65,.24) !important;
+  background: rgba(9,12,18,.78) !important;
 }
 
 @media (max-width: 760px) {
+  :root { --project-card-radius-final: 10px; }
+
   .projectsCollection,
   .projectsCollectionGrid,
   .projectsCollectionList {
     grid-template-columns: 1fr !important;
   }
 
-  .projectCardButton,
   .projectsCollection .projectCardButton,
   .projectsCollectionGrid .projectCardButton,
   .projectsCollectionList .projectCardButton,
-  .chartV3 .projectCardButton,
-  button.projectCardButton {
-    min-height: 116px !important;
-    border-radius: 9px !important;
+  .chartV3 .projectsCollection .projectCardButton,
+  .chartV3 .projectsCollectionGrid .projectCardButton,
+  .chartV3 .projectsCollectionList .projectCardButton,
+  button.projectCardButton,
+  button[class~="projectCardButton"] {
+    min-height: 112px !important;
     padding: 14px !important;
   }
+}
+
+/* Scroll isolation: main page and sidebar must not drag each other. */
+.appShellV4 {
+  height: 100dvh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.sidebarV4 {
+  height: 100dvh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.mainV4 {
+  min-height: 0 !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.contentV4 {
+  height: calc(100dvh - var(--topbar-height, 64px)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.sidebarMobileOpen .contentV4,
+.sidebarMobileOpen .mainV4 {
+  overscroll-behavior: none !important;
 }
