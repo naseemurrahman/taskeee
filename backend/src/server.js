@@ -29,6 +29,7 @@ if (!process.env.JWT_REFRESH_SECRET) { process.env.JWT_REFRESH_SECRET = 'taskflo
 
 const authRoutes  = require('./routes/auth');
 const mfaRoutes   = require('./routes/mfa');
+const sessionRoutes = require('./routes/sessions').router;
 const userRoutes  = require('./routes/users');
 const taskRoutes  = require('./routes/tasks');
 const taskTemplatesRoutes = require('./routes/taskTemplates');
@@ -103,6 +104,7 @@ app.get('/api/v1/insights/overview', (_req, res) => res.status(200).json({ gener
 app.use('/api/v1/auth/mfa', mfaRateLimiter);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/auth', mfaRoutes);
+app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
