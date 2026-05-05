@@ -8,17 +8,17 @@ import { getUser } from '../state/auth'
 import { useI18n, type Lang } from '../i18n'
 import type React from 'react'
 import {
-  BarChart3, BookOpen, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
+  BarChart3, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
-  UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap,
+  UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Dashboard: LayoutDashboard,
   Tasks: ListChecks,
   'My tasks': ClipboardList,
-  'Task templates': BookOpen,
+  'Recurring tasks': Repeat,
   Board: FolderKanban,
   Projects: Network,
   Calendar: Calendar,
@@ -34,7 +34,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Employees: UserCheck,
   'Time off': Clock,
   Pipeline: TrendingUp,
-  Leads: BookOpen,
+  Leads: FileText,
   Connections: Link2,
   Insights: Zap,
   'Org Settings': Building2,
@@ -43,7 +43,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 
 function labelKey(label: string): string {
   const map: Record<string, string> = {
-    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks', 'Task templates': 'Task templates',
+    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
     Board: 'nav.board', Projects: 'nav.projects', Calendar: 'nav.calendar',
     Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
@@ -56,7 +56,7 @@ function labelKey(label: string): string {
 
 function canSeeItem(role: string, item: string) {
   const adminOnly = ['Billing', 'Audit', 'Logs']
-  const managerUp = ['Analytics', 'Reports', 'Task templates']
+  const managerUp = ['Analytics', 'Reports', 'Recurring tasks']
   if (adminOnly.includes(item)) return ['admin', 'director'].includes(role)
   if (managerUp.includes(item)) return ['admin', 'director', 'hr', 'manager', 'supervisor'].includes(role)
   return true
@@ -240,7 +240,7 @@ export function AppLayout() {
         <nav className="sidebarV4Nav">
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
           <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} onNavigate={closeMobileNav} />
-          {canSee(role, 'supervisor') ? <><NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/task-templates" label="Task templates" display="Task templates" collapsed={collapsed} onNavigate={closeMobileNav} /></> : <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSee(role, 'supervisor') ? <><NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/recurring-tasks" label="Recurring tasks" display="Recurring tasks" collapsed={collapsed} onNavigate={closeMobileNav} /></> : <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
