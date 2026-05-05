@@ -2,7 +2,8 @@
  * Professional task-table checkbox behavior.
  *
  * TasksPage rows open a drawer on row click. This guard makes checkbox cells
- * reliable selection controls and fixes select-all in the table header.
+ * reliable selection controls, fixes select-all in the table header, and keeps
+ * mobile card checkbox taps from bubbling into the row drawer click.
  */
 function isPrimaryClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
@@ -23,15 +24,24 @@ function rowSelectionCheckboxes(table: Element): HTMLInputElement[] {
   return Array.from(table.querySelectorAll("tbody td input[type='checkbox']")) as HTMLInputElement[]
 }
 
+function setCheckbox(box: HTMLInputElement, checked: boolean) {
+  if (box.checked === checked) return
+  box.checked = checked
+  box.dispatchEvent(new Event('change', { bubbles: true }))
+  box.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
 function toggleVisibleRowsFromHeader(headerCheckbox: HTMLInputElement) {
   const table = headerCheckbox.closest('.tasksTable')
   if (!table) return
   const boxes = rowSelectionCheckboxes(table).filter(b => !b.disabled)
   if (!boxes.length) return
-  const allChecked = boxes.every(b => b.checked)
-  for (const box of boxes) {
-    if (allChecked ? box.checked : !box.checked) box.click()
-  }
+  const shouldCheck = !boxes.every(b => b.checked)
+  for (const box of boxes) setCheckbox(box, shouldCheck)
+}
+
+function toggleSingleCheckbox(checkbox: HTMLInputElement) {
+  setCheckbox(checkbox, !checkbox.checked)
 }
 
 function installTaskCheckboxEventGuard() {
@@ -44,6 +54,18 @@ function installTaskCheckboxEventGuard() {
     if (!hit) return
     event.stopPropagation()
   }, true)
+
+  document.addEventListener('mousedown', (event) => {
+    const hit = getSelectionCell(event.target)
+    if (!hit) return
+    event.stopPropagation()
+  }, true)
+
+  document.addEventListener('touchstart', (event) => {
+    const hit = getSelectionCell(event.target)
+    if (!hit) return
+    event.stopPropagation()
+  }, { capture: true, passive: true })
 
   document.addEventListener('click', (event) => {
     if (!isPrimaryClick(event)) return
@@ -66,7 +88,7 @@ function installTaskCheckboxEventGuard() {
     if (target !== checkbox) {
       event.preventDefault()
       checkbox.focus({ preventScroll: true })
-      checkbox.click()
+      toggleSingleCheckbox(checkbox)
     }
   }, true)
 
@@ -75,10 +97,9 @@ function installTaskCheckboxEventGuard() {
     const hit = getSelectionCell(event.target)
     if (!hit) return
     event.stopPropagation()
-    if (hit.isHeader) {
-      event.preventDefault()
-      toggleVisibleRowsFromHeader(hit.checkbox)
-    }
+    event.preventDefault()
+    if (hit.isHeader) toggleVisibleRowsFromHeader(hit.checkbox)
+    else toggleSingleCheckbox(hit.checkbox)
   }, true)
 }
 
