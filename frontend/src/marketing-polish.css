@@ -1,0 +1,98 @@
+/* Marketing page cleanup: one footer, consistent pricing emphasis, tighter mobile layout. */
+.mktMain > div > footer {
+  display: none !important;
+}
+
+.mktShell {
+  background: #0a0a10;
+}
+
+.mktMain {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(226, 171, 65, 0.10), transparent 34%),
+    radial-gradient(circle at 82% 24%, rgba(139, 92, 246, 0.10), transparent 32%),
+    #0a0a10;
+}
+
+.mktPage {
+  min-height: 100vh;
+}
+
+.mktSectionHead {
+  max-width: 820px;
+}
+
+.mktPlan {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)) !important;
+  box-shadow: 0 18px 70px rgba(0,0,0,0.22);
+}
+
+.mktPlan::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(226,171,65,0.10), transparent 34%);
+}
+
+.mktPlanPrimary {
+  border-color: rgba(226,171,65,0.52) !important;
+  box-shadow: 0 24px 90px rgba(226,171,65,0.14);
+}
+
+.mktPlanPrimary::after {
+  content: 'MOST POPULAR';
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #e2ab41;
+  color: #11131c;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.mktPlanName,
+.mktPlanPrice,
+.mktPlanTag,
+.mktPlanBullets,
+.mktPlanFine,
+.mktPlan .mktBtn {
+  position: relative;
+  z-index: 1;
+}
+
+.mktFeatureWide {
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at top left, rgba(226,171,65,0.10), transparent 36%),
+    rgba(255,255,255,0.035) !important;
+}
+
+.mktFooter {
+  background: rgba(6, 7, 12, 0.72);
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+.mktFooterInner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .mktGrid3 {
+    grid-template-columns: 1fr !important;
+  }
+  .mktPlanPrimary::after {
+    position: static;
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 12px;
+  }
+}
