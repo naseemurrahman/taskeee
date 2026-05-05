@@ -35,6 +35,8 @@ export function DiagnosticsPage() {
   const [running, setRunning] = useState(false)
   const [testEmail, setTestEmail] = useState(me?.email || '')
   const [testPhone, setTestPhone] = useState('')
+  const [logStatus, setLogStatus] = useState('')
+  const [logChannel, setLogChannel] = useState('')
 
   const isAdmin = ['admin', 'director'].includes(me?.role || '')
 
@@ -53,8 +55,13 @@ export function DiagnosticsPage() {
   })
 
   const deliveryQ = useQuery({
-    queryKey: ['admin', 'notification-delivery-log', 'diagnostics'],
-    queryFn: () => apiFetch<{ rows: any[] }>('/api/v1/admin/notification-delivery-log?limit=20'),
+    queryKey: ['admin', 'notification-delivery-log', 'diagnostics', logStatus, logChannel],
+    queryFn: () => {
+      const qs = new URLSearchParams({ limit: '30' })
+      if (logStatus) qs.set('status', logStatus)
+      if (logChannel) qs.set('channel', logChannel)
+      return apiFetch<{ rows: any[] }>(`/api/v1/admin/notification-delivery-log?${qs.toString()}`)
+    },
     enabled: isAdmin,
     refetchInterval: 45_000,
   })
@@ -103,6 +110,10 @@ export function DiagnosticsPage() {
     } finally {
       setRunning(false)
     }
+  }
+
+  async function retryDelivery(row: any) {
+    await testAdminEndpoint(`retry_${row.channel}_${row.id?.slice?.(0, 8) || 'delivery'}`, `/api/v1/admin/notification-delivery-log/${encodeURIComponent(row.id)}/retry`, { channel: row.channel })
   }
 
   const color = (val: any) => val?.ok === true ? '#22c55e' : val?.ok === false ? '#ef4444' : '#f59e0b'
@@ -169,11 +180,27 @@ export function DiagnosticsPage() {
 
       <Card title="Recent delivery logs">
         {!isAdmin && <div style={{ color: 'var(--muted)' }}>Admin or director access required.</div>}
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <select value={logStatus} onChange={e => setLogStatus(e.target.value)} style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)' }}>
+              <option value="">All statuses</option>
+              <option value="sent">Sent</option>
+              <option value="failed">Failed</option>
+              <option value="skipped">Skipped</option>
+            </select>
+            <select value={logChannel} onChange={e => setLogChannel(e.target.value)} style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text)' }}>
+              <option value="">All channels</option>
+              <option value="email">Email</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+            <button className="btn btnGhost" onClick={() => deliveryQ.refetch()} disabled={deliveryQ.isFetching}>Refresh</button>
+          </div>
+        )}
         {isAdmin && deliveryQ.isLoading && <div style={{ color: 'var(--muted)' }}>Loading…</div>}
         {isAdmin && deliveryQ.data && (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead><tr style={{ color: 'var(--muted)', textAlign: 'left' }}><th>User</th><th>Type</th><th>Channel</th><th>Status</th><th>Error</th><th>Sent</th></tr></thead>
+              <thead><tr style={{ color: 'var(--muted)', textAlign: 'left' }}><th>User</th><th>Type</th><th>Channel</th><th>Status</th><th>Error</th><th>Sent</th><th>Action</th></tr></thead>
               <tbody>
                 {(deliveryQ.data.rows || []).map((r) => (
                   <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
@@ -183,6 +210,9 @@ export function DiagnosticsPage() {
                     <td style={{ padding: '8px 6px', color: r.status === 'sent' ? '#22c55e' : r.status === 'failed' ? '#ef4444' : '#f59e0b', fontWeight: 900 }}>{r.status}</td>
                     <td style={{ padding: '8px 6px', maxWidth: 260, color: 'var(--muted)' }}>{r.error_msg || '—'}</td>
                     <td style={{ padding: '8px 6px', color: 'var(--muted)' }}>{r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}</td>
+                    <td style={{ padding: '8px 6px' }}>
+                      {r.status === 'failed' ? <button className="btn btnGhost" disabled={running} onClick={() => retryDelivery(r)}>Retry</button> : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
