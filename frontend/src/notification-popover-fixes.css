@@ -46,14 +46,14 @@
   top: calc(100% + 12px) !important;
   right: 0 !important;
   left: auto !important;
-  width: min(420px, calc(100vw - 24px)) !important;
+  width: min(460px, calc(100vw - 24px)) !important;
   max-width: calc(100vw - 24px) !important;
-  min-width: 340px !important;
-  max-height: min(560px, calc(100vh - 92px));
+  min-width: 360px !important;
+  max-height: min(640px, calc(100vh - 92px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: rgba(17, 19, 26, 0.98);
   color: var(--text);
@@ -91,6 +91,14 @@
   font-weight: 700;
 }
 
+.topbarNotifyHeadActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.topbarNotifyIconAction,
 .topbarNotifyMarkAll {
   flex: 0 0 auto;
   border: 1px solid rgba(226, 171, 65, 0.28);
@@ -102,6 +110,79 @@
   font-weight: 900;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.topbarNotifyIconAction {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.topbarNotifyIconAction:disabled,
+.topbarNotifyMarkAll:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.topbarNotifyTabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.topbarNotifyTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text2);
+  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.topbarNotifyTabActive {
+  background: rgba(226,171,65,0.14);
+  border-color: rgba(226,171,65,0.32);
+  color: var(--brand);
+}
+
+.topbarNotifyTabCount {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.07);
+  color: inherit;
+  font-size: 10px;
+}
+
+.topbarNotifyQuickActions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.topbarNotifyQuickActions button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.045);
+  color: var(--text2);
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .topbarNotifyList {
@@ -139,6 +220,11 @@
   border-color: rgba(226, 171, 65, 0.2);
 }
 
+.topbarNotifyItemGrouped {
+  border-color: rgba(139,92,246,0.22);
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(255,255,255,0.025));
+}
+
 .topbarNotifyItemRow,
 .topbarNotifyItemMain {
   display: grid;
@@ -168,6 +254,41 @@
 .topbarNotifyItemMeta {
   min-width: 0;
   max-width: 100%;
+}
+
+.topbarNotifyItemTopline {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.topbarNotifyTypePill,
+.topbarNotifyGroupPill,
+.topbarNotifyErrorPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.topbarNotifyTypePill {
+  color: var(--brand);
+  background: rgba(226,171,65,0.10);
+}
+
+.topbarNotifyGroupPill {
+  color: #a78bfa;
+  background: rgba(139,92,246,0.14);
+}
+
+.topbarNotifyErrorPill {
+  color: #ef4444;
+  background: rgba(239,68,68,0.12);
 }
 
 .topbarNotifyItemTitle {
@@ -204,7 +325,7 @@
   color: var(--muted);
   font-size: 11px;
   font-weight: 750;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .topbarNotifyEmpty {
@@ -224,5 +345,14 @@
     width: auto !important;
     min-width: 0 !important;
     max-height: calc(100vh - 90px);
+  }
+
+  .topbarNotifyHead {
+    padding: 14px;
+  }
+
+  .topbarNotifyQuickActions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
