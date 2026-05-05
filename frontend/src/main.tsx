@@ -15,6 +15,7 @@ import './checkbox-hitbox-fix.css'
 import './checkbox-final-fix.css'
 import './mobile-select-and-projects.css'
 import './ux-polish.css'
+import './marketing-polish.css'
 import './task-checkbox-event-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
@@ -52,9 +53,3 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 )
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => null)
-  })
-}
