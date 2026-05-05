@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
-const { emitNotification } = require('../services/notificationService');
+const { emitNotification, retryNotificationDelivery } = require('../services/notificationService');
 const { sendEmail, sendWhatsApp } = require('../services/notificationChannels');
 
 router.use(authenticate, requireAnyRole('admin', 'director'));
@@ -104,17 +104,36 @@ router.get('/system-health', async (_req, res) => {
 router.get('/notification-delivery-log', async (req, res, next) => {
   try {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '50', 10)));
+    const status = String(req.query.status || '').trim();
+    const channel = String(req.query.channel || '').trim();
+    const params = [];
+    const where = [];
+    if (status) { params.push(status); where.push(`l.status = $${params.length}`); }
+    if (channel) { params.push(channel); where.push(`l.channel = $${params.length}`); }
+    params.push(limit);
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const { rows } = await query(
-      `SELECT l.id, l.user_id, u.email, u.full_name, l.notif_type, l.channel, l.status, l.error_msg, l.sent_at
+      `SELECT l.id, l.notification_id, l.retry_of, l.user_id, u.email, u.full_name,
+              l.notif_type, l.channel, l.status, l.error_msg, l.sent_at
          FROM notification_delivery_log l
          LEFT JOIN users u ON u.id = l.user_id
+        ${whereSql}
         ORDER BY l.sent_at DESC
-        LIMIT $1`,
-      [limit]
+        LIMIT $${params.length}`,
+      params
     );
     res.json({ rows });
   } catch (err) {
     next(err);
+  }
+});
+
+router.post('/notification-delivery-log/:id/retry', async (req, res, next) => {
+  try {
+    const result = await retryNotificationDelivery(req.params.id, req.body?.channel || null);
+    res.json({ ok: true, result });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message || 'Retry failed' });
   }
 });
 
@@ -128,7 +147,7 @@ router.post('/test-notification', async (req, res, next) => {
       type: 'admin_test',
       title,
       body,
-      data: { sentBy: req.user.id, source: 'admin_test_notification' },
+      data: { sentBy: req.user.id, source: 'admin_test_notification', dedupeKey: `admin_test:${targetUserId}` },
     });
 
     res.json({ ok: true, message: 'Test notification queued', userId: targetUserId });
