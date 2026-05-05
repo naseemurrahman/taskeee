@@ -269,11 +269,11 @@ function InlineStatus({ task, role, canChange }: { task: Task; role: string; can
           }}
           style={{
             paddingLeft: 10, paddingRight: 8, paddingTop: 5, paddingBottom: 5,
-            borderRadius: 999, fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
+            borderRadius: 10, fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
             background: meta.bg, color: meta.color,
             border: `1.5px solid ${meta.color}55`,
             cursor: m.isPending ? 'not-allowed' : 'pointer',
-            outline: 'none', minWidth: 120,
+            outline: 'none', minWidth: 95, maxWidth: 130,
             opacity: m.isPending ? 0.6 : 1,
           }}
         >
@@ -615,45 +615,51 @@ export function TasksPage() {
             </div>
           )}
 
-          {/* Mobile card list — shown at ≤640px via CSS */}
+          {/* Mobile card list — shown at ≤700px via CSS */}
           <div className="tasksMobileList">
             {tasks.map(task => {
               const due = dueStat(task.due_date)
               const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
               const dueColor = due.tone === 'danger' ? '#ef4444' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
+              const isChecked = selected.has(task.id)
               return (
                 <div key={task.id}
-                  style={{ display: 'grid', gridTemplateColumns: '4px 1fr', background: selected.has(task.id) ? 'rgba(226,171,65,0.06)' : 'transparent', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'stretch', background: isChecked ? 'rgba(226,171,65,0.07)' : 'transparent', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                   onClick={() => { setDrawerTab('details'); setSelectedTaskId(task.id) }}>
-                  <div style={{ background: pColor }} />
-                  <div style={{ padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    {canManage && (
-                      <div onClick={e => { e.stopPropagation(); toggleSelect(task.id) }} style={{ paddingTop: 2 }}>
-                        <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleSelect(task.id)}
-                          style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                  {/* Priority stripe */}
+                  <div style={{ width: 4, flexShrink: 0, background: pColor }} />
+                  <div style={{ flex: 1, padding: '12px 12px 12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', minWidth: 0 }}>
+                    {/* Checkbox — only when bulk mode is active (something already selected) */}
+                    {canManage && selected.size > 0 && (
+                      <div onClick={e => { e.stopPropagation(); toggleSelect(task.id) }} style={{ paddingTop: 2, flexShrink: 0 }}>
+                        <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(task.id)}
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#e2ab41' }} />
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {/* Title */}
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--text)', lineHeight: 1.3, marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {task.title}
                       </div>
-                      {/* AI signal */}
+                      {/* AI signal warning — only when attention needed, strip newlines */}
                       {!workloadQ.isLoading && (() => {
                         const sig = buildTaskSignal(task, loadByUser)
-                        return sig.needsAttention ? (
-                          <div style={{ fontSize: 11, color: '#f97316', marginBottom: 4 }}>
-                            {sig.score}% · {sig.loadNote || sig.note}
+                        const note = (sig.loadNote || sig.note || '').replace(/\n/g, ' ').trim()
+                        return sig.needsAttention && note ? (
+                          <div style={{ fontSize: 11, color: '#f97316', marginBottom: 5, lineHeight: 1.3 }}>
+                            {sig.score}% · {note}
                           </div>
                         ) : null
                       })()}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                      {/* Meta row: assignee + priority + due */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
                         {task.assigned_to_name && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)' }}>
-                            {task.assigned_to_name.split(' ').map((s: string) => s[0]).join('')} {task.assigned_to_name.split(' ')[0]}
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', letterSpacing: '-0.01em' }}>
+                            {task.assigned_to_name.split(' ')[0]}
                           </span>
                         )}
                         {task.priority && (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: pColor, background: pColor + '18', padding: '1px 7px', borderRadius: 999 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: pColor, background: pColor + '18', padding: '2px 7px', borderRadius: 6 }}>
                             {task.priority}
                           </span>
                         )}
@@ -662,8 +668,8 @@ export function TasksPage() {
                         )}
                       </div>
                     </div>
-                    {/* Inline status */}
-                    <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0, paddingTop: 2 }}>
+                    {/* Status — compact native select */}
+                    <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0, alignSelf: 'center' }}>
                       <InlineStatus task={task} role={role} canChange={canChangeStatus} />
                     </div>
                   </div>

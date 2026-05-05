@@ -118,7 +118,9 @@
   }
 
   .projectCardButton {
-    min-height: 78px;
+    min-height: 68px;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
   }
 
   .projectCardBody {

@@ -114,8 +114,8 @@
   }
 
   .projectCardButton {
-    border-radius: 18px;
-    padding: 14px;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
   }
 
   .projectCardStats {

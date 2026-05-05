@@ -236,7 +236,9 @@ export function NotificationCenter() {
             {visibleList.map((n) => {
               const grouped = Number(n.group_count || 0) > 1
               const bucket = notificationBucket(n)
-              const typeColor = bucket === 'reminders' ? '#f59e0b' : bucket === 'tasks' ? 'var(--brand)' : 'var(--text2)'
+              const typeColor = bucket === 'reminders' ? '#f59e0b' : bucket === 'tasks' ? 'var(--brand)' : '#94a3b8'
+              const displayTitle = (n.title || '').trim()
+              const displayBody  = (n.body  || '').trim()
               return (
                 <button
                   key={n.id}
@@ -247,20 +249,34 @@ export function NotificationCenter() {
                     goFromNotif(n)
                   }}
                 >
-                  <div style={{ display: 'grid', gridTemplateColumns: '8px 1fr', gap: '0 10px', alignItems: 'start', width: '100%' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.is_read ? 'transparent' : typeColor, marginTop: 5, flexShrink: 0, border: n.is_read ? '1.5px solid var(--border)' : 'none' }} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 10, fontWeight: 900, color: typeColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%', textAlign: 'left' }}>
+                    {/* Unread dot */}
+                    <div style={{ flexShrink: 0, marginTop: 5, width: 7, height: 7, borderRadius: '50%', background: n.is_read ? 'var(--border)' : typeColor }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Title — most prominent */}
+                      {displayTitle ? (
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {displayTitle}
+                        </div>
+                      ) : null}
+                      {/* Body — truncated */}
+                      {displayBody ? (
+                        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.4, marginBottom: 5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {displayBody}
+                        </div>
+                      ) : null}
+                      {/* Footer row: type + count + time */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: typeColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           {typeLabel(n)}{grouped ? ` ×${n.group_count}` : ''}
                         </span>
-                        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{formatWhen(effectiveDate(n))}</span>
+                        {n.delivery_error && (
+                          <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>· failed</span>
+                        )}
+                        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
+                          {formatWhen(effectiveDate(n))}
+                        </span>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.35, marginBottom: n.body ? 3 : 0 }}>
-                        {n.title || 'Notification'}
-                      </div>
-                      {n.body && <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.45 }}>{n.body}</div>}
-                      {n.delivery_error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>⚠ Delivery failed</div>}
                     </div>
                   </div>
                 </button>
