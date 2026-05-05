@@ -17,6 +17,7 @@ process.on('unhandledRejection', (reason) => { const msg = reason instanceof Err
 
 const { connectDB, query } = require('./utils/db');
 const { connectRedis } = require('./utils/redis');
+const { runPendingMigrations } = require('./utils/migrationRunner');
 const errorHandler = require('./middleware/errorHandler');
 const { securityHeaders, sensitiveOpLogger, mfaRateLimiter, notificationRateLimiter, bulkActionRateLimiter } = require('./middleware/security');
 const { requestContext } = require('./middleware/requestContext');
@@ -153,9 +154,12 @@ const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10
 async function start() {
   try { require('./utils/envCheck').runEnvCheck(); } catch {}
   try { await connectDB(); } catch (err) { logger.error('Database bootstrap failed, starting API in degraded mode: ' + err.message); }
+  try { await runPendingMigrations({ verbose: true }); } catch (err) { logger.warn('Versioned migration warning: ' + err.message); }
   try { await connectRedis(); } catch (err) { logger.warn('Redis bootstrap failed, continuing with fallback cache: ' + err.message); }
   try { require('./services/schedulerService').start(); } catch (err) { logger.warn('Scheduler failed to start: ' + err.message); }
-  try { await require('./utils/autoMigrate').runAutoMigrations(); } catch (err) { logger.warn('Auto-migration warning: ' + err.message); }
+  if (process.env.ENABLE_LEGACY_AUTO_MIGRATE === 'true') {
+    try { await require('./utils/autoMigrate').runAutoMigrations(); } catch (err) { logger.warn('Legacy auto-migration warning: ' + err.message); }
+  }
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
 }
 
