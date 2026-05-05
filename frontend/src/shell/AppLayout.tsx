@@ -274,8 +274,14 @@ export function AppLayout() {
         <nav className="sidebarV4Nav">
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
           <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} onNavigate={closeMobileNav} />
-          {/* Tasks: managers+ see all-org Tasks page; employees see Tasks page filtered to their own */}
-          <NavItem to="/app/tasks" label="Tasks" display={role === 'employee' ? 'My Tasks' : t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+          {canSee(role, 'supervisor') ? (
+            <>
+              <NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+              <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+            </>
+          ) : (
+            <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />
+          )}
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
