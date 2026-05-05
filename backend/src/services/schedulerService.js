@@ -7,7 +7,26 @@ const logger = require('../utils/logger');
 const noProgressSent = new Set();
 const atRiskSent = new Set();
 
+async function runDueRecurringTasks() {
+  try {
+    const { rows: orgs } = await query(`SELECT id FROM organizations WHERE is_active = TRUE`);
+    const { generateDueRules } = require('../routes/recurringTasks');
+    for (const org of orgs) {
+      const generated = await generateDueRules(org.id, null).catch(err => {
+        logger.warn(`Recurring task generation failed for org ${org.id}: ${err.message}`);
+        return [];
+      });
+      if (generated.length) logger.info(`Generated ${generated.length} recurring task(s) for org ${org.id}`);
+    }
+  } catch (e) {
+    logger.warn('Recurring task scheduler: ' + e.message);
+  }
+}
+
 function start() {
+  // Recurring task generation: every hour
+  cron.schedule('5 * * * *', runDueRecurringTasks);
+
   // Daily report: every day at 8:00 AM
   cron.schedule('0 8 * * *', async () => {
     logger.info('Running daily reports...');
@@ -118,4 +137,4 @@ function start() {
   logger.info('Scheduler started');
 }
 
-module.exports = { start };
+module.exports = { start, runDueRecurringTasks };
