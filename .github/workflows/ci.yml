@@ -4,9 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   frontend:
+    name: Frontend lint and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -14,38 +16,49 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-
       - name: Install dependencies
         run: npm ci
-
+      - name: Lint report
+        continue-on-error: true
+        run: |
+          echo "Running ESLint as an advisory report. Existing repository lint debt is tracked separately; build remains blocking."
+          npm run lint -- --max-warnings=0
       - name: Build
         run: npm run build
 
   backend:
+    name: Backend smoke and validation
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      CLIENT_ORIGIN: http://localhost:5173
+      JWT_SECRET: ci_jwt_placeholder_for_tests_only_32_chars
+      JWT_REFRESH_SECRET: ci_refresh_placeholder_for_tests_only_32_chars
+      MFA_ENCRYPTION_KEY: ci_mfa_placeholder_for_tests_only_32_chars
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Smoke test imports
-        run: node -e "require('./src/routes/analytics'); require('./src/services/analyticsService'); console.log('backend imports ok')"
+      - name: Build check
+        run: npm run build
+      - name: Import smoke test
+        run: npm run smoke
+      - name: Validation smoke test
+        run: npm run validate:smoke

@@ -12,6 +12,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "build": "node -e \"console.log('Backend has no build step')\"",
+    "smoke": "node scripts/smoke.js",
+    "validate:smoke": "node scripts/validate-smoke.js",
     "test": "jest",
     "db:test": "node scripts/test-db.js",
     "admin:create": "node scripts/create-admin.js",
