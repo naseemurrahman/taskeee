@@ -469,7 +469,9 @@ export function TasksPage() {
             ) : undefined}
           />
         ) : (
-          <>\n          {/* Desktop table — hidden on mobile */}\n          <div className="tasksDesktopTable tasksTableWrap" style={{ overflow: 'visible' }}>
+          <>
+          {/* Desktop table — hidden on mobile */}
+          <div className="tasksDesktopTable tasksTableWrap" style={{ overflow: 'visible' }}>
             <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
