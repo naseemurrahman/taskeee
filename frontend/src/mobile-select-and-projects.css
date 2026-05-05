@@ -1,0 +1,135 @@
+/* Keep filter dropdowns above task-table checkboxes on mobile. */
+.selectV3Wrap,
+.selectV3WrapOpen {
+  position: relative;
+  z-index: 120;
+}
+
+.selectV3WrapOpen .selectV3Dropdown {
+  z-index: 10050 !important;
+  isolation: isolate;
+}
+
+.tasksTable input[type='checkbox'] {
+  z-index: 12 !important;
+}
+
+/* Project view controls and responsive list/grid layouts. */
+.projectViewToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.projectViewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg2);
+}
+
+.projectViewToggleBtn {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.projectViewToggleBtnActive {
+  background: var(--brand);
+  color: #1a1d2e;
+}
+
+.projectsCollection {
+  display: grid;
+  gap: 12px;
+}
+
+.projectsCollectionGrid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.projectsCollectionList {
+  grid-template-columns: 1fr;
+}
+
+.projectCardButton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
+}
+
+.projectCardButton:hover {
+  transform: translateY(-1px);
+}
+
+.projectsCollectionList .projectCardButton {
+  min-height: 78px;
+}
+
+.projectsCollectionList .projectCardBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.projectsCollectionGrid .projectCardBody {
+  min-width: 0;
+}
+
+.projectCardMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .projectViewToggle {
+    display: none;
+  }
+
+  .projectsCollection,
+  .projectsCollectionGrid,
+  .projectsCollectionList {
+    grid-template-columns: 1fr !important;
+  }
+
+  .projectCardButton {
+    min-height: 78px;
+  }
+
+  .projectCardBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .projectCardMetaRow {
+    justify-content: flex-start;
+  }
+}
