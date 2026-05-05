@@ -51,12 +51,63 @@ async function sendEmail({ to, subject, text, html }) {
   return { sent: true };
 }
 
+function normalizeWhatsAppTo(toE164) {
+  const to = String(toE164 || '').replace(/\D/g, '');
+  return to || null;
+}
+
+function getWhatsAppTemplateName(type) {
+  const key = String(type || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  if (!key) return null;
+  return process.env[`WHATSAPP_TEMPLATE_${key}`] || null;
+}
+
+function buildTemplateComponents({ title, body, parameters }) {
+  const values = Array.isArray(parameters) && parameters.length
+    ? parameters
+    : [title, body].filter(Boolean);
+
+  if (!values.length) return undefined;
+
+  return [{
+    type: 'body',
+    parameters: values.slice(0, 10).map((value) => ({
+      type: 'text',
+      text: String(value || '').slice(0, 1024),
+    })),
+  }];
+}
+
+async function postWhatsAppMessage(payload) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (!token || !phoneId) return { skipped: true };
+
+  const graphVersion = process.env.WHATSAPP_GRAPH_VERSION || 'v21.0';
+  const url = `https://graph.facebook.com/${graphVersion}/${phoneId}/messages`;
+
+  const { data } = await axios.post(url, payload, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    timeout: 15000,
+  });
+
+  return { sent: true, provider: data };
+}
+
 /**
  * Meta WhatsApp Cloud API.
- * Supports both the legacy WHATSAPP_TOKEN env name and the current
- * WHATSAPP_ACCESS_TOKEN name used in Railway.
+ *
+ * Production supports approved templates by setting env vars such as:
+ *   WHATSAPP_USE_TEMPLATES=true
+ *   WHATSAPP_TEMPLATE_LANGUAGE=en_US
+ *   WHATSAPP_TEMPLATE_TASK_ASSIGNED=task_assigned
+ *   WHATSAPP_TEMPLATE_TASK_OVERDUE=task_overdue
+ *
+ * If no matching template is configured, it falls back to text messages for
+ * testing/diagnostics.
  */
-async function sendWhatsApp({ toE164, body }) {
+async function sendWhatsApp({ toE164, body, type = null, title = null, templateName = null, templateParameters = null, language = null }) {
   const token = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -65,26 +116,37 @@ async function sendWhatsApp({ toE164, body }) {
     return { skipped: true };
   }
 
-  const to = String(toE164).replace(/\D/g, '');
+  const to = normalizeWhatsAppTo(toE164);
   if (!to) {
     logger.debug('WhatsApp skipped: recipient phone number is empty after normalization');
     return { skipped: true };
   }
 
-  const graphVersion = process.env.WHATSAPP_GRAPH_VERSION || 'v21.0';
-  const url = `https://graph.facebook.com/${graphVersion}/${phoneId}/messages`;
+  const useTemplates = String(process.env.WHATSAPP_USE_TEMPLATES || '').toLowerCase() === 'true';
+  const resolvedTemplate = templateName || getWhatsAppTemplateName(type);
 
-  await axios.post(url, {
+  if (useTemplates && resolvedTemplate) {
+    const components = buildTemplateComponents({ title, body, parameters: templateParameters });
+    return postWhatsAppMessage({
+      messaging_product: 'whatsapp',
+      to,
+      type: 'template',
+      template: {
+        name: resolvedTemplate,
+        language: { code: language || process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en_US' },
+        ...(components ? { components } : {}),
+      },
+    });
+  }
+
+  await postWhatsAppMessage({
     messaging_product: 'whatsapp',
     to,
     type: 'text',
     text: { body: String(body || '').slice(0, 4096) },
-  }, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    timeout: 15000,
   });
 
-  return { sent: true };
+  return { sent: true, mode: 'text' };
 }
 
 module.exports = { sendEmail, sendWhatsApp };

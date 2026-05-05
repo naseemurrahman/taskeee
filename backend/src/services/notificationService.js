@@ -94,7 +94,6 @@ async function insertOrGroupNotification(userId, { type, title, body, data = {},
     );
     return { id: inserted.rows?.[0]?.id || null, grouped: false, groupCount: inserted.rows?.[0]?.group_count || 1, dedupeKey: key };
   } catch (err) {
-    // Legacy schema fallback if dedupe columns are not present yet.
     const inserted = await query(
       `INSERT INTO notifications (user_id, type, title, body, data)
        VALUES ($1, $2, $3, $4, $5)
@@ -123,7 +122,7 @@ async function logDelivery(userId, notifType, channel, status, errorMsg = null, 
   }
 }
 
-async function deliverNotificationChannels(userId, notificationId, { type, title, body }) {
+async function deliverNotificationChannels(userId, notificationId, { type, title, body, data = {} }) {
   let emailSent = false;
   let whatsappSent = false;
   const deliveryErrors = [];
@@ -162,24 +161,22 @@ async function deliverNotificationChannels(userId, notificationId, { type, title
 
     emailSent = !!result?.sent;
     await logDelivery(userId, type, 'email', result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent', result?.error || null, notificationId);
-    if (result?.error) {
-      deliveryErrors.push(`email: ${result.error}`);
-      logger.warn(`Email failed for ${userId}: ${result.error}`);
-    }
+    if (result?.error) deliveryErrors.push(`email: ${result.error}`);
   }
 
   if (waEnabled && (contact.whatsapp_e164 || contact.phone_e164)) {
     const result = await sendWhatsApp({
       toE164: contact.whatsapp_e164 || contact.phone_e164,
-      body: text
+      type,
+      title,
+      body: text,
+      templateName: data?.whatsappTemplateName || data?.templateName || null,
+      templateParameters: data?.whatsappTemplateParameters || data?.templateParameters || null,
     }).catch(e => ({ error: e.message }));
 
     whatsappSent = !!result?.sent;
     await logDelivery(userId, type, 'whatsapp', result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent', result?.error || null, notificationId);
-    if (result?.error) {
-      deliveryErrors.push(`whatsapp: ${result.error}`);
-      logger.warn(`WhatsApp failed for ${userId}: ${result.error}`);
-    }
+    if (result?.error) deliveryErrors.push(`whatsapp: ${result.error}`);
   }
 
   return { emailSent, whatsappSent, deliveryErrors };
@@ -206,13 +203,12 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
       });
     } catch { /* optional */ }
 
-    // If this is grouped, do not repeatedly send email/WhatsApp for the same reminder burst.
     if (inserted.grouped) {
       logger.debug(`Notification grouped for user ${userId}: ${type}`);
       return;
     }
 
-    const { emailSent, whatsappSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body });
+    const { emailSent, whatsappSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body, data });
 
     if (notificationId) {
       try {
@@ -226,8 +222,6 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
         );
       } catch { /* older schemas may not have these columns yet */ }
     }
-
-    logger.debug(`Notification emitted to user ${userId}: ${type}`);
   } catch (err) {
     logger.error(`Failed to send notification to ${userId}:`, err.message);
   }
@@ -235,7 +229,7 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
 
 async function retryNotificationDelivery(logId, channel = null) {
   const { rows } = await query(
-    `SELECT l.*, n.title, n.body, n.type AS notification_type
+    `SELECT l.*, n.title, n.body, n.type AS notification_type, n.data
        FROM notification_delivery_log l
        LEFT JOIN notifications n ON n.id = l.notification_id
       WHERE l.id = $1
@@ -260,7 +254,7 @@ async function retryNotificationDelivery(logId, channel = null) {
   } else if (selectedChannel === 'whatsapp') {
     const toE164 = contact.whatsapp_e164 || contact.phone_e164;
     if (!toE164) throw new Error('User has no WhatsApp/phone number');
-    result = await sendWhatsApp({ toE164, body: text });
+    result = await sendWhatsApp({ toE164, type: log.notif_type, title, body: text, templateParameters: log.data?.templateParameters || log.data?.whatsappTemplateParameters || null });
   } else {
     throw new Error('Unsupported retry channel');
   }
