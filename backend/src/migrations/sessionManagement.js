@@ -4,7 +4,7 @@ module.exports = [
   {
     version: '202605050008',
     name: 'professional_session_management',
-    checksum: 'professional-session-management-v1',
+    checksum: 'professional-session-management-v2',
     up: [
       `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS session_id UUID`,
       `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS token_family_id UUID`,
@@ -14,6 +14,8 @@ module.exports = [
       `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS ip_address TEXT`,
       `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS user_agent TEXT`,
       `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS device_name TEXT`,
+      `ALTER TABLE refresh_tokens ALTER COLUMN session_id SET DEFAULT gen_random_uuid()`,
+      `ALTER TABLE refresh_tokens ALTER COLUMN token_family_id SET DEFAULT gen_random_uuid()`,
       `UPDATE refresh_tokens SET session_id = gen_random_uuid() WHERE session_id IS NULL`,
       `UPDATE refresh_tokens SET token_family_id = gen_random_uuid() WHERE token_family_id IS NULL`,
       `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_session ON refresh_tokens(user_id, session_id, created_at DESC)`,
