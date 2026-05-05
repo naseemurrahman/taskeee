@@ -2,7 +2,20 @@
 
 const { query, withTransaction, isDemo } = require('./db');
 const logger = require('./logger');
-const migrations = require('../migrations');
+const baseMigrations = require('../migrations');
+
+function loadSupplementalMigrations() {
+  const modules = [];
+  for (const modulePath of ['../migrations/sessionManagement']) {
+    try {
+      const loaded = require(modulePath);
+      if (Array.isArray(loaded)) modules.push(...loaded);
+    } catch (err) {
+      if (err?.code !== 'MODULE_NOT_FOUND') throw err;
+    }
+  }
+  return modules;
+}
 
 async function ensureMigrationsTable(clientQuery = query) {
   await clientQuery(`
@@ -34,7 +47,9 @@ function normalizeMigration(migration) {
 }
 
 function sortedMigrations() {
-  return migrations.map(normalizeMigration).sort((a, b) => a.version.localeCompare(b.version));
+  return [...baseMigrations, ...loadSupplementalMigrations()]
+    .map(normalizeMigration)
+    .sort((a, b) => a.version.localeCompare(b.version));
 }
 
 async function runPendingMigrations(options = {}) {
@@ -87,4 +102,4 @@ async function getMigrationStatus() {
   };
 }
 
-module.exports = { runPendingMigrations, getMigrationStatus };
+module.exports = { runPendingMigrations, getMigrationStatus, sortedMigrations };
