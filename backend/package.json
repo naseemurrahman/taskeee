@@ -8,6 +8,7 @@
     "deps:down": "docker compose stop postgres redis",
     "deps:logs": "docker compose logs -f postgres redis",
     "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migration-status.js",
     "deploy": "node scripts/deploy.js",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
