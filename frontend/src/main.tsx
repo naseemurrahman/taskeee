@@ -20,6 +20,7 @@ import './create-task-modal-polish.css'
 import './tasks-mobile-selection-qa.css'
 import './project-visibility-final-qa.css'
 import './task-templates.css'
+import './recurring-tasks.css'
 import './task-checkbox-event-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
@@ -48,10 +49,10 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
           <BrowserRouter>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </BrowserRouter>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </BrowserRouter>
         </I18nProvider>
       </QueryClientProvider>
     </ErrorBoundary>
