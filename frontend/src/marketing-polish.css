@@ -85,6 +85,47 @@
   margin: 0 auto;
 }
 
+/* Standardize the marketing-home pricing anchor with the /pricing page.
+   The older home section had Starter / Professional / Enterprise prices.
+   Hide those legacy cards and render the same two paid plans used on /pricing. */
+section[data-section='pricing'] .priceGrid {
+  display: none !important;
+}
+
+section[data-section='pricing'] {
+  position: relative;
+}
+
+section[data-section='pricing']::before {
+  content: 'Choose Basic for structured team operations, or Pro when you need AI insights, WhatsApp delivery diagnostics, audit controls, and readiness tooling.';
+  display: block;
+  max-width: 720px;
+  margin: -34px auto 22px;
+  color: rgba(255,255,255,0.58);
+  font-size: 16px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+section[data-section='pricing']::after {
+  content: 'Basic — $4 / seat / month\A Tasks, projects, HR workflow, reports, exports, email notifications, and role-based access.\A\A Pro — $10 / seat / month\A Everything in Basic plus AI task signals, WhatsApp diagnostics, audit/readiness tooling, advanced analytics, and priority support.';
+  white-space: pre-line;
+  display: grid;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 30px;
+  border-radius: 28px;
+  border: 1px solid rgba(226,171,65,0.34);
+  background:
+    linear-gradient(135deg, rgba(226,171,65,0.12), rgba(139,92,246,0.08)),
+    rgba(255,255,255,0.035);
+  color: rgba(255,255,255,0.86);
+  font-size: 17px;
+  line-height: 1.75;
+  font-weight: 650;
+  box-shadow: 0 22px 80px rgba(0,0,0,0.25);
+}
+
 @media (max-width: 860px) {
   .mktGrid3 {
     grid-template-columns: 1fr !important;
@@ -94,5 +135,9 @@
     display: inline-flex;
     width: fit-content;
     margin-bottom: 12px;
+  }
+  section[data-section='pricing']::after {
+    padding: 22px;
+    font-size: 15px;
   }
 }
