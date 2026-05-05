@@ -13,6 +13,10 @@ function normalizeColor(color) {
   return /^#[0-9a-fA-F]{6}$/.test(s) ? s : null;
 }
 
+function isPersonalProjectRole(role) {
+  return ['employee', 'technician'].includes(String(role || '').toLowerCase());
+}
+
 let tablesCache = null;
 let taskCategoryColumns = null;
 let projectColumns = null;
@@ -65,29 +69,33 @@ async function resolveOrgId(req) {
 
 function categorySelectSql(cols) {
   return `
-    SELECT id,
-           name,
-           description,
-           ${cols.has('icon') ? 'icon' : 'NULL::text AS icon'},
-           ${cols.has('color') ? 'color' : 'NULL::text AS color'},
-           ${cols.has('status') ? 'status' : (cols.has('is_active') ? "CASE WHEN is_active THEN 'active' ELSE 'completed' END" : "'active'") + ' AS status'},
-           ${cols.has('is_active') ? 'is_active' : 'TRUE AS is_active'},
-           created_at
-      FROM task_categories
+    SELECT tc.id,
+           tc.name,
+           tc.description,
+           ${cols.has('icon') ? 'tc.icon' : 'NULL::text AS icon'},
+           ${cols.has('color') ? 'tc.color' : 'NULL::text AS color'},
+           ${cols.has('status') ? 'tc.status' : (cols.has('is_active') ? "CASE WHEN tc.is_active THEN 'active' ELSE 'completed' END" : "'active'") + ' AS status'},
+           ${cols.has('is_active') ? 'tc.is_active' : 'TRUE AS is_active'},
+           tc.created_at,
+           COUNT(t.id)::int AS task_count
+      FROM task_categories tc
+      LEFT JOIN tasks t ON t.category_id = tc.id AND t.deleted_at IS NULL
   `;
 }
 
 function legacyProjectSelectSql() {
   return `
-    SELECT id,
-           name,
-           description,
+    SELECT p.id,
+           p.name,
+           p.description,
            NULL::text AS icon,
            NULL::text AS color,
-           COALESCE(status, 'active') AS status,
+           COALESCE(p.status, 'active') AS status,
            TRUE AS is_active,
-           created_at
-      FROM projects
+           p.created_at,
+           COUNT(t.id)::int AS task_count
+      FROM projects p
+      LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL
   `;
 }
 
@@ -99,23 +107,47 @@ router.get('/', authenticate, async (req, res, next) => {
     const store = await resolveProjectStore();
     if (!store) return res.json({ projects: [] });
 
+    const personalOnly = isPersonalProjectRole(req.user?.role);
+
     if (store === 'task_categories') {
       const cols = await getTaskCategoryColumns();
-      const where = ['org_id = $1'];
-      if (cols.has('is_active')) where.push('is_active = TRUE');
+      const where = ['tc.org_id = $1'];
+      const params = [orgId];
+      if (cols.has('is_active')) where.push('tc.is_active = TRUE');
+      if (personalOnly) {
+        params.push(req.user.id);
+        where.push(`EXISTS (
+          SELECT 1 FROM tasks myt
+           WHERE myt.category_id = tc.id
+             AND myt.org_id = tc.org_id
+             AND myt.assigned_to = $${params.length}
+             AND myt.deleted_at IS NULL
+        )`);
+      }
       const { rows } = await query(
-        `${categorySelectSql(cols)} WHERE ${where.join(' AND ')} ORDER BY created_at DESC`,
-        [orgId]
+        `${categorySelectSql(cols)} WHERE ${where.join(' AND ')} GROUP BY tc.id ORDER BY tc.created_at DESC`,
+        params
       );
       return res.json({ projects: rows });
     }
 
     const cols = await getProjectColumns();
-    const where = ['org_id = $1'];
-    if (cols.has('status')) where.push(`status <> 'archived'`);
+    const where = ['p.org_id = $1'];
+    const params = [orgId];
+    if (cols.has('status')) where.push(`p.status <> 'archived'`);
+    if (personalOnly) {
+      params.push(req.user.id);
+      where.push(`EXISTS (
+        SELECT 1 FROM tasks myt
+         WHERE myt.project_id = p.id
+           AND myt.org_id = p.org_id
+           AND myt.assigned_to = $${params.length}
+           AND myt.deleted_at IS NULL
+      )`);
+    }
     const { rows } = await query(
-      `${legacyProjectSelectSql()} WHERE ${where.join(' AND ')} ORDER BY created_at DESC`,
-      [orgId]
+      `${legacyProjectSelectSql()} WHERE ${where.join(' AND ')} GROUP BY p.id ORDER BY p.created_at DESC`,
+      params
     );
     return res.json({ projects: rows });
   } catch (err) {
@@ -129,6 +161,7 @@ router.get('/:projectId', authenticate, async (req, res, next) => {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
+    const personalOnly = isPersonalProjectRole(req.user?.role);
 
     const store = await resolveProjectStore();
     if (!store) return res.status(404).json({ error: 'Project not found' });
@@ -136,16 +169,22 @@ router.get('/:projectId', authenticate, async (req, res, next) => {
     let projRows = [];
     if (store === 'task_categories') {
       const cols = await getTaskCategoryColumns();
-      ({ rows: projRows } = await query(`${categorySelectSql(cols)} WHERE org_id = $1 AND id = $2`, [orgId, projectId]));
+      const params = [orgId, projectId];
+      const personalSql = personalOnly ? ` AND EXISTS (SELECT 1 FROM tasks myt WHERE myt.category_id = tc.id AND myt.org_id = tc.org_id AND myt.assigned_to = $3 AND myt.deleted_at IS NULL)` : '';
+      if (personalOnly) params.push(req.user.id);
+      ({ rows: projRows } = await query(`${categorySelectSql(cols)} WHERE tc.org_id = $1 AND tc.id = $2${personalSql} GROUP BY tc.id`, params));
     } else {
-      ({ rows: projRows } = await query(`${legacyProjectSelectSql()} WHERE org_id = $1 AND id = $2`, [orgId, projectId]));
+      const params = [orgId, projectId];
+      const personalSql = personalOnly ? ` AND EXISTS (SELECT 1 FROM tasks myt WHERE myt.project_id = p.id AND myt.org_id = p.org_id AND myt.assigned_to = $3 AND myt.deleted_at IS NULL)` : '';
+      if (personalOnly) params.push(req.user.id);
+      ({ rows: projRows } = await query(`${legacyProjectSelectSql()} WHERE p.org_id = $1 AND p.id = $2${personalSql} GROUP BY p.id`, params));
     }
 
     if (!projRows.length) return res.status(404).json({ error: 'Project not found' });
 
     res.json({
       project: projRows[0],
-      taskCounts: { byStatus: {}, total: 0 },
+      taskCounts: { byStatus: {}, total: projRows[0].task_count || 0 },
       workers: [],
       leaders: [],
       recentThreads: [],
