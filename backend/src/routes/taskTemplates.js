@@ -148,17 +148,23 @@ router.patch('/:id', authenticate, requireAnyRole('supervisor', 'manager', 'hr',
     const existing = await loadTemplate(orgId, req.params.id);
     if (!existing) return res.status(404).json({ error: 'Template not found' });
 
+    const requestedTaskTitle = req.body?.taskTitle ?? req.body?.task_title;
+    const requestedTaskDescription = req.body?.taskDescription ?? req.body?.task_description;
+    const requestedCategoryId = req.body?.categoryId ?? req.body?.category_id;
+    const requestedDefaultDueDays = req.body?.defaultDueDays ?? req.body?.default_due_days;
+    const requestedChecklist = req.body?.checklistItems ?? req.body?.checklist_items;
+
     const name = req.body?.name !== undefined ? String(req.body.name || '').trim() : existing.name;
-    const taskTitle = (req.body?.taskTitle ?? req.body?.task_title) !== undefined ? String(req.body.taskTitle ?? req.body.task_title || '').trim() : existing.task_title;
+    const taskTitle = requestedTaskTitle !== undefined ? String(requestedTaskTitle || '').trim() : existing.task_title;
     if (name.length < 2) return res.status(400).json({ error: 'Template name must be at least 2 characters' });
     if (taskTitle.length < 2) return res.status(400).json({ error: 'Task title must be at least 2 characters' });
 
     const description = req.body?.description !== undefined ? String(req.body.description || '').trim() || null : existing.description;
-    const taskDescription = (req.body?.taskDescription ?? req.body?.task_description) !== undefined ? String(req.body.taskDescription ?? req.body.task_description || '').trim() || null : existing.task_description;
+    const taskDescription = requestedTaskDescription !== undefined ? String(requestedTaskDescription || '').trim() || null : existing.task_description;
     const priority = req.body?.priority !== undefined ? validatePriority(req.body.priority) : existing.priority;
-    const categoryId = (req.body?.categoryId ?? req.body?.category_id) !== undefined ? (req.body.categoryId ?? req.body.category_id || null) : existing.category_id;
-    const defaultDueDays = (req.body?.defaultDueDays ?? req.body?.default_due_days) !== undefined ? safeInt(req.body.defaultDueDays ?? req.body.default_due_days) : existing.default_due_days;
-    const checklist = (req.body?.checklistItems ?? req.body?.checklist_items) !== undefined ? parseChecklist(req.body.checklistItems || req.body.checklist_items) : existing.checklist_items;
+    const categoryId = requestedCategoryId !== undefined ? (requestedCategoryId || null) : existing.category_id;
+    const defaultDueDays = requestedDefaultDueDays !== undefined ? safeInt(requestedDefaultDueDays) : existing.default_due_days;
+    const checklist = requestedChecklist !== undefined ? parseChecklist(requestedChecklist) : existing.checklist_items;
 
     const { rows } = await query(
       `UPDATE task_templates
