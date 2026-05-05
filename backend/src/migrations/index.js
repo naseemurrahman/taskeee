@@ -2,6 +2,215 @@
 
 module.exports = [
   {
+    version: '202605050000',
+    name: 'base_application_schema',
+    checksum: 'base-schema-v1',
+    up: [
+      `CREATE TABLE IF NOT EXISTS organizations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(100) UNIQUE NOT NULL,
+        plan VARCHAR(50) DEFAULT 'basic',
+        settings JSONB DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS subscription_plans (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        features JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'employee',
+        manager_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        is_active BOOLEAN DEFAULT true,
+        email_verified BOOLEAN DEFAULT true,
+        last_login_at TIMESTAMPTZ,
+        department VARCHAR(255),
+        employee_code VARCHAR(50),
+        avatar_url TEXT,
+        temp_password TEXT,
+        temp_password_expires TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS organization_members (
+        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role VARCHAR(50) DEFAULT 'member',
+        is_active BOOLEAN DEFAULT true,
+        joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        invited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        PRIMARY KEY (org_id, user_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS subscriptions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        plan_id VARCHAR(50) REFERENCES subscription_plans(id),
+        status VARCHAR(20) DEFAULT 'active',
+        seats INTEGER DEFAULT 1,
+        expires_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS tasks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        title VARCHAR(500) NOT NULL,
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'pending',
+        priority VARCHAR(20) DEFAULT 'medium',
+        assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+        assigned_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        category_id UUID,
+        due_date TIMESTAMPTZ,
+        completed_at TIMESTAMPTZ,
+        submitted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS task_categories (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        color VARCHAR(20),
+        ai_enabled BOOLEAN DEFAULT false,
+        ai_threshold DECIMAL(3,2) DEFAULT 0.75,
+        ai_model_id VARCHAR(100),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS task_photos (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        storage_key TEXT,
+        storage_bucket TEXT,
+        file_size_bytes BIGINT,
+        mime_type VARCHAR(100),
+        original_filename TEXT,
+        taken_at TIMESTAMPTZ,
+        geo_lat DECIMAL(10,8),
+        geo_lng DECIMAL(11,8),
+        ai_status VARCHAR(50) DEFAULT 'pending',
+        ai_confidence DECIMAL(3,2),
+        ai_labels JSONB,
+        ai_rejection_reason TEXT,
+        reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        reviewed_at TIMESTAMPTZ,
+        review_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS task_timeline (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        actor_type VARCHAR(50) DEFAULT 'user',
+        event_type VARCHAR(100) NOT NULL,
+        from_status VARCHAR(50),
+        to_status VARCHAR(50),
+        note TEXT,
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS task_comments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS projects (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        start_date DATE,
+        end_date DATE,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS project_tasks (
+        project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (project_id, task_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        body TEXT,
+        data JSONB DEFAULT '{}',
+        read_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        generated_for UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        report_type VARCHAR(50) DEFAULT 'on_demand',
+        scope_type VARCHAR(30),
+        period_start TIMESTAMPTZ,
+        period_end TIMESTAMPTZ,
+        data JSONB DEFAULT '{}',
+        email_sent BOOLEAN DEFAULT FALSE,
+        email_sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS user_activity_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        task_id UUID,
+        activity_type VARCHAR(100) NOT NULL,
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS email_verification_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(64) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_tasks_org ON tasks(org_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to)`,
+      `CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_reports_user ON reports(generated_for, created_at DESC)`,
+      `INSERT INTO subscription_plans (id, name, features) VALUES
+        ('basic', 'Basic Plan', '["tasks", "reports"]'),
+        ('pro', 'Pro Plan', '["tasks", "reports", "team_management", "api_access"]'),
+        ('enterprise', 'Enterprise Plan', '["tasks", "reports", "team_management", "api_access", "advanced_analytics", "priority_support"]')
+        ON CONFLICT (id) DO NOTHING`,
+    ],
+  },
+  {
     version: '202605050001',
     name: 'schema_migration_table_baseline',
     checksum: 'baseline-v1',
