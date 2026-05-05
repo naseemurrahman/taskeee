@@ -13,8 +13,18 @@ function normalizeColor(color) {
   return /^#[0-9a-fA-F]{6}$/.test(s) ? s : null;
 }
 
+function normalizedRole(req) {
+  return String(req.user?.role || '').toLowerCase();
+}
+
 function isPersonalProjectRole(role) {
   return ['employee', 'technician'].includes(String(role || '').toLowerCase());
+}
+
+function projectScopeForRole(role) {
+  if (isPersonalProjectRole(role)) return 'assigned_projects_only';
+  if (['admin', 'director', 'hr', 'manager', 'supervisor'].includes(String(role || '').toLowerCase())) return 'organization_projects';
+  return 'assigned_projects_only';
 }
 
 let tablesCache = null;
@@ -67,7 +77,10 @@ async function resolveOrgId(req) {
   return String(orgId);
 }
 
-function categorySelectSql(cols) {
+function categorySelectSql(cols, personalOnly = false, userIdParam = null) {
+  const scopedTaskJoin = personalOnly && userIdParam
+    ? `AND t.assigned_to = $${userIdParam}`
+    : '';
   return `
     SELECT tc.id,
            tc.name,
@@ -79,11 +92,14 @@ function categorySelectSql(cols) {
            tc.created_at,
            COUNT(t.id)::int AS task_count
       FROM task_categories tc
-      LEFT JOIN tasks t ON t.category_id = tc.id AND t.deleted_at IS NULL
+      LEFT JOIN tasks t ON t.category_id = tc.id AND t.deleted_at IS NULL ${scopedTaskJoin}
   `;
 }
 
-function legacyProjectSelectSql() {
+function legacyProjectSelectSql(personalOnly = false, userIdParam = null) {
+  const scopedTaskJoin = personalOnly && userIdParam
+    ? `AND t.assigned_to = $${userIdParam}`
+    : '';
   return `
     SELECT p.id,
            p.name,
@@ -95,61 +111,66 @@ function legacyProjectSelectSql() {
            p.created_at,
            COUNT(t.id)::int AS task_count
       FROM projects p
-      LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL
+      LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL ${scopedTaskJoin}
   `;
 }
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
-    if (!orgId) return res.json({ projects: [] });
+    const role = normalizedRole(req);
+    const personalOnly = isPersonalProjectRole(role);
+    const scope = projectScopeForRole(role);
+    if (!orgId) return res.json({ projects: [], meta: { scope, role } });
 
     const store = await resolveProjectStore();
-    if (!store) return res.json({ projects: [] });
-
-    const personalOnly = isPersonalProjectRole(req.user?.role);
+    if (!store) return res.json({ projects: [], meta: { scope, role, store: null } });
 
     if (store === 'task_categories') {
       const cols = await getTaskCategoryColumns();
       const where = ['tc.org_id = $1'];
       const params = [orgId];
       if (cols.has('is_active')) where.push('tc.is_active = TRUE');
+      let userParam = null;
       if (personalOnly) {
         params.push(req.user.id);
+        userParam = params.length;
         where.push(`EXISTS (
           SELECT 1 FROM tasks myt
            WHERE myt.category_id = tc.id
              AND myt.org_id = tc.org_id
-             AND myt.assigned_to = $${params.length}
+             AND myt.assigned_to = $${userParam}
              AND myt.deleted_at IS NULL
         )`);
       }
       const { rows } = await query(
-        `${categorySelectSql(cols)} WHERE ${where.join(' AND ')} GROUP BY tc.id ORDER BY tc.created_at DESC`,
+        `${categorySelectSql(cols, personalOnly, userParam)} WHERE ${where.join(' AND ')} GROUP BY tc.id ORDER BY tc.created_at DESC`,
         params
       );
-      return res.json({ projects: rows });
+      return res.json({ projects: rows, meta: { scope, role, store, personalOnly } });
     }
 
     const cols = await getProjectColumns();
     const where = ['p.org_id = $1'];
     const params = [orgId];
     if (cols.has('status')) where.push(`p.status <> 'archived'`);
+    let userParam = null;
     if (personalOnly) {
       params.push(req.user.id);
+      userParam = params.length;
       where.push(`EXISTS (
         SELECT 1 FROM tasks myt
          WHERE myt.project_id = p.id
            AND myt.org_id = p.org_id
-           AND myt.assigned_to = $${params.length}
+           AND myt.assigned_to = $${userParam}
            AND myt.deleted_at IS NULL
       )`);
     }
     const { rows } = await query(
-      `${legacyProjectSelectSql()} WHERE ${where.join(' AND ')} GROUP BY p.id ORDER BY p.created_at DESC`,
+      `${legacyProjectSelectSql(personalOnly, userParam)} WHERE ${where.join(' AND ')} GROUP BY p.id ORDER BY p.created_at DESC`,
       params
     );
-    return res.json({ projects: rows });
+    return res.json({ projects: rows, meta: { scope, role, store, personalOnly } });
   } catch (err) {
     console.error('GET /projects error:', err.message);
     next(err);
@@ -161,7 +182,8 @@ router.get('/:projectId', authenticate, async (req, res, next) => {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
-    const personalOnly = isPersonalProjectRole(req.user?.role);
+    const role = normalizedRole(req);
+    const personalOnly = isPersonalProjectRole(role);
 
     const store = await resolveProjectStore();
     if (!store) return res.status(404).json({ error: 'Project not found' });
@@ -172,12 +194,12 @@ router.get('/:projectId', authenticate, async (req, res, next) => {
       const params = [orgId, projectId];
       const personalSql = personalOnly ? ` AND EXISTS (SELECT 1 FROM tasks myt WHERE myt.category_id = tc.id AND myt.org_id = tc.org_id AND myt.assigned_to = $3 AND myt.deleted_at IS NULL)` : '';
       if (personalOnly) params.push(req.user.id);
-      ({ rows: projRows } = await query(`${categorySelectSql(cols)} WHERE tc.org_id = $1 AND tc.id = $2${personalSql} GROUP BY tc.id`, params));
+      ({ rows: projRows } = await query(`${categorySelectSql(cols, personalOnly, personalOnly ? 3 : null)} WHERE tc.org_id = $1 AND tc.id = $2${personalSql} GROUP BY tc.id`, params));
     } else {
       const params = [orgId, projectId];
       const personalSql = personalOnly ? ` AND EXISTS (SELECT 1 FROM tasks myt WHERE myt.project_id = p.id AND myt.org_id = p.org_id AND myt.assigned_to = $3 AND myt.deleted_at IS NULL)` : '';
       if (personalOnly) params.push(req.user.id);
-      ({ rows: projRows } = await query(`${legacyProjectSelectSql()} WHERE p.org_id = $1 AND p.id = $2${personalSql} GROUP BY p.id`, params));
+      ({ rows: projRows } = await query(`${legacyProjectSelectSql(personalOnly, personalOnly ? 3 : null)} WHERE p.org_id = $1 AND p.id = $2${personalSql} GROUP BY p.id`, params));
     }
 
     if (!projRows.length) return res.status(404).json({ error: 'Project not found' });
