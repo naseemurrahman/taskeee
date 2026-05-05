@@ -418,10 +418,10 @@ export function TasksPage() {
               </button>
             ))}
           </div>
-          <div style={{ width: 150, flexShrink: 0 }}>
+          <div style={{ width: 'min(150px, 100%)', flexShrink: 0 }}>
             <Select value={priority} onChange={handlePriorityChange} options={PRIORITY_OPTS} />
           </div>
-          <div style={{ width: 220, flexShrink: 0 }}>
+          <div style={{ flex: '1 1 160px', minWidth: 120 }}>
             <Input value={search} onChange={e => handleSearchChange(e.target.value)} placeholder="Search tasks…"
               icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
             />
@@ -469,8 +469,7 @@ export function TasksPage() {
             ) : undefined}
           />
         ) : (
-          <>
-          <div className="tasksTableWrap" style={{ overflow: 'visible' }}>
+          <>\n          {/* Desktop table — hidden on mobile */}\n          <div className="tasksDesktopTable tasksTableWrap" style={{ overflow: 'visible' }}>
             <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
@@ -615,6 +614,63 @@ export function TasksPage() {
               </div>
             </div>
           )}
+
+          {/* Mobile card list — shown at ≤640px via CSS */}
+          <div className="tasksMobileList">
+            {tasks.map(task => {
+              const due = dueStat(task.due_date)
+              const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
+              const dueColor = due.tone === 'danger' ? '#ef4444' : due.tone === 'warn' ? '#8B5CF6' : 'var(--text2)'
+              return (
+                <div key={task.id}
+                  style={{ display: 'grid', gridTemplateColumns: '4px 1fr', background: selected.has(task.id) ? 'rgba(226,171,65,0.06)' : 'transparent', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                  onClick={() => { setDrawerTab('details'); setSelectedTaskId(task.id) }}>
+                  <div style={{ background: pColor }} />
+                  <div style={{ padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    {canManage && (
+                      <div onClick={e => { e.stopPropagation(); toggleSelect(task.id) }} style={{ paddingTop: 2 }}>
+                        <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleSelect(task.id)}
+                          style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {task.title}
+                      </div>
+                      {/* AI signal */}
+                      {!workloadQ.isLoading && (() => {
+                        const sig = buildTaskSignal(task, loadByUser)
+                        return sig.needsAttention ? (
+                          <div style={{ fontSize: 11, color: '#f97316', marginBottom: 4 }}>
+                            {sig.score}% · {sig.loadNote || sig.note}
+                          </div>
+                        ) : null
+                      })()}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                        {task.assigned_to_name && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)' }}>
+                            {task.assigned_to_name.split(' ').map((s: string) => s[0]).join('')} {task.assigned_to_name.split(' ')[0]}
+                          </span>
+                        )}
+                        {task.priority && (
+                          <span style={{ fontSize: 10, fontWeight: 800, color: pColor, background: pColor + '18', padding: '1px 7px', borderRadius: 999 }}>
+                            {task.priority}
+                          </span>
+                        )}
+                        {due.label && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: dueColor }}>{due.label}</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Inline status */}
+                    <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0, paddingTop: 2 }}>
+                      <InlineStatus task={task} role={role} canChange={canChangeStatus} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
           </>
         )}
       </div>

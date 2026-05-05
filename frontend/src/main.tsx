@@ -7,6 +7,22 @@ import './index.css'
 import './overrides.css'
 import './responsive-fixes.css'
 import './design-polish.css'
+import './notification-popover-fixes.css'
+import './search-page.css'
+import './task-ui-polish.css'
+import './responsive-hardening.css'
+import './checkbox-hitbox-fix.css'
+import './checkbox-final-fix.css'
+import './mobile-select-and-projects.css'
+import './ux-polish.css'
+import './marketing-polish.css'
+import './create-task-modal-polish.css'
+import './tasks-mobile-selection-qa.css'
+import './project-visibility-final-qa.css'
+import './recurring-tasks.css'
+import './mobile-ux-final-polish.css'
+import './ui-cleanup-projects-notifications-tasks.css'
+import './task-checkbox-event-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -34,10 +50,10 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
           <BrowserRouter>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </BrowserRouter>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </BrowserRouter>
         </I18nProvider>
       </QueryClientProvider>
     </ErrorBoundary>

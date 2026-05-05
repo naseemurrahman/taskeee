@@ -1,4 +1,4 @@
-import { getAccessToken, getRefreshToken, setAccessToken, clearAuth } from '../state/auth'
+import { getAccessToken, getRefreshToken, setAccessToken, clearAuth, isAccessTokenExpired, isSessionPolicyExpired, touchSessionActivity } from '../state/auth'
 
 const getApiBase = (): string => {
   if (import.meta.env.VITE_API_BASE_URL) {
@@ -53,9 +53,23 @@ async function parseResponse(res: Response) {
     : await res.text().catch(() => null)
 }
 
+function redirectToSignIn() {
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/signin') && !window.location.pathname.startsWith('/signup')) {
+    window.location.replace('/signin?reason=session_expired')
+  }
+}
+
 let refreshPromise: Promise<string | null> | null = null
 
 async function tryRefreshToken(): Promise<string | null> {
+  // Professional session policy: do not silently refresh an expired access token after page refresh
+  // or after idle/absolute session expiry. User must sign in again.
+  if (isSessionPolicyExpired() || isAccessTokenExpired()) {
+    clearAuth()
+    redirectToSignIn()
+    return null
+  }
+
   const refreshToken = getRefreshToken()
   if (!refreshToken) return null
 
@@ -83,6 +97,12 @@ async function tryRefreshToken(): Promise<string | null> {
 }
 
 async function doFetch<T>(path: string, init?: RequestInit & { json?: Json; timeoutMs?: number }, retried = false): Promise<T> {
+  if (isSessionPolicyExpired()) {
+    clearAuth()
+    redirectToSignIn()
+    throw new ApiError('Session expired. Please sign in again.', 401, null)
+  }
+
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(init?.headers ? (init.headers as Record<string, string>) : {}),
@@ -129,15 +149,14 @@ async function doFetch<T>(path: string, init?: RequestInit & { json?: Json; time
       const newToken = await tryRefreshToken()
       if (newToken) return doFetch<T>(path, init, true)
       clearAuth()
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/signin') && !window.location.pathname.startsWith('/signup')) {
-        window.location.replace('/signin')
-      }
+      redirectToSignIn()
     }
 
     const message = isErrorShape(data) ? data.error : `Request failed (${res.status})`
     throw new ApiError(message, res.status, data)
   }
 
+  touchSessionActivity()
   return data as T
 }
 
@@ -146,6 +165,12 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit & {
 }
 
 export async function apiUpload<T = unknown>(path: string, formData: FormData, init?: Omit<RequestInit, 'body'>): Promise<T> {
+  if (isSessionPolicyExpired()) {
+    clearAuth()
+    redirectToSignIn()
+    throw new ApiError('Session expired. Please sign in again.', 401, null)
+  }
+
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(init?.headers ? (init.headers as Record<string, string>) : {}),
@@ -177,5 +202,6 @@ export async function apiUpload<T = unknown>(path: string, formData: FormData, i
     const message = isErrorShape(data) ? data.error : `Request failed (${res.status})`
     throw new ApiError(message, res.status, data)
   }
+  touchSessionActivity()
   return data as T
 }

@@ -1,0 +1,227 @@
+/* PR #69 — Tasks table/mobile selection final QA */
+
+/* Keep all custom dropdowns above task rows/checkmarks. */
+.pageHeaderCard .selectV3Wrap,
+.pageHeaderCard .selectV3WrapOpen,
+.tasksFilterBar .selectV3Wrap,
+.tasksFilterBar .selectV3WrapOpen {
+  position: relative;
+  z-index: 160;
+}
+
+.pageHeaderCard .selectV3WrapOpen .selectV3Dropdown,
+.tasksFilterBar .selectV3WrapOpen .selectV3Dropdown,
+.selectV3WrapOpen .selectV3Dropdown {
+  z-index: 20000 !important;
+  isolation: isolate;
+}
+
+.tasksTableWrap {
+  width: 100%;
+}
+
+.tasksTable {
+  table-layout: auto;
+}
+
+.tasksTable th,
+.tasksTable td {
+  position: relative;
+}
+
+/* Professional checkbox hitbox: the whole checkbox cell is clickable, but row click is guarded by JS. */
+.tasksTable th:has(input[type='checkbox']),
+.tasksTable td:has(input[type='checkbox']) {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.tasksTable th:has(input[type='checkbox'])::after,
+.tasksTable td:has(input[type='checkbox'])::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 10px;
+  pointer-events: none;
+  transition: background .12s ease, box-shadow .12s ease;
+}
+
+.tasksTable th:has(input[type='checkbox']):hover::after,
+.tasksTable td:has(input[type='checkbox']):hover::after {
+  background: rgba(226,171,65,0.08);
+  box-shadow: inset 0 0 0 1px rgba(226,171,65,0.16);
+}
+
+.tasksTable input[type='checkbox'] {
+  position: relative;
+  z-index: 8 !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px;
+  min-height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #e2ab41;
+  touch-action: manipulation;
+}
+
+/* When a select is open, prevent task checkmarks from visually floating above the menu. */
+body:has(.selectV3WrapOpen) .tasksTable input[type='checkbox'] {
+  z-index: 1 !important;
+}
+
+/* Slightly more robust rows on medium screens. */
+@media (max-width: 1120px) {
+  .tasksTable {
+    min-width: 900px;
+  }
+
+  .tasksTableWrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile cards: convert table rows into readable task cards. */
+@media (max-width: 760px) {
+  .pageHeaderCard > div[style*='flex-wrap'] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .pageHeaderCard > div[style*='flex-wrap'] > div {
+    width: 100% !important;
+    flex-shrink: 1 !important;
+  }
+
+  .tasksTableWrap {
+    overflow: visible !important;
+    padding: 10px;
+  }
+
+  .tasksTable,
+  .tasksTable thead,
+  .tasksTable tbody,
+  .tasksTable tr,
+  .tasksTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .tasksTable {
+    min-width: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 12px !important;
+  }
+
+  .tasksTable thead {
+    display: none;
+  }
+
+  .tasksTable tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .tasksTable tbody tr {
+    position: relative;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px;
+    background: var(--bg1) !important;
+    padding: 12px 12px 12px 16px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.16);
+  }
+
+  .tasksTable tbody tr:hover {
+    background: var(--bg1) !important;
+  }
+
+  .tasksTable tbody tr td {
+    border: 0 !important;
+    padding: 7px 0 !important;
+    text-align: left !important;
+  }
+
+  /* Left accent cell */
+  .tasksTable tbody tr td:first-child {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px !important;
+    padding: 0 !important;
+    border-radius: 18px 0 0 18px;
+  }
+
+  /* Checkbox cell */
+  .tasksTable tbody tr td:nth-child(2):has(input[type='checkbox']) {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 44px !important;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0 !important;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.08) !important;
+  }
+
+  .tasksTable tbody tr td:nth-child(2):has(input[type='checkbox']) input[type='checkbox'] {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Title cell gets top spacing when selection checkbox exists. */
+  .tasksTable tbody tr td:nth-child(3) {
+    padding-right: 54px !important;
+  }
+
+  .tasksTable tbody tr td:not(:first-child):not(:nth-child(2)) {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .tasksTable tbody tr td:not(:first-child):not(:nth-child(2))::before {
+    content: attr(data-task-label);
+    flex: 0 0 86px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .tasksTable tbody tr td:nth-child(3)::before { content: 'Task'; }
+  .tasksTable tbody tr td:nth-child(4)::before { content: 'AI'; }
+  .tasksTable tbody tr td:nth-child(5)::before { content: 'Project'; }
+  .tasksTable tbody tr td:nth-child(6)::before { content: 'Assignee'; }
+  .tasksTable tbody tr td:nth-child(7)::before { content: 'Status'; }
+  .tasksTable tbody tr td:nth-child(8)::before { content: 'Priority'; }
+  .tasksTable tbody tr td:nth-child(9)::before { content: 'Due'; }
+  .tasksTable tbody tr td:nth-child(10)::before { content: 'Comments'; }
+
+  .tasksTable tbody tr td:nth-child(3) {
+    display: block !important;
+  }
+
+  .tasksTable tbody tr td:nth-child(3)::before {
+    display: none;
+  }
+
+  .tasksTable tbody tr td:nth-child(3) .inlineEditWrap {
+    max-width: calc(100% - 54px);
+  }
+
+  .tasksTable select {
+    max-width: 100%;
+  }
+}
+
+/* Employee task table has fewer columns; keep labels sensible. */
+@media (max-width: 760px) {
+  .tasksTable tbody tr td:nth-child(6):last-child::before { content: 'Comments'; }
+}

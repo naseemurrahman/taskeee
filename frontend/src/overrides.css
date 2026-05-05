@@ -512,3 +512,21 @@ code, kbd, pre { font-family: var(--font-mono); }
     flex: 1 !important;
   }
 }
+
+/* ── Tasks page: desktop table / mobile card toggle ── */
+.tasksMobileList { display: none; }
+.tasksDesktopTable { display: block; }
+
+@media (max-width: 700px) {
+  .tasksDesktopTable { display: none !important; }
+  .tasksMobileList {
+    display: block !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Header card filters: stack nicely */
+  .pageHeaderCard .formCardV3Head,
+  .pageHeaderCard > div:last-child {
+    flex-direction: column;
+  }
+}

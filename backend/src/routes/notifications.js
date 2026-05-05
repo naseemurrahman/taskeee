@@ -21,6 +21,20 @@ async function getNotificationsColumns() {
   return notificationsColumnSet;
 }
 
+function selectNotificationColumns(cols) {
+  const fields = ['id', 'user_id', 'type', 'title', 'body', 'data', 'created_at'];
+  if (cols.has('is_read')) fields.push('is_read');
+  if (cols.has('read_at')) fields.push('read_at');
+  if (cols.has('email_sent')) fields.push('email_sent');
+  if (cols.has('whatsapp_sent')) fields.push('whatsapp_sent');
+  if (cols.has('delivery_error')) fields.push('delivery_error');
+  if (cols.has('dedupe_key')) fields.push('dedupe_key');
+  if (cols.has('group_count')) fields.push('group_count');
+  if (cols.has('last_grouped_at')) fields.push('last_grouped_at');
+  if (cols.has('updated_at')) fields.push('updated_at');
+  return fields.join(', ');
+}
+
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const cols = await getNotificationsColumns();
@@ -33,10 +47,11 @@ router.get('/', authenticate, async (req, res, next) => {
     const whereParts = ['user_id = $1'];
     if (hasIsRead && req.query?.unreadOnly === 'true') whereParts.push('is_read = FALSE');
 
+    const orderBy = cols.has('updated_at') ? 'COALESCE(updated_at, created_at) DESC' : 'created_at DESC';
     const { rows } = await query(
-      `SELECT * FROM notifications
+      `SELECT ${selectNotificationColumns(cols)} FROM notifications
        WHERE ${whereParts.join(' AND ')}
-       ORDER BY created_at DESC
+       ORDER BY ${orderBy}
        LIMIT 30 OFFSET $2`,
       [req.user.id, offset]
     );
