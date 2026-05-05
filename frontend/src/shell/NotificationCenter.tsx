@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bell } from 'lucide-react'
+import { Bell, Settings, Activity, CheckCheck } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 import { useToast } from '../components/ui/ToastSystem'
 import { subscribeToOrg } from '../lib/socket'
+import { getUser } from '../state/auth'
 
 type InAppNotification = {
   id: string
@@ -14,7 +15,16 @@ type InAppNotification = {
   data?: unknown
   is_read?: boolean
   created_at: string
+  updated_at?: string | null
+  dedupe_key?: string | null
+  group_count?: number | null
+  last_grouped_at?: string | null
+  email_sent?: boolean | null
+  whatsapp_sent?: boolean | null
+  delivery_error?: string | null
 }
+
+type NotificationTab = 'all' | 'unread' | 'reminders' | 'tasks' | 'system'
 
 function taskIdFromData(data: unknown): string | undefined {
   if (data == null) return undefined
@@ -44,11 +54,32 @@ function formatWhen(value: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+function notificationBucket(n: InAppNotification): Exclude<NotificationTab, 'all' | 'unread'> {
+  const type = String(n.type || '').toLowerCase()
+  if (type.includes('overdue') || type.includes('reminder') || type.includes('due')) return 'reminders'
+  if (type.startsWith('task_') || taskIdFromData(n.data)) return 'tasks'
+  return 'system'
+}
+
+function typeLabel(n: InAppNotification) {
+  const bucket = notificationBucket(n)
+  if (bucket === 'reminders') return 'Reminder'
+  if (bucket === 'tasks') return 'Task'
+  return 'System'
+}
+
+function effectiveDate(n: InAppNotification) {
+  return n.last_grouped_at || n.updated_at || n.created_at
+}
+
 export function NotificationCenter() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { success: _toastSuccess } = useToast()
+  const me = getUser()
+  const isAdmin = ['admin', 'director'].includes(me?.role || '')
+  const { success: toastSuccess } = useToast()
   const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<NotificationTab>('all')
   const wrapRef = useRef<HTMLDivElement>(null)
 
   const q = useQuery({
@@ -85,7 +116,10 @@ export function NotificationCenter() {
 
   const markAllM = useMutation({
     mutationFn: () => apiFetch('/api/v1/notifications/read-all', { method: 'PATCH' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      toastSuccess('Notifications cleared', 'All notifications are marked as read.')
+    },
   })
 
   useEffect(() => {
@@ -107,6 +141,18 @@ export function NotificationCenter() {
 
   const unread = q.data?.unreadCount ?? 0
   const list = q.data?.notifications ?? []
+  const counts = useMemo(() => {
+    const c: Record<NotificationTab, number> = { all: list.length, unread, reminders: 0, tasks: 0, system: 0 }
+    for (const n of list) c[notificationBucket(n)] += 1
+    return c
+  }, [list, unread])
+  const visibleList = useMemo(() => {
+    return list.filter((n) => {
+      if (tab === 'all') return true
+      if (tab === 'unread') return !n.is_read
+      return notificationBucket(n) === tab
+    })
+  }, [list, tab])
 
   function goFromNotif(n: InAppNotification) {
     setOpen(false)
@@ -114,6 +160,24 @@ export function NotificationCenter() {
     if (tid) navigate('/app/tasks', { state: { openTaskId: tid } })
     else navigate('/app/dashboard')
   }
+
+  function openSettings() {
+    setOpen(false)
+    navigate('/app/settings', { state: { tab: 'notifications' } })
+  }
+
+  function openDiagnostics() {
+    setOpen(false)
+    navigate('/app/diagnostics')
+  }
+
+  const tabs: Array<{ key: NotificationTab; label: string }> = [
+    { key: 'all', label: 'All' },
+    { key: 'unread', label: 'Unread' },
+    { key: 'reminders', label: 'Reminders' },
+    { key: 'tasks', label: 'Tasks' },
+    { key: 'system', label: 'System' },
+  ]
 
   return (
     <div className="topbarNotifyWrap" ref={wrapRef}>
@@ -132,38 +196,74 @@ export function NotificationCenter() {
           <div className="topbarNotifyHead">
             <div>
               <div className="topbarNotifyTitle">Notifications</div>
-              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread` : 'All caught up'}</div>
+              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread · grouped by task when repeated` : 'All caught up'}</div>
             </div>
-            {unread > 0 ? (
-              <button type="button" className="topbarNotifyMarkAll" onClick={() => markAllM.mutate()} disabled={markAllM.isPending}>
-                Mark all read
+            <div className="topbarNotifyHeadActions">
+              {unread > 0 ? (
+                <button type="button" className="topbarNotifyIconAction" onClick={() => markAllM.mutate()} disabled={markAllM.isPending} title="Mark all read">
+                  <CheckCheck size={15} />
+                </button>
+              ) : null}
+              <button type="button" className="topbarNotifyIconAction" onClick={openSettings} title="Notification settings">
+                <Settings size={15} />
               </button>
-            ) : null}
+              {isAdmin ? (
+                <button type="button" className="topbarNotifyIconAction" onClick={openDiagnostics} title="Delivery diagnostics">
+                  <Activity size={15} />
+                </button>
+              ) : null}
+            </div>
           </div>
-          {q.isLoading ? <div className="topbarNotifyEmpty">Loading notifications...</div> : null}
-          {q.isError ? <div className="topbarNotifyEmpty">Could not load notifications.</div> : null}
-          {!q.isLoading && !list.length ? <div className="topbarNotifyEmpty">You are all caught up.</div> : null}
-          <div className="topbarNotifyList">
-            {list.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                className={`topbarNotifyItem ${n.is_read ? '' : 'topbarNotifyItemUnread'}`}
-                onClick={() => {
-                  if (!n.is_read) markReadM.mutate(n.id)
-                  goFromNotif(n)
-                }}
-              >
-                <div className="topbarNotifyItemRow">
-                  <span className="topbarNotifyDot" />
-                  <div className="topbarNotifyItemText">
-                    <div className="topbarNotifyItemTitle">{n.title || 'Notification'}</div>
-                    {n.body ? <div className="topbarNotifyItemBody">{n.body}</div> : null}
-                    <div className="topbarNotifyItemMeta">{formatWhen(n.created_at)}</div>
-                  </div>
-                </div>
+
+          <div className="topbarNotifyTabs" role="tablist" aria-label="Notification filters">
+            {tabs.map((t) => (
+              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`topbarNotifyTab ${tab === t.key ? 'topbarNotifyTabActive' : ''}`} onClick={() => setTab(t.key)}>
+                <span>{t.label}</span>
+                <span className="topbarNotifyTabCount">{counts[t.key]}</span>
               </button>
             ))}
+          </div>
+
+          <div className="topbarNotifyQuickActions">
+            <button type="button" onClick={openSettings}>Notification settings</button>
+            {isAdmin ? <button type="button" onClick={openDiagnostics}>Delivery diagnostics</button> : null}
+          </div>
+
+          {q.isLoading ? <div className="topbarNotifyEmpty">Loading notifications...</div> : null}
+          {q.isError ? <div className="topbarNotifyEmpty">Could not load notifications.</div> : null}
+          {!q.isLoading && !visibleList.length ? <div className="topbarNotifyEmpty">No notifications in this view.</div> : null}
+          <div className="topbarNotifyList">
+            {visibleList.map((n) => {
+              const grouped = Number(n.group_count || 0) > 1
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  className={`topbarNotifyItem ${n.is_read ? '' : 'topbarNotifyItemUnread'} ${grouped ? 'topbarNotifyItemGrouped' : ''}`}
+                  onClick={() => {
+                    if (!n.is_read) markReadM.mutate(n.id)
+                    goFromNotif(n)
+                  }}
+                >
+                  <div className="topbarNotifyItemRow">
+                    <span className="topbarNotifyDot" />
+                    <div className="topbarNotifyItemText">
+                      <div className="topbarNotifyItemTopline">
+                        <span className="topbarNotifyTypePill">{typeLabel(n)}</span>
+                        {grouped ? <span className="topbarNotifyGroupPill">×{n.group_count}</span> : null}
+                        {n.delivery_error ? <span className="topbarNotifyErrorPill">Delivery issue</span> : null}
+                      </div>
+                      <div className="topbarNotifyItemTitle">{n.title || 'Notification'}</div>
+                      {n.body ? <div className="topbarNotifyItemBody">{n.body}</div> : null}
+                      <div className="topbarNotifyItemMeta">
+                        {formatWhen(effectiveDate(n))}
+                        {grouped ? ' · repeated reminders grouped' : ''}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : null}
