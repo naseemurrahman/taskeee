@@ -28,6 +28,7 @@ const errorHandler     = require('./middleware/errorHandler');
 const {
   securityHeaders, sensitiveOpLogger
 } = require('./middleware/security');
+const { enforceTaskCollectionAccess } = require('./middleware/taskAccessPolicy');
 
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'taskflow-fallback-jwt-secret-change-me';
@@ -190,6 +191,7 @@ app.use('/api/v1/users',         userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
 app.use('/api/v1/ai',    require('./routes/ai'));
+app.use('/api/v1/tasks',         enforceTaskCollectionAccess);
 app.use('/api/v1/tasks',         taskBulkActionsRoutes);
 app.use('/api/v1/tasks',         taskRoutes);
 app.use('/api/v1/photos',        photoRoutes);
