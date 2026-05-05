@@ -156,6 +156,8 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
+  const role = String(me?.role || 'employee').toLowerCase()
+  const isPersonalScope = ['employee', 'technician'].includes(role)
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2 })
   const { success: toastSuccess, error: toastError } = useToast()
@@ -177,6 +179,13 @@ export function ProjectsPage() {
   }
 
   const projects = useMemo(() => q.data || [], [q.data])
+  const totalTasks = useMemo(() => projects.reduce((sum, p) => sum + Number(p.task_count || 0), 0), [projects])
+  const activeProjects = useMemo(() => projects.filter(p => (p.status || 'active') === 'active').length, [projects])
+
+  const scopeTitle = isPersonalScope ? 'Assigned-project scope' : 'Organization project scope'
+  const scopeBody = isPersonalScope
+    ? 'You only see projects that contain tasks assigned to you. Projects without your assigned work stay hidden.'
+    : 'Your role can view the organization project list. On desktop, choose grid or list view; mobile always uses list view.'
 
   const m = useMutation({
     mutationFn: createProject,
@@ -214,13 +223,15 @@ export function ProjectsPage() {
             <div className="pageHeaderCardSub">
               {canCreate
                 ? 'Organize tasks by project. Choose grid or list view on larger screens.'
-                : 'Projects connected to your assigned tasks. Choose grid or list view on larger screens.'}
+                : 'Projects connected to your assigned tasks. Mobile uses a focused list layout.'}
             </div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 {projects.length} project{projects.length !== 1 ? 's' : ''}
               </span>
+              <span className="pageHeaderCardTag">{totalTasks} task{totalTasks === 1 ? '' : 's'}</span>
+              <span className="pageHeaderCardTag">{activeProjects} active</span>
               {canCreate ? <span className="pageHeaderCardTag">Can create projects</span> : <span className="pageHeaderCardTag">Assigned-project view</span>}
             </div>
           </div>
@@ -231,6 +242,15 @@ export function ProjectsPage() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="projectScopeBanner">
+        <div>
+          <div className="projectScopeTitle">{scopeTitle}</div>
+          <div className="projectScopeBody">{scopeBody}</div>
+          <div className="projectMobileHint">Mobile layout is list-only for readability.</div>
+        </div>
+        <span className="projectScopePill">Role: {role.replace(/_/g, ' ')}</span>
       </div>
 
       {q.isError && (
@@ -244,15 +264,15 @@ export function ProjectsPage() {
         <div className="chartV3Head projectViewToolbar">
           <div>
             <div className="chartV3Title">Your Projects</div>
-            <div className="chartV3Sub">Mobile always uses list view. Larger screens can switch between grid and list.</div>
+            <div className="chartV3Sub">Desktop supports grid/list. Mobile is optimized as a clean project list.</div>
           </div>
           <div className="projectViewToggle" aria-label="Project view mode">
-            <button type="button" className={`projectViewToggleBtn ${viewMode === 'grid' ? 'projectViewToggleBtnActive' : ''}`} onClick={() => changeViewMode('grid')}>Grid</button>
-            <button type="button" className={`projectViewToggleBtn ${viewMode === 'list' ? 'projectViewToggleBtnActive' : ''}`} onClick={() => changeViewMode('list')}>List</button>
+            <button type="button" aria-pressed={viewMode === 'grid'} className={`projectViewToggleBtn ${viewMode === 'grid' ? 'projectViewToggleBtnActive' : ''}`} onClick={() => changeViewMode('grid')}>Grid</button>
+            <button type="button" aria-pressed={viewMode === 'list'} className={`projectViewToggleBtn ${viewMode === 'list' ? 'projectViewToggleBtnActive' : ''}`} onClick={() => changeViewMode('list')}>List</button>
           </div>
         </div>
         <div style={{ padding: '16px' }}>
-          {q.isLoading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>Loading projects…</div>}
+          {q.isLoading && <div className="projectListSkeleton"><div className="projectListSkeletonRow" /><div className="projectListSkeletonRow" /><div className="projectListSkeletonRow" /></div>}
           {!q.isLoading && projects.length === 0 && (
             <div className="emptyStateV3" style={{ padding: '40px 20px' }}>
               <div className="emptyStateV3Icon">📁</div>
@@ -283,7 +303,7 @@ export function ProjectsPage() {
                       <InlineProjectName project={p} canEdit={canCreate} />
                       <div className="projectCardMetaRow">
                         <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description || 'No description'}</div>
-                        {typeof p.task_count === 'number' && <div style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.task_count} task{p.task_count === 1 ? '' : 's'}</div>}
+                        <div className="projectCardStats">{Number(p.task_count || 0)} task{Number(p.task_count || 0) === 1 ? '' : 's'}</div>
                       </div>
                     </div>
                     <InlineProjectStatus project={p} canEdit={canCreate} />
