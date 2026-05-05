@@ -1,0 +1,117 @@
+/* Final override: project cards must be rectangular, not capsule/oval. */
+
+.projectsCollectionGrid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.projectsCollectionList {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+
+.projectCardButton,
+.projectsCollection .projectCardButton,
+.projectsCollectionGrid .projectCardButton,
+.projectsCollectionList .projectCardButton,
+.chartV3 .projectCardButton,
+button.projectCardButton {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 138px !important;
+  height: auto !important;
+  padding: 16px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(226, 171, 65, 0.38) !important;
+  border-top: 3px solid rgba(20, 184, 166, 0.86) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), #151a24 !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  overflow: hidden !important;
+  transform: none !important;
+  aspect-ratio: auto !important;
+}
+
+.projectCardButton:hover,
+.projectsCollection .projectCardButton:hover,
+.projectsCollectionGrid .projectCardButton:hover,
+.projectsCollectionList .projectCardButton:hover,
+.chartV3 .projectCardButton:hover,
+button.projectCardButton:hover {
+  border-color: rgba(226, 171, 65, 0.66) !important;
+  border-top-color: rgba(20, 184, 166, 1) !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,.22) !important;
+  transform: none !important;
+}
+
+.projectCardButton::before,
+.projectCardButton::after,
+.projectsCollection .projectCardButton::before,
+.projectsCollection .projectCardButton::after,
+.projectsCollectionGrid .projectCardButton::before,
+.projectsCollectionGrid .projectCardButton::after,
+.projectsCollectionList .projectCardButton::before,
+.projectsCollectionList .projectCardButton::after,
+.chartV3 .projectCardButton::before,
+.chartV3 .projectCardButton::after,
+button.projectCardButton::before,
+button.projectCardButton::after {
+  display: none !important;
+  content: none !important;
+  border-radius: 0 !important;
+}
+
+.projectCardButton *,
+.projectsCollection .projectCardButton *,
+.projectsCollectionGrid .projectCardButton *,
+.projectsCollectionList .projectCardButton * {
+  border-radius: revert-layer;
+}
+
+.projectCardButton > div:first-child,
+.projectsCollection .projectCardButton > div:first-child,
+.projectsCollectionGrid .projectCardButton > div:first-child,
+.projectsCollectionList .projectCardButton > div:first-child,
+.chartV3 .projectCardButton > div:first-child,
+button.projectCardButton > div:first-child {
+  border-radius: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+}
+
+.projectCardButton > div:first-child > div {
+  border-radius: 4px !important;
+}
+
+.projectCardStats {
+  border-radius: 7px !important;
+}
+
+.projectCardBody select {
+  border-radius: 8px !important;
+}
+
+@media (max-width: 760px) {
+  .projectsCollection,
+  .projectsCollectionGrid,
+  .projectsCollectionList {
+    grid-template-columns: 1fr !important;
+  }
+
+  .projectCardButton,
+  .projectsCollection .projectCardButton,
+  .projectsCollectionGrid .projectCardButton,
+  .projectsCollectionList .projectCardButton,
+  .chartV3 .projectCardButton,
+  button.projectCardButton {
+    min-height: 116px !important;
+    border-radius: 9px !important;
+    padding: 14px !important;
+  }
+}
