@@ -103,6 +103,16 @@ const MIGRATIONS = [
   `ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
   `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_expires ON refresh_tokens(user_id, expires_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash)`,
+
+  // ── Migration 025: notification deduplication + delivery retry metadata ────
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS dedupe_key TEXT`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS group_count INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS last_grouped_at TIMESTAMPTZ`,
+  `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_recent ON notifications(user_id, dedupe_key, created_at DESC) WHERE dedupe_key IS NOT NULL`,
+  `ALTER TABLE notification_delivery_log ADD COLUMN IF NOT EXISTS notification_id UUID REFERENCES notifications(id) ON DELETE SET NULL`,
+  `ALTER TABLE notification_delivery_log ADD COLUMN IF NOT EXISTS retry_of UUID REFERENCES notification_delivery_log(id) ON DELETE SET NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_notif_log_notification ON notification_delivery_log(notification_id, sent_at DESC)`,
 ];
 
 async function runAutoMigrations() {
