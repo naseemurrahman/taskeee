@@ -1,10 +1,10 @@
 /*
  * Professional task-table checkbox behavior.
  *
- * TasksPage rows open a drawer on row click. Without an explicit event boundary,
- * checkbox clicks can fight the row click handler and feel inconsistent at the
- * top/edge of the visible checkbox. This guard uses event delegation to make the
- * entire checkbox cell behave like a standard data-table selection control.
+ * TasksPage rows open a drawer on row click. This guard makes checkbox cells
+ * behave like data-table selection controls without blocking React's controlled
+ * checkbox onChange handlers. It fixes both row checkboxes and the select-all
+ * header checkbox.
  */
 function isPrimaryClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
@@ -23,29 +23,33 @@ function getSelectionCell(target: EventTarget | null): { cell: HTMLTableCellElem
 
 function installTaskCheckboxEventGuard() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
-  if ((window as any).__taskCheckboxEventGuardInstalled) return
-  ;(window as any).__taskCheckboxEventGuardInstalled = true
+  if ((window as any).__taskCheckboxEventGuardInstalledV2) return
+  ;(window as any).__taskCheckboxEventGuardInstalledV2 = true
 
+  // Capture phase: only forward clicks from checkbox-cell padding to the actual
+  // checkbox. Do not stop native checkbox clicks here, because React's delegated
+  // onChange must still receive the event.
   document.addEventListener('click', (event) => {
     if (!isPrimaryClick(event)) return
-
     const hit = getSelectionCell(event.target)
     if (!hit) return
 
     const { checkbox } = hit
-    const target = event.target
+    if (event.target === checkbox) return
 
-    // Always isolate selection from the row's drawer-opening onClick handler.
+    event.preventDefault()
     event.stopPropagation()
-
-    // If the user clicked the cell padding or pseudo/visual hit area, forward the
-    // click to the real checkbox so React's controlled onChange still runs.
-    if (target !== checkbox) {
-      event.preventDefault()
-      checkbox.focus({ preventScroll: true })
-      checkbox.click()
-    }
+    checkbox.focus({ preventScroll: true })
+    checkbox.click()
   }, true)
+
+  // Bubble phase: stop real checkbox clicks from reaching the table row and
+  // opening the drawer. React's onChange has already had a chance to run.
+  document.addEventListener('click', (event) => {
+    const hit = getSelectionCell(event.target)
+    if (!hit) return
+    if (event.target === hit.checkbox) event.stopPropagation()
+  }, false)
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== ' ' && event.key !== 'Enter') return
