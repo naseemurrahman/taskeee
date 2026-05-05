@@ -14,6 +14,7 @@ import { MarketingHomePage } from './pages/marketing/MarketingHomePage'
 const DashboardHomePage     = lazy(() => import('./pages/app/DashboardHomePage').then(m => ({ default: m.DashboardHomePage })))
 const TasksPage             = lazy(() => import('./pages/app/TasksPage').then(m => ({ default: m.TasksPage })))
 const MyTasksPage           = lazy(() => import('./pages/app/MyTasksPage').then(m => ({ default: m.MyTasksPage })))
+const TaskTemplatesPage     = lazy(() => import('./pages/app/TaskTemplatesPage').then(m => ({ default: m.TaskTemplatesPage })))
 const ProjectsPage          = lazy(() => import('./pages/app/ProjectsPage').then(m => ({ default: m.ProjectsPage })))
 const BoardPage             = lazy(() => import('./pages/app/BoardPage').then(m => ({ default: m.BoardPage })))
 const CalendarPage          = lazy(() => import('./pages/app/CalendarPage').then(m => ({ default: m.CalendarPage })))
@@ -43,7 +44,6 @@ const VerifyEmailPage       = lazy(() => import('./pages/VerifyEmailPage').then(
 const ForgotPasswordPage    = lazy(() => import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })))
 const ResetPasswordPage     = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })))
 
-// ── Spinner shown while a chunk loads ────────────────────────────────────────
 function PageLoader() {
   return (
     <div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}>
@@ -67,14 +67,12 @@ export default function App() {
       <SessionGuard />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Marketing */}
           <Route element={<MarketingLayout />}>
             <Route path="/"      element={<MarketingHomePage />} />
             <Route path="/home"  element={<Navigate to="/" replace />} />
             <Route path="/pricing" element={<PricingPage />} />
           </Route>
 
-          {/* Auth */}
           <Route path="/signin"         element={<SignInPage />} />
           <Route path="/signup"         element={<SignUpPage />} />
           <Route path="/mfa"            element={<MfaPage />} />
@@ -82,7 +80,6 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* App (authenticated) */}
           <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route index                        element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard"             element={<DashboardHomePage />} />
@@ -90,6 +87,7 @@ export default function App() {
             <Route path="search"                element={<SearchPage />} />
             <Route path="tasks"                 element={<TasksPage />} />
             <Route path="my-tasks"              element={<MyTasksPage />} />
+            <Route path="task-templates"        element={<TaskTemplatesPage />} />
             <Route path="projects"              element={<ProjectsPage />} />
             <Route path="board"                 element={<BoardPage />} />
             <Route path="calendar"              element={<CalendarPage />} />
