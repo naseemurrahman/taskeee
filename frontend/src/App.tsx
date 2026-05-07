@@ -1,12 +1,13 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { isAuthed } from './state/auth'
+import { getUser, isAuthed } from './state/auth'
 import { SessionGuard } from './components/SessionGuard'
 import { AppLayout } from './shell/AppLayout'
 import { SignInPage } from './pages/SignInPage'
 import { SignUpPage } from './pages/SignUpPage'
 import { MarketingLayout } from './pages/marketing/MarketingLayout'
 import { MarketingHomePage } from './pages/marketing/MarketingHomePage'
+import { isEmployeeRole } from './lib/rbac'
 
 const DashboardHomePage = lazy(() => import('./pages/app/DashboardHomePage').then(m => ({ default: m.DashboardHomePage })))
 const TasksPage = lazy(() => import('./pages/app/TasksPage').then(m => ({ default: m.TasksPage })))
@@ -51,13 +52,23 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
   return <>{children}</>
 }
+function TasksEntry() {
+  const me = getUser()
+  if (isEmployeeRole(me?.role)) return <Navigate to="/app/my-tasks" replace />
+  return <TasksPage />
+}
+function OrgAnalyticsEntry() {
+  const me = getUser()
+  if (isEmployeeRole(me?.role)) return <Navigate to="/app/my-tasks" replace />
+  return <AnalyticsPage />
+}
 
 export default function App() {
   return <><SessionGuard /><Suspense fallback={<PageLoader />}><Routes>
     <Route element={<MarketingLayout />}><Route path="/" element={<MarketingHomePage />} /><Route path="/home" element={<Navigate to="/" replace />} /><Route path="/pricing" element={<PricingPage />} /></Route>
     <Route path="/signin" element={<SignInPage />} /><Route path="/signup" element={<SignUpPage />} /><Route path="/mfa" element={<MfaPage />} /><Route path="/verify-email" element={<VerifyEmailPage />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
-      <Route index element={<Navigate to="/app/dashboard" replace />} /><Route path="dashboard" element={<DashboardHomePage />} /><Route path="diagnostics" element={<DiagnosticsPage />} /><Route path="search" element={<SearchPage />} /><Route path="tasks" element={<TasksPage />} /><Route path="my-tasks" element={<MyTasksPage />} /><Route path="projects" element={<ProjectsPage />} /><Route path="board" element={<BoardPage />} /><Route path="calendar" element={<CalendarPage />} /><Route path="team" element={<Navigate to="/app/hr/employees" replace />} /><Route path="reports" element={<ReportsPage />} /><Route path="reports/:id" element={<ReportDetailPage />} /><Route path="audit" element={<AuditPage />} /><Route path="logs" element={<LogsPage />} /><Route path="profile" element={<ProfilePage />} /><Route path="analytics" element={<AnalyticsPage />} /><Route path="insights" element={<InsightsPage />} /><Route path="hr/employees" element={<EmployeesPage />} /><Route path="hr/employees/:id" element={<EmployeeProfilePage />} /><Route path="hr/time-off" element={<TimeOffPage />} /><Route path="crm/pipeline" element={<CrmPipelinePage />} /><Route path="crm/leads" element={<CrmLeadsPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="onboarding" element={<OnboardingPage />} /><Route path="billing" element={<BillingPage />} /><Route path="contractors" element={<ContractorsPage />} /><Route path="contractors/:id" element={<ContractorProfilePage />} /><Route path="jeczone" element={<JeczoneDashboardPage />} /><Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+      <Route index element={<Navigate to="/app/dashboard" replace />} /><Route path="dashboard" element={<DashboardHomePage />} /><Route path="diagnostics" element={<DiagnosticsPage />} /><Route path="search" element={<SearchPage />} /><Route path="tasks" element={<TasksEntry />} /><Route path="my-tasks" element={<MyTasksPage />} /><Route path="projects" element={<ProjectsPage />} /><Route path="board" element={<BoardPage />} /><Route path="calendar" element={<CalendarPage />} /><Route path="team" element={<Navigate to="/app/hr/employees" replace />} /><Route path="reports" element={<ReportsPage />} /><Route path="reports/:id" element={<ReportDetailPage />} /><Route path="audit" element={<AuditPage />} /><Route path="logs" element={<LogsPage />} /><Route path="profile" element={<ProfilePage />} /><Route path="analytics" element={<OrgAnalyticsEntry />} /><Route path="insights" element={<InsightsPage />} /><Route path="hr/employees" element={<EmployeesPage />} /><Route path="hr/employees/:id" element={<EmployeeProfilePage />} /><Route path="hr/time-off" element={<TimeOffPage />} /><Route path="crm/pipeline" element={<CrmPipelinePage />} /><Route path="crm/leads" element={<CrmLeadsPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="onboarding" element={<OnboardingPage />} /><Route path="billing" element={<BillingPage />} /><Route path="contractors" element={<ContractorsPage />} /><Route path="contractors/:id" element={<ContractorProfilePage />} /><Route path="jeczone" element={<JeczoneDashboardPage />} /><Route path="*" element={<Navigate to="/app/dashboard" replace />} />
     </Route><Route path="*" element={<Navigate to="/" replace />} />
   </Routes></Suspense></>
 }
