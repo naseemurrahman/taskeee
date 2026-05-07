@@ -1,0 +1,350 @@
+/*
+ * Board / Tasks / My Tasks mobile polish.
+ * Scoped to work-page class names only to avoid marketing/dashboard conflicts.
+ */
+
+.boardChartsPanel {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(280px, 1.2fr) minmax(280px, 1.2fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.boardChartSummaryCard,
+.boardChartCard {
+  min-width: 0;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025)), var(--surface);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+.boardChartSummaryCard {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.boardChartCard {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.boardChartBigValue {
+  margin-top: 8px;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1;
+  letter-spacing: -0.07em;
+  font-weight: 950;
+  color: var(--text);
+}
+
+.boardChartMuted {
+  margin-top: 6px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.boardDonut {
+  --pct: 0%;
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--primary) var(--pct), rgba(255,255,255,0.08) 0);
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.boardDonut::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: inherit;
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.boardDonut span {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 950;
+  color: var(--text);
+}
+
+.boardChartHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boardChartHead strong {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+  color: var(--text);
+}
+
+.boardChartHead span {
+  margin-left: 5px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.boardChartBadge {
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.boardChartBadgeWarn {
+  background: rgba(249,115,22,0.12);
+  color: #f97316;
+  border-color: rgba(249,115,22,0.28);
+}
+
+.boardBars {
+  display: grid;
+  gap: 9px;
+}
+
+.boardBarRow {
+  display: grid;
+  grid-template-columns: minmax(76px, 0.8fr) minmax(80px, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+}
+
+.boardBarRow span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.boardBarRow div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+
+.boardBarRow i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+}
+
+.boardBarRow b {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.boardMobileHint {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(226,171,65,0.22);
+  background: rgba(226,171,65,0.08);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .boardChartsPanel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .boardChartSummaryCard {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .boardPageRoot {
+    gap: 12px !important;
+  }
+
+  .boardChartsPanel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .boardChartSummaryCard,
+  .boardChartCard {
+    border-radius: 16px;
+  }
+
+  .boardChartSummaryCard {
+    padding: 14px;
+  }
+
+  .boardDonut {
+    width: 76px;
+    height: 76px;
+  }
+
+  .boardIntelligencePanel {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .boardIntelligencePanel .grid3 {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .boardMobileHint {
+    display: flex;
+  }
+
+  .p4BoardGrid {
+    display: grid !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(280px, 88vw) !important;
+    grid-template-columns: none !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    padding: 2px 2px 12px !important;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .p4BoardColumn {
+    min-height: auto !important;
+    max-height: none !important;
+    scroll-snap-align: start;
+    border-radius: 18px !important;
+  }
+
+  .p4BoardCard {
+    border-radius: 16px !important;
+    padding: 13px 14px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .boardChartSummaryCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .boardDonut {
+    justify-self: start;
+  }
+
+  .boardBarRow {
+    grid-template-columns: minmax(68px, 0.8fr) minmax(82px, 1fr) auto;
+  }
+
+  .p4BoardGrid {
+    grid-auto-columns: minmax(272px, 92vw) !important;
+  }
+
+  .tasksDesktopTable {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tasksDesktopTable table {
+    min-width: 880px !important;
+  }
+
+  .pageHeaderCard:has(+ .card .myTasksList),
+  .pageHeaderCard:has(+ .chartV3 .tasksTable) {
+    margin-bottom: 10px !important;
+  }
+
+  .pageHeaderCardInner {
+    gap: 10px !important;
+  }
+
+  .pageHeaderCardTitle {
+    white-space: normal !important;
+  }
+
+  .pageHeaderCardMeta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .myTasksLayout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .myTasksList {
+    display: grid !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(230px, 78vw) !important;
+    overflow-x: auto !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .myTasksListItem {
+    scroll-snap-align: start;
+    border-radius: 16px !important;
+    min-height: 116px !important;
+    padding: 14px !important;
+  }
+
+  .myTasksListTitle {
+    white-space: normal !important;
+    line-height: 1.35 !important;
+  }
+
+  .myTasksListMeta {
+    flex-wrap: wrap !important;
+  }
+
+  .card:has(.myTasksList) + .card {
+    border-radius: 18px !important;
+  }
+
+  .card:has(.myTasksList) + .card .miniCard {
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .boardChartBigValue {
+    font-size: 30px;
+  }
+
+  .p4BoardGrid {
+    grid-auto-columns: minmax(260px, 94vw) !important;
+  }
+
+  .myTasksList {
+    grid-auto-columns: minmax(220px, 84vw) !important;
+  }
+}
