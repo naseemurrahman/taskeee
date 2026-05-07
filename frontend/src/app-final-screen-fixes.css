@@ -334,3 +334,91 @@ table thead th:last-child,
     letter-spacing: 0.055em !important;
   }
 }
+
+/* Dashboard mobile: compact, professional cards instead of a long oversized list. */
+@media (max-width: 900px) {
+  .contentV4 > div[style*="display: grid"] {
+    gap: 12px !important;
+  }
+
+  .dashKpiStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashKpiStrip .miniCard,
+  .dashKpiStrip > .miniCard,
+  .dashKpiStrip > * {
+    min-height: 112px !important;
+    padding: 14px 16px !important;
+  }
+
+  .dashKpiStrip .miniCard [style*="font-size: 30"],
+  .dashKpiStrip .miniCard [style*="font-size: 32"],
+  .dashKpiStrip .miniCard [style*="font-size: 34"],
+  .dashKpiStrip .miniCard [style*="font-size: 36"] {
+    font-size: 28px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .contentV4 {
+    padding: 10px !important;
+  }
+
+  .pageHeaderCard {
+    padding: 14px !important;
+    min-height: auto !important;
+  }
+
+  .pageHeaderCardInner {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .pageHeaderCardTitle {
+    white-space: normal !important;
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+  }
+
+  .pageHeaderCardSub {
+    display: none !important;
+  }
+
+  .pageHeaderCardMeta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-top: 8px !important;
+  }
+
+  .dashKpiStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .dashKpiStrip .miniCard,
+  .dashKpiStrip > .miniCard,
+  .dashKpiStrip > * {
+    min-height: 96px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .dashKpiStrip .miniCardIcon,
+  .dashKpiStrip svg[width="34"],
+  .dashKpiStrip svg[width="36"],
+  .dashKpiStrip svg[width="40"] {
+    opacity: 0.22 !important;
+    transform: scale(0.82) !important;
+    transform-origin: center !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .dashKpiStrip {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
