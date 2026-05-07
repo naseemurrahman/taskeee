@@ -1,33 +1,29 @@
 /*
-  responsive-master.css
-  Clean, non-destructive responsive layer.
-  RULE: Never override display type, layout, or visual appearance on desktop.
-  Only add: box-sizing, min-width:0, overflow guards, and breakpoint fixes.
+  responsive-master.css — single clean responsive layer
+  Imported after all other files. Adds only what's missing.
+  Never changes: colors, fonts, backgrounds, borders, visual design.
+  Only changes: layout collapse, padding reduction, overflow guards.
 */
 
-/* ── 1. BOX MODEL — no layout change, just sanity ── */
+/* ── Box model sanity ── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { max-width: 100%; overflow-x: hidden; }
 img, svg { max-width: 100%; }
-button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; }
+button, input, select, textarea { font: inherit; min-width: 0; }
 
-/* ── 2. OVERFLOW CONTAINMENT — prevents page-level scroll ── */
+/* ── Flex/grid children must be able to shrink ── */
 .appShellV4, .mainV4, .contentV4 { min-width: 0; }
 .contentV4 > * { min-width: 0; max-width: 100%; }
 
-/* ── 3. TABLES SCROLL INTERNALLY ── */
-.tasksTableWrap,
-.empTableWrap,
-.tableWrapThemed,
-.crmLeadsTable,
-.contractorsTable,
-[class*="TableWrap"] {
+/* ── Tables scroll inside their wrapper, never page-overflow ── */
+.tasksTableWrap, .empTableWrap, .tableWrapThemed,
+.crmLeadsTable, .contractorsTable, [class*="TableWrap"] {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
 
-/* ── 4. NOTIFICATION ITEMS — never overlap ── */
+/* ── Notification list: flex column prevents any overlap ── */
 .topbarNotifyList {
   display: flex !important;
   flex-direction: column !important;
@@ -45,35 +41,75 @@ button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; 
   min-height: 0 !important;
   position: static !important;
   flex-shrink: 0 !important;
-  box-sizing: border-box !important;
 }
 
-/* ── 5. PROJECTS GRID ── */
-.projGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: 14px;
-}
-.projList { display: flex; flex-direction: column; gap: 8px; }
-.projCard, .projRow { min-width: 0; width: 100%; box-sizing: border-box; }
-
-/* ── 6. DROPDOWN MAX WIDTH ── */
-.selectV3Dropdown { max-width: min(380px, calc(100vw - 24px)); }
+/* ── Dropdown ceilings ── */
+.selectV3Dropdown     { max-width: min(380px, calc(100vw - 24px)); }
 .topbarV4SearchDropdown { max-width: min(480px, calc(100vw - 24px)); }
 
-/* ═══════════════════════════════════════════════════════════
-   TABLET — 900px and below
-   Only layout changes: sidebar, grids collapse, topbar trims
-═══════════════════════════════════════════════════════════ */
+/* ── Projects grid ── */
+.projGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.projList { display: flex; flex-direction: column; gap: 8px; }
+.projCard, .projRow { min-width: 0; width: 100%; }
+
+/* ──────────────────────────────────────────────────────────────
+   BOARD — mobile-first layout
+   On desktop: 6-col horizontal scroll (existing .p4BoardGrid)
+   On tablet:  2-col scroll
+   On phone:   single column, no drag (tap to open)
+────────────────────────────────────────────────────────────── */
+.boardMobileHint { display: none; }
+
 @media (max-width: 900px) {
-  /* Sidebar hidden off-screen, slides in */
+  /* Board: 2 cols that scroll */
+  .p4BoardGrid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Board: single column stack, no horizontal scroll needed */
+  .p4BoardGrid {
+    grid-template-columns: 1fr !important;
+    overflow-x: visible !important;
+  }
+  /* Show tap hint on phone */
+  .boardMobileHint {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  /* Board columns: compact on phone */
+  .p4BoardColumn {
+    min-height: 0 !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+  /* Board cards: slightly tighter */
+  .p4BoardCard { padding: 10px 12px !important; }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   TABLET ≤900px
+────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Sidebar: slide-out panel */
   .sidebarV4 {
     position: fixed !important;
     left: 0 !important; top: 0 !important; bottom: 0 !important;
     width: 240px !important; height: 100dvh !important;
     z-index: 500 !important;
     transform: translateX(-100%) !important;
-    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+    transition: transform 0.26s cubic-bezier(0.4,0,0.2,1) !important;
     overflow-y: auto !important;
     box-shadow: none !important;
   }
@@ -84,50 +120,39 @@ button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; 
   .sidebarMobileOpen { overflow: hidden !important; }
   .mainV4 { width: 100% !important; }
 
-  /* Scrim */
+  /* Scrim backdrop */
   .sidebarScrim { display: none; }
   .sidebarMobileOpen .sidebarScrim {
-    display: block;
+    display: block !important;
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(2px);
     z-index: 499;
   }
 
-  /* Hide decorative topbar items */
+  /* Hide topbar decorations */
   .topbarV4Meta, .topbarMetricChip { display: none !important; }
 
-  /* Page header inner: stack title + button vertically */
+  /* Page header: stack content + action button */
   .pageHeaderCardInner {
     flex-direction: column !important;
     align-items: flex-start !important;
   }
 
-  /* Multi-col grids → single column */
+  /* Grids collapse to single column */
   .dashGrid2, .dashGrid3, .dashGrid21, .dashGrid12,
-  .grid2, .grid3, .grid4,
-  .analyticsChartGrid, .analyticsPriorityCharts {
+  .grid2, .grid3, .grid4, .analyticsChartGrid, .analyticsPriorityCharts {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  /* formCardV3Head: stack on tablet */
+  /* formCardV3 header: stack */
   .formCardV3Head {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 10px !important;
   }
-  .formCardV3Head > div:last-child {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .formCardV3Head > div:last-child > div,
-  .formCardV3Head > div:last-child > a,
-  .formCardV3Head > div:last-child > button {
-    flex: 1 1 140px;
-  }
 
-  /* Notification popover: fixed bottom-sheet on mobile */
+  /* Notification popover: fixed full-height panel */
   .topbarNotifyPopover {
     position: fixed !important;
     left: 10px !important; right: 10px !important;
@@ -140,52 +165,45 @@ button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; 
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PHONE — 640px and below
-   Tighter padding, modal as bottom-sheet, no text cut-off
-═══════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────
+   PHONE ≤640px
+────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Content padding */
   .contentV4 { padding: 12px !important; }
 
-  /* Page header */
+  /* Page header tighter on phone */
   .pageHeaderCard { padding: 0 !important; }
   .pageHeaderCardInner { padding: 14px !important; }
-  .pageHeaderCardTitle { font-size: clamp(16px, 5vw, 22px) !important; }
-  .pageHeaderCardSub   { font-size: clamp(12px, 3.5vw, 14px) !important; }
+  .pageHeaderCardTitle { font-size: clamp(16px, 5vw, 20px) !important; }
+  .pageHeaderCardSub   { font-size: clamp(11px, 3.5vw, 13px) !important; }
+  .pageHeaderCardMeta  { gap: 6px !important; margin-top: 6px !important; }
   .pageHeaderCardTag   { font-size: 10px !important; padding: 2px 8px !important; }
 
-  /* Cards: less padding */
-  .chartV3, .card, .cardV3 { padding: 14px !important; }
+  /* Cards: slightly less padding */
+  .chartV3, .card, .cardV3, .miniCard { padding: 14px !important; }
   .formCardV3Head { padding: 12px 14px !important; }
   .formCardV3Body { padding: 14px !important; }
 
-  /* Dashbboard KPI strip: always 2 per row minimum */
+  /* KPI strip: at least 2 per row */
   .dashKpiStrip {
     display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)) !important;
     gap: 10px !important;
   }
 
-  /* Project grid → 1 col */
+  /* Projects: 1 col */
   .projGrid { grid-template-columns: minmax(0, 1fr) !important; }
-
-  /* View toggle hidden on small phones */
   .projViewToggle { display: none !important; }
 
-  /* Task filter bar: full width inputs */
-  .tasksFiltersWrap > * { flex: 1 1 100% !important; }
-
-  /* Modal: slide up from bottom */
+  /* Modal: bottom sheet */
   .modalOverlayV2 { align-items: flex-end !important; padding: 0 !important; }
   .modalCardV2 {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100% !important; max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
     max-height: 94vh !important;
   }
 
-  /* Select dropdown: fixed at bottom */
+  /* Select: anchor to bottom */
   .selectV3Dropdown {
     position: fixed !important;
     left: 10px !important; right: 10px !important;
@@ -196,46 +214,29 @@ button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; 
     z-index: 2100 !important;
   }
 
-  /* Topbar search: grow to fill */
+  /* Topbar search: fill available */
   .topbarV4 .topbarV4SearchWrap { flex: 1 !important; max-width: 100% !important; }
-
-  /* Hide theme/lang toggles to save space */
   .topbarThemeBtn, .topbarLangBtn { display: none !important; }
 
-  /* Large inline metric numbers: scale down */
-  [style*="font-size: 32px"], [style*="fontSize: 32"],
-  [style*="font-size: 32"]:not([class]) {
-    font-size: clamp(20px, 6vw, 28px) !important;
-  }
-
-  /* CRM Pipeline: stack stages */
+  /* CRM stages: stack vertically */
   .crmKanbanGrid { grid-template-columns: minmax(0, 1fr) !important; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SMALL PHONE — 420px and below
-═══════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────
+   SMALL PHONE ≤420px
+────────────────────────────────────────────────────────────── */
 @media (max-width: 420px) {
   .contentV4 { padding: 10px !important; }
   .pageHeaderCardInner { padding: 12px !important; }
   .topbarThemeBtn, .topbarLangBtn, .topbarV4Meta { display: none !important; }
-  .dashKpiStrip {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-  }
+  .dashKpiStrip { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DESKTOP — restore 2-col where collapsed to 1 on tablet+
-   (dashGrid21 is the only one that needs this; the others
-    use auto-fill so they restore naturally)
-═══════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────
+   DESKTOP ≥901px — restore layouts collapsed by tablet rules
+────────────────────────────────────────────────────────────── */
 @media (min-width: 901px) {
-  .dashGrid21 { grid-template-columns: 2fr 1fr; }
-  .dashGrid12 { grid-template-columns: 1fr 2fr; }
-  .dashGrid2  { grid-template-columns: 1fr 1fr; }
-  .dashGrid3  { grid-template-columns: repeat(3, 1fr); }
-  .analyticsChartGrid { grid-template-columns: 1fr 1fr; }
+  /* Sidebar: sticky, always visible */
   .sidebarV4 {
     position: sticky !important;
     top: 0 !important;
@@ -243,4 +244,10 @@ button, input, select, textarea { font: inherit; min-width: 0; max-width: 100%; 
     box-shadow: none !important;
     height: 100vh !important;
   }
+  /* Restore multi-col grids */
+  .dashGrid21 { grid-template-columns: 2fr 1fr !important; }
+  .dashGrid12 { grid-template-columns: 1fr 2fr !important; }
+  .dashGrid2  { grid-template-columns: 1fr 1fr !important; }
+  .dashGrid3  { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .analyticsChartGrid { grid-template-columns: 1fr 1fr !important; }
 }

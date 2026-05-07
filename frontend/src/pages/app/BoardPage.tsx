@@ -227,6 +227,12 @@ export function BoardPage() {
         </div>
       </div>
 
+      {/* Mobile hint — tap cards to open, shown only on phones via CSS */}
+      <div className="boardMobileHint">
+        <span>👆</span>
+        Tap a card to open — drag &amp; drop on larger screens
+      </div>
+
       {boardError && (
         <div style={{padding:'12px 16px',borderRadius:12,background:'rgba(239,68,68,0.10)',border:'1.5px solid rgba(239,68,68,0.35)',color:'#ef4444',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:8}}>
           ⚠ {boardError}
