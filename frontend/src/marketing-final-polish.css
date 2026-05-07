@@ -1,0 +1,382 @@
+/*
+ * Marketing final polish.
+ * Scope is intentionally limited to public marketing pages so these rules do
+ * not affect /app dashboard, tables, sidebar, task cards, or auth pages.
+ */
+
+html:has(.mktShell),
+body:has(.mktShell),
+html:has(.mktShell) #root {
+  width: 100%;
+  min-width: 0;
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+}
+
+body:has(.mktShell) {
+  background: #0a0a10 !important;
+}
+
+.mktShell,
+.mktShell * {
+  box-sizing: border-box;
+}
+
+.mktShell {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(226, 171, 65, 0.12), transparent 34rem),
+    radial-gradient(circle at 82% 22%, rgba(139, 92, 246, 0.11), transparent 34rem),
+    #0a0a10;
+  color: #ffffff;
+}
+
+.mktMain {
+  width: 100%;
+  min-width: 0;
+  overflow: visible !important;
+  isolation: isolate;
+}
+
+.mktShell img,
+.mktShell svg,
+.mktShell video,
+.mktShell canvas {
+  max-width: 100%;
+}
+
+.mktTopbar {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000 !important;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(11, 13, 18, 0.78) !important;
+  backdrop-filter: blur(20px) saturate(1.2) !important;
+}
+
+.mktTopbarInner {
+  width: min(1180px, calc(100vw - 32px)) !important;
+  min-width: 0;
+  min-height: 66px;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+}
+
+.mktBrand {
+  min-width: 0;
+  flex: 0 1 auto;
+  text-decoration: none;
+}
+
+.mktBrandText {
+  min-width: 0;
+}
+
+.mktBrandName,
+.mktBrandSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mktNav {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  gap: 4px !important;
+}
+
+.mktNavItem {
+  min-height: 38px;
+  padding: 0 13px !important;
+  border-radius: 999px !important;
+  white-space: nowrap;
+}
+
+.mktNavItem:hover,
+.mktNavItemActive {
+  background: rgba(226, 171, 65, 0.12) !important;
+  color: #f4ca57 !important;
+}
+
+.mktActions {
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 8px !important;
+}
+
+.mktBtn,
+.mktLang,
+.mktHamburger {
+  min-height: 40px;
+  border-radius: 999px !important;
+  touch-action: manipulation;
+}
+
+.mktBtn {
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  text-decoration: none !important;
+}
+
+.mktHamburger {
+  display: none !important;
+  width: 42px;
+  min-width: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: #ffffff !important;
+  place-items: center;
+}
+
+.mktMobileMenu {
+  position: fixed !important;
+  top: 66px !important;
+  left: 12px !important;
+  right: 12px !important;
+  z-index: 1001 !important;
+  max-height: calc(100dvh - 82px);
+  overflow-y: auto;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  background: rgba(14, 16, 24, 0.97) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(22px) !important;
+}
+
+.mktMobileItem {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 18px !important;
+  display: flex !important;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 800;
+  text-align: left;
+  text-decoration: none;
+}
+
+.mktMobileItem:hover {
+  background: rgba(226, 171, 65, 0.10);
+  color: #f4ca57;
+}
+
+.mktShell section {
+  scroll-margin-top: 86px;
+}
+
+.mktShell section[style*="100vh"] {
+  min-height: calc(100dvh - 66px) !important;
+}
+
+.mktShell section {
+  padding-left: max(18px, calc(50vw - 600px)) !important;
+  padding-right: max(18px, calc(50vw - 600px)) !important;
+}
+
+.mktShell h1,
+.mktShell h2,
+.mktShell h3,
+.mktH1 {
+  text-wrap: balance;
+}
+
+.mktShell p,
+.mktLead,
+.mktFeatureText,
+.mktFooterSub {
+  text-wrap: pretty;
+}
+
+.mktShell .heroGrid,
+.mktShell .featGrid,
+.mktShell .priceGrid,
+.mktShell .testGrid,
+.mktShell .statsRow,
+.mktGrid3,
+.marketingTwoPlanGrid {
+  min-width: 0;
+}
+
+.mktShell .heroGrid > *,
+.mktShell .featGrid > *,
+.mktShell .priceGrid > *,
+.mktShell .testGrid > *,
+.mktShell .statsRow > *,
+.mktGrid3 > *,
+.marketingTwoPlanGrid > * {
+  min-width: 0;
+}
+
+/* Remove the old pseudo-pricing replacement and show real cards again. */
+.mktShell section[data-section='pricing']::before,
+.mktShell section[data-section='pricing']::after {
+  content: none !important;
+  display: none !important;
+}
+
+.mktShell section[data-section='pricing'] .priceGrid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.mktPlan,
+.mktFeature,
+.mktFeatureWide,
+.mktShell .featGrid > div,
+.mktShell .priceGrid > div,
+.mktShell .testGrid > div {
+  min-width: 0;
+  border-radius: 22px !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.24) !important;
+}
+
+.mktShell .featGrid > div,
+.mktShell .testGrid > div {
+  height: 100%;
+}
+
+.mktFooter {
+  overflow: hidden;
+}
+
+.mktFooterInner {
+  width: min(1180px, calc(100vw - 32px));
+}
+
+@media (max-width: 1100px) {
+  .mktNav {
+    display: none !important;
+  }
+
+  .mktHamburger {
+    display: grid !important;
+  }
+
+  .mktShell section[data-section='pricing'] .priceGrid,
+  .mktShell .featGrid,
+  .mktShell .testGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .mktTopbarInner {
+    width: min(100%, calc(100vw - 20px)) !important;
+    min-height: 62px;
+  }
+
+  .mktMain {
+    padding-top: 62px !important;
+  }
+
+  .mktMobileMenu {
+    top: 62px !important;
+  }
+
+  .mktDesktopAction {
+    display: none !important;
+  }
+
+  .mktBrandSub {
+    display: none;
+  }
+
+  .mktShell section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .mktShell .heroGrid,
+  .mktShell .featGrid,
+  .mktShell .priceGrid,
+  .mktShell .testGrid,
+  .mktGrid3,
+  .marketingTwoPlanGrid,
+  .mktShell section[data-section='pricing'] .priceGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mktShell .statsRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+
+  .mktShell section[style*="100vh"] {
+    align-items: flex-start !important;
+    padding-top: 54px !important;
+    min-height: auto !important;
+  }
+
+  .mktShell [style*="animation: float"] {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .mktTopbarInner {
+    gap: 8px !important;
+  }
+
+  .mktBrandName {
+    font-size: 14px !important;
+  }
+
+  .mktLang {
+    max-width: 74px;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .mktShell section {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .mktShell .statsRow {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mktShell .heroTitle {
+    font-size: clamp(30px, 11vw, 46px) !important;
+  }
+
+  .mktShell a[style*="padding: 14px 28px"],
+  .mktShell a[style*="padding: 16px 36px"] {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mktFooterInner > div:first-child {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mktShell *,
+  .mktShell *::before,
+  .mktShell *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
