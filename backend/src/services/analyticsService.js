@@ -1,6 +1,19 @@
 const { query } = require('../utils/db');
 
 const COMPLETED_STATUSES = ['completed', 'manager_approved'];
+const ORG_WIDE_ANALYTICS_ROLES = new Set(['hr', 'director', 'admin']);
+
+function normalizeRole(role) {
+  return String(role || '').trim().toLowerCase();
+}
+
+function userOrgId(user) {
+  return user?.org_id || user?.orgId || null;
+}
+
+function hasOrgWideAnalytics(user) {
+  return ORG_WIDE_ANALYTICS_ROLES.has(normalizeRole(user?.role));
+}
 
 function parsePositiveInt(value, fallback, max) {
   const parsed = Number.parseInt(String(value || ''), 10);
@@ -15,6 +28,75 @@ async function getTaskColumns() {
      WHERE table_schema = 'public' AND table_name = 'tasks'`
   );
   return new Set(rows.map((row) => row.column_name));
+}
+
+async function tableExists(tableName) {
+  try {
+    const { rows } = await query(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = $1
+       ) AS exists`,
+      [tableName]
+    );
+    return !!rows[0]?.exists;
+  } catch {
+    return false;
+  }
+}
+
+async function getOwnTargetIds(user) {
+  const ids = [user.id].filter(Boolean);
+  const orgId = userOrgId(user);
+  if (!orgId || !(await tableExists('employees'))) return ids;
+  try {
+    const { rows } = await query(
+      `SELECT id
+       FROM employees
+       WHERE org_id = $1
+         AND (
+           user_id = $2
+           OR (work_email IS NOT NULL AND LOWER(work_email) = LOWER($3))
+         )`,
+      [orgId, user.id, user.email || '']
+    );
+    for (const row of rows || []) {
+      if (row?.id && !ids.includes(row.id)) ids.push(row.id);
+    }
+  } catch {
+    // Legacy employee mapping is optional.
+  }
+  return ids;
+}
+
+async function analyticsTargetIds(user, filters = {}) {
+  const orgId = userOrgId(user);
+  const role = normalizeRole(user?.role);
+
+  if (!orgId) return [user.id].filter(Boolean);
+
+  // Only HR, Director, and Admin get full organization analytics.
+  if (hasOrgWideAnalytics(user)) {
+    if (filters.employeeId) return [filters.employeeId];
+    try {
+      const { rows } = await query(
+        `SELECT id FROM users WHERE org_id = $1 AND COALESCE(is_active, TRUE) = TRUE`,
+        [orgId]
+      );
+      const ids = rows.map(r => r.id);
+      return ids.length ? ids : [user.id];
+    } catch {
+      return [user.id].filter(Boolean);
+    }
+  }
+
+  // Employee, technician, supervisor, and manager analytics are personal by default.
+  // This prevents non-HR roles from drilling into organization-wide analysis.
+  if (['employee', 'technician', 'supervisor', 'manager'].includes(role)) {
+    return await getOwnTargetIds(user);
+  }
+
+  return [user.id].filter(Boolean);
 }
 
 function col(columns, name, fallbackSql = 'NULL') {
@@ -35,7 +117,7 @@ function buildDateClause(params, column) {
   return clauses;
 }
 
-function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
+async function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
   const orgColumn = columns.has('org_id') ? `${columnPrefix}.org_id` : null;
   const createdAtColumn = columns.has('created_at') ? `${columnPrefix}.created_at` : null;
   const params = {
@@ -45,14 +127,18 @@ function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
     to: filters.to,
   };
 
-  if (orgColumn && user?.org_id) {
-    params.values.push(user.org_id);
+  const orgId = userOrgId(user);
+  if (orgColumn && orgId) {
+    params.values.push(orgId);
     params.clauses.push(`${orgColumn} = $${params.values.length}`);
   }
 
-  if (filters.employeeId && columns.has('assigned_to')) {
-    params.clauses.push(`${columnPrefix}.assigned_to = $${params.values.length + 1}`);
-    params.values.push(filters.employeeId);
+  if (columns.has('assigned_to')) {
+    const targetIds = await analyticsTargetIds(user, filters);
+    if (targetIds.length) {
+      params.clauses.push(`${columnPrefix}.assigned_to = ANY($${params.values.length + 1})`);
+      params.values.push(targetIds);
+    }
   }
 
   if (filters.projectId && columns.has('project_id')) {
@@ -77,7 +163,7 @@ function userTaskJoin(columns) {
 
 async function getSummary(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   const statusCol = columns.has('status') ? 'status' : `'unknown'`;
   const dueCol = columns.has('due_date') ? 'due_date' : 'NULL::timestamp';
   const completedAtCol = columns.has('completed_at') ? 'completed_at' : 'NULL::timestamp';
@@ -104,7 +190,7 @@ async function getSummary(user, filters = {}) {
 
 async function getTaskStatus(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   const statusCol = columns.has('status') ? 'status' : `'unknown'`;
   const { rows } = await query(
     `SELECT COALESCE(${statusCol}, 'unknown') AS status, COUNT(*)::int AS count
@@ -120,7 +206,7 @@ async function getTaskStatus(user, filters = {}) {
 async function getTasksOverTime(user, filters = {}) {
   const columns = await getTaskColumns();
   const days = parsePositiveInt(filters.days, 30, 365);
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   if (columns.has('created_at')) {
     scope.clauses.push(`t.created_at >= NOW() - ($${scope.values.length + 1}::text || ' days')::interval`);
     scope.values.push(String(days));
@@ -145,13 +231,29 @@ async function getTasksOverTime(user, filters = {}) {
 
 async function getEmployeePerformance(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
   const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
   const dueCol = columns.has('due_date') ? 't.due_date' : 'NULL::timestamp';
   const join = userTaskJoin(columns);
-  const where = user?.org_id ? 'WHERE u.org_id = $1' : '';
-  const values = user?.org_id ? [user.org_id, COMPLETED_STATUSES] : [COMPLETED_STATUSES];
+  const orgId = userOrgId(user);
+  const values = [];
+  const whereParts = [];
+  if (orgId) {
+    values.push(orgId);
+    whereParts.push(`u.org_id = $${values.length}`);
+  }
+  if (!hasOrgWideAnalytics(user)) {
+    const ids = await analyticsTargetIds(user, filters);
+    if (ids.length) {
+      values.push(ids);
+      whereParts.push(`u.id = ANY($${values.length})`);
+    }
+  } else if (filters.employeeId) {
+    values.push(filters.employeeId);
+    whereParts.push(`u.id = $${values.length}`);
+  }
+  values.push(COMPLETED_STATUSES);
   const statusParam = values.length;
+  const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
   const { rows } = await query(
     `SELECT u.id AS employee_id,
@@ -167,13 +269,12 @@ async function getEmployeePerformance(user, filters = {}) {
      LIMIT 100`,
     values
   );
-  void scope;
   return { employees: rows };
 }
 
 async function getAiValidation(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   const validationCol = columns.has('ai_validation_status')
     ? 'ai_validation_status'
     : columns.has('manual_review_status')
@@ -193,7 +294,7 @@ async function getAiValidation(user, filters = {}) {
 
 async function getAiConfidence(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   const confidenceCol = columns.has('ai_confidence_score') ? 'ai_confidence_score' : 'NULL::numeric';
   const { rows } = await query(
     `SELECT
@@ -212,9 +313,24 @@ async function getWorkload(user, filters = {}) {
   const columns = await getTaskColumns();
   const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
   const join = userTaskJoin(columns);
-  const where = user?.org_id ? 'WHERE u.org_id = $1' : '';
-  const values = user?.org_id ? [user.org_id] : [];
-  void filters;
+  const orgId = userOrgId(user);
+  const values = [];
+  const whereParts = [];
+  if (orgId) {
+    values.push(orgId);
+    whereParts.push(`u.org_id = $${values.length}`);
+  }
+  if (!hasOrgWideAnalytics(user)) {
+    const ids = await analyticsTargetIds(user, filters);
+    if (ids.length) {
+      values.push(ids);
+      whereParts.push(`u.id = ANY($${values.length})`);
+    }
+  } else if (filters.employeeId) {
+    values.push(filters.employeeId);
+    whereParts.push(`u.id = $${values.length}`);
+  }
+  const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
   const { rows } = await query(
     `SELECT u.id AS employee_id,
@@ -234,7 +350,7 @@ async function getWorkload(user, filters = {}) {
 
 async function getCompletionTime(user, filters = {}) {
   const columns = await getTaskColumns();
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   if (columns.has('completed_at')) scope.clauses.push('t.completed_at IS NOT NULL');
   const categoryCol = columns.has('category') ? 't.category' : `'uncategorized'`;
   const completedAtCol = columns.has('completed_at') ? 't.completed_at' : 'NULL::timestamp';
@@ -255,7 +371,7 @@ async function getCompletionTime(user, filters = {}) {
 async function getOverdueTrend(user, filters = {}) {
   const columns = await getTaskColumns();
   const days = parsePositiveInt(filters.days, 30, 365);
-  const scope = buildOrgScope(user, filters, columns);
+  const scope = await buildOrgScope(user, filters, columns);
   if (columns.has('due_date')) {
     scope.clauses.push(`t.due_date >= NOW() - ($${scope.values.length + 1}::text || ' days')::interval`);
     scope.values.push(String(days));
