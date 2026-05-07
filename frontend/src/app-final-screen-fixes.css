@@ -1,0 +1,240 @@
+/*
+ * Final screen fixes for header metrics, mobile content visibility,
+ * and the original page-header gradient strip.
+ */
+
+/* Topbar: keep search + quick metrics professional instead of oversized pills. */
+.topbarV4 {
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+}
+
+.topbarV4SearchWrap {
+  flex: 0 1 clamp(260px, 32vw, 420px) !important;
+  max-width: 420px !important;
+  min-width: 220px !important;
+  height: 38px !important;
+}
+
+.topbarV4SearchInput {
+  min-width: 0 !important;
+  font-size: 13px !important;
+}
+
+.topbarV4Meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.topbarMetricChip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-width: 136px !important;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: var(--text2) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.topbarMetricChip strong {
+  margin-left: 1px !important;
+  color: var(--text) !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.topbarMetricDot {
+  width: 6px !important;
+  height: 6px !important;
+  flex: 0 0 6px !important;
+  margin: 0 !important;
+}
+
+.appShellV4Light .topbarMetricChip {
+  border-color: rgba(15, 23, 42, 0.10) !important;
+  background: rgba(15, 23, 42, 0.035) !important;
+  color: #475569 !important;
+}
+
+.appShellV4Light .topbarMetricChip strong {
+  color: #0f172a !important;
+}
+
+/* Hide metrics before they collide with search/account controls. */
+@media (max-width: 1500px) {
+  .topbarV4Meta .topbarMetricChip:nth-child(3) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1320px) {
+  .topbarV4Meta {
+    display: none !important;
+  }
+
+  .topbarV4SearchWrap {
+    flex: 1 1 420px !important;
+    max-width: 560px !important;
+  }
+}
+
+/* Header cards: restore the original visible top strip on every page. */
+.pageHeaderCard {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  padding-top: max(16px, clamp(14px, 1.5vw, 22px)) !important;
+}
+
+.pageHeaderCard::before {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 4px !important;
+  min-height: 4px !important;
+  background: var(--brand-gradient, linear-gradient(90deg, #c98317, #e2ab41, #f59e0b, #e2ab41, #c98317)) !important;
+  border-radius: inherit !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+.pageHeaderCardInner {
+  position: relative !important;
+  z-index: 21 !important;
+}
+
+/* Mobile: keep content visible and scrollable below header cards. */
+.contentV4 {
+  display: block !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.dashKpiStrip,
+.analyticsSignalStrip,
+.grid2,
+.grid3,
+.grid4,
+.dashGrid2,
+.dashGrid3,
+.dashGrid21,
+.dashGrid12 {
+  max-height: none !important;
+  overflow: visible !important;
+  visibility: visible !important;
+}
+
+.card,
+.miniCard,
+.chartV3,
+.chartCardV2,
+.formCardV3,
+.pageHeaderCard,
+.dashKpiStrip > *,
+.analyticsSignalStrip > * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 900px) {
+  .topbarV4 {
+    gap: 8px !important;
+    padding: 8px 10px !important;
+  }
+
+  .topbarV4SearchWrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .contentV4 {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .pageHeaderCard {
+    margin-bottom: 12px !important;
+  }
+
+  .dashKpiStrip {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+    scroll-snap-type: none !important;
+  }
+
+  .dashKpiStrip > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: initial !important;
+    scroll-snap-align: none !important;
+  }
+
+  .analyticsSignalStrip,
+  .dashGrid2,
+  .dashGrid3,
+  .grid2,
+  .grid3,
+  .grid4 {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbarV4SearchInput::placeholder {
+    color: transparent !important;
+  }
+
+  .topbarV4SearchWrap kbd {
+    display: none !important;
+  }
+
+  .dashKpiStrip {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .pageHeaderCard,
+  .card,
+  .miniCard,
+  .chartV3,
+  .chartCardV2,
+  .formCardV3 {
+    border-radius: 14px !important;
+  }
+}
