@@ -175,6 +175,47 @@
   font-weight: 800;
 }
 
+/* Turn Highest Risk into a compact live bar chart using the live score text. */
+.boardIntelligencePanel .grid3 > .miniCard:first-child {
+  min-height: auto !important;
+}
+
+.boardIntelligencePanel .grid3 > .miniCard:first-child button {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 34px;
+  padding: 7px 8px !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  background: rgba(255,255,255,0.035) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+}
+
+.boardIntelligencePanel .grid3 > .miniCard:first-child button::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 72%;
+  background: linear-gradient(90deg, rgba(239,68,68,0.20), rgba(249,115,22,0.10));
+  pointer-events: none;
+}
+
+.boardIntelligencePanel .grid3 > .miniCard:first-child button:nth-child(2)::before { width: 62%; }
+.boardIntelligencePanel .grid3 > .miniCard:first-child button:nth-child(3)::before { width: 52%; }
+
+.boardIntelligencePanel .grid3 > .miniCard:first-child button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.boardIntelligencePanel .grid3 > .miniCard:first-child button span:first-child {
+  font-size: 12px !important;
+  font-weight: 850 !important;
+}
+
 @media (max-width: 1180px) {
   .boardChartsPanel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -261,8 +302,50 @@
     grid-template-columns: minmax(68px, 0.8fr) minmax(82px, 1fr) auto;
   }
 
+  /* Small phone logic: stop using side-scrolling kanban. Stack sections vertically. */
+  .boardMobileHint {
+    display: none !important;
+  }
+
   .p4BoardGrid {
-    grid-auto-columns: minmax(272px, 92vw) !important;
+    display: grid !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    scroll-snap-type: none !important;
+  }
+
+  .p4BoardColumn {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)), var(--surface) !important;
+  }
+
+  .p4BoardColumn > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -4px -4px 10px !important;
+    padding: 6px 4px 10px;
+    background: linear-gradient(180deg, var(--surface), rgba(0,0,0,0));
+  }
+
+  .p4BoardColumn > div:nth-child(2) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .p4BoardCard {
+    min-width: 0 !important;
+    width: 100% !important;
+    border-radius: 15px !important;
+    padding: 12px !important;
   }
 
   .tasksDesktopTable {
@@ -338,10 +421,6 @@
 @media (max-width: 420px) {
   .boardChartBigValue {
     font-size: 30px;
-  }
-
-  .p4BoardGrid {
-    grid-auto-columns: minmax(260px, 94vw) !important;
   }
 
   .myTasksList {
