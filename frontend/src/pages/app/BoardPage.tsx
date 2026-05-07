@@ -125,6 +125,27 @@ export function BoardPage() {
     return map
   },[visibleTasks])
 
+  const boardCharts = useMemo(() => {
+    const total = Math.max(tasks.length, 1)
+    const statusBars = COLUMNS.map(col => ({
+      ...col,
+      count: tasks.filter(t => (COLUMNS.find(c => c.key === t.status)?.key || 'pending') === col.key).length,
+    }))
+    const priorityKeys = ['critical', 'high', 'medium', 'low']
+    const priorityBars = priorityKeys.map(key => ({
+      key,
+      label: key[0].toUpperCase() + key.slice(1),
+      color: PRIORITY_COLOR[key] || '#9ca3af',
+      count: tasks.filter(t => String(t.priority || '').toLowerCase() === key).length,
+    })).filter(item => item.count > 0)
+    const completed = tasks.filter(t => ['completed', 'manager_approved'].includes(t.status)).length
+    const overdue = tasks.filter(t => t.status === 'overdue').length
+    const active = tasks.filter(t => !['completed', 'manager_approved', 'cancelled'].includes(t.status)).length
+    const completionRate = Math.round((completed / total) * 100)
+    const riskRate = Math.round((intelligence.risky.length / total) * 100)
+    return { total, statusBars, priorityBars, completed, overdue, active, completionRate, riskRate }
+  }, [tasks, intelligence.risky.length])
+
   const handleDragStart = useCallback((e:React.DragEvent,taskId:string)=>{
     if (!canDrag) return
     e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('taskId',taskId); setDraggedTaskId(taskId)
@@ -143,7 +164,7 @@ export function BoardPage() {
   const signalFor=(task:Task)=>buildTaskSignal(task,loadByUser)
 
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:18}}>
+    <div className="boardPageRoot" style={{display:'flex',flexDirection:'column',gap:18}}>
       {/* Page header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">
@@ -167,8 +188,51 @@ export function BoardPage() {
         </div>
       </div>
 
+      <div className="boardChartsPanel">
+        <div className="boardChartSummaryCard">
+          <div>
+            <div className="miniLabel">Board Health</div>
+            <div className="boardChartBigValue">{boardCharts.completionRate}%</div>
+            <div className="boardChartMuted">completion across {tasks.length} tasks</div>
+          </div>
+          <div className="boardDonut" style={{ ['--pct' as any]: `${boardCharts.completionRate}%` }}>
+            <span>{boardCharts.completionRate}%</span>
+          </div>
+        </div>
+        <div className="boardChartCard">
+          <div className="boardChartHead">
+            <div><div className="miniLabel">Status Flow</div><strong>{boardCharts.active}</strong><span> active</span></div>
+            <div className="boardChartBadge">{boardCharts.overdue} overdue</div>
+          </div>
+          <div className="boardBars">
+            {boardCharts.statusBars.map(item => (
+              <div key={item.key} className="boardBarRow">
+                <span>{item.label}</span>
+                <div><i style={{ width: `${Math.max(4, (item.count / boardCharts.total) * 100)}%`, background: item.color }} /></div>
+                <b>{item.count}</b>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="boardChartCard">
+          <div className="boardChartHead">
+            <div><div className="miniLabel">Priority Pressure</div><strong>{boardCharts.riskRate}%</strong><span> attention</span></div>
+            <div className="boardChartBadge boardChartBadgeWarn">AI risk</div>
+          </div>
+          <div className="boardBars">
+            {(boardCharts.priorityBars.length ? boardCharts.priorityBars : [{ key: 'none', label: 'No priority pressure', color: '#22c55e', count: tasks.length }]).map(item => (
+              <div key={item.key} className="boardBarRow">
+                <span>{item.label}</span>
+                <div><i style={{ width: `${Math.max(4, (item.count / boardCharts.total) * 100)}%`, background: item.color }} /></div>
+                <b>{item.count}</b>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* AI Intelligence panel */}
-      <div className="chartV3" style={{padding:16,display:'grid',gap:14}}>
+      <div className="chartV3 boardIntelligencePanel" style={{padding:16,display:'grid',gap:14}}>
         <div style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center',justifyContent:'space-between'}}>
           <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
             <button type="button" className={focusMode?'btn btnPrimary':'btn btnGhost'} onClick={()=>setFocusMode(v=>!v)}>Focus Mode</button>
