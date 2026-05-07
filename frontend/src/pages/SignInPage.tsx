@@ -1,13 +1,42 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiError } from '../lib/api'
-import { setAccessToken, setRefreshToken, setUser } from '../state/auth'
+import { setAccessToken, setRefreshToken, setUser, type AuthUser } from '../state/auth'
 
 async function login(email: string, password: string) {
   return await apiFetch<{
     accessToken: string; refreshToken: string
-    user: { id: string; email: string; fullName: string; role: string; orgId: string }
+    user: AuthUser
   }>('/api/v1/auth/login', { method: 'POST', json: { email, password } })
+}
+
+type ServerProfileUser = {
+  id?: string
+  email?: string
+  full_name?: string
+  fullName?: string
+  role?: string
+  org_id?: string
+  orgId?: string
+}
+
+function toAuthUser(user: ServerProfileUser, fallback?: Partial<AuthUser>): AuthUser {
+  return {
+    id: String(user.id || fallback?.id || ''),
+    email: String(user.email || fallback?.email || ''),
+    fullName: String(user.fullName || user.full_name || fallback?.fullName || ''),
+    role: String(user.role || fallback?.role || 'employee'),
+    orgId: String(user.orgId || user.org_id || fallback?.orgId || ''),
+  }
+}
+
+async function loadCurrentUser(loginUser: AuthUser): Promise<AuthUser> {
+  try {
+    const profile = await apiFetch<{ user: ServerProfileUser }>('/api/v1/users/profile')
+    return toAuthUser(profile.user || {}, loginUser)
+  } catch {
+    return toAuthUser(loginUser, loginUser)
+  }
 }
 
 export function SignInPage() {
@@ -26,7 +55,11 @@ export function SignInPage() {
     setError(null); setLoading(true)
     try {
       const data = await login(email.trim().toLowerCase(), password)
-      setAccessToken(data.accessToken); setRefreshToken(data.refreshToken); setUser(data.user)
+      setAccessToken(data.accessToken)
+      setRefreshToken(data.refreshToken)
+      setUser(toAuthUser(data.user, data.user))
+      const currentUser = await loadCurrentUser(data.user)
+      setUser(currentUser)
       const next = params.get('next')
       navigate(next && next.startsWith('/app') ? next : '/app/dashboard', { replace: true })
     } catch (err) {
@@ -151,7 +184,7 @@ export function SignInPage() {
                     <circle cx="12" cy="12" r="10" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/>
                     <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
                   </svg>
-                  Signing in…
+                  Loading your workspace…
                 </span>
               ) : 'Sign in →'}
             </button>
