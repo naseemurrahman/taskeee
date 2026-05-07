@@ -224,18 +224,6 @@ body:has(.mktShell) {
   min-width: 0;
 }
 
-/* Remove the old pseudo-pricing replacement and show real cards again. */
-.mktShell section[data-section='pricing']::before,
-.mktShell section[data-section='pricing']::after {
-  content: none !important;
-  display: none !important;
-}
-
-.mktShell section[data-section='pricing'] .priceGrid {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-}
-
 .mktPlan,
 .mktFeature,
 .mktFeatureWide,
@@ -270,7 +258,6 @@ body:has(.mktShell) {
     display: grid !important;
   }
 
-  .mktShell section[data-section='pricing'] .priceGrid,
   .mktShell .featGrid,
   .mktShell .testGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -309,8 +296,7 @@ body:has(.mktShell) {
   .mktShell .priceGrid,
   .mktShell .testGrid,
   .mktGrid3,
-  .marketingTwoPlanGrid,
-  .mktShell section[data-section='pricing'] .priceGrid {
+  .marketingTwoPlanGrid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
@@ -378,5 +364,56 @@ body:has(.mktShell) {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* Marketing home pricing sync: match /pricing Basic and Pro plans. */
+.mktShell section[data-section='pricing'] .priceGrid {
+  display: none !important;
+}
+
+.mktShell section[data-section='pricing'] {
+  position: relative;
+}
+
+.mktShell section[data-section='pricing']::before {
+  content: 'Choose Basic for structured team operations, or Pro when you need AI insights, WhatsApp delivery diagnostics, audit controls, and readiness tooling.';
+  display: block !important;
+  max-width: 760px;
+  margin: -36px auto 24px;
+  color: rgba(255,255,255,0.62);
+  font-size: 16px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.mktShell section[data-section='pricing']::after {
+  content: 'Basic — $4 / seat / month\A Tasks, projects, board, calendar, comments, HR workflows, email notifications, reports, exports, and role-based access.\A\A Pro — $10 / seat / month\A Everything in Basic plus AI-assisted task signals, WhatsApp + email notification diagnostics, audit/readiness tooling, advanced analytics, insights, and priority support.';
+  white-space: pre-line;
+  display: block !important;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 30px;
+  border-radius: 28px;
+  border: 1px solid rgba(226,171,65,0.34);
+  background: linear-gradient(135deg, rgba(226,171,65,0.13), rgba(139,92,246,0.08)), rgba(255,255,255,0.035);
+  color: rgba(255,255,255,0.88);
+  font-size: 17px;
+  line-height: 1.75;
+  font-weight: 650;
+  box-shadow: 0 22px 80px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 720px) {
+  .mktShell section[data-section='pricing']::before {
+    margin-top: -28px;
+    font-size: 14px;
+  }
+
+  .mktShell section[data-section='pricing']::after {
+    padding: 22px;
+    border-radius: 22px;
+    font-size: 15px;
+    line-height: 1.7;
   }
 }
