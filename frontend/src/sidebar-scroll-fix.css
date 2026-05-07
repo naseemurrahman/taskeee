@@ -1,0 +1,152 @@
+/* Sidebar/page scroll isolation and responsive shell hardening.
+   Keep the application shell locked to the viewport so only the intended
+   scroll container moves: sidebar nav scrolls inside itself; page content
+   scrolls inside .contentV4. */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+.appShellV4 {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden !important;
+  display: grid;
+  grid-template-columns: minmax(224px, 260px) minmax(0, 1fr);
+}
+
+.appShellV4.sidebarCollapsed {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.sidebarV4 {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden !important;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarV4Logo,
+.sidebarV4Bottom {
+  flex: 0 0 auto;
+}
+
+.sidebarV4Nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.mainV4 {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbarV4 {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.contentV4 {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.contentV4 > *,
+.pageHeaderCard,
+.card,
+.formCardV3,
+.chartV3,
+.chartCardV2,
+.miniCard {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.topbarV4SearchWrap {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .appShellV4,
+  .appShellV4.sidebarCollapsed {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .sidebarV4 {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    width: min(280px, 86vw) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    z-index: 500 !important;
+  }
+
+  .sidebarMobileOpen .contentV4 {
+    overflow: hidden;
+  }
+
+  [dir="rtl"] .sidebarV4 {
+    left: auto !important;
+    right: 0 !important;
+    transform: translateX(100%) !important;
+  }
+
+  [dir="rtl"] .sidebarMobileOpen .sidebarV4 {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbarV4 {
+    gap: 6px;
+  }
+
+  .topbarV4 .topbarV4SearchWrap {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
