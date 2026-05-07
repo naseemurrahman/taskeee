@@ -236,7 +236,28 @@ textarea:focus-visible,
 }
 
 .pageHeaderCard {
+  position: relative !important;
+  overflow: hidden !important;
   padding: clamp(14px, 1.5vw, 22px) !important;
+}
+
+.pageHeaderCard::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: var(--brand-gradient, linear-gradient(90deg, #c98317, #e2ab41, #f59e0b, #e2ab41, #c98317)) !important;
+  border-radius: var(--app-card-radius) var(--app-card-radius) 0 0 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+.pageHeaderCardInner {
+  position: relative;
+  z-index: 2;
 }
 
 .pageHeaderCardInner,
