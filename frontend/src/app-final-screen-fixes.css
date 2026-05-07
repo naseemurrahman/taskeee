@@ -238,3 +238,99 @@
     border-radius: 14px !important;
   }
 }
+
+/* Tables: make every table header visibly highlighted and consistent. */
+.tableWrap,
+.tasksTableWrap,
+.empTableWrap,
+.card:has(table),
+.formCardV3:has(table) {
+  border-radius: var(--app-card-radius, 16px) !important;
+}
+
+table thead,
+.tasksTable thead,
+.empTable thead,
+.contractorTable thead,
+.crmTable thead {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+table thead tr,
+.tasksTable thead tr,
+.empTable thead tr,
+.contractorTable thead tr,
+.crmTable thead tr {
+  background:
+    linear-gradient(180deg, rgba(226, 171, 65, 0.15), rgba(226, 171, 65, 0.055)),
+    rgba(255, 255, 255, 0.045) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(226, 171, 65, 0.22) !important;
+}
+
+table thead th,
+.tasksTable thead th,
+.empTable thead th,
+.contractorTable thead th,
+.crmTable thead th {
+  background: transparent !important;
+  color: #f7d890 !important;
+  border-bottom: 1px solid rgba(226, 171, 65, 0.24) !important;
+  font-size: 11px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.075em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+table thead th:first-child,
+.tasksTable thead th:first-child,
+.empTable thead th:first-child,
+.contractorTable thead th:first-child,
+.crmTable thead th:first-child {
+  border-top-left-radius: 12px !important;
+}
+
+table thead th:last-child,
+.tasksTable thead th:last-child,
+.empTable thead th:last-child,
+.contractorTable thead th:last-child,
+.crmTable thead th:last-child {
+  border-top-right-radius: 12px !important;
+}
+
+.appShellV4Light table thead tr,
+.appShellV4Light .tasksTable thead tr,
+.appShellV4Light .empTable thead tr,
+.appShellV4Light .contractorTable thead tr,
+.appShellV4Light .crmTable thead tr {
+  background:
+    linear-gradient(180deg, rgba(226, 171, 65, 0.20), rgba(226, 171, 65, 0.075)),
+    rgba(15, 23, 42, 0.025) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(180, 83, 9, 0.20) !important;
+}
+
+.appShellV4Light table thead th,
+.appShellV4Light .tasksTable thead th,
+.appShellV4Light .empTable thead th,
+.appShellV4Light .contractorTable thead th,
+.appShellV4Light .crmTable thead th {
+  color: #8a4b09 !important;
+  border-bottom-color: rgba(180, 83, 9, 0.22) !important;
+}
+
+@media (max-width: 720px) {
+  table thead th,
+  .tasksTable thead th,
+  .empTable thead th,
+  .contractorTable thead th,
+  .crmTable thead th {
+    font-size: 10.5px !important;
+    letter-spacing: 0.055em !important;
+  }
+}
