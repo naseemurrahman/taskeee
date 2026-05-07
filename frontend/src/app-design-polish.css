@@ -1,0 +1,652 @@
+/*
+ * app-design-polish.css — final visual polish and all-screen hardening.
+ * Loaded late in main.tsx on purpose so it can normalize older page styles
+ * without requiring risky rewrites across every page component.
+ */
+
+:root {
+  --app-sidebar-width: clamp(232px, 18vw, 272px);
+  --app-sidebar-collapsed-width: 72px;
+  --app-topbar-height: 64px;
+  --app-content-pad: clamp(14px, 1.8vw, 26px);
+  --app-card-radius: clamp(14px, 1.3vw, 20px);
+  --app-control-radius: 12px;
+  --app-focus-ring: 0 0 0 3px rgba(226, 171, 65, 0.22);
+  --app-ease: 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring) !important;
+}
+
+.appShellV4 {
+  grid-template-columns: var(--app-sidebar-width) minmax(0, 1fr) !important;
+  background:
+    radial-gradient(circle at top left, rgba(226, 171, 65, 0.10), transparent 32vw),
+    radial-gradient(circle at bottom right, rgba(109, 94, 252, 0.10), transparent 34vw),
+    var(--bg);
+}
+
+.appShellV4.sidebarCollapsed {
+  grid-template-columns: var(--app-sidebar-collapsed-width) minmax(0, 1fr) !important;
+}
+
+.sidebarV4 {
+  width: var(--app-sidebar-width);
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  backdrop-filter: blur(18px);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.04), 12px 0 34px rgba(0, 0, 0, 0.12);
+}
+
+.sidebarCollapsed .sidebarV4 {
+  width: var(--app-sidebar-collapsed-width);
+}
+
+.sidebarV4Logo {
+  min-height: var(--app-topbar-height);
+  padding: 12px 12px 10px !important;
+  gap: 8px;
+}
+
+.sidebarV4LogoLink {
+  min-width: 0;
+  border-radius: 16px;
+}
+
+.sidebarV4BrandName,
+.sidebarV4BrandSub,
+.navItemV4Label,
+.profileDropdownName,
+.profileDropdownEmail,
+.pageHeaderCardTitle,
+.pageHeaderCardSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarCollapseBtn,
+.topbarV4MenuBtn,
+.topbarThemeBtn,
+.topbarLangBtn,
+.topbarV4ProfileBtn,
+.topbarMetricChip,
+.btn,
+.paginationBtn {
+  min-height: 40px;
+  touch-action: manipulation;
+}
+
+.sidebarCollapseBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px !important;
+  flex: 0 0 auto;
+}
+
+.sidebarV4Nav {
+  padding: 8px 10px 12px !important;
+}
+
+.sidebarV4SectionLabel {
+  margin: 10px 8px 6px !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.navItemV4 {
+  min-height: 42px;
+  padding: 10px 10px !important;
+  gap: 10px !important;
+  border-radius: 14px !important;
+  border: 1px solid transparent;
+  transition: background var(--app-ease), border-color var(--app-ease), color var(--app-ease), transform var(--app-ease);
+}
+
+.navItemV4 svg {
+  flex: 0 0 auto;
+}
+
+.navItemV4:hover {
+  transform: translateX(1px);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.navItemV4Active {
+  border-color: rgba(226, 171, 65, 0.26) !important;
+  box-shadow: inset 0 0 0 1px rgba(226, 171, 65, 0.08), 0 8px 24px rgba(226, 171, 65, 0.08);
+}
+
+.sidebarCollapsed .navItemV4 {
+  justify-content: center;
+  padding: 10px !important;
+}
+
+.mainV4 {
+  min-width: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 94%, transparent), var(--bg));
+}
+
+.topbarV4 {
+  min-height: var(--app-topbar-height);
+  height: auto !important;
+  padding: 10px var(--app-content-pad) !important;
+  gap: 10px !important;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent) !important;
+  backdrop-filter: blur(16px);
+  z-index: 30;
+}
+
+.topbarV4SearchWrap {
+  flex: 1 1 min(420px, 42vw) !important;
+  max-width: 520px;
+  min-width: 160px !important;
+  height: 40px !important;
+}
+
+.topbarV4SearchDropdown,
+.profileDropdown,
+.topbarNotifyPopover {
+  border-radius: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32) !important;
+  backdrop-filter: blur(18px);
+}
+
+.topbarV4Meta {
+  min-width: 0;
+  flex: 0 1 auto;
+  gap: 8px !important;
+}
+
+.topbarMetricChip {
+  max-width: 160px;
+  min-width: 0;
+  white-space: nowrap;
+  border-radius: 999px !important;
+}
+
+.contentV4 {
+  padding: var(--app-content-pad) !important;
+  scroll-padding: var(--app-content-pad);
+}
+
+.contentV4 > * {
+  width: 100%;
+}
+
+.pageHeaderCard,
+.card,
+.formCardV3,
+.chartV3,
+.chartCardV2,
+.miniCard,
+.mktFeature,
+.mktFeatureWide,
+.mktPlan {
+  border-radius: var(--app-card-radius) !important;
+  border-color: color-mix(in srgb, var(--border) 82%, transparent) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.pageHeaderCard,
+.formCardV3,
+.card,
+.chartV3,
+.chartCardV2 {
+  margin-bottom: clamp(12px, 1.5vw, 18px);
+}
+
+.pageHeaderCard {
+  padding: clamp(14px, 1.5vw, 22px) !important;
+}
+
+.pageHeaderCardInner,
+.formCardV3Head,
+.chartCardV2Head,
+.cardHead,
+.modalV2Head {
+  min-width: 0;
+  gap: 12px !important;
+}
+
+.pageHeaderCardInner > *,
+.formCardV3Head > *,
+.chartCardV2Head > *,
+.cardHead > * {
+  min-width: 0;
+}
+
+.pageHeaderCardTitle {
+  font-size: clamp(18px, 2vw, 26px) !important;
+  letter-spacing: -0.035em;
+}
+
+.pageHeaderCardSub {
+  max-width: min(780px, 100%);
+  line-height: 1.55;
+}
+
+.btn,
+button.btn,
+a.btn,
+.authSubmit,
+.mktBtn,
+.paginationBtn {
+  border-radius: var(--app-control-radius) !important;
+  transition: transform var(--app-ease), box-shadow var(--app-ease), background var(--app-ease), border-color var(--app-ease);
+}
+
+.btn:hover:not(:disabled),
+.authSubmit:hover:not(:disabled),
+.mktBtn:hover,
+.paginationBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select,
+.selectV3,
+.selectV3Button,
+.selectV3Value {
+  max-width: 100%;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  min-height: 40px;
+}
+
+.form,
+.formGrid,
+.grid2,
+.grid3,
+.grid4,
+.dashGrid2,
+.dashGrid3,
+.dashGrid21,
+.dashGrid12,
+.analyticsChartGrid,
+.analyticsSignalStrip {
+  min-width: 0;
+}
+
+.form > *,
+.formGrid > *,
+.grid2 > *,
+.grid3 > *,
+.grid4 > *,
+.dashGrid2 > *,
+.dashGrid3 > *,
+.dashGrid21 > *,
+.dashGrid12 > *,
+.analyticsChartGrid > *,
+.analyticsSignalStrip > * {
+  min-width: 0;
+}
+
+.tableWrap,
+.tasksTableWrap,
+.empTableWrap,
+.chartCardV2Body,
+.p4BoardGrid,
+.crmKanban {
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.tableWrap,
+.tasksTableWrap,
+.empTableWrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+table,
+.tasksTable {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+th,
+td {
+  overflow-wrap: anywhere;
+}
+
+.modalOverlayV2 {
+  padding: clamp(10px, 2vw, 24px) !important;
+}
+
+.modalCardV2 {
+  width: min(720px, calc(100vw - 20px)) !important;
+  max-height: min(92vh, 760px) !important;
+  border-radius: clamp(18px, 2vw, 24px) !important;
+}
+
+.profileDropdown {
+  max-width: calc(100vw - 20px);
+}
+
+/* Theme-specific refinements */
+.appShellV4Light .sidebarV4,
+.appShellV4Light .topbarV4,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .card,
+.appShellV4Light .formCardV3,
+.appShellV4Light .chartV3,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .miniCard {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+.appShellV4Light .mainV4 {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(226, 171, 65, 0.10), transparent 30vw),
+    linear-gradient(180deg, #f7f9fc, #edf2f7) !important;
+}
+
+.appShellV4Dark .mainV4 {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(226, 171, 65, 0.08), transparent 30vw),
+    radial-gradient(circle at 82% 90%, rgba(109, 94, 252, 0.09), transparent 32vw),
+    #0f1117 !important;
+}
+
+/* Laptop/tablet */
+@media (max-width: 1200px) {
+  :root {
+    --app-sidebar-width: 236px;
+    --app-content-pad: 18px;
+  }
+
+  .topbarV4Meta {
+    display: none !important;
+  }
+
+  .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --app-content-pad: 16px;
+  }
+
+  .dashGrid2,
+  .dashGrid21,
+  .dashGrid12,
+  .analyticsChartGrid,
+  .grid2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashGrid3,
+  .grid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .pageHeaderCardInner,
+  .formCardV3Head,
+  .chartCardV2Head,
+  .cardHead {
+    align-items: flex-start !important;
+  }
+}
+
+/* Mobile app shell */
+@media (max-width: 900px) {
+  :root {
+    --app-topbar-height: 58px;
+    --app-content-pad: 14px;
+  }
+
+  .appShellV4,
+  .appShellV4.sidebarCollapsed {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .sidebarV4,
+  .sidebarCollapsed .sidebarV4 {
+    width: min(292px, 88vw) !important;
+  }
+
+  .sidebarV4Logo {
+    min-height: 58px;
+  }
+
+  .topbarV4 {
+    position: sticky;
+    top: 0;
+    min-height: 58px;
+    padding: 8px 12px !important;
+  }
+
+  .topbarV4MenuBtn {
+    display: inline-grid !important;
+    flex: 0 0 auto;
+  }
+
+  .topbarV4SearchWrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 38px !important;
+  }
+
+  .topbarLangBtn span {
+    display: none;
+  }
+
+  .contentV4 {
+    padding-bottom: calc(var(--app-content-pad) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .pageHeaderCardInner,
+  .formCardV3Head,
+  .chartCardV2Head,
+  .cardHead {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .pageHeaderCardInner > div:last-child,
+  .formCardV3Head > div:last-child,
+  .cardHead > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pageHeaderCardInner > div:last-child > *,
+  .formCardV3Head > div:last-child > *,
+  .cardHead > div:last-child > * {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+
+  .authGrid {
+    min-height: 100dvh !important;
+  }
+
+  .modalCardV2 {
+    width: min(100%, calc(100vw - 16px)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashGrid3,
+  .grid3,
+  .grid4,
+  .analyticsSignalStrip {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashKpiStrip {
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(142px, 72%);
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    gap: 10px;
+    scroll-snap-type: x proximity;
+  }
+
+  .dashKpiStrip > * {
+    scroll-snap-align: start;
+  }
+
+  .topbarV4SearchInput::placeholder {
+    color: transparent !important;
+  }
+
+  .topbarV4SearchWrap kbd {
+    display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --app-content-pad: 12px;
+    --app-card-radius: 14px;
+  }
+
+  .topbarV4 {
+    gap: 6px !important;
+  }
+
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn,
+  .topbarV4MenuBtn {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+  }
+
+  .topbarV4SearchWrap {
+    min-width: 44px !important;
+  }
+
+  .contentV4 {
+    padding: 12px !important;
+  }
+
+  .pageHeaderCard,
+  .formCardV3,
+  .card,
+  .chartV3,
+  .chartCardV2,
+  .miniCard {
+    margin-bottom: 12px;
+  }
+
+  .pageHeaderCardTitle {
+    font-size: 18px !important;
+  }
+
+  .btn,
+  button.btn,
+  a.btn {
+    min-height: 40px;
+    padding-inline: 12px !important;
+  }
+
+  .modalOverlayV2 {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modalCardV2 {
+    width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 22px 22px 0 0 !important;
+  }
+
+  .topbarV4SearchDropdown,
+  .profileDropdown,
+  .selectV3Dropdown {
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbarV4 {
+    padding-inline: 8px !important;
+  }
+
+  .topbarV4SearchWrap {
+    flex-basis: 44px !important;
+  }
+
+  .topbarV4SearchInput {
+    padding-left: 30px !important;
+    padding-right: 28px !important;
+  }
+
+  .profileDropdown {
+    right: 4px !important;
+  }
+
+  .pageHeaderCardInner > div:last-child > *,
+  .formCardV3Head > div:last-child > *,
+  .cardHead > div:last-child > * {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
