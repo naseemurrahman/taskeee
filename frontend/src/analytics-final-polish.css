@@ -1,0 +1,87 @@
+.analyticsSignalStrip {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  overflow: visible !important;
+  max-height: none !important;
+  width: 100% !important;
+}
+
+.analyticsSignalStrip > .miniCard,
+.analyticsSignalStrip > * {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 104px !important;
+  padding: 16px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.025)), var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+}
+
+.analyticsSignalStrip .miniLabel {
+  margin: 0 !important;
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.25 !important;
+  text-transform: uppercase !important;
+  white-space: normal !important;
+}
+
+.analyticsSignalStrip .miniValue {
+  color: var(--text) !important;
+  font-size: clamp(22px, 2.1vw, 30px) !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.055em !important;
+  line-height: 1 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.appShellV4Light .analyticsSignalStrip > .miniCard,
+.appShellV4Light .analyticsSignalStrip > * {
+  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.84)), #fff !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84) !important;
+}
+
+@media (max-width: 1180px) {
+  .analyticsSignalStrip { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 900px) {
+  .analyticsSignalStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .analyticsSignalStrip > .miniCard,
+  .analyticsSignalStrip > * {
+    min-height: 92px !important;
+    padding: 14px !important;
+    border-radius: 15px !important;
+  }
+  .analyticsSignalStrip .miniLabel {
+    font-size: 10.5px !important;
+    letter-spacing: 0.065em !important;
+  }
+  .analyticsSignalStrip .miniValue { font-size: 23px !important; }
+}
+
+@media (max-width: 480px) {
+  .analyticsSignalStrip { gap: 8px !important; }
+  .analyticsSignalStrip > .miniCard,
+  .analyticsSignalStrip > * {
+    min-height: 86px !important;
+    padding: 12px !important;
+  }
+  .analyticsSignalStrip .miniValue { font-size: 21px !important; }
+}
+
+@media (max-width: 360px) {
+  .analyticsSignalStrip { grid-template-columns: minmax(0, 1fr) !important; }
+}
