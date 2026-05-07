@@ -127,6 +127,26 @@ function buildApprovalState(task) {
   return { flow, currentStep, nextRole: flow[currentStep] || null, completedSteps: currentStep, totalSteps: flow.length };
 }
 
+function normalizeTask(row) {
+  const task = {
+    ...row,
+    recurrence: parseJsonField(row.recurrence, null),
+    metadata: parseJsonField(row.metadata, {}),
+    approval_flow: parseJsonField(row.approval_flow, []),
+  };
+  task.approval_state = buildApprovalState(task);
+  return task;
+}
+
+async function canViewTaskDetail(user, orgId, task) {
+  const role = String(user.role || '').toLowerCase();
+  if (isOrgWideRole(role)) return true;
+  const ownIds = await ownTargetIds(user, orgId);
+  if (ownIds.includes(task.assigned_to) || ownIds.includes(task.assigned_by)) return true;
+  const scopedIds = await scopedTargetIds(user, orgId, false, null);
+  return scopedIds.includes(task.assigned_to) || scopedIds.includes(task.assigned_by);
+}
+
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await orgIdForSessionUser(req);
@@ -232,17 +252,7 @@ router.get('/', authenticate, async (req, res, next) => {
       }
     }
 
-    const tasks = rows.map(row => {
-      const task = {
-        ...row,
-        recurrence: parseJsonField(row.recurrence, null),
-        metadata: parseJsonField(row.metadata, {}),
-        approval_flow: parseJsonField(row.approval_flow, []),
-        dependency_count: dependencyCounts[row.id] || 0,
-      };
-      task.approval_state = buildApprovalState(task);
-      return task;
-    });
+    const tasks = rows.map(row => ({ ...normalizeTask(row), dependency_count: dependencyCounts[row.id] || 0 }));
 
     const total = Number(tasks[0]?.total_count || 0);
     if (String(req.query.board || '') === 'true') {
@@ -256,6 +266,132 @@ router.get('/', authenticate, async (req, res, next) => {
     });
   } catch (err) {
     console.error('Compat task list failed:', err?.message || err);
+    return next(err);
+  }
+});
+
+router.get('/:id([0-9a-fA-F-]{36})', authenticate, async (req, res, next) => {
+  try {
+    const orgId = await orgIdForSessionUser(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const taskCols = await getTableColumns('tasks');
+    if (!taskCols.has('id') || !taskCols.has('org_id')) return res.status(404).json({ error: 'Task not found' });
+
+    const joins = [];
+    const extras = [];
+    const hasUsers = await tableExists('users');
+    const hasCategories = await tableExists('task_categories');
+    if (hasUsers) {
+      if (taskCols.has('assigned_to')) joins.push('LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to');
+      if (taskCols.has('assigned_by')) joins.push('LEFT JOIN users u_by ON u_by.id = t.assigned_by');
+      extras.push(taskCols.has('assigned_to') ? 'u_assigned.full_name AS assigned_to_name' : 'NULL::text AS assigned_to_name');
+      extras.push(taskCols.has('assigned_by') ? 'u_by.full_name AS assigned_by_name' : 'NULL::text AS assigned_by_name');
+    } else {
+      extras.push('NULL::text AS assigned_to_name', 'NULL::text AS assigned_by_name');
+    }
+    if (hasCategories && taskCols.has('category_id')) {
+      const catCols = await getTableColumns('task_categories');
+      joins.push('LEFT JOIN task_categories cat ON cat.id = t.category_id');
+      extras.push(catCols.has('name') ? 'cat.name AS category_name' : 'NULL::text AS category_name');
+      extras.push(catCols.has('ai_threshold') ? 'cat.ai_threshold AS ai_threshold' : 'NULL::numeric AS ai_threshold');
+    } else {
+      extras.push('NULL::text AS category_name', 'NULL::numeric AS ai_threshold');
+    }
+
+    const conditions = ['t.id = $1', 't.org_id = $2'];
+    if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+    const { rows } = await query(`
+      SELECT t.*, ${extras.join(', ')}
+      FROM tasks t
+      ${joins.join('\n      ')}
+      WHERE ${conditions.join(' AND ')}
+      LIMIT 1
+    `, [req.params.id, orgId]);
+
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+    const task = normalizeTask(rows[0]);
+    if (!(await canViewTaskDetail(req.user, orgId, task))) return res.status(403).json({ error: 'Access denied' });
+
+    let timeline = [];
+    if (await tableExists('task_timeline')) {
+      try {
+        const tlCols = await getTableColumns('task_timeline');
+        const userJoin = tlCols.has('actor_id') && hasUsers ? 'LEFT JOIN users u ON u.id = tl.actor_id' : '';
+        const actorSelect = tlCols.has('actor_id') && hasUsers ? 'u.full_name AS actor_name' : 'NULL::text AS actor_name';
+        const orderCol = tlCols.has('created_at') ? 'tl.created_at ASC' : 'tl.id ASC';
+        const { rows: tlRows } = await query(`
+          SELECT tl.*, ${actorSelect}
+          FROM task_timeline tl
+          ${userJoin}
+          WHERE tl.task_id = $1
+          ORDER BY ${orderCol}
+        `, [req.params.id]);
+        timeline = tlRows;
+      } catch {
+        timeline = [];
+      }
+    }
+
+    let photos = [];
+    if (await tableExists('task_photos')) {
+      try {
+        const photoCols = await getTableColumns('task_photos');
+        const userJoin = photoCols.has('uploaded_by') && hasUsers ? 'LEFT JOIN users u ON u.id = tp.uploaded_by' : '';
+        const uploadedBySelect = photoCols.has('uploaded_by') && hasUsers ? 'u.full_name AS uploaded_by_name' : 'NULL::text AS uploaded_by_name';
+        const orderCol = photoCols.has('created_at') ? 'tp.created_at DESC' : 'tp.id DESC';
+        const { rows: photoRows } = await query(`
+          SELECT tp.*, ${uploadedBySelect}
+          FROM task_photos tp
+          ${userJoin}
+          WHERE tp.task_id = $1
+          ORDER BY ${orderCol}
+        `, [req.params.id]);
+        photos = photoRows;
+      } catch {
+        photos = [];
+      }
+    }
+
+    let dependencies = [];
+    let dependents = [];
+    if (await tableExists('task_dependencies')) {
+      try {
+        const { rows: depRows } = await query(`
+          SELECT td.*, t.title AS depends_on_title, t.status AS depends_on_status
+          FROM task_dependencies td
+          LEFT JOIN tasks t ON t.id = td.depends_on_task_id
+          WHERE td.task_id = $1
+        `, [req.params.id]);
+        dependencies = depRows;
+      } catch { dependencies = []; }
+      try {
+        const { rows: depRows } = await query(`
+          SELECT td.*, t.title AS task_title, t.status AS task_status
+          FROM task_dependencies td
+          LEFT JOIN tasks t ON t.id = td.task_id
+          WHERE td.depends_on_task_id = $1
+        `, [req.params.id]);
+        dependents = depRows;
+      } catch { dependents = []; }
+    }
+
+    let subtasks = [];
+    if (taskCols.has('parent_task_id')) {
+      try {
+        const { rows: subRows } = await query(
+          `SELECT * FROM tasks WHERE parent_task_id = $1 AND org_id = $2 ORDER BY id ASC`,
+          [req.params.id, orgId]
+        );
+        subtasks = subRows.map(normalizeTask);
+      } catch {
+        subtasks = [];
+      }
+    }
+
+    return res.json({ task, timeline, photos, dependencies, dependents, approvalState: buildApprovalState(task), subtasks });
+  } catch (err) {
+    console.error('Compat task detail failed:', err?.message || err);
     return next(err);
   }
 });
