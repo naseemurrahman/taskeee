@@ -10,10 +10,34 @@ async function resolveOrgId(req) {
   return orgId != null && orgId !== '' ? String(orgId) : null;
 }
 
-router.get('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+function isEmployeeLike(role) {
+  return ['employee', 'technician'].includes(String(role || '').toLowerCase());
+}
+
+router.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    // Employees should not receive a hard 403 on shared shell/page loads.
+    // They only see contractors they own; if none exist, return an empty valid payload.
+    if (isEmployeeLike(req.user.role)) {
+      const { rows } = await query(
+        `SELECT c.*, u.full_name AS owner_name, COUNT(*) OVER() AS total_count
+         FROM contractors c
+         LEFT JOIN users u ON u.id = c.owner_user_id
+         WHERE c.org_id = $1 AND c.owner_user_id = $2
+         ORDER BY c.updated_at DESC
+         LIMIT 50`,
+        [orgId, req.user.id]
+      ).catch(() => ({ rows: [] }));
+      return res.json({ contractors: rows, total: parseInt(rows[0]?.total_count || 0, 10), meta: { scope: 'employee_owned_contractors' } });
+    }
+
+    if (!['supervisor', 'manager', 'hr', 'director', 'admin'].includes(String(req.user.role || '').toLowerCase())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const { page = 1, limit = 50, status, search } = req.query;
     const safeLimit = Math.min(parseInt(limit, 10) || 50, 100);
     const offset = ((parseInt(page, 10) || 1) - 1) * safeLimit;
@@ -84,7 +108,7 @@ router.post('/', authenticate, requireAnyRole('manager', 'hr', 'director', 'admi
   } catch (err) { next(err); }
 });
 
-router.get('/:id', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
@@ -101,6 +125,7 @@ router.get('/:id', authenticate, requireAnyRole('supervisor', 'manager', 'hr', '
 
     if (!isOrgWideRole(req.user.role)) {
       if (contractor.owner_user_id && contractor.owner_user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+      if (isEmployeeLike(req.user.role) && !contractor.owner_user_id) return res.status(403).json({ error: 'Access denied' });
     }
 
     const { rows: docs } = await query(
@@ -111,7 +136,7 @@ router.get('/:id', authenticate, requireAnyRole('supervisor', 'manager', 'hr', '
        ORDER BY d.created_at DESC
        LIMIT 50`,
       [id, orgId]
-    );
+    ).catch(() => ({ rows: [] }));
 
     res.json({ contractor, documents: docs });
   } catch (err) { next(err); }
