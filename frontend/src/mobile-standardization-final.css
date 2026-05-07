@@ -1,0 +1,193 @@
+/* Final mobile/small-screen standardization. Imported last. */
+
+@media (max-width: 760px) {
+  html, body, #root {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .appShellV4,
+  .mainV4,
+  .contentV4 {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .contentV4 {
+    padding: 14px !important;
+    scroll-padding-top: 16px !important;
+  }
+
+  .contentV4 > *,
+  .contentV4 > div,
+  .contentV4 main,
+  .contentV4 section,
+  .contentV4 article {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .pageHeaderCard {
+    box-sizing: border-box !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .pageHeaderCardInner {
+    box-sizing: border-box !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 22px 18px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+    justify-items: center !important;
+    text-align: center !important;
+  }
+
+  .pageHeaderCardLeft {
+    min-width: 0 !important;
+    width: 100% !important;
+    display: grid !important;
+    justify-items: center !important;
+    gap: 8px !important;
+  }
+
+  .pageHeaderCardTitle {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
+    font-size: clamp(24px, 7vw, 34px) !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+  }
+
+  .pageHeaderCardSub {
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center !important;
+    font-size: clamp(14px, 4.2vw, 18px) !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .pageHeaderCardMeta {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+
+  .pageHeaderCardTag {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .dashKpiStrip,
+  div.dashKpiStrip,
+  .contentV4 .dashKpiStrip {
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .dashKpiStrip > *,
+  div.dashKpiStrip > * {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: initial !important;
+    flex-basis: auto !important;
+    border-radius: 14px !important;
+  }
+
+  .dashGrid21 {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .chartV3,
+  .cardV3,
+  .panelV3,
+  .statCard,
+  .statsCard,
+  .taskCard,
+  .projCard,
+  .projectsCollection .projectCardButton,
+  .projectsCollectionGrid .projectCardButton,
+  .projectsCollectionList .projectCardButton {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .chartV3,
+  .cardV3,
+  .panelV3 {
+    border-radius: 18px !important;
+  }
+
+  .contentV4 svg,
+  .contentV4 canvas,
+  .contentV4 img,
+  .contentV4 table {
+    max-width: 100% !important;
+  }
+
+  .topbarV4 {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .contentV4 {
+    padding: 12px !important;
+  }
+
+  .dashKpiStrip,
+  div.dashKpiStrip,
+  .contentV4 .dashKpiStrip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pageHeaderCardInner {
+    padding: 20px 14px !important;
+  }
+}
