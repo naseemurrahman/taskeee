@@ -1,0 +1,223 @@
+/*
+ * Role-scope UX + cross-page mobile grid standardization.
+ * This is intentionally late-loaded and selector-scoped to avoid regressions.
+ */
+
+:root {
+  --screen-gap-xs: 10px;
+  --screen-gap-sm: 12px;
+  --screen-gap-md: 16px;
+  --screen-card-pad-sm: 12px;
+  --screen-card-pad-md: 16px;
+}
+
+/* General app-page rhythm */
+.contentV4 > div {
+  min-width: 0;
+}
+
+.contentV4 .grid2,
+.contentV4 .grid3,
+.contentV4 .grid4,
+.contentV4 .analyticsChartGrid,
+.contentV4 .projectGrid,
+.contentV4 .marketingTwoPlanGrid {
+  min-width: 0;
+  gap: var(--screen-gap-md) !important;
+}
+
+.contentV4 .grid2 > *,
+.contentV4 .grid3 > *,
+.contentV4 .grid4 > *,
+.contentV4 .analyticsChartGrid > *,
+.contentV4 .projectGrid > *,
+.contentV4 .marketingTwoPlanGrid > * {
+  min-width: 0;
+}
+
+/* Logs page: KPI cards should be grid cards on mobile, not a long list. */
+.contentV4:has(.employeeTableV3) .grid4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.contentV4:has(.employeeTableV3) .miniCard {
+  min-height: 104px;
+  padding: var(--screen-card-pad-md) !important;
+}
+
+/* Billing page: subscription KPI cards and invoice rows. */
+.contentV4:has(a[href*="invoice"], .formCardV3, .miniCard) .grid4 {
+  min-width: 0;
+}
+
+.contentV4:has(.pageHeaderCardTitle) .miniCard {
+  min-width: 0;
+}
+
+/* JecZone AI: keep KPI and chart cards aligned consistently. */
+.contentV4:has(.projectCard) .grid4,
+.contentV4:has(.projectCard) .grid2 {
+  display: grid !important;
+}
+
+.contentV4:has(.projectCard) .grid4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.contentV4:has(.projectCard) .grid2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.contentV4:has(.projectCard) .projectGrid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+}
+
+.contentV4:has(.projectCard) .projectCard,
+.contentV4:has(.projectCard) .miniCard,
+.contentV4:has(.employeeTableV3) .miniCard {
+  border-radius: 18px !important;
+}
+
+/* Employee route messaging: keep scoped cards prominent. */
+.myTasksProRoot .myTasksCommandCenter,
+.myTasksProRoot .myTasksProLayout {
+  margin-inline: 0;
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .contentV4:has(.employeeTableV3) .grid4,
+  .contentV4:has(.projectCard) .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .contentV4:has(.projectCard) .grid2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 720px) {
+  .contentV4 {
+    --screen-gap-md: 10px;
+    --screen-card-pad-md: 12px;
+  }
+
+  .contentV4 > div {
+    gap: var(--screen-gap-sm) !important;
+  }
+
+  .contentV4 .pageHeaderCard {
+    margin-bottom: 0 !important;
+  }
+
+  .contentV4 .pageHeaderCardInner {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+
+  .contentV4 .pageHeaderCardTitle {
+    white-space: normal !important;
+    line-height: 1.18 !important;
+  }
+
+  .contentV4 .pageHeaderCardSub {
+    white-space: normal !important;
+    display: block !important;
+    line-height: 1.45 !important;
+  }
+
+  .contentV4 .pageHeaderCardMeta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .contentV4 .card,
+  .contentV4 .formCardV3,
+  .contentV4 .chartV3,
+  .contentV4 .chartCardV2,
+  .contentV4 .miniCard {
+    padding: var(--screen-card-pad-md) !important;
+    border-radius: 15px !important;
+  }
+
+  .contentV4:has(.employeeTableV3) .grid4,
+  .contentV4:has(.projectCard) .grid4,
+  .contentV4 .grid4 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .contentV4:has(.employeeTableV3) .miniCard,
+  .contentV4:has(.projectCard) .miniCard,
+  .contentV4 .grid4 .miniCard {
+    min-height: 96px !important;
+    padding: 12px !important;
+  }
+
+  .contentV4 .miniLabel {
+    font-size: 10px !important;
+    letter-spacing: 0.055em !important;
+  }
+
+  .contentV4 .miniValue {
+    font-size: 24px !important;
+    line-height: 1.05 !important;
+  }
+
+  .contentV4:has(.employeeTableV3) .formCardV3Head,
+  .contentV4:has(.projectCard) .formCardV3Head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .contentV4:has(.employeeTableV3) .formCardV3Head > div:last-child,
+  .contentV4:has(.projectCard) .formCardV3Head > div:last-child {
+    width: 100% !important;
+  }
+
+  .contentV4:has(.employeeTableV3) .formCardV3Head input,
+  .contentV4:has(.projectCard) .formCardV3Head input {
+    width: 100% !important;
+  }
+
+  .contentV4:has(.projectCard) .projectGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .contentV4:has(.projectCard) .projectCard {
+    min-height: 92px !important;
+    padding: 12px !important;
+  }
+
+  .contentV4:has(.projectCard) .projectName {
+    white-space: normal !important;
+    line-height: 1.25 !important;
+  }
+
+  .contentV4:has(.projectCard) .projectDesc {
+    white-space: normal !important;
+  }
+
+  .contentV4 .employeeTableV3 {
+    min-width: 640px !important;
+  }
+}
+
+/* Narrow phones: preserve grid only while readable; fallback to one column below 380px. */
+@media (max-width: 380px) {
+  .contentV4:has(.employeeTableV3) .grid4,
+  .contentV4:has(.projectCard) .grid4,
+  .contentV4:has(.projectCard) .projectGrid,
+  .contentV4 .grid4 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
