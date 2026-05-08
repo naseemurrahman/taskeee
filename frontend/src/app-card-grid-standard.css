@@ -1,7 +1,7 @@
 /*
  * Final app-wide card/grid standardization.
- * Late-loaded intentionally. Keeps cards compact and grid-based on phones while
- * preserving readability on very narrow screens.
+ * Late-loaded intentionally. This is the final visual contract for app cards:
+ * consistent card geometry, compact mobile grids, and usable notification sheets.
  */
 
 .appShellV4 {
@@ -11,44 +11,94 @@
   --app-gap-mobile: 9px;
   --app-card-pad-final: 16px;
   --app-card-pad-mobile: 12px;
+  --app-card-bg-final: linear-gradient(180deg, rgba(255,255,255,0.048), rgba(255,255,255,0.024)), var(--surface);
+  --app-card-shadow-final: 0 14px 34px rgba(0,0,0,0.13), inset 0 1px 0 rgba(255,255,255,0.035);
 }
 
-.contentV4 .card,
-.contentV4 .miniCard,
-.contentV4 .formCardV3,
-.contentV4 .chartV3,
-.contentV4 .chartCardV2,
-.contentV4 .pageHeaderCard,
-.contentV4 .projectCard,
-.contentV4 .myTasksProgressCard,
-.contentV4 .myTasksStatCard,
-.contentV4 .myTasksQueue,
-.contentV4 .myTasksWorkspace,
-.contentV4 .boardChartCard,
-.contentV4 .boardChartSummaryCard {
+/* Standard card shape across app pages, including custom page-specific cards. */
+.contentV4 :is(
+  .card,
+  .miniCard,
+  .formCardV3,
+  .chartV3,
+  .chartCardV2,
+  .pageHeaderCard,
+  .projectCard,
+  .p4BoardColumn,
+  .p4BoardCard,
+  .myTasksProgressCard,
+  .myTasksStatCard,
+  .myTasksQueue,
+  .myTasksWorkspace,
+  .myTasksProItem,
+  .myTasksDetailHero,
+  .myTasksInfoCard,
+  .myTasksManagerBox,
+  .myTasksEvidenceDrop,
+  .myTasksEvidenceCard,
+  .myTasksFeedbackBox,
+  .myTasksMessage,
+  .boardChartCard,
+  .boardChartSummaryCard,
+  .mktPlan,
+  .mktFeature,
+  .mktFeatureWide
+),
+.contentV4 .myTasksTimeline article {
   border-radius: var(--app-card-radius-final) !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent) !important;
 }
 
-.contentV4 .miniCard,
-.contentV4 .myTasksStatCard,
-.contentV4 .myTasksProgressCard,
-.contentV4 .boardChartCard,
-.contentV4 .boardChartSummaryCard {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.048), rgba(255,255,255,0.024)),
-    var(--surface) !important;
-  box-shadow: 0 14px 34px rgba(0,0,0,0.13), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+.contentV4 :is(
+  .card,
+  .miniCard,
+  .formCardV3,
+  .chartV3,
+  .chartCardV2,
+  .projectCard,
+  .p4BoardColumn,
+  .myTasksProgressCard,
+  .myTasksStatCard,
+  .myTasksQueue,
+  .myTasksWorkspace,
+  .myTasksProItem,
+  .myTasksDetailHero,
+  .myTasksInfoCard,
+  .myTasksManagerBox,
+  .myTasksEvidenceDrop,
+  .myTasksEvidenceCard,
+  .myTasksFeedbackBox,
+  .myTasksMessage,
+  .boardChartCard,
+  .boardChartSummaryCard
+),
+.contentV4 .myTasksTimeline article {
+  background: var(--app-card-bg-final) !important;
+  box-shadow: var(--app-card-shadow-final) !important;
 }
 
-.contentV4 .grid2,
-.contentV4 .grid3,
-.contentV4 .grid4,
-.contentV4 .analyticsSignalStrip,
-.contentV4 .dashKpiStrip,
-.contentV4 .myTasksCommandCenter,
-.contentV4 .boardChartsPanel {
+.contentV4 :is(.grid2,.grid3,.grid4,.analyticsSignalStrip,.dashKpiStrip,.myTasksCommandCenter,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid,.projectGrid) {
   gap: var(--app-gap-final) !important;
+}
+
+.contentV4 :is(.grid2,.grid3,.grid4,.analyticsSignalStrip,.dashKpiStrip,.myTasksCommandCenter,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid,.projectGrid) > * {
+  min-width: 0 !important;
+}
+
+/* Tablet: normalize broad card grids before phone rules. */
+@media (max-width: 1100px) {
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    overflow: visible !important;
+  }
+
+  .contentV4 :is(.grid3,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 900px) {
@@ -56,7 +106,10 @@
     padding: 10px !important;
   }
 
-  .contentV4 > div {
+  .contentV4 > div,
+  .contentV4 > section,
+  .contentV4 .myTasksProRoot,
+  .contentV4 .boardPageRoot {
     gap: 10px !important;
   }
 
@@ -65,73 +118,125 @@
     border-radius: var(--app-card-radius-mobile) !important;
   }
 
-  .contentV4 .card,
-  .contentV4 .miniCard,
-  .contentV4 .formCardV3,
-  .contentV4 .chartV3,
-  .contentV4 .chartCardV2,
-  .contentV4 .projectCard,
-  .contentV4 .myTasksProgressCard,
-  .contentV4 .myTasksStatCard,
-  .contentV4 .myTasksQueue,
-  .contentV4 .myTasksWorkspace,
-  .contentV4 .boardChartCard,
-  .contentV4 .boardChartSummaryCard {
+  .contentV4 :is(
+    .card,
+    .miniCard,
+    .formCardV3,
+    .chartV3,
+    .chartCardV2,
+    .projectCard,
+    .p4BoardColumn,
+    .p4BoardCard,
+    .myTasksProgressCard,
+    .myTasksStatCard,
+    .myTasksQueue,
+    .myTasksWorkspace,
+    .myTasksProItem,
+    .myTasksDetailHero,
+    .myTasksInfoCard,
+    .myTasksManagerBox,
+    .myTasksEvidenceDrop,
+    .myTasksEvidenceCard,
+    .myTasksFeedbackBox,
+    .myTasksMessage,
+    .boardChartCard,
+    .boardChartSummaryCard
+  ),
+  .contentV4 .myTasksTimeline article {
     border-radius: var(--app-card-radius-mobile) !important;
   }
 
-  .contentV4 .miniCard,
-  .contentV4 .myTasksStatCard,
-  .contentV4 .boardChartCard {
-    min-height: 92px !important;
+  .contentV4 :is(.miniCard,.myTasksStatCard,.boardChartCard,.projectCard) {
+    min-height: 88px !important;
     padding: var(--app-card-pad-mobile) !important;
   }
 
-  .contentV4 .miniLabel,
-  .contentV4 .myTasksStatCard span {
+  .contentV4 :is(.miniLabel,.myTasksStatCard span) {
     font-size: 10px !important;
     letter-spacing: 0.055em !important;
   }
 
-  .contentV4 .miniValue,
-  .contentV4 .myTasksStatCard strong {
+  .contentV4 :is(.miniValue,.myTasksStatCard strong) {
     font-size: 24px !important;
     line-height: 1.05 !important;
   }
 
-  .contentV4 .grid4,
-  .contentV4 .analyticsSignalStrip,
-  .contentV4 .dashKpiStrip,
-  .contentV4 .myTasksCommandCenter {
+  /* Phone/tablet app KPI cards: no vertical list. */
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-auto-flow: row !important;
     grid-auto-columns: unset !important;
     gap: var(--app-gap-mobile) !important;
     overflow: visible !important;
+    max-height: none !important;
+    scroll-snap-type: none !important;
   }
 
-  .contentV4 .grid4 > *,
-  .contentV4 .analyticsSignalStrip > *,
-  .contentV4 .dashKpiStrip > *,
-  .contentV4 .myTasksCommandCenter > * {
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) > * {
     min-width: 0 !important;
     width: 100% !important;
+    grid-column: auto !important;
+    flex: initial !important;
+    scroll-snap-align: none !important;
   }
 
+  .contentV4 :is(.grid3,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--app-gap-mobile) !important;
+  }
+
+  .contentV4 :is(.grid3,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid) > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    grid-column: auto !important;
+  }
+
+  /* My Tasks: keep personal progress as a grid card too, not a full-width list row. */
   .contentV4 .myTasksProgressCard {
-    grid-column: 1 / -1 !important;
-    min-height: 116px !important;
-    padding: 14px !important;
+    grid-column: auto !important;
+    min-height: 88px !important;
+    padding: var(--app-card-pad-mobile) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+    align-items: center !important;
   }
 
   .contentV4 .myTasksProgressRing {
-    width: 72px !important;
-    height: 72px !important;
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .contentV4 .myTasksProgressRing::before {
+    inset: 8px !important;
+  }
+
+  .contentV4 .myTasksProgressRing span {
+    font-size: 11px !important;
   }
 
   .contentV4 .myTasksProgressValue {
-    font-size: 32px !important;
+    font-size: 25px !important;
+  }
+
+  .contentV4 .myTasksMuted {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .contentV4 .myTasksStatCard {
+    min-height: 88px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-content: center !important;
+    padding: var(--app-card-pad-mobile) !important;
+  }
+
+  .contentV4 .myTasksStatCard svg {
+    width: 15px !important;
+    height: 15px !important;
   }
 
   .contentV4 .pageHeaderCardInner {
@@ -144,23 +249,16 @@
 }
 
 @media (max-width: 540px) {
-  .contentV4 .myTasksCommandCenter,
-  .contentV4 .grid4,
-  .contentV4 .dashKpiStrip,
-  .contentV4 .analyticsSignalStrip {
+  .contentV4 :is(.myTasksCommandCenter,.grid4,.dashKpiStrip,.analyticsSignalStrip,.projectGrid) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .contentV4 .myTasksStatCard {
-    min-height: 76px !important;
-    display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr) !important;
-    align-content: center !important;
+  .contentV4 :is(.grid3,.boardChartsPanel,.myTasksOverviewGrid,.myTasksEvidenceGrid) {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  .contentV4 .myTasksStatCard svg {
-    width: 15px !important;
-    height: 15px !important;
+  .contentV4 :is(.miniCard,.myTasksStatCard,.myTasksProgressCard,.projectCard) {
+    min-height: 82px !important;
   }
 
   .contentV4 .myTasksStatCard strong {
@@ -182,11 +280,9 @@
   }
 }
 
-@media (max-width: 340px) {
-  .contentV4 .myTasksCommandCenter,
-  .contentV4 .grid4,
-  .contentV4 .dashKpiStrip,
-  .contentV4 .analyticsSignalStrip {
+/* Only the smallest devices drop to one column. Normal phones stay grid. */
+@media (max-width: 330px) {
+  .contentV4 :is(.myTasksCommandCenter,.grid4,.dashKpiStrip,.analyticsSignalStrip,.projectGrid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
