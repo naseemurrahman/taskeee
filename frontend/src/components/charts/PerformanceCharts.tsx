@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
+import { useRef, useLayoutEffect, useState, type ReactNode } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, AreaChart, Area, RadialBarChart, RadialBar,
@@ -237,7 +237,7 @@ export function DeadlinesTrendChart(props: {
 }
 
 // ─── Completed Trend ──────────────────────────────────────────────────────────
-export function CompletedTrendChart(props: { points: Array<{ day:string; completed:number }> }) {
+export function CompletedTrendChart(props: { points: Array<{ day:string; completed:number }>; loading?: boolean }) {
   if (!props.points?.length) return <EmptyChart title="No completion trend yet" />
   return (
     <Shell height={H} loading={props.loading}>
