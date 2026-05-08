@@ -233,7 +233,7 @@ export function CalendarPage() {
               <button
                 key={cellKey}
                 type="button"
-                className={`calCell ${!inMonth ? 'calCellMuted' : ''} ${isToday ? 'calCellToday' : ''}`}
+                className={`calCell calDateCard ${!inMonth ? 'calCellMuted' : ''} ${isToday ? 'calCellToday' : ''}`}
                 style={cellStyle}
                 disabled={!inMonth}
                 onClick={() => {
