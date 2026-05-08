@@ -1,0 +1,212 @@
+/*
+ * Final hard override for card shape + mobile notification touch.
+ * Loaded last so page-specific oval/card rules cannot win.
+ */
+
+.appShellV4 {
+  --std-card-radius: 16px;
+  --std-card-radius-mobile: 14px;
+  --std-card-bg: linear-gradient(180deg, rgba(255,255,255,0.048), rgba(255,255,255,0.024)), var(--surface);
+  --std-card-border: color-mix(in srgb, var(--border) 92%, transparent);
+}
+
+/* Kill oval KPI cards without changing pills, buttons, chips, or badges. */
+.contentV4 :is(
+  .miniCard,
+  .card,
+  .formCardV3,
+  .chartV3,
+  .chartCardV2,
+  .projectCard,
+  .p4BoardColumn,
+  .p4BoardCard,
+  .boardChartCard,
+  .boardChartSummaryCard,
+  .myTasksProgressCard,
+  .myTasksStatCard,
+  .myTasksQueue,
+  .myTasksWorkspace,
+  .myTasksProItem,
+  .myTasksDetailHero,
+  .myTasksInfoCard,
+  .myTasksManagerBox,
+  .myTasksEvidenceDrop,
+  .myTasksEvidenceCard,
+  .myTasksFeedbackBox,
+  .myTasksMessage
+),
+.contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(button):not(a):not(.btn),
+.contentV4 .myTasksTimeline article {
+  border-radius: var(--std-card-radius) !important;
+  border: 1px solid var(--std-card-border) !important;
+  background: var(--std-card-bg) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.13), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+}
+
+/* Explicitly neutralize inline oval radius used by some KPI blocks. */
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="border-radius: 999"],
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="border-radius:999"],
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="border-radius: 50"],
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="borderRadius"] {
+  border-radius: var(--std-card-radius) !important;
+}
+
+/* JecZone/Dashboard/Analytics KPI grids must share the same geometry. */
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter) {
+  align-items: stretch !important;
+}
+
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter) > * {
+  min-height: 102px !important;
+  padding: 16px !important;
+}
+
+/* Calendar dates should be squared cards, not circular/oval pills. */
+.contentV4 .calMonthGrid {
+  gap: 8px !important;
+}
+
+.contentV4 .calCell,
+.contentV4 .calWeekday {
+  border-radius: 12px !important;
+}
+
+.contentV4 .calCellToday {
+  border-radius: 12px !important;
+  box-shadow: inset 0 0 0 1px rgba(226,171,65,0.38), 0 10px 24px rgba(226,171,65,0.08) !important;
+}
+
+.contentV4 .calCellAddBtn,
+.contentV4 .calDot {
+  border-radius: 6px !important;
+}
+
+.contentV4 .calCellNum {
+  border-radius: 8px !important;
+}
+
+@media (max-width: 900px) {
+  .contentV4 :is(
+    .miniCard,
+    .card,
+    .formCardV3,
+    .chartV3,
+    .chartCardV2,
+    .projectCard,
+    .p4BoardColumn,
+    .p4BoardCard,
+    .boardChartCard,
+    .boardChartSummaryCard,
+    .myTasksProgressCard,
+    .myTasksStatCard,
+    .myTasksQueue,
+    .myTasksWorkspace,
+    .myTasksProItem,
+    .myTasksDetailHero,
+    .myTasksInfoCard,
+    .myTasksManagerBox,
+    .myTasksEvidenceDrop,
+    .myTasksEvidenceCard,
+    .myTasksFeedbackBox,
+    .myTasksMessage
+  ),
+  .contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(button):not(a):not(.btn),
+  .contentV4 .myTasksTimeline article {
+    border-radius: var(--std-card-radius-mobile) !important;
+  }
+
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+    overflow: visible !important;
+  }
+
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) > * {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 84px !important;
+    padding: 12px !important;
+    grid-column: auto !important;
+  }
+
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) > [style*="border-radius"] {
+    border-radius: var(--std-card-radius-mobile) !important;
+  }
+
+  .contentV4 .calMonthGrid {
+    gap: 6px !important;
+  }
+
+  .contentV4 .calCell,
+  .contentV4 .calWeekday,
+  .contentV4 .calCellToday {
+    border-radius: 10px !important;
+  }
+}
+
+@media (max-width: 330px) {
+  .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Mobile notification: keep bell tappable and popover above everything. */
+.topbarNotifyWrap {
+  position: relative !important;
+  z-index: 12000 !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+}
+
+.topbarNotifyBtn {
+  position: relative !important;
+  z-index: 12001 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+}
+
+.topbarNotifyPopover {
+  pointer-events: auto !important;
+}
+
+@media (max-width: 720px) {
+  .topbarNotifyWrap {
+    position: relative !important;
+    display: inline-flex !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+    z-index: 12000 !important;
+  }
+
+  .topbarNotifyBtn {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+  }
+
+  .topbarNotifyPopover {
+    position: fixed !important;
+    top: calc(60px + env(safe-area-inset-top, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 76px - env(safe-area-inset-bottom, 0px)) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 12002 !important;
+    border-radius: 18px !important;
+  }
+
+  .topbarNotifyList {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
