@@ -38,10 +38,12 @@
   .myTasksEvidenceDrop,
   .myTasksEvidenceCard,
   .myTasksFeedbackBox,
-  .myTasksMessage
+  .myTasksMessage,
+  .jecKpiCard,
+  .calDateCard
 ),
 .contentV4 .myTasksTimeline article,
-.contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(button):not(a):not(.btn):not(.pageHeaderCardTag):not(.myTasksToneBadge) {
+.contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(.btn):not(.pageHeaderCardTag):not(.myTasksToneBadge) {
   border-radius: var(--std-card-radius) !important;
   border: 1px solid var(--std-card-border) !important;
   background: var(--std-card-bg) !important;
@@ -52,7 +54,35 @@
   border-radius: var(--std-card-radius) !important;
 }
 
-/* Kill inline pill/oval radii on KPI card containers while preserving buttons, tabs, badges, and chips. */
+/* Explicit dashboard-style KPI button cards, used by JecZone and any button KPI cards. */
+.contentV4 .jecKpiCard,
+.contentV4 button.jecKpiCard,
+.contentV4 .grid4 > button.jecKpiCard {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 102px !important;
+  padding: var(--std-card-pad) !important;
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 8px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  border-radius: var(--std-card-radius) !important;
+  border: 1px solid var(--std-card-border) !important;
+  background: var(--std-card-bg) !important;
+  box-shadow: var(--std-card-shadow) !important;
+  color: var(--text) !important;
+}
+
+.contentV4 .jecKpiCard:hover {
+  border-color: rgba(226,171,65,0.34) !important;
+  transform: translateY(-1px);
+}
+
+/* Kill inline pill/oval radii on KPI card containers while preserving tabs/badges/chips. */
 .contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="border-radius"],
 .contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > [style*="borderRadius"] {
   border-radius: var(--std-card-radius) !important;
@@ -89,15 +119,22 @@
   gap: 8px !important;
 }
 
+.contentV4 .calDateCard,
+.contentV4 button.calDateCard,
+.contentV4 .calMonthGrid > button.calDateCard,
 .contentV4 :is(.calCell,.calCellToday,.calWeekday) {
   border-radius: 12px !important;
 }
 
+.contentV4 .calDateCard,
+.contentV4 button.calDateCard,
 .contentV4 .calCell {
   background: var(--std-card-bg) !important;
   border: 1px solid var(--std-card-border) !important;
+  box-shadow: none !important;
 }
 
+.contentV4 .calDateCard[style],
 .contentV4 .calCell[style*="border-radius"],
 .contentV4 .calCell[style*="borderRadius"] {
   border-radius: 12px !important;
@@ -162,10 +199,12 @@
     .myTasksEvidenceCard,
     .myTasksFeedbackBox,
     .myTasksMessage,
-    .pageHeaderCard
+    .pageHeaderCard,
+    .jecKpiCard,
+    .calDateCard
   ),
   .contentV4 .myTasksTimeline article,
-  .contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(button):not(a):not(.btn):not(.pageHeaderCardTag):not(.myTasksToneBadge) {
+  .contentV4 :is(.grid2,.grid3,.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.boardChartsPanel,.projectGrid) > :not(.btn):not(.pageHeaderCardTag):not(.myTasksToneBadge) {
     border-radius: var(--std-card-radius-mobile) !important;
   }
 
@@ -188,6 +227,13 @@
     grid-column: auto !important;
     flex: initial !important;
     scroll-snap-align: none !important;
+  }
+
+  .contentV4 .jecKpiCard,
+  .contentV4 button.jecKpiCard {
+    min-height: 84px !important;
+    padding: var(--std-card-pad-mobile) !important;
+    border-radius: var(--std-card-radius-mobile) !important;
   }
 
   .contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter,.projectGrid) > [style*="border-radius"],
@@ -262,6 +308,8 @@
     gap: 6px !important;
   }
 
+  .contentV4 .calDateCard,
+  .contentV4 button.calDateCard,
   .contentV4 :is(.calCell,.calCellToday,.calWeekday) {
     border-radius: 10px !important;
   }
