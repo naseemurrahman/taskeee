@@ -1,0 +1,230 @@
+/*
+ * Final app-wide card/grid standardization.
+ * Late-loaded intentionally. Keeps cards compact and grid-based on phones while
+ * preserving readability on very narrow screens.
+ */
+
+.appShellV4 {
+  --app-card-radius-final: 18px;
+  --app-card-radius-mobile: 15px;
+  --app-gap-final: 14px;
+  --app-gap-mobile: 9px;
+  --app-card-pad-final: 16px;
+  --app-card-pad-mobile: 12px;
+}
+
+.contentV4 .card,
+.contentV4 .miniCard,
+.contentV4 .formCardV3,
+.contentV4 .chartV3,
+.contentV4 .chartCardV2,
+.contentV4 .pageHeaderCard,
+.contentV4 .projectCard,
+.contentV4 .myTasksProgressCard,
+.contentV4 .myTasksStatCard,
+.contentV4 .myTasksQueue,
+.contentV4 .myTasksWorkspace,
+.contentV4 .boardChartCard,
+.contentV4 .boardChartSummaryCard {
+  border-radius: var(--app-card-radius-final) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.contentV4 .miniCard,
+.contentV4 .myTasksStatCard,
+.contentV4 .myTasksProgressCard,
+.contentV4 .boardChartCard,
+.contentV4 .boardChartSummaryCard {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.048), rgba(255,255,255,0.024)),
+    var(--surface) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.13), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+}
+
+.contentV4 .grid2,
+.contentV4 .grid3,
+.contentV4 .grid4,
+.contentV4 .analyticsSignalStrip,
+.contentV4 .dashKpiStrip,
+.contentV4 .myTasksCommandCenter,
+.contentV4 .boardChartsPanel {
+  gap: var(--app-gap-final) !important;
+}
+
+@media (max-width: 900px) {
+  .contentV4 {
+    padding: 10px !important;
+  }
+
+  .contentV4 > div {
+    gap: 10px !important;
+  }
+
+  .contentV4 .pageHeaderCard {
+    padding: 14px !important;
+    border-radius: var(--app-card-radius-mobile) !important;
+  }
+
+  .contentV4 .card,
+  .contentV4 .miniCard,
+  .contentV4 .formCardV3,
+  .contentV4 .chartV3,
+  .contentV4 .chartCardV2,
+  .contentV4 .projectCard,
+  .contentV4 .myTasksProgressCard,
+  .contentV4 .myTasksStatCard,
+  .contentV4 .myTasksQueue,
+  .contentV4 .myTasksWorkspace,
+  .contentV4 .boardChartCard,
+  .contentV4 .boardChartSummaryCard {
+    border-radius: var(--app-card-radius-mobile) !important;
+  }
+
+  .contentV4 .miniCard,
+  .contentV4 .myTasksStatCard,
+  .contentV4 .boardChartCard {
+    min-height: 92px !important;
+    padding: var(--app-card-pad-mobile) !important;
+  }
+
+  .contentV4 .miniLabel,
+  .contentV4 .myTasksStatCard span {
+    font-size: 10px !important;
+    letter-spacing: 0.055em !important;
+  }
+
+  .contentV4 .miniValue,
+  .contentV4 .myTasksStatCard strong {
+    font-size: 24px !important;
+    line-height: 1.05 !important;
+  }
+
+  .contentV4 .grid4,
+  .contentV4 .analyticsSignalStrip,
+  .contentV4 .dashKpiStrip,
+  .contentV4 .myTasksCommandCenter {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    gap: var(--app-gap-mobile) !important;
+    overflow: visible !important;
+  }
+
+  .contentV4 .grid4 > *,
+  .contentV4 .analyticsSignalStrip > *,
+  .contentV4 .dashKpiStrip > *,
+  .contentV4 .myTasksCommandCenter > * {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .contentV4 .myTasksProgressCard {
+    grid-column: 1 / -1 !important;
+    min-height: 116px !important;
+    padding: 14px !important;
+  }
+
+  .contentV4 .myTasksProgressRing {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .contentV4 .myTasksProgressValue {
+    font-size: 32px !important;
+  }
+
+  .contentV4 .pageHeaderCardInner {
+    align-items: center !important;
+  }
+
+  .contentV4 .pageHeaderCardSub {
+    text-align: inherit !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .contentV4 .myTasksCommandCenter,
+  .contentV4 .grid4,
+  .contentV4 .dashKpiStrip,
+  .contentV4 .analyticsSignalStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .contentV4 .myTasksStatCard {
+    min-height: 76px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-content: center !important;
+  }
+
+  .contentV4 .myTasksStatCard svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .contentV4 .myTasksStatCard strong {
+    font-size: 23px !important;
+  }
+
+  .contentV4 .myTasksProHero .pageHeaderCardInner {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .contentV4 .myTasksProHero .pageHeaderCardTitle {
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  .contentV4 .myTasksProHero .pageHeaderCardSub {
+    text-align: left !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .contentV4 .myTasksCommandCenter,
+  .contentV4 .grid4,
+  .contentV4 .dashKpiStrip,
+  .contentV4 .analyticsSignalStrip {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Mobile notification popover must behave like a real sheet. */
+@media (max-width: 720px) {
+  .topbarNotifyWrap {
+    position: static !important;
+  }
+
+  .topbarNotifyPopover {
+    position: fixed !important;
+    top: calc(58px + env(safe-area-inset-top, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 74px - env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 18px !important;
+    z-index: 10000 !important;
+  }
+
+  .topbarNotifyTabs {
+    padding: 8px 8px 0 !important;
+  }
+
+  .topbarNotifyTab {
+    padding: 7px 9px !important;
+  }
+
+  .topbarNotifyList {
+    max-height: none !important;
+  }
+
+  .topbarNotifyItem {
+    min-height: 68px !important;
+    padding: 11px !important;
+    border-radius: 13px !important;
+  }
+}
