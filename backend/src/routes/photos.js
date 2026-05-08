@@ -38,7 +38,28 @@ function uploadEvidence(req, res, next) {
   });
 }
 
+/** Roles that can upload to any task in their org without being the assignee */
+const MANAGER_UPLOAD_ROLES = new Set(['supervisor', 'manager', 'hr', 'director', 'admin']);
+
+function isManagerRole(role) {
+  return MANAGER_UPLOAD_ROLES.has(String(role || '').toLowerCase());
+}
+
 // POST /photos/upload — images (AI review) or PDF/Excel evidence (stored, no AI vision)
+//
+// Two upload paths depending on role:
+//
+//   Employee (assignee only):
+//     - Must be the assigned_to user on the task
+//     - Task status auto-changes: images → ai_reviewing, docs → submitted
+//     - AI review triggered for images
+//
+//   Manager / Admin / HR / Director / Supervisor:
+//     - Can upload to ANY task in their org (no assigned_to constraint)
+//     - Task status is NOT mutated (managers add context, not submit work)
+//     - AI review NOT triggered
+//     - Assignee is notified
+//
 router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
   try {
     const { taskId, takenAt, geoLat, geoLng } = req.body;
@@ -51,16 +72,30 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
       originalname: req.file.originalname
     });
 
-    const { rows } = await query(`
-      SELECT * FROM tasks
-      WHERE id = $1 AND org_id = $2 AND assigned_to = $3
-        AND status IN ('pending', 'in_progress', 'submitted', 'ai_rejected')
-    `, [taskId, req.user.org_id, req.user.id]);
+    const uploaderIsManager = isManagerRole(req.user.role);
 
-    if (!rows.length)
-      return res.status(403).json({ error: 'Task not found or not submittable' });
+    let taskRows;
+    if (uploaderIsManager) {
+      // Managers can upload to any non-deleted task in their org
+      const { rows } = await query(`
+        SELECT * FROM tasks
+        WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
+      `, [taskId, req.user.org_id]);
+      taskRows = rows;
+    } else {
+      // Employees must own the task and it must be in a submittable state
+      const { rows } = await query(`
+        SELECT * FROM tasks
+        WHERE id = $1 AND org_id = $2 AND assigned_to = $3
+          AND status IN ('pending', 'in_progress', 'submitted', 'ai_rejected')
+      `, [taskId, req.user.org_id, req.user.id]);
+      taskRows = rows;
+    }
 
-    const task = rows[0];
+    if (!taskRows.length)
+      return res.status(403).json({ error: uploaderIsManager ? 'Task not found' : 'Task not found or not submittable' });
+
+    const task = taskRows[0];
     const photoId = uuidv4();
     const mime = req.file.mimetype.toLowerCase();
     const isImage = mime.startsWith('image/');
@@ -91,16 +126,26 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
           req.file.size, req.file.mimetype, req.file.originalname,
           takenAt || null, geoLat || null, geoLng || null]);
 
-      if (isImage) {
+      if (uploaderIsManager) {
+        // ── Manager upload: store file + timeline, NEVER mutate task status ──
+        await client.query(`
+          UPDATE task_photos SET ai_status = 'manager_attachment', ai_confidence = NULL WHERE id = $1
+        `, [photoId]);
+        await client.query(`
+          INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, note)
+          VALUES ($1, $2, 'user', 'manager_attachment', $3)
+        `, [taskId, req.user.id, `Attachment added by manager: ${req.file.originalname}`]);
+      } else if (isImage) {
+        // ── Employee image: trigger AI review, set status to ai_reviewing ──
         await client.query(`
           UPDATE tasks SET status = 'ai_reviewing', submitted_at = NOW() WHERE id = $1
         `, [taskId]);
-
         await client.query(`
           INSERT INTO task_timeline (task_id, actor_id, actor_type, event_type, from_status, to_status, note)
           VALUES ($1, $2, 'user', 'photo_uploaded', $3, 'ai_reviewing', 'Photo submitted for AI review')
         `, [taskId, req.user.id, task.status]);
       } else {
+        // ── Employee document: set status to submitted ──
         await client.query(`
           UPDATE task_photos SET ai_status = 'document', ai_confidence = NULL WHERE id = $1
         `, [photoId]);
@@ -116,17 +161,41 @@ router.post('/upload', authenticate, uploadEvidence, async (req, res, next) => {
       return photoRows[0];
     });
 
+    // ── Build notification recipient set ─────────────────────────────────────
     const notifyIds = new Set();
-    if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
 
-    const { rows: managerRows } = await query(
-      `SELECT id, manager_id FROM users WHERE id = ANY($1::uuid[])`,
-      [[req.user.id, task.assigned_to].filter(Boolean)]
-    );
-    for (const row of managerRows) {
-      if (row?.manager_id && row.manager_id !== req.user.id) notifyIds.add(row.manager_id);
+    if (uploaderIsManager) {
+      // Manager uploaded — notify the assignee so they know context was added
+      if (task.assigned_to && task.assigned_to !== req.user.id) notifyIds.add(task.assigned_to);
+    } else {
+      // Employee uploaded — notify assignor/manager as before
+      if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
+      const { rows: managerRows } = await query(
+        `SELECT id, manager_id FROM users WHERE id = ANY($1::uuid[])`,
+        [[req.user.id, task.assigned_to].filter(Boolean)]
+      );
+      for (const row of managerRows) {
+        if (row?.manager_id && row.manager_id !== req.user.id) notifyIds.add(row.manager_id);
+      }
     }
 
+    // ── Manager upload — return immediately after storing (no AI review) ─────
+    if (uploaderIsManager) {
+      for (const uid of notifyIds) {
+        await emitNotification(uid, {
+          type: 'task_attachment_uploaded',
+          title: 'Attachment added by manager',
+          body: `${req.file.originalname} — ${task.title}`,
+          data: { taskId, uploadedBy: req.user.id, kind: isImage ? 'image' : 'document' }
+        });
+      }
+      return res.status(201).json({
+        photo: { id: photo.id, taskId, status: 'manager_attachment' },
+        message: 'File attached. Task status unchanged.'
+      });
+    }
+
+    // ── Employee image path ───────────────────────────────────────────────────
     if (isImage) {
       triggerAIReview(photo.id, taskId, storageKey, task.category_id).catch(
         err => console.error('AI review trigger failed:', err)

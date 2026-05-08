@@ -3,13 +3,53 @@ import { getAccessToken } from '../state/auth'
 
 let socket: Socket | null = null
 
-const SOCKET_URL = (() => {
-  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL.trim().replace(/\/$/, '')
+/**
+ * Resolve the backend URL using the exact same priority chain as api.ts:
+ *   1. VITE_API_BASE_URL env var  (set this in Vercel dashboard → Project → Settings → Environment Variables)
+ *   2. localhost:3001 in dev mode
+ *   3. null in production without the env var — we never fall back to window.location.origin
+ *      because on Vercel the origin is the static frontend host, not the Railway backend.
+ *
+ * To fix socket.io in production, add this to your Vercel project environment variables:
+ *   VITE_API_BASE_URL = https://<your-project>.up.railway.app
+ * Then redeploy.  No code change is needed after that.
+ */
+const resolveSocketUrl = (): string | null => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  if (envUrl) {
+    const url = envUrl.trim().replace(/\/$/, '')
+    // Ensure absolute URL
+    return url.startsWith('http') ? url : `https://${url}`
+  }
   if (import.meta.env.DEV) return 'http://localhost:3001'
-  return window.location.origin
-})()
+
+  // Production without VITE_API_BASE_URL: log a clear error and skip connection.
+  // Do NOT fall back to window.location.origin — Vercel serves only static files there.
+  console.error(
+    '[Socket] VITE_API_BASE_URL is not set.\n' +
+    'Real-time features are disabled.\n' +
+    'Fix: add VITE_API_BASE_URL=https://<railway-backend>.up.railway.app to your Vercel environment variables and redeploy.'
+  )
+  return null
+}
+
+const SOCKET_URL = resolveSocketUrl()
+
+/** True when the backend URL is correctly configured */
+export const socketConfigured = SOCKET_URL !== null
 
 export function getSocket(): Socket {
+  if (!SOCKET_URL) {
+    // Return a disconnected no-op socket so callers don't crash
+    if (!socket) {
+      socket = io('http://localhost:0', {
+        autoConnect: false,
+        reconnection: false,
+      })
+    }
+    return socket
+  }
+
   if (socket && socket.connected) return socket
 
   socket = io(SOCKET_URL, {
@@ -28,7 +68,10 @@ export function getSocket(): Socket {
     if (s && user?.id) s.emit('join:user', { userId: user.id })
   })
   socket.on('disconnect', () => { /* silent reconnect */ })
-  socket.on('connect_error', (err) => { if (err.message !== 'xhr poll error') console.warn('[Socket]', err.message) })
+  socket.on('connect_error', (err) => {
+    // Filter noise but surface genuine misconfig errors
+    if (err.message !== 'xhr poll error') console.warn('[Socket]', err.message)
+  })
 
   return socket
 }
