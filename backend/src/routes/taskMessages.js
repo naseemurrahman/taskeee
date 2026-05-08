@@ -28,12 +28,39 @@ async function assertTaskChatAccess(req, taskId) {
   if (isOrgWideRole(u.role)) return { ok: true, task };
   if (legacyEmployeeIds.includes(task.assigned_to)) return { ok: true, task };
   if (task.assigned_to === u.id || task.assigned_by === u.id) return { ok: true, task };
-  const { rows: sub } = await query(
-    `SELECT 1 FROM get_subordinate_ids($1) WHERE user_id = $2 LIMIT 1`,
-    [u.id, task.assigned_to]
-  );
-  if (sub.length) return { ok: true, task };
+  try {
+    const { rows: sub } = await query(
+      `SELECT 1 FROM get_subordinate_ids($1) WHERE user_id = $2 LIMIT 1`,
+      [u.id, task.assigned_to]
+    );
+    if (sub.length) return { ok: true, task };
+  } catch {
+    // get_subordinate_ids may not exist in compact Railway schemas.
+  }
   return { ok: false, task };
+}
+
+async function resolveTaskParticipants(task, orgId, actorId) {
+  const ids = new Set();
+  if (task.assigned_to && task.assigned_to !== actorId) ids.add(task.assigned_to);
+  if (task.assigned_by && task.assigned_by !== actorId) ids.add(task.assigned_by);
+
+  try {
+    const candidateIds = [task.assigned_to, actorId].filter(Boolean);
+    if (candidateIds.length) {
+      const { rows } = await query(
+        `SELECT id, manager_id FROM users WHERE org_id = $1 AND id = ANY($2::uuid[])`,
+        [orgId, candidateIds]
+      );
+      for (const row of rows || []) {
+        if (row?.manager_id && row.manager_id !== actorId) ids.add(row.manager_id);
+      }
+    }
+  } catch {
+    // Manager fan-out is best-effort.
+  }
+
+  return Array.from(ids);
 }
 
 router.get('/', authenticate, async (req, res, next) => {
@@ -63,6 +90,8 @@ router.post('/', authenticate, async (req, res, next) => {
       return res.status(400).json({ error: 'Message body required' });
     if (String(text).length > 8000) return res.status(400).json({ error: 'Message too long' });
 
+    const cleanText = String(text).trim();
+    const isFeedback = /^\[Feedback\]/i.test(cleanText);
     const a = await assertTaskChatAccess(req, taskId);
     if (!a.ok) return res.status(403).json({ error: 'Access denied' });
 
@@ -73,17 +102,17 @@ router.post('/', authenticate, async (req, res, next) => {
       INSERT INTO task_messages (task_id, org_id, sender_id, body)
       VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, [taskId, orgId, req.user.id, String(text).trim()]);
+    `, [taskId, orgId, req.user.id, cleanText]);
 
     await logUserActivity({
       orgId,
       userId: req.user.id,
       taskId,
-      activityType: 'task_comment_added',
-      metadata: { length: String(text).trim().length }
+      activityType: isFeedback ? 'task_feedback_added' : 'task_comment_added',
+      metadata: { length: cleanText.length, feedback: isFeedback }
     });
 
-    const mentionMatches = [...new Set((String(text).match(/@([a-zA-Z0-9._-]+)/g) || []).map(m => m.slice(1).toLowerCase()))];
+    const mentionMatches = [...new Set((cleanText.match(/@([a-zA-Z0-9._-]+)/g) || []).map(m => m.slice(1).toLowerCase()))];
     if (mentionMatches.length) {
       const { rows: orgUsers } = await query(`SELECT id, full_name, email FROM users WHERE org_id = $1`, [orgId]);
       for (const user of orgUsers) {
@@ -93,36 +122,33 @@ router.post('/', authenticate, async (req, res, next) => {
             type: 'task_mention',
             title: 'You were mentioned in a task comment',
             body: a.task.title,
-            data: { taskId }
+            data: { taskId, fromUserId: req.user.id },
+            dedupeKey: `task_mention:${taskId}:${user.id}:${rows[0].id}`,
           });
         }
       }
     }
 
     const task = a.task;
-    const snippet = String(text).trim().slice(0, 160);
-    const notifyIds = new Set();
-    if (task.assigned_to && task.assigned_to !== req.user.id) notifyIds.add(task.assigned_to);
-    if (task.assigned_by && task.assigned_by !== req.user.id) notifyIds.add(task.assigned_by);
+    const snippet = cleanText.replace(/^\[Feedback\]\s*/i, '').slice(0, 180);
+    const notifyIds = await resolveTaskParticipants(task, orgId, req.user.id);
     for (const uid of notifyIds) {
       await emitNotification(uid, {
-        type: 'task_message',
-        title: 'New message on a task',
+        type: isFeedback ? 'task_feedback' : 'task_message',
+        title: isFeedback ? 'New task feedback' : 'New task message',
         body: `${task.title}: ${snippet}`,
-        data: { taskId }
+        data: { taskId, messageId: rows[0].id, fromUserId: req.user.id, feedback: isFeedback },
+        dedupeKey: `${isFeedback ? 'task_feedback' : 'task_message'}:${taskId}:${uid}:${rows[0].id}`,
       });
     }
 
     try {
       const { app } = require('../server');
       const io = app.get('io');
-      if (task.assigned_to && task.assigned_to !== req.user.id) {
-        io.to(`user:${task.assigned_to}`).emit('task_message', { taskId, message: rows[0] });
-      }
-      if (task.assigned_by && task.assigned_by !== req.user.id) {
-        io.to(`user:${task.assigned_by}`).emit('task_message', { taskId, message: rows[0] });
-      }
-      io.to(`task:${taskId}`).emit('task_message', { taskId, message: rows[0] });
+      for (const uid of notifyIds) io.to(`user:${uid}`).emit('task_message', { taskId, message: rows[0], feedback: isFeedback });
+      io.to(`task:${taskId}`).emit('task_message', { taskId, message: rows[0], feedback: isFeedback });
+      io.to(`org:${orgId}`).emit('task_commented', { taskId, messageId: rows[0].id, feedback: isFeedback });
+      io.to(`org_${orgId}`).emit('task_commented', { taskId, messageId: rows[0].id, feedback: isFeedback });
     } catch { /* */ }
 
     res.status(201).json({ message: rows[0] });
