@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type ReactNode } from 'react'
+import { useRef, useLayoutEffect, useState, type ReactNode } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 
 const H    = 280
@@ -7,22 +7,42 @@ const gridStroke = 'rgba(148,163,184,0.18)'
 
 function useWidth(ref: React.RefObject<HTMLDivElement | null>) {
   const [w, setW] = useState(0)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ref.current) return
-    setW(ref.current.offsetWidth || 0)
-    const ro = new ResizeObserver(() => setW(ref.current?.offsetWidth || 0))
+    const measure = () => setW(ref.current?.offsetWidth || 0)
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(ref.current)
     return () => ro.disconnect()
   }, [])
   return w
 }
 
-function Shell({ height = H, children }: { height?: number; children: (w: number) => ReactNode }) {
+function ChartShimmer({ height }: { height: number }) {
+  return (
+    <div style={{ width: '100%', height, minHeight: height, borderRadius: 12, overflow: 'hidden' }}>
+      <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+    </div>
+  )
+}
+
+function Shell({
+  height = H,
+  loading = false,
+  children,
+}: {
+  height?: number
+  loading?: boolean
+  children: (w: number) => ReactNode
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const w   = useWidth(ref)
+  if (loading || w === 0) {
+    return <div ref={ref} style={{ width: '100%' }}><ChartShimmer height={height} /></div>
+  }
   return (
     <div ref={ref} style={{ width:'100%', height, minHeight:height, overflowX:'hidden', overflowY:'visible' }}>
-      {w > 0 && children(w)}
+      {children(w)}
     </div>
   )
 }
@@ -78,7 +98,7 @@ export function ProjectProgressChart(props: { rows: Array<{ name:string; done:nu
   )
 }
 
-export function AssignmentsChart(props: { rows: Array<{ name:string; active:number; overdue:number; done:number }>; fillHeight?: boolean }) {
+export function AssignmentsChart(props: { rows: Array<{ name:string; active:number; overdue:number; done:number }>; fillHeight?: boolean; loading?: boolean }) {
   const data = (props.rows||[]).slice(0,8).map(r => ({
     name:   r.name.split(' ')[0].slice(0,12),
     Active: Number(r.active||0),
@@ -92,7 +112,7 @@ export function AssignmentsChart(props: { rows: Array<{ name:string; active:numb
   )
   const h = Math.max(H, data.length*44)
   return (
-    <Shell height={h}>
+    <Shell height={h} loading={props.loading}>
       {(w) => (
         <BarChart width={w} height={h} data={data} layout="vertical" margin={{ top:8, right:16, left:4, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" horizontal={false} />

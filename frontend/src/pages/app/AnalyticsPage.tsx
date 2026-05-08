@@ -191,30 +191,30 @@ export function AnalyticsPage() {
       {/* Charts: trend hero on top, then aligned 2-col grid */}
       <div style={{ display: 'grid', gap: 16 }}>
         {/* Hero: full-width trend chart */}
-        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Operational velocity over the last ${days} days.`}>
-          <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} />
+        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Operational velocity over the last ${days} days.`} loading={trendQ.isLoading}>
+          <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} loading={trendQ.isLoading} />
         </ChartCard>
         {/* Row 1: Donut + Bar — same height */}
         <div className="analyticsChartGrid">
-          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state.">
-            <StatusDonutChart byStatus={byStatus} />
+          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state." loading={statusQ.isLoading}>
+            <StatusDonutChart byStatus={byStatus} loading={statusQ.isLoading} />
           </ChartCard>
-          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status.">
-            <StatusBarChart byStatus={byStatus} />
+          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status." loading={statusQ.isLoading}>
+            <StatusBarChart byStatus={byStatus} loading={statusQ.isLoading} />
           </ChartCard>
         </div>
         {/* Row 2: Priority + Workload — same height */}
         <div className="analyticsChartGrid">
-          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure from current task state.">
-            <PriorityPieChart byPriority={priorityPressure} />
+          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure from current task state." loading={summaryQ.isLoading}>
+            <PriorityPieChart byPriority={priorityPressure} loading={summaryQ.isLoading} />
           </ChartCard>
-          <ChartCard title="Workload Balance" subtitle="Overloaded, balanced, and underutilized team members.">
-            <WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} />
+          <ChartCard title="Workload Balance" subtitle="Overloaded, balanced, and underutilized team members." loading={workloadQ.isLoading}>
+            <WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} loading={workloadQ.isLoading} />
           </ChartCard>
         </div>
         {/* Row 3: Performance — full width */}
-        <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee.">
-          <AssigneeScoreChart fillHeight rows={performanceRows} />
+        <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee." loading={employeesQ.isLoading}>
+          <AssigneeScoreChart fillHeight rows={performanceRows} loading={employeesQ.isLoading} />
         </ChartCard>
       </div>
 

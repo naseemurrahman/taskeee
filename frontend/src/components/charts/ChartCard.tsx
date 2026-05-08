@@ -9,6 +9,8 @@ export function ChartCard(props: {
   children: ReactNode
   fillHeight?: boolean
   noPad?: boolean
+  /** Show a shimmer skeleton instead of children while data is loading */
+  loading?: boolean
 }) {
   return (
     <div className="chartCardV2">
@@ -34,7 +36,11 @@ export function ChartCard(props: {
         </div>
       </div>
       <div className={props.noPad ? '' : 'chartCardV2Body'}>
-        {props.children}
+        {props.loading ? (
+          <div style={{ padding: '4px 0' }}>
+            <div className="skeleton" style={{ width: '100%', height: 300, borderRadius: 12 }} />
+          </div>
+        ) : props.children}
       </div>
     </div>
   )

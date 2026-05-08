@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type ReactNode } from 'react'
+import { useRef, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, AreaChart, Area, RadialBarChart, RadialBar,
@@ -10,27 +10,54 @@ const H_TALL = 360
 const gridStroke = 'rgba(148,163,184,0.18)'
 const AXIS   = { fill: 'var(--chart-tick2,#94a3b8)', fontSize: 11, fontWeight: 650 as const }
 
-// ─── Container-width hook (ResizeObserver) ───────────────────────────────────
+// ─── Container-width hook ────────────────────────────────────────────────────
+// useLayoutEffect fires synchronously after DOM mutations, before paint.
+// This means w is always set before the first visible frame — no blank flash.
 function useWidth(ref: React.RefObject<HTMLDivElement | null>) {
   const [w, setW] = useState(0)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ref.current) return
-    setW(ref.current.offsetWidth || 0)
-    const ro = new ResizeObserver(() => setW(ref.current?.offsetWidth || 0))
+    const measure = () => setW(ref.current?.offsetWidth || 0)
+    measure() // read immediately — synchronous, before paint
+    const ro = new ResizeObserver(measure)
     ro.observe(ref.current)
     return () => ro.disconnect()
   }, [])
   return w
 }
 
+// ─── Chart skeleton shimmer ──────────────────────────────────────────────────
+function ChartShimmer({ height }: { height: number }) {
+  return (
+    <div style={{ width: '100%', height, minHeight: height, borderRadius: 12, overflow: 'hidden' }}>
+      <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+    </div>
+  )
+}
+
 // ─── Shell: measures its own pixel width, gives it to the chart ─────────────
+// `loading` shows a shimmer skeleton instead of the chart while data is in-flight.
 // children is a render function: (width: number) => ReactNode
-function Shell({ height = H, children }: { height?: number; children: (w: number) => ReactNode }) {
+function Shell({
+  height = H,
+  loading = false,
+  children,
+}: {
+  height?: number
+  loading?: boolean
+  children: (w: number) => ReactNode
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const w   = useWidth(ref)
+
+  // Show shimmer while data is loading OR while the observer hasn't fired yet
+  if (loading || w === 0) {
+    return <div ref={ref} style={{ width: '100%' }}><ChartShimmer height={height} /></div>
+  }
+
   return (
     <div ref={ref} style={{ width: '100%', height, minHeight: height, overflowX: 'hidden', overflowY: 'visible' }}>
-      {w > 0 && children(w)}
+      {children(w)}
     </div>
   )
 }
@@ -66,7 +93,7 @@ function EmptyChart({ title }: { title: string }) {
 }
 
 // ─── Status Bar ──────────────────────────────────────────────────────────────
-export function StatusBarChart(props: { byStatus: Record<string, number>; fillHeight?: boolean }) {
+export function StatusBarChart(props: { byStatus: Record<string, number>; fillHeight?: boolean; loading?: boolean }) {
   const COLORS: Record<string, string> = {
     pending: '#f4ca57', in_progress: '#6366f1', submitted: '#8b5cf6',
     manager_approved: '#10b981', completed: '#22c55e', overdue: '#ef4444',
@@ -77,7 +104,7 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
   if (!data.length) return <EmptyChart title="No tasks yet" />
   const h = props.fillHeight ? H_TALL : H
   return (
-    <Shell height={h}>
+    <Shell height={h} loading={props.loading}>
       {(w) => (
         <BarChart width={w} height={h} data={data} barSize={Math.max(20, Math.min(44, (w / data.length) * 0.5))} margin={{ top: 14, right: 8, left: 0, bottom: 40 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
@@ -95,7 +122,7 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
 }
 
 // ─── Status Donut ─────────────────────────────────────────────────────────────
-export function StatusDonutChart(props: { byStatus: Record<string, number> }) {
+export function StatusDonutChart(props: { byStatus: Record<string, number>; loading?: boolean }) {
   const COLORS: Record<string,string> = {
     pending:'#f4ca57', in_progress:'#6366f1', submitted:'#8b5cf6',
     manager_approved:'#10b981', completed:'#22c55e', overdue:'#ef4444', manager_rejected:'#f97316',
@@ -108,7 +135,7 @@ export function StatusDonutChart(props: { byStatus: Record<string, number> }) {
   const h = 280
   return (
     <div style={{ position:'relative' }}>
-      <Shell height={h}>
+      <Shell height={h} loading={props.loading}>
         {(w) => (
           <PieChart width={w} height={h}>
             <Tooltip content={<GlassTooltip />} />
@@ -132,7 +159,7 @@ export function StatusDonutChart(props: { byStatus: Record<string, number> }) {
 }
 
 // ─── Priority Pie ─────────────────────────────────────────────────────────────
-export function PriorityPieChart(props: { byPriority: Record<string,number>; fillHeight?: boolean }) {
+export function PriorityPieChart(props: { byPriority: Record<string,number>; fillHeight?: boolean; loading?: boolean }) {
   const COLORS: Record<string,string> = { low:'#38bdf8', medium:'#f4ca57', high:'#f97316', urgent:'#ef4444', critical:'#dc2626' }
   const data = Object.entries(props.byPriority)
     .filter(([,v]) => v>0)
@@ -144,7 +171,7 @@ export function PriorityPieChart(props: { byPriority: Record<string,number>; fil
   return (
     <div style={{ display:'grid', gridTemplateColumns:'1fr minmax(120px,0.8fr)', gap:12, alignItems:'center' }}>
       <div style={{ position:'relative', minWidth:0 }}>
-        <Shell height={h}>
+        <Shell height={h} loading={props.loading}>
           {(w) => (
             <PieChart width={w} height={h}>
               <Tooltip content={<GlassTooltip />} />
@@ -188,12 +215,11 @@ export function PriorityPieChart(props: { byPriority: Record<string,number>; fil
 // ─── Deadlines Trend ──────────────────────────────────────────────────────────
 export function DeadlinesTrendChart(props: {
   points: Array<{ day:string; due:number; completed?:number; overdue:number }>
-  fillHeight?: boolean
-}) {
+  fillHeight?: boolean; loading?: boolean }) {
   if (!props.points?.length) return <EmptyChart title="No trend data yet" />
   const h = props.fillHeight ? H_TALL : H
   return (
-    <Shell height={h}>
+    <Shell height={h} loading={props.loading}>
       {(w) => (
         <AreaChart width={w} height={h} data={props.points} margin={{ top:14, right:16, left:0, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
@@ -214,7 +240,7 @@ export function DeadlinesTrendChart(props: {
 export function CompletedTrendChart(props: { points: Array<{ day:string; completed:number }> }) {
   if (!props.points?.length) return <EmptyChart title="No completion trend yet" />
   return (
-    <Shell height={H}>
+    <Shell height={H} loading={props.loading}>
       {(w) => (
         <AreaChart width={w} height={H} data={props.points} margin={{ top:14, right:16, left:0, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
@@ -231,8 +257,7 @@ export function CompletedTrendChart(props: { points: Array<{ day:string; complet
 // ─── Workload Balance ─────────────────────────────────────────────────────────
 export function WorkloadBalanceChart(props: {
   workload: { averageOpenTasks:number; overloaded:any[]; underutilized:any[] }
-  userCount: number; fillHeight?: boolean
-}) {
+  userCount: number; fillHeight?: boolean; loading?: boolean }) {
   const ol  = props.workload?.overloaded?.length   ?? 0
   const ul  = props.workload?.underutilized?.length ?? 0
   const bal = Math.max(0, (props.userCount||0) - ol - ul)
@@ -248,7 +273,7 @@ export function WorkloadBalanceChart(props: {
   return (
     <div style={{ display:'grid', gap:12 }}>
       <div style={{ position:'relative' }}>
-        <Shell height={h}>
+        <Shell height={h} loading={props.loading}>
           {(w) => {
             const r = Math.min(w, h) * 0.38
             return (
@@ -287,8 +312,7 @@ export function WorkloadBalanceChart(props: {
 // ─── Assignee Score ───────────────────────────────────────────────────────────
 export function AssigneeScoreChart(props: {
   rows: Array<{ name:string; active:number; completed:number; performanceScore:number }>
-  fillHeight?: boolean
-}) {
+  fillHeight?: boolean; loading?: boolean }) {
   const data = (props.rows||[])
     .slice(0,8)
     .sort((a,b) => (b.performanceScore||0)-(a.performanceScore||0))
@@ -302,7 +326,7 @@ export function AssigneeScoreChart(props: {
   const maxCount = Math.max(1, ...data.map(d => Math.max(d.active, d.done)))
   const h = Math.max(H, data.length*52)
   return (
-    <Shell height={h}>
+    <Shell height={h} loading={props.loading}>
       {(w) => (
         <BarChart width={w} height={h} data={data} layout="vertical"
           barCategoryGap="32%" margin={{ top:8, right:16, left:4, bottom:24 }}>
