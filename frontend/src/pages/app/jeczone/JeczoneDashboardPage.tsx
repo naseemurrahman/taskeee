@@ -231,19 +231,19 @@ export function JeczoneDashboardPage() {
       {tab === 'overview' ? (
         <>
           <div className="grid4">
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}>
+            <button type="button" className="jecKpiCard" onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}>
               <div className="miniLabel">Total tasks</div>
               <div className="miniValue">{total}</div>
             </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}>
+            <button type="button" className="jecKpiCard" onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}>
               <div className="miniLabel">Completion</div>
               <div className="miniValue">{completionRate}%</div>
             </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}>
+            <button type="button" className="jecKpiCard" onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}>
               <div className="miniLabel">Overdue</div>
               <div className="miniValue" style={{ color: 'rgba(239, 68, 68, 0.92)' }}>{overdue}</div>
             </button>
-            <button type="button" className="miniCard miniLink" onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}>
+            <button type="button" className="jecKpiCard" onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}>
               <div className="miniLabel">Team score</div>
               <div className="miniValue">{score}</div>
             </button>
