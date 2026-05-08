@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
 
 type TaskRow = { status: string; priority?: string; assigned_to_name?: string | null; due_date?: string | null; category_name?: string | null }
@@ -39,6 +40,7 @@ function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: string; ti
 export function InsightsPage() {
   const [days, setDays] = useState('30d')
   const dayNum = parseInt(days) || 30
+  useRealtimeInvalidation({ tasks: true, employees: true })
 
   const tasksQ = useQuery({
     queryKey: ['insights-tasks', days],

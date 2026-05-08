@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
 import { useToast } from '../ui/ToastSystem'
+import { subscribeToOrg } from '../../lib/socket'
 
 type Task = {
   id: string; title: string; status: string; priority?: string | null
@@ -121,9 +122,22 @@ export function TaskDetailDrawer({
     queryKey: ['task-messages', taskId],
     queryFn: () => apiFetch<{ messages: Message[] }>(`/api/v1/tasks/${taskId}/messages`).then(d => d.messages || []),
     enabled: !!taskId,
-    refetchInterval: 15_000,
+    // No polling interval — socket pushes invalidation instantly when a new comment arrives
   })
   const messages = messagesQ.data || []
+
+  // Subscribe to task:commented so new messages appear instantly without polling
+  useEffect(() => {
+    if (!taskId) return
+    return subscribeToOrg({
+      onTaskCommented: (data: any) => {
+        // Only invalidate for THIS task's thread to avoid noisy re-fetches
+        if (!data?.taskId || String(data.taskId) === String(taskId)) {
+          qc.invalidateQueries({ queryKey: ['task-messages', taskId] })
+        }
+      },
+    })
+  }, [taskId, qc])
 
   useEffect(() => {
     if (activeTab === 'comments') setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)

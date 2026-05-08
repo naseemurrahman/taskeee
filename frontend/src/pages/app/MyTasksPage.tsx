@@ -19,6 +19,7 @@ import { getUser } from '../../state/auth'
 import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
 import { useToast } from '../../components/ui/ToastSystem'
+import { useRealtimeInvalidation } from '../../lib/socket'
 
 type TaskRow = {
   id: string
@@ -167,6 +168,8 @@ export function MyTasksPage() {
   const me = getUser()
   const qc = useQueryClient()
   const { success: toastSuccess, error: toastError } = useToast()
+  // Invalidate my task list whenever any task changes org-wide (catches reassignments)
+  useRealtimeInvalidation({ tasks: true })
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)

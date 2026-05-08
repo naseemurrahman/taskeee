@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { ChartCard } from '../../components/charts/ChartCard'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 
@@ -48,6 +49,8 @@ function hasMetric(value: unknown) { return value !== null && value !== undefine
 
 export function AnalyticsPage() {
   const [days, setDays] = useState(30)
+  // Re-fetch all analytics queries whenever tasks or employees change in real-time
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const insightsQ = useQuery({ queryKey: ['insights', days], queryFn: () => fetchInsights(days) })
   const summaryQ = useQuery({ queryKey: ['analytics-summary', days], queryFn: () => fetchSummary(days) })
   const statusQ = useQuery({ queryKey: ['analytics-status', days], queryFn: () => fetchStatus(days) })

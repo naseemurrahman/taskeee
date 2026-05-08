@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal'
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
@@ -233,6 +234,7 @@ export function ProjectsPage() {
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2 })
   const { success: toastSuccess, error: toastError } = useToast()
+  useRealtimeInvalidation({ tasks: true })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')

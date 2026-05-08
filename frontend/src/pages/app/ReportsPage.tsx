@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { useState } from 'react'
 import { getAccessToken } from '../../state/auth'
+import { useRealtimeInvalidation } from '../../lib/socket'
 
 type ReportRow = {
   id: string
@@ -71,6 +72,7 @@ async function downloadReportPdf(reportId: string) {
 
 export function ReportsPage() {
   const qc = useQueryClient()
+  useRealtimeInvalidation({ tasks: true })
   const orgQ = useQuery({
     queryKey: ['org', 'reports-page'],
     queryFn: () => apiFetch<{ organization?: { name?: string } }>('/api/v1/organizations/me').then(d => d.organization?.name || ''),

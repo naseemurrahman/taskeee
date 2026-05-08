@@ -274,18 +274,13 @@ router.post('/chat', async (req, res, next) => {
       return res.status(400).json({ error: 'messages array required' });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY in Railway environment variables.' });
-    }
-
-    // Build live org context from DB
+    // Build live org context from DB regardless of whether Anthropic key is available
     const orgId = req.user.org_id || req.user.orgId;
     let orgContext = context || {};
 
     try {
       const [taskRes, projectRes, leaderRes] = await Promise.all([
-        query(`SELECT id, title, status, priority, assigned_to_name, due_date FROM tasks WHERE org_id = $1 AND status NOT IN ('cancelled') ORDER BY created_at DESC LIMIT 50`, [orgId]),
+        query(`SELECT id, title, status, priority, assigned_to_name, due_date FROM tasks WHERE org_id = $1 AND status NOT IN ('cancelled') AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50`, [orgId]),
         query(`SELECT id, name, status FROM projects WHERE org_id = $1 LIMIT 20`, [orgId]).catch(() => ({ rows: [] })),
         query(`SELECT u.id, u.full_name as name, COUNT(t.id) as total, COUNT(CASE WHEN t.status IN ('completed','manager_approved') THEN 1 END) as completed, COUNT(CASE WHEN t.status = 'overdue' THEN 1 END) as overdue FROM users u LEFT JOIN tasks t ON t.assigned_to = u.id AND t.org_id = $1 WHERE u.org_id = $1 AND u.is_active = true GROUP BY u.id LIMIT 10`, [orgId]).catch(() => ({ rows: [] })),
       ]);
@@ -293,7 +288,41 @@ router.post('/chat', async (req, res, next) => {
       orgContext.projects = projectRes.rows;
       orgContext.leaderboard = leaderRes.rows;
     } catch (_e) {
-      // DB context optional — still proceed with AI
+      // DB context optional — still proceed
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    // ── No API key: return a useful rules-based summary instead of a 503 ──────
+    if (!apiKey) {
+      const tasks = orgContext.tasks || [];
+      const counts = { total: tasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0, submitted: 0 };
+      for (const t of tasks) {
+        if (t.status === 'overdue') counts.overdue++;
+        else if (t.status === 'pending') counts.pending++;
+        else if (t.status === 'in_progress') counts.in_progress++;
+        else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++;
+        else if (t.status === 'submitted') counts.submitted++;
+      }
+      const completionRate = counts.total ? Math.round((counts.completed / counts.total) * 100) : 0;
+      const overdueList = tasks.filter(t => t.status === 'overdue').slice(0, 5)
+        .map(t => `• "${t.title}" — ${t.assigned_to_name || 'unassigned'}`).join('\n');
+      const lb = (orgContext.leaderboard || []).slice(0, 5)
+        .filter(u => Number(u.total) > 0)
+        .map(u => `• ${u.name}: ${u.completed}/${u.total} done, ${u.overdue} overdue`)
+        .join('\n');
+      const projects = (orgContext.projects || []).map(p => p.name).join(', ') || 'none';
+
+      const fallbackText =
+        `⚠️ **JecZone AI is running in offline mode** — set \`ANTHROPIC_API_KEY\` in your Railway environment variables to enable full AI responses.\n\n` +
+        `Here's a live summary of your org instead:\n\n` +
+        `**Task overview** (${counts.total} total)\n` +
+        `Completed: ${counts.completed} (${completionRate}%) · In Progress: ${counts.in_progress} · Pending: ${counts.pending} · Submitted: ${counts.submitted} · Overdue: ${counts.overdue}\n\n` +
+        (counts.overdue > 0 ? `**Overdue tasks:**\n${overdueList}\n\n` : `✅ No overdue tasks.\n\n`) +
+        (lb ? `**Team performance:**\n${lb}\n\n` : '') +
+        `**Active projects:** ${projects}`;
+
+      return res.json({ text: fallbackText, offline: true });
     }
 
     // Build system prompt with live data
