@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api'
 import { useToast } from '../components/ui/ToastSystem'
 import { subscribeToOrg } from '../lib/socket'
 import { getUser } from '../state/auth'
+import { isEmployeeRole } from '../lib/rbac'
 
 type InAppNotification = {
   id: string
@@ -77,6 +78,7 @@ export function NotificationCenter() {
   const qc = useQueryClient()
   const me = getUser()
   const isAdmin = ['admin', 'director'].includes(me?.role || '')
+  const employeeScoped = isEmployeeRole(me?.role)
   const { success: toastSuccess } = useToast()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<NotificationTab>('all')
@@ -102,6 +104,7 @@ export function NotificationCenter() {
       onTaskCommented: (data) => {
         if (data?.taskId) {
           qc.invalidateQueries({ queryKey: ['task-messages', data.taskId] })
+          qc.invalidateQueries({ queryKey: ['tasks', 'messages', data.taskId] })
         }
       },
     })
@@ -157,8 +160,8 @@ export function NotificationCenter() {
   function goFromNotif(n: InAppNotification) {
     setOpen(false)
     const tid = taskIdFromData(n.data)
-    if (tid) navigate('/app/tasks', { state: { openTaskId: tid } })
-    else navigate('/app/dashboard')
+    if (tid) navigate(employeeScoped ? '/app/my-tasks' : '/app/tasks', { state: { openTaskId: tid } })
+    else navigate(employeeScoped ? '/app/my-tasks' : '/app/dashboard')
   }
 
   function openSettings() {
@@ -196,7 +199,7 @@ export function NotificationCenter() {
           <div className="topbarNotifyHead">
             <div>
               <div className="topbarNotifyTitle">Notifications</div>
-              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread · grouped by task when repeated` : 'All caught up'}</div>
+              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread · live task updates` : 'All caught up'}</div>
             </div>
             <div className="topbarNotifyHeadActions">
               {unread > 0 ? (
@@ -204,9 +207,11 @@ export function NotificationCenter() {
                   <CheckCheck size={15} />
                 </button>
               ) : null}
-              <button type="button" className="topbarNotifyIconAction" onClick={openSettings} title="Notification settings">
-                <Settings size={15} />
-              </button>
+              {!employeeScoped ? (
+                <button type="button" className="topbarNotifyIconAction" onClick={openSettings} title="Notification settings">
+                  <Settings size={15} />
+                </button>
+              ) : null}
               {isAdmin ? (
                 <button type="button" className="topbarNotifyIconAction" onClick={openDiagnostics} title="Delivery diagnostics">
                   <Activity size={15} />
@@ -225,7 +230,8 @@ export function NotificationCenter() {
           </div>
 
           <div className="topbarNotifyQuickActions">
-            <button type="button" onClick={openSettings}>Notification settings</button>
+            <button type="button" onClick={() => navigate(employeeScoped ? '/app/my-tasks' : '/app/tasks')}>Open task workspace</button>
+            {!employeeScoped ? <button type="button" onClick={openSettings}>Notification settings</button> : null}
             {isAdmin ? <button type="button" onClick={openDiagnostics}>Delivery diagnostics</button> : null}
           </div>
 
@@ -237,7 +243,6 @@ export function NotificationCenter() {
               const grouped   = Number(n.group_count || 0) > 1
               const bucket    = notificationBucket(n)
               const accentClr = bucket === 'tasks' ? '#e2ab41' : bucket === 'reminders' ? '#f97316' : '#6b7280'
-              // Title: use title field, fallback to type label
               const title = (n.title || '').replace(/\n/g, ' ').trim() || typeLabel(n)
               const body  = (n.body  || '').replace(/\n/g, ' ').trim()
               return (
@@ -250,26 +255,21 @@ export function NotificationCenter() {
                     goFromNotif(n)
                   }}
                 >
-                  {/* Row: dot | content */}
                   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%', textAlign: 'left' }}>
-                    {/* Unread / read indicator dot */}
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
                       background: n.is_read ? 'transparent' : accentClr,
                       border: n.is_read ? '1.5px solid var(--border)' : 'none',
                     }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Title — largest, always shown */}
                       <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.35, marginBottom: body ? 4 : 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
                         {title}
                       </div>
-                      {/* Body — secondary text */}
                       {body ? (
                         <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
                           {body}
                         </div>
                       ) : null}
-                      {/* Footer: type label + count + time */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 10, fontWeight: 900, color: accentClr, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           {typeLabel(n)}{grouped ? ` ×${n.group_count}` : ''}
