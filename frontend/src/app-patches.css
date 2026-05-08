@@ -7219,26 +7219,21 @@ html, body, #root {
   [dir="rtl"] .sidebarMobileOpen .sidebarV4 {
     right: 0 !important;
   }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TASKS TABLE — header alignment + checkbox visibility (authoritative fix)
+   TASKS TABLE — header alignment + checkbox (high-specificity final fix)
    ═══════════════════════════════════════════════════════════════════════════
-
-   Root causes fixed:
-   1. Three conflicting checkbox rule blocks (position:absolute vs relative,
-      margin:-8px, appearance:none without ::before reset) made the checkbox
-      invisible or misplaced in the header.
-   2. Old thead th rules with padding:0 !important stripped padding from ALL
-      th elements including text columns, breaking label alignment.
-   3. No shared class meant header and body cells had different sizing.
-
-   Solution: two clean classes (.thCheckbox, .taskCheckbox) own the checkbox
-   column entirely; .thCell owns every text header column.
+   WHY #root PREFIX:
+   Old rules use `.tasksTable input[type='checkbox']` (class+type = 0-1-1)
+   and `.tasksTable th:has(input[type='checkbox'])` (class+elem+pseudo = 0-2-2).
+   When both sides have !important, specificity decides.
+   A single class selector (0-1-0) or two classes (0-2-0) BOTH lose to 0-2-2.
+   Any selector containing an ID (1-x-x) beats any 0-x-x selector outright.
+   #root exists on every page (see main.tsx → getElementById('root')).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Text header columns ── */
-.thCell {
+/* ── Shared header cell style ─────────────────────────────────────────────── */
+#root .thCell {
   padding: 10px 14px !important;
   text-align: left !important;
   font-size: 11px !important;
@@ -7249,74 +7244,57 @@ html, body, #root {
   vertical-align: middle !important;
 }
 
-/* ── Checkbox column (th + td) ── */
-.thCheckbox {
+/* ── Checkbox column: same 40 px in BOTH header and body ─────────────────── */
+#root .thCheckbox,
+#root .tasksTable th:has(input[type='checkbox']),
+#root .tasksTable td:has(input[type='checkbox']) {
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
-  padding: 0 !important;
+  padding: 0 8px !important;          /* 8 px side gutters so checkbox isn't flush */
   text-align: center !important;
   vertical-align: middle !important;
   cursor: default !important;
+  position: static !important;        /* kill the old position:relative that causes stacking issues */
 }
 
-/* ── Custom checkbox ── */
-.taskCheckbox {
-  /* Reset appearance so we can style it */
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  /* Fixed size — same in header and body */
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  /* No wild positioning — stays in normal flow */
+/* ── The checkbox itself ──────────────────────────────────────────────────── */
+#root .taskCheckbox,
+#root .tasksTable .thCheckbox input[type='checkbox'],
+#root .tasksTable tbody td.thCheckbox input[type='checkbox'] {
+  /* Restore native appearance — the old appearance:none block broke everything */
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  /* Fixed, modest size — no 44px / 34px oversized tap targets that overflow */
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  min-height: 15px !important;
+  /* No tricks — normal flow centering */
+  display: block !important;
+  margin: 0 auto !important;
   position: static !important;
   transform: none !important;
-  margin: 0 auto !important;
-  display: block !important;
-  /* Visual box */
-  border-radius: 4px !important;
-  border: 1.5px solid rgba(203, 213, 225, 0.45) !important;
-  background: rgba(255, 255, 255, 0.04) !important;
+  top: auto !important;
+  left: auto !important;
+  /* Brand gold tint via accent-color (works on all modern browsers) */
+  accent-color: #e2ab41 !important;
   cursor: pointer !important;
   outline: none !important;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s !important;
-  /* Ensure ::before/::after are used for the checkmark */
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
+  /* Kill the pseudo-element-based custom box from old blocks */
+  border: none !important;
+  background: transparent !important;
 }
 
-.taskCheckbox:hover {
-  border-color: rgba(226, 171, 65, 0.7) !important;
-  background: rgba(226, 171, 65, 0.08) !important;
+/* Remove the ::before fake box drawn by old rules */
+#root .tasksTable input[type='checkbox']::before,
+#root .tasksTable input[type='checkbox']::after {
+  display: none !important;
+  content: none !important;
 }
 
-.taskCheckbox:focus-visible {
-  box-shadow: 0 0 0 3px rgba(226, 171, 65, 0.28) !important;
-  border-color: #e2ab41 !important;
-}
-
-.taskCheckbox:checked {
-  background: #e2ab41 !important;
-  border-color: #e2ab41 !important;
-  box-shadow: 0 0 0 2px rgba(226, 171, 65, 0.22) !important;
-}
-
-/* Checkmark via background SVG — no ::before/::after z-index fights */
-.taskCheckbox:checked {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='%23111827' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: 10px 10px !important;
-}
-
-/* Light theme variant */
-.appShellV4Light .taskCheckbox {
-  border-color: rgba(100, 116, 139, 0.4) !important;
-  background: rgba(255, 255, 255, 0.7) !important;
-}
-.appShellV4Light .taskCheckbox:checked {
-  background-color: #d97706 !important;
-  border-color: #d97706 !important;
+/* Light theme */
+#root .appShellV4Light .taskCheckbox,
+#root .appShellV4Light .tasksTable input[type='checkbox'] {
+  accent-color: #d97706 !important;
 }
