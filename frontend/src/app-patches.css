@@ -749,7 +749,7 @@ textarea:focus-visible,
 
 .pageHeaderCard {
   position: relative !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   padding: clamp(14px, 1.5vw, 22px) !important;
 }
 
@@ -1284,7 +1284,7 @@ td {
 /* Header cards: restore the original visible top strip on every page. */
 .pageHeaderCard {
   position: relative !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   isolation: isolate !important;
   padding-top: max(16px, clamp(14px, 1.5vw, 22px)) !important;
 }
@@ -7220,6 +7220,7 @@ html, body, #root {
     right: 0 !important;
   }
 
+}  /* close @media (max-width: 900px) sidebar block */
 /* ═══════════════════════════════════════════════════════════════════════════
    TASKS TABLE — header alignment + checkbox (high-specificity final fix)
    ═══════════════════════════════════════════════════════════════════════════
@@ -7297,4 +7298,94 @@ html, body, #root {
 #root .appShellV4Light .taskCheckbox,
 #root .appShellV4Light .tasksTable input[type='checkbox'] {
   accent-color: #d97706 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FINAL AUTHORITY — dropdown overflow + table header (outside all @media)
+   Loaded last in app-patches.css so these rules win every conflict.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Cards must never clip dropdowns.
+      The golden stripe is rendered via box-shadow:inset, not overflow. */
+#root .pageHeaderCard,
+#root .card,
+#root .formCardV3,
+#root .miniCard,
+#root .chartV3 {
+  overflow: visible !important;
+}
+
+/* pageHeaderCard: z-index so it floats above sibling cards (table etc.) */
+#root .pageHeaderCard {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* chartCardV2 body needs its own scroll, not overflow:visible on parent */
+#root .chartCardV2 {
+  overflow: visible !important;
+}
+#root .chartCardV2Body {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+/* 2. Select/dropdown components: position:fixed so they escape overflow:hidden.
+      Already done in Select.tsx via portal, but guarantee z-index here. */
+.selectV3Dropdown,
+.selectDropdown,
+[class*="dropdown"],
+[class*="Dropdown"] {
+  z-index: 9999 !important;
+}
+
+/* 3. Table header cells — correct padding and alignment on ALL screen sizes */
+#root .tasksTable thead th.thCell,
+#root .tasksTable thead .thCell {
+  padding: 10px 14px !important;
+  text-align: left !important;
+  font-size: 11px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.075em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+/* 4. Checkbox column — identical width in header and body */
+#root .tasksTable th.thCheckbox,
+#root .tasksTable td.thCheckbox,
+#root .tasksTable th:has(input[type='checkbox']),
+#root .tasksTable td:has(input[type='checkbox']) {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding: 0 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: relative !important;
+}
+
+/* 5. The checkbox — native rendering, centered, gold accent */
+#root .tasksTable .taskCheckbox,
+#root .tasksTable input[type='checkbox'] {
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  min-height: 15px !important;
+  display: block !important;
+  margin: 0 auto !important;
+  position: static !important;
+  transform: none !important;
+  accent-color: #e2ab41 !important;
+  cursor: pointer !important;
+}
+
+/* Kill every fake ::before / ::after box drawn by old patch rules */
+#root .tasksTable input[type='checkbox']::before,
+#root .tasksTable input[type='checkbox']::after {
+  content: none !important;
+  display: none !important;
 }
