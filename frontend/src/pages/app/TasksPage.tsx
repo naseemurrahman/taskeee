@@ -474,23 +474,29 @@ export function TasksPage() {
           <div className="tasksDesktopTable tasksTableWrap" style={{ overflow: 'visible' }}>
             <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
-                  <th style={{ width: 4, padding: 0 }} />
+                <tr>
+                  {/* Priority bar column — exact 4px, no content */}
+                  <th style={{ width: 4, minWidth: 4, maxWidth: 4, padding: 0, verticalAlign: 'middle' }} />
+                  {/* Select-all checkbox */}
                   {canManage && (
-                    <th style={{ width: 36, padding: '10px 8px 10px 14px' }}>
-                      <input type="checkbox" checked={tasks.length > 0 && selected.size === tasks.length}
+                    <th className="thCheckbox">
+                      <input
+                        type="checkbox"
+                        className="taskCheckbox"
+                        checked={tasks.length > 0 && selected.size === tasks.length}
                         onChange={() => toggleAll(tasks.map(t => t.id))}
-                        style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                        title="Select all"
+                      />
                     </th>
                   )}
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Task</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: 160 }}>AI Signal</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
-                  {!isEmployee && <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Assignee</th>}
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Priority</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Due</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Comments</th>
+                  <th className="thCell">Task</th>
+                  <th className="thCell" style={{ minWidth: 160 }}>AI Signal</th>
+                  <th className="thCell">Project</th>
+                  {!isEmployee && <th className="thCell" style={{ whiteSpace: 'nowrap' }}>Assignee</th>}
+                  <th className="thCell">Status</th>
+                  <th className="thCell">Priority</th>
+                  <th className="thCell" style={{ whiteSpace: 'nowrap' }}>Due</th>
+                  <th className="thCell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Comments</th>
                 </tr>
               </thead>
               <tbody>
@@ -509,9 +515,8 @@ export function TasksPage() {
                         <div style={{ width: 4, height: 48, background: pColor }} />
                       </td>
                       {canManage && (
-                        <td style={{ padding: '10px 8px 10px 14px', width: 36 }} onClick={e => { e.stopPropagation(); toggleSelect(task.id) }}>
-                          <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(task.id)}
-                            style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#e2ab41' }} />
+                        <td className="thCheckbox" onClick={e => { e.stopPropagation(); toggleSelect(task.id) }}>
+                          <input type="checkbox" className="taskCheckbox" checked={isChecked} onChange={() => toggleSelect(task.id)} />
                         </td>
                       )}
                       <td style={{ padding: '10px 14px', maxWidth: 260 }} onClick={e => e.stopPropagation()}>
