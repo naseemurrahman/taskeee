@@ -11,10 +11,138 @@ import { Modal } from '../../components/Modal'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
-  LayoutDashboard
+  LayoutDashboard, TrendingUp, TrendingDown, Minus
 } from 'lucide-react'
+import {
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer, ReferenceLine
+} from 'recharts'
 
-// ── Velocity Bar chart — wide SVG viewBox, bars spread across full width ──────
+// ── Modern Task Activity Chart ─────────────────────────────────────────────────
+interface ActivityPoint { day: string; label: string; completed: number; overdue: number; created: number }
+
+function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
+  if (!data.length) {
+    return (
+      <div style={{ height: 220, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        No activity data yet — tasks will appear here as work begins
+      </div>
+    )
+  }
+
+  const formatted = data.map(d => ({
+    ...d,
+    label: d.label || d.day.slice(5),
+    net: d.completed - d.created,
+  }))
+
+  const totalCreated   = data.reduce((s, d) => s + d.created, 0)
+  const totalCompleted = data.reduce((s, d) => s + d.completed, 0)
+  const totalOverdue   = data.reduce((s, d) => s + d.overdue, 0)
+  const trend = totalCompleted >= totalCreated ? 'up' : totalCompleted >= totalCreated * 0.7 ? 'neutral' : 'down'
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div style={{
+        background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)',
+        borderRadius: 12, padding: '10px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        fontSize: 12, minWidth: 150,
+      }}>
+        <div style={{ fontWeight: 900, color: 'var(--text)', marginBottom: 8, fontSize: 13 }}>{label}</div>
+        {payload.map((p: any) => (
+          <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
+            <span style={{ color: p.color, fontWeight: 700 }}>{p.name}</span>
+            <span style={{ color: '#fff', fontWeight: 900 }}>{p.value}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* KPI strip above chart */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+        {[
+          { label: 'Created', value: totalCreated, color: '#e2ab41', icon: '＋' },
+          { label: 'Completed', value: totalCompleted, color: '#22c55e', icon: '✓' },
+          { label: 'Overdue', value: totalOverdue, color: '#ef4444', icon: '⚠' },
+        ].map(({ label, value, color, icon }) => (
+          <div key={label} style={{
+            flex: '1 1 80px', padding: '10px 14px', borderRadius: 12,
+            background: `linear-gradient(135deg, ${color}18, ${color}08)`,
+            border: `1px solid ${color}30`,
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+              {icon} {label}
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
+          </div>
+        ))}
+        <div style={{
+          flex: '1 1 80px', padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+            Trend
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {trend === 'up'
+              ? <TrendingUp size={18} color="#22c55e" />
+              : trend === 'neutral'
+              ? <Minus size={18} color="#e2ab41" />
+              : <TrendingDown size={18} color="#ef4444" />}
+            <span style={{ fontSize: 13, fontWeight: 800, color: trend === 'up' ? '#22c55e' : trend === 'neutral' ? '#e2ab41' : '#ef4444' }}>
+              {trend === 'up' ? 'On track' : trend === 'neutral' ? 'Moderate' : 'Behind'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recharts composite chart — responsive, real data */}
+      <ResponsiveContainer width="100%" height={200}>
+        <ComposedChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#e2ab41" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#e2ab41" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="gradCompleted" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
+            axisLine={false} tickLine={false}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
+            axisLine={false} tickLine={false} allowDecimals={false}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            iconType="circle" iconSize={8}
+            formatter={(v) => <span style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 700 }}>{v}</span>}
+          />
+          {/* Filled areas */}
+          <Area type="monotone" dataKey="created"   name="Created"   fill="url(#gradCreated)"   stroke="#e2ab41" strokeWidth={2} dot={false} />
+          <Area type="monotone" dataKey="completed" name="Completed" fill="url(#gradCompleted)" stroke="#22c55e" strokeWidth={2} dot={false} />
+          {/* Overdue as a line */}
+          <Line  type="monotone" dataKey="overdue"   name="Overdue"   stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+          {/* Zero reference */}
+          <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 function VelocityBars({ data }: { data: Array<{ week: string; created: number; completed: number }> }) {
   if (!data.length) return null
   const maxVal = Math.max(...data.flatMap(d => [d.created, d.completed]), 1)
@@ -124,46 +252,6 @@ function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string
 }
 
 // ─── Smooth area sparkline ────────────────────────────────────────
-function AreaLine({ data, color, height = 52 }: { data: number[]; color: string; height?: number }) {
-  if (!data.length) return <div style={{ height }} />
-  const max = Math.max(...data, 1)
-  const w = 300, h = height, pad = 4
-  const pts = data.map((v, i) => ({
-    x: (i / Math.max(data.length - 1, 1)) * w,
-    y: h - pad - (v / max) * (h - pad * 2)
-  }))
-
-  // Create smooth bezier path
-  function smooth(p: {x:number;y:number}[]) {
-    if (p.length < 2) return `M ${p[0]?.x ?? 0},${p[0]?.y ?? 0}`
-    let d = `M ${p[0].x},${p[0].y}`
-    for (let i = 0; i < p.length - 1; i++) {
-      const cp1x = p[i].x + (p[i+1].x - p[i].x) / 3
-      const cp2x = p[i].x + (p[i+1].x - p[i].x) * 2 / 3
-      d += ` C ${cp1x},${p[i].y} ${cp2x},${p[i+1].y} ${p[i+1].x},${p[i+1].y}`
-    }
-    return d
-  }
-
-  const linePath = smooth(pts)
-  const last = pts[pts.length - 1]
-  const gradId = `ag-${color.replace(/[^a-z0-9]/gi, '')}-${Math.random().toString(36).slice(2,6)}`
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="85%" stopColor={color} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <path d={`${linePath} L ${last.x},${h} L 0,${h} Z`} fill={`url(#${gradId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last.x} cy={last.y} r="3.5" fill={color} />
-      <circle cx={last.x} cy={last.y} r="6" fill={color} fillOpacity="0.2" />
-    </svg>
-  )
-}
 
 // ─── Donut ring ────────────────────────────────────────────────────
 function DonutRing({ segments, size = 120, strokeW = 12 }: {
@@ -355,35 +443,8 @@ export function DashboardHomePage() {
           sub="Created · Completed · Overdue by day"
           action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('activity')}>Details</button> : undefined}
         >
-          {isLoading ? <Skel h={160} /> : !trendData.length ? (
-            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No activity data yet</div>
-          ) : (
-            <div
-              role="button"
-              tabIndex={canOpenChartDetails ? 0 : -1}
-              style={{ display: 'grid', gap: 10, cursor: canOpenChartDetails ? 'pointer' : 'default' }}
-              onClick={() => canOpenChartDetails ? setChartDetail('activity') : null}
-              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('activity') : null)}
-            >
-              {[
-                { key: 'completed', label: '✓ Completed', color: C.green },
-                { key: 'created',   label: '+ Created',   color: C.brand  },
-                { key: 'overdue',   label: '⚠ Overdue',  color: C.red    },
-              ].map(({ key, label, color }) => {
-                const vals = trendData.map((d: any) => d[key] as number)
-                const total = vals.reduce((a, b) => a + b, 0)
-                if (total === 0 && key === 'overdue') return null
-                return (
-                  <div key={key}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color }}>{label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>{total}</span>
-                    </div>
-                    <AreaLine data={vals} color={color} height={40} />
-                  </div>
-                )
-              })}
-            </div>
+          {isLoading ? <Skel h={280} /> : (
+            <TaskActivityChart data={trendData} />
           )}
         </Card>
 
