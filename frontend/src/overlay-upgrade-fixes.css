@@ -5,10 +5,10 @@
  */
 
 :root {
-  --z-page-dropdown: 7600;
-  --z-notification-sheet: 9000;
-  --z-notification-inner-dropdown: 9100;
-  --z-modal-dropdown: 11050;
+  --z-page-dropdown: 2147483000;
+  --z-notification-sheet: 2147483050;
+  --z-notification-inner-dropdown: 2147483100;
+  --z-modal-dropdown: 2147483200;
 }
 
 .topbarV4 {
@@ -51,6 +51,35 @@
   min-height: 0 !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
+}
+
+.selectV3Dropdown[data-select-portal='true'] {
+  position: fixed !important;
+  left: var(--select-left, 8px) !important;
+  top: var(--select-top, auto) !important;
+  right: auto !important;
+  bottom: var(--select-bottom, auto) !important;
+  width: var(--select-width, min(320px, calc(100vw - 16px))) !important;
+  max-width: calc(100vw - 16px) !important;
+  min-width: min(180px, calc(100vw - 16px)) !important;
+  max-height: var(--select-max-height, min(420px, 70dvh)) !important;
+  overflow: hidden !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  z-index: var(--select-z-index, var(--z-page-dropdown)) !important;
+}
+
+.selectV3Dropdown[data-select-portal='true'] .selectV3List {
+  max-height: calc(var(--select-max-height, min(420px, 70dvh)) - 8px) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.selectV3Dropdown[data-select-portal='true']:has(.selectV3SearchWrap) .selectV3List {
+  max-height: calc(var(--select-max-height, min(420px, 70dvh)) - 58px) !important;
 }
 
 .selectV3Dropdown {
