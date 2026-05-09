@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Settings, Activity, CheckCheck } from 'lucide-react'
@@ -83,6 +84,7 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<NotificationTab>('all')
   const wrapRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
 
   const q = useQuery({
     queryKey: ['notifications'],
@@ -129,7 +131,9 @@ export function NotificationCenter() {
     function onDoc(e: PointerEvent) {
       const target = e.target as HTMLElement
       if (target.closest('.selectV3Dropdown')) return
-      if (!wrapRef.current?.contains(target)) setOpen(false)
+      if (wrapRef.current?.contains(target)) return
+      if (popoverRef.current?.contains(target)) return
+      setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
@@ -189,6 +193,103 @@ export function NotificationCenter() {
     { key: 'system', label: 'System' },
   ]
 
+  const popover = open ? createPortal(
+    <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications" ref={popoverRef} onPointerDown={(e) => e.stopPropagation()}>
+      <div className="topbarNotifyHead">
+        <div>
+          <div className="topbarNotifyTitle">Notifications</div>
+          <div className="topbarNotifySub">{unread > 0 ? `${unread} unread · live task updates` : 'All caught up'}</div>
+        </div>
+        <div className="topbarNotifyHeadActions">
+          {unread > 0 ? (
+            <button type="button" className="topbarNotifyIconAction" onClick={() => markAllM.mutate()} disabled={markAllM.isPending} title="Mark all read">
+              <CheckCheck size={15} />
+            </button>
+          ) : null}
+          {!employeeScoped ? (
+            <button type="button" className="topbarNotifyIconAction" onClick={openSettings} title="Notification settings">
+              <Settings size={15} />
+            </button>
+          ) : null}
+          {isAdmin ? (
+            <button type="button" className="topbarNotifyIconAction" onClick={openDiagnostics} title="Delivery diagnostics">
+              <Activity size={15} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="topbarNotifyTabs" role="tablist" aria-label="Notification filters">
+        {tabs.map((t) => (
+          <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`topbarNotifyTab ${tab === t.key ? 'topbarNotifyTabActive' : ''}`} onClick={() => setTab(t.key)}>
+            <span>{t.label}</span>
+            <span className="topbarNotifyTabCount">{counts[t.key]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="topbarNotifyQuickActions">
+        <button type="button" onClick={() => navigate(employeeScoped ? '/app/my-tasks' : '/app/tasks')}>Open task workspace</button>
+        {!employeeScoped ? <button type="button" onClick={openSettings}>Notification settings</button> : null}
+        {isAdmin ? <button type="button" onClick={openDiagnostics}>Delivery diagnostics</button> : null}
+      </div>
+
+      {q.isLoading ? <div className="topbarNotifyEmpty">Loading notifications...</div> : null}
+      {q.isError ? <div className="topbarNotifyEmpty">Could not load notifications.</div> : null}
+      {!q.isLoading && !visibleList.length ? <div className="topbarNotifyEmpty">No notifications in this view.</div> : null}
+      <div className="topbarNotifyList">
+        {visibleList.map((n) => {
+          const grouped   = Number(n.group_count || 0) > 1
+          const bucket    = notificationBucket(n)
+          const accentClr = bucket === 'tasks' ? '#e2ab41' : bucket === 'reminders' ? '#f97316' : '#6b7280'
+          const title = (n.title || '').replace(/\n/g, ' ').trim() || typeLabel(n)
+          const body  = (n.body  || '').replace(/\n/g, ' ').trim()
+          return (
+            <button
+              key={n.id}
+              type="button"
+              className={`topbarNotifyItem ${n.is_read ? '' : 'topbarNotifyItemUnread'}`}
+              onClick={() => {
+                if (!n.is_read) markReadM.mutate(n.id)
+                goFromNotif(n)
+              }}
+            >
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%', textAlign: 'left' }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
+                  background: n.is_read ? 'transparent' : accentClr,
+                  border: n.is_read ? '1.5px solid var(--border)' : 'none',
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.35, marginBottom: body ? 4 : 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                    {title}
+                  </div>
+                  {body ? (
+                    <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                      {body}
+                    </div>
+                  ) : null}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: accentClr, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {typeLabel(n)}{grouped ? ` ×${n.group_count}` : ''}
+                    </span>
+                    {n.delivery_error ? (
+                      <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>· delivery failed</span>
+                    ) : null}
+                    <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
+                      {formatWhen(effectiveDate(n))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>,
+    document.body,
+  ) : null
+
   return (
     <div className="topbarNotifyWrap" ref={wrapRef}>
       <button
@@ -202,101 +303,7 @@ export function NotificationCenter() {
         <Bell size={18} />
         {unread > 0 ? <span className="topbarNotifyBadge" style={{ animation: 'bellPulse 0.6s ease 3' }}>{unread > 99 ? '99+' : unread}</span> : null}
       </button>
-      {open ? (
-        <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="topbarNotifyHead">
-            <div>
-              <div className="topbarNotifyTitle">Notifications</div>
-              <div className="topbarNotifySub">{unread > 0 ? `${unread} unread · live task updates` : 'All caught up'}</div>
-            </div>
-            <div className="topbarNotifyHeadActions">
-              {unread > 0 ? (
-                <button type="button" className="topbarNotifyIconAction" onClick={() => markAllM.mutate()} disabled={markAllM.isPending} title="Mark all read">
-                  <CheckCheck size={15} />
-                </button>
-              ) : null}
-              {!employeeScoped ? (
-                <button type="button" className="topbarNotifyIconAction" onClick={openSettings} title="Notification settings">
-                  <Settings size={15} />
-                </button>
-              ) : null}
-              {isAdmin ? (
-                <button type="button" className="topbarNotifyIconAction" onClick={openDiagnostics} title="Delivery diagnostics">
-                  <Activity size={15} />
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="topbarNotifyTabs" role="tablist" aria-label="Notification filters">
-            {tabs.map((t) => (
-              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`topbarNotifyTab ${tab === t.key ? 'topbarNotifyTabActive' : ''}`} onClick={() => setTab(t.key)}>
-                <span>{t.label}</span>
-                <span className="topbarNotifyTabCount">{counts[t.key]}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="topbarNotifyQuickActions">
-            <button type="button" onClick={() => navigate(employeeScoped ? '/app/my-tasks' : '/app/tasks')}>Open task workspace</button>
-            {!employeeScoped ? <button type="button" onClick={openSettings}>Notification settings</button> : null}
-            {isAdmin ? <button type="button" onClick={openDiagnostics}>Delivery diagnostics</button> : null}
-          </div>
-
-          {q.isLoading ? <div className="topbarNotifyEmpty">Loading notifications...</div> : null}
-          {q.isError ? <div className="topbarNotifyEmpty">Could not load notifications.</div> : null}
-          {!q.isLoading && !visibleList.length ? <div className="topbarNotifyEmpty">No notifications in this view.</div> : null}
-          <div className="topbarNotifyList">
-            {visibleList.map((n) => {
-              const grouped   = Number(n.group_count || 0) > 1
-              const bucket    = notificationBucket(n)
-              const accentClr = bucket === 'tasks' ? '#e2ab41' : bucket === 'reminders' ? '#f97316' : '#6b7280'
-              const title = (n.title || '').replace(/\n/g, ' ').trim() || typeLabel(n)
-              const body  = (n.body  || '').replace(/\n/g, ' ').trim()
-              return (
-                <button
-                  key={n.id}
-                  type="button"
-                  className={`topbarNotifyItem ${n.is_read ? '' : 'topbarNotifyItemUnread'}`}
-                  onClick={() => {
-                    if (!n.is_read) markReadM.mutate(n.id)
-                    goFromNotif(n)
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%', textAlign: 'left' }}>
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-                      background: n.is_read ? 'transparent' : accentClr,
-                      border: n.is_read ? '1.5px solid var(--border)' : 'none',
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.35, marginBottom: body ? 4 : 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
-                        {title}
-                      </div>
-                      {body ? (
-                        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
-                          {body}
-                        </div>
-                      ) : null}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 10, fontWeight: 900, color: accentClr, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          {typeLabel(n)}{grouped ? ` ×${n.group_count}` : ''}
-                        </span>
-                        {n.delivery_error ? (
-                          <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>· delivery failed</span>
-                        ) : null}
-                        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
-                          {formatWhen(effectiveDate(n))}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ) : null}
+      {popover}
     </div>
   )
 }
