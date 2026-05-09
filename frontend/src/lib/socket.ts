@@ -137,10 +137,26 @@ export function useRealtimeInvalidation(opts: {
     return subscribeToOrg({
       onTaskUpdated: opts.tasks ? () => {
         qc.invalidateQueries({ queryKey: ['tasks'] })
+        qc.invalidateQueries({ queryKey: ['analytics-summary'] })
+        qc.invalidateQueries({ queryKey: ['analytics-status'] })
+        qc.invalidateQueries({ queryKey: ['analytics-trend'] })
+        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
+        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
+        qc.invalidateQueries({ queryKey: ['insights'] })
+        qc.invalidateQueries({ queryKey: ['insights-tasks'] })
+        qc.invalidateQueries({ queryKey: ['insights-workload'] })
+        qc.invalidateQueries({ queryKey: ['insights-analytics'] })
         if (opts.dashboard) qc.invalidateQueries({ queryKey: ['dashboard'] })
       } : undefined,
       onTaskCreated: opts.tasks ? () => {
         qc.invalidateQueries({ queryKey: ['tasks'] })
+        qc.invalidateQueries({ queryKey: ['analytics-summary'] })
+        qc.invalidateQueries({ queryKey: ['analytics-status'] })
+        qc.invalidateQueries({ queryKey: ['analytics-trend'] })
+        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
+        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
+        qc.invalidateQueries({ queryKey: ['insights'] })
+        qc.invalidateQueries({ queryKey: ['insights-tasks'] })
         if (opts.dashboard) qc.invalidateQueries({ queryKey: ['dashboard'] })
       } : undefined,
       onBoardMoved: opts.board ? () => {
@@ -149,10 +165,15 @@ export function useRealtimeInvalidation(opts: {
       } : undefined,
       onEmployeeAdded: opts.employees ? () => {
         qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
+        qc.invalidateQueries({ queryKey: ['team', 'users'] })
         qc.invalidateQueries({ queryKey: ['dashboard'] })
+        qc.invalidateQueries({ queryKey: ['insights-workload'] })
+        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
       } : undefined,
       onEmployeeUpdated: opts.employees ? () => {
         qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
+        qc.invalidateQueries({ queryKey: ['team', 'users'] })
+        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
       } : undefined,
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
