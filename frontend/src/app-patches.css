@@ -7742,48 +7742,150 @@ html, body, #root {
   flex: 1 1 auto !important;
 }
 
-/* 4. MyTasks mobile — fix congested layout on small screens */
+/* MyTasks mobile — moved to final authority block below */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FINAL AUTHORITY v3 — MyTasks mobile, notification popover, dropdown z-index
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Notification popover: correct stacking + click handling ── */
+/* overflow:visible caused hit-test gaps where taps fell through.
+   The popover must clip its content (overflow:hidden) but the 
+   Select dropdown escapes via position:fixed from JS.             */
+#root .topbarNotifyPopover {
+  overflow: hidden !important;        /* restore clipping — no tap-through gaps */
+  position: absolute !important;
+  z-index: 9500 !important;
+  pointer-events: auto !important;
+}
+/* On mobile: fixed positioning fills screen */
+@media (max-width: 720px) {
+  #root .topbarNotifyPopover {
+    position: fixed !important;
+    top: 60px !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 18px !important;
+    z-index: 9500 !important;
+  }
+}
+
+/* Notification button — always tappable, always on top */
+#root .topbarNotifyWrap {
+  position: relative !important;
+  z-index: 9501 !important;
+}
+#root .topbarNotifyBtn {
+  position: relative !important;
+  z-index: 9501 !important;
+  pointer-events: auto !important;
+  -webkit-tap-highlight-color: rgba(226,171,65,0.2) !important;
+  touch-action: manipulation !important;
+}
+
+/* Select dropdown always above notification (99999 > 9500) */
+#root .selectV3Dropdown {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* ── MyTasks: mobile full-screen flow layout ── */
+/* On mobile, switch from side-by-side to stacked:
+   Queue on top (scrollable list), Workspace below (full detail).
+   User taps a task → workspace fills the screen.                 */
 @media (max-width: 900px) {
+  /* Stack command center into 2-col grid */
   #root .myTasksCommandCenter {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  #root .myTasksProgressCard {
+    grid-column: 1 / -1 !important;  /* progress card full width */
+  }
+
+  /* Toolbar: stack vertically */
+  #root .myTasksToolbar {
     grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Layout: stack queue above workspace */
+  #root .myTasksProLayout {
+    grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
+  /* Queue panel: natural height, NOT fixed 40dvh */
   #root .myTasksQueue {
-    max-height: 40dvh !important;
-    min-height: 180px !important;
-    overflow: hidden !important;
+    max-height: none !important;
+    min-height: auto !important;
+    overflow: visible !important;  /* card handles its own scroll */
   }
+
+  /* Task list scroll container */
   #root .myTasksProList {
-    max-height: calc(40dvh - 90px) !important;
-    min-height: 120px !important;
+    max-height: 55dvh !important;
+    min-height: 160px !important;
     padding: 8px !important;
     gap: 6px !important;
+    overflow-y: auto !important;
   }
+
+  /* Task cards: slightly more compact */
   #root .myTasksProItem {
     padding: 0 !important;
     border-radius: 12px !important;
   }
   #root .myTasksItemTop {
     padding: 10px 12px 6px !important;
-    gap: 8px !important;
   }
   #root .myTasksItemTop strong {
-    font-size: 12px !important;
+    font-size: 13px !important;
+    white-space: normal !important;    /* allow wrapping on mobile */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
   #root .myTasksItemMeta {
-    padding: 0 12px 6px !important;
+    padding: 0 12px 8px !important;
     gap: 4px !important;
+    flex-wrap: wrap !important;
   }
   #root .myTasksItemFooter {
-    padding: 6px 12px !important;
-    font-size: 10px !important;
+    padding: 7px 12px !important;
+    font-size: 11px !important;
   }
   #root .myTasksToneBadge {
-    font-size: 9px !important;
-    padding: 2px 5px !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 5px !important;
   }
+
+  /* Workspace: full width below the list */
   #root .myTasksWorkspace {
-    min-height: 300px !important;
+    min-height: 400px !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* On phone: command center → single column */
+  #root .myTasksCommandCenter {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  #root .myTasksProgressCard {
+    grid-column: 1 / -1 !important;
+  }
+  /* Stat cards: 2×2 grid */
+  #root .myTasksStatCard strong {
+    font-size: 20px !important;
+  }
+  #root .myTasksProList {
+    max-height: 48dvh !important;
   }
 }

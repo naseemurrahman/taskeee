@@ -4,6 +4,7 @@ import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { useState } from 'react'
 import { getAccessToken } from '../../state/auth'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { useToast } from '../../components/ui/ToastSystem'
 
 type ReportRow = {
   id: string
@@ -73,6 +74,7 @@ async function downloadReportPdf(reportId: string) {
 export function ReportsPage() {
   const qc = useQueryClient()
   useRealtimeInvalidation({ tasks: true })
+  const { success: toastSuccess, error: toastError } = useToast()
   const orgQ = useQuery({
     queryKey: ['org', 'reports-page'],
     queryFn: () => apiFetch<{ organization?: { name?: string } }>('/api/v1/organizations/me').then(d => d.organization?.name || ''),
@@ -85,17 +87,28 @@ export function ReportsPage() {
     refetchOnWindowFocus: false,
   })
   const [error, setError] = useState<string | null>(null)
+  const [generatingType, setGeneratingType] = useState<string | null>(null)
 
   const m = useMutation({
     mutationFn: generateReport,
     onSuccess: async () => {
       setError(null)
+      setGeneratingType(null)
       await qc.invalidateQueries({ queryKey: ['reports', 'list'] })
+      toastSuccess('Report generated', 'Your report snapshot has been created successfully.')
     },
     onError: (err) => {
-      setError(getApiErrorMessage(err, 'Failed to generate report.'))
+      setGeneratingType(null)
+      const msg = getApiErrorMessage(err, 'Failed to generate report.')
+      setError(msg)
+      toastError('Generation failed', msg)
     },
   })
+
+  function handleGenerate(type: string) {
+    setGeneratingType(type)
+    m.mutate(type)
+  }
 
   const listError = getApiErrorMessage(q.error, 'Failed to load reports.')
 
@@ -117,14 +130,14 @@ export function ReportsPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('task_completion')}>
-              {m.isPending ? 'Generating…' : 'Task Completion'}
+            <button className="btn btnPrimary" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => handleGenerate('task_completion')}>
+              {generatingType === 'task_completion' ? 'Generating…' : 'Task Completion'}
             </button>
-            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('employee_performance')}>
-              Employee Performance
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => handleGenerate('employee_performance')}>
+              {generatingType === 'employee_performance' ? 'Generating…' : 'Employee Performance'}
             </button>
-            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => m.mutate('project_summary')}>
-              Project Summary
+            <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} disabled={m.isPending} onClick={() => handleGenerate('project_summary')}>
+              {generatingType === 'project_summary' ? 'Generating…' : 'Project Summary'}
             </button>
             <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => downloadReportCsv(q.data?.reports || [], orgQ.data || '')}>
               Export CSV

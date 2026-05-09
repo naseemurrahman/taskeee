@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requireRole, isOrgWideRole } = require('../middleware/auth');
 const { generateReport, sendReportEmail } = require('../services/reportService');
 const PDFDocument = require('pdfkit');
 
@@ -65,9 +65,13 @@ router.get('/', authenticate, async (req, res, next) => {
 // GET /reports/:id
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const { rows } = await query(`
-      SELECT * FROM reports WHERE id = $1 AND generated_for = $2
-    `, [req.params.id, req.user.id]); // OWASP A01: own reports only
+    const isPrivileged = isOrgWideRole(req.user.role);
+    const { rows } = await query(
+      isPrivileged
+        ? `SELECT * FROM reports WHERE id = $1 AND org_id = $2`
+        : `SELECT * FROM reports WHERE id = $1 AND generated_for = $2`,
+      isPrivileged ? [req.params.id, req.user.org_id] : [req.params.id, req.user.id]
+    );
     if (!rows.length) return res.status(404).json({ error: 'Report not found' });
     res.json({ report: rows[0] });
   } catch (err) {
@@ -81,9 +85,14 @@ router.get('/:id', authenticate, async (req, res, next) => {
 router.get('/:id/export', authenticate, async (req, res, next) => {
   try {
     const format = String(req.query.format || 'json').toLowerCase();
-    const { rows } = await query(`
-      SELECT * FROM reports WHERE id = $1 AND generated_for = $2
-    `, [req.params.id, req.user.id]);
+    // Allow own reports AND org-wide access for managers/admins
+    const isPrivileged = isOrgWideRole(req.user.role);
+    const { rows } = await query(
+      isPrivileged
+        ? `SELECT * FROM reports WHERE id = $1 AND org_id = $2`
+        : `SELECT * FROM reports WHERE id = $1 AND generated_for = $2`,
+      isPrivileged ? [req.params.id, req.user.org_id] : [req.params.id, req.user.id]
+    );
     if (!rows.length) return res.status(404).json({ error: 'Report not found' });
 
     const report = rows[0];
