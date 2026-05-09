@@ -4,6 +4,7 @@ const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const { query } = require('../utils/db');
 const analyticsService = require('../services/analyticsService');
+const { extractSignals, buildSafeSystemPrompt, logAIRecommendation } = require('../services/aiSafetyService');
 
 const COMPLETED = ['completed', 'manager_approved'];
 
@@ -368,26 +369,22 @@ Be concise, actionable, and data-driven. Format responses with markdown. Always 
       else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++;
       else if (t.status === 'submitted') counts.submitted++;
     }
-    const overdueList = tasks.filter(t => t.status === 'overdue').slice(0, 8)
-      .map(t => `"${t.title}" (${t.assigned_to_name || 'unassigned'}) [ID:${String(t.id).slice(0,8)}]`).join('; ');
 
-    const lb = (orgContext.leaderboard || []).slice(0, 5)
-      .map(u => `${u.name}: ${u.completed}/${u.total} done, ${u.overdue} overdue`).join('; ');
+    // Extract signals for citation and logging
+    const signals = extractSignals(orgContext);
 
-    const systemPrompt = `You are JecZone AI, the intelligent assistant for TaskFlow Pro — an AI-powered task management platform.
+    // Use safe system prompt with citation requirements
+    const systemPrompt = buildSafeSystemPrompt(orgContext, signals);
 
-LIVE ORGANIZATION DATA (as of right now):
-- Tasks: ${counts.total} total | ${counts.overdue} overdue | ${counts.pending} pending | ${counts.in_progress} in-progress | ${counts.submitted} submitted | ${counts.completed} completed
-- Projects: ${(orgContext.projects || []).map(p => p.name).join(', ') || 'none'}
-- Overdue tasks: ${overdueList || 'none'}
-- Team: ${lb || 'no data'}
-
-When suggesting status changes, use this format so users can click Apply:
-[ACTION: CHANGE_STATUS task_id="<first-8-chars-of-id>" to="<status>"]
-
-Valid statuses: pending, in_progress, submitted, manager_approved, manager_rejected, completed, cancelled
-
-Be concise, specific, and data-driven. Reference task names and assignees. Suggest concrete next steps.`;
+    // Log the AI session context (non-blocking)
+    logAIRecommendation({
+      orgId: req.user.org_id,
+      userId: req.user.id,
+      recommendationType: 'chat_session',
+      recommendation: { messageCount: messages.length, lastUserMessage: messages[messages.length - 1]?.content?.slice(0, 200) },
+      signals: signals.slice(0, 10),
+      confidence: null,
+    }).catch(() => {});
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
