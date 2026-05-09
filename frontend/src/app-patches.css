@@ -7903,3 +7903,110 @@ html, body, #root {
     max-height: 46dvh !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NOTIFICATION PANEL — fix cut-off tabs and quick-actions (final authority)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Tabs row: horizontal scroll so all tabs visible, no wrapping */
+#root .topbarNotifyTabs {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  padding: 8px 10px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  flex-shrink: 0 !important;
+}
+#root .topbarNotifyTabs::-webkit-scrollbar { display: none !important; }
+
+#root .topbarNotifyTab {
+  flex-shrink: 0 !important;   /* never shrink — always fully visible */
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 5px 9px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--muted) !important;
+  transition: background 0.12s, border-color 0.12s, color 0.12s !important;
+}
+#root .topbarNotifyTabActive {
+  background: rgba(226,171,65,0.15) !important;
+  border-color: rgba(226,171,65,0.35) !important;
+  color: #e2ab41 !important;
+}
+
+/* Quick-actions row: flex-wrap so buttons wrap on narrow widths */
+#root .topbarNotifyQuickActions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  padding: 8px 10px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  flex-shrink: 0 !important;
+}
+#root .topbarNotifyQuickActions button {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 8px !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text2) !important;
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  transition: background 0.12s, border-color 0.12s !important;
+}
+#root .topbarNotifyQuickActions button:hover {
+  background: rgba(226,171,65,0.1) !important;
+  border-color: rgba(226,171,65,0.25) !important;
+  color: var(--text) !important;
+}
+
+/* Notification list: grows to fill remaining space */
+#root .topbarNotifyList {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 6px 8px 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+/* Notification items as proper cards */
+#root .topbarNotifyItem {
+  width: 100% !important;
+  display: block !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(255,255,255,0.03) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: background 0.12s, border-color 0.12s !important;
+}
+#root .topbarNotifyItem:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(226,171,65,0.25) !important;
+}
+#root .topbarNotifyItemUnread {
+  background: rgba(226,171,65,0.07) !important;
+  border-color: rgba(226,171,65,0.2) !important;
+}
