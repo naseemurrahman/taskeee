@@ -239,6 +239,7 @@ async function buildIntelligence(user, reqFilters = {}) {
 async function enhanceWithAI(intelligence, user) {
   const groqKey      = process.env.GROQ_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
   if (!groqKey && !anthropicKey) {
     return { ai_model: 'rule-based', ai_suggestions: intelligence.suggestions, ai_insights: [], ai_generated_at: intelligence.generated_at };
   }
@@ -250,57 +251,66 @@ async function enhanceWithAI(intelligence, user) {
   const redistSummary = (intelligence.workload_redistribution || []).slice(0, 3).map(r =>
     `${r.from} → ${r.to}: ${r.tasks} tasks — ${r.reason}`).join('; ');
 
-  const systemPrompt = `You are an AI operations analyst for TaskFlow Pro, a task management platform.
-You receive live operational data and produce SPECIFIC, ACTIONABLE analytics insights.
+  const systemPrompt = `You are an AI operations analyst for a task management platform. Analyze the live data and return ONLY a JSON object (no markdown fences, no explanation) with this exact shape:
+{"suggestions":["string","string","string","string","string"],"insights":[{"title":"string","description":"string","severity":"low|medium|high|critical","recommendation":"string","evidence":"string"}]}
+Every suggestion and insight must cite specific numbers from the data. Do not use generic advice.`;
 
-RULES:
-- Every suggestion must cite a SPECIFIC data point (number, person, task, %).
-- Do NOT generate generic advice. Only recommend actions backed by the data provided.
-- Return ONLY valid JSON — no markdown, no preamble, no explanation outside the JSON.
-- Output this exact shape:
-{
-  "suggestions": [string, string, string, string, string],
-  "insights": [
-    { "title": string, "description": string, "severity": "low|medium|high|critical", "recommendation": string, "evidence": string }
-  ]
-}`;
-
-  const userPrompt = `LIVE ORG DATA (as of now):
-Tasks: ${s.total} total | ${s.completed} completed (${s.completion_rate}%) | ${s.overdue} overdue (${s.overdue_rate}%) | ${s.pending} pending
+  const userPrompt = `Live org data right now:
+Tasks: ${s.total} total, ${s.completed} completed (${s.completion_rate}%), ${s.overdue} overdue (${s.overdue_rate}%), ${s.pending} pending
 Avg open tasks/person: ${s.avg_open_tasks}
-Risk signals: ${risks.map(r => `${r.title} → score ${r.score}% (${r.severity})`).join('; ')}
+Risks: ${risks.map(r => `${r.title} score=${r.score}% (${r.severity})`).join('; ')}
 Top risk tasks: ${topTasks || 'none'}
-Workload redistribution needed: ${redistSummary || 'none — balanced'}
+Redistribution moves: ${redistSummary || 'workload balanced'}
 User role: ${user.role}
 
-Generate 5 specific, data-driven action suggestions and 3-5 insight cards for this org right now.`;
+Give 5 specific suggestions and 3 insight cards.`;
 
-  // Try Groq first (free, fast), then Anthropic
-  for (const [provider, fn] of [
-    ['groq-llama3',   () => callGroq(groqKey, systemPrompt, userPrompt)],
-    ['claude-sonnet', () => callAnthropic(anthropicKey, systemPrompt, userPrompt)],
-  ]) {
-    if (!groqKey && provider === 'groq-llama3') continue;
-    if (!anthropicKey && provider === 'claude-sonnet') continue;
+  // Try Groq first (free, fast)
+  if (groqKey) {
     try {
-      const text = await fn();
-      const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      if (Array.isArray(parsed.suggestions) && Array.isArray(parsed.insights)) {
-        return {
-          ai_model: provider,
-          ai_suggestions: parsed.suggestions.slice(0, 5),
-          ai_insights: parsed.insights.slice(0, 6),
-          ai_generated_at: new Date().toISOString(),
-        };
+      const text = await callGroq(groqKey, systemPrompt, userPrompt);
+      const parsed = extractJSON(text);
+      if (parsed && Array.isArray(parsed.suggestions) && Array.isArray(parsed.insights)) {
+        return { ai_model: 'groq-llama3', ai_suggestions: parsed.suggestions.slice(0, 5), ai_insights: parsed.insights.slice(0, 6), ai_generated_at: new Date().toISOString() };
       }
+      console.warn('[AI] Groq returned non-JSON or wrong shape:', text?.slice(0, 200));
     } catch (err) {
-      console.warn(`[AI] ${provider} enhance failed:`, err.message);
+      console.warn('[AI] Groq enhance failed:', err.message);
     }
   }
 
-  // All providers failed — use rule-based
+  // Try Anthropic
+  if (anthropicKey) {
+    try {
+      const text = await callAnthropic(anthropicKey, systemPrompt, userPrompt);
+      const parsed = extractJSON(text);
+      if (parsed && Array.isArray(parsed.suggestions) && Array.isArray(parsed.insights)) {
+        return { ai_model: 'claude-sonnet', ai_suggestions: parsed.suggestions.slice(0, 5), ai_insights: parsed.insights.slice(0, 6), ai_generated_at: new Date().toISOString() };
+      }
+      console.warn('[AI] Anthropic returned non-JSON or wrong shape:', text?.slice(0, 200));
+    } catch (err) {
+      console.warn('[AI] Anthropic enhance failed:', err.message);
+    }
+  }
+
   return { ai_model: 'rule-based', ai_suggestions: intelligence.suggestions, ai_insights: [], ai_generated_at: intelligence.generated_at };
+}
+
+// Robustly extract JSON from LLM output (handles markdown fences and stray text)
+function extractJSON(text) {
+  if (!text) return null;
+  // Try direct parse first
+  try { return JSON.parse(text.trim()); } catch {}
+  // Strip markdown fences
+  const stripped = text.replace(/```json|```/gi, '').trim();
+  try { return JSON.parse(stripped); } catch {}
+  // Find first { ... } block
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(text.slice(start, end + 1)); } catch {}
+  }
+  return null;
 }
 
 async function callGroq(key, systemPrompt, userPrompt) {
@@ -343,6 +353,14 @@ async function callAnthropic(key, systemPrompt, userPrompt) {
 }
 
 router.use(authenticate);
+
+// GET /api/v1/ai/status — returns which AI provider is configured
+router.get('/status', async (req, res) => {
+  const hasGroq      = !!process.env.GROQ_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  const activeModel  = hasGroq ? 'groq-llama3' : hasAnthropic ? 'claude-sonnet' : 'rule-based';
+  res.json({ active_model: activeModel, groq: hasGroq, anthropic: hasAnthropic });
+});
 
 router.get('/predictive-overview', async (req, res, next) => {
   try {

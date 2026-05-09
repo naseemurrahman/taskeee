@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { EmployeeDetailModal } from '../../components/employees/EmployeeDetailModal'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { useRealtimeInvalidation } from '../../lib/socket'
 
 type UserRow = {
   id: string
@@ -93,7 +94,13 @@ export function TeamPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
-  const q = useQuery({ queryKey: ['team', 'users', search], queryFn: () => fetchUsers(search) })
+  useRealtimeInvalidation({ employees: true, dashboard: true })
+  const q = useQuery({
+    queryKey: ['team', 'users', search],
+    queryFn: () => fetchUsers(search),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
   const users = useMemo(() => {
     const all = q.data || []
     return roleFilter === 'all' ? all : all.filter(u => u.role === roleFilter)

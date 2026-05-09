@@ -233,7 +233,7 @@ export function ProjectsPage() {
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
   const qc = useQueryClient()
-  const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2 })
+  const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2, staleTime: 30_000, refetchInterval: 60_000 })
   const { success: toastSuccess, error: toastError } = useToast()
   useRealtimeInvalidation({ tasks: true })
 

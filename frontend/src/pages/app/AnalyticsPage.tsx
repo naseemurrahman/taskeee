@@ -5,6 +5,8 @@ import { useRealtimeInvalidation } from '../../lib/socket'
 import { ChartCard } from '../../components/charts/ChartCard'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 
+type AIStatus = { active_model: string; groq: boolean; anthropic: boolean }
+
 type Insight = { id: string; title: string; description: string; severity: 'low' | 'medium' | 'high' | 'critical'; recommendation: string }
 type InsightsResponse = { generated_at: string; insights: Insight[] }
 type AnalyticsSummary = { total_tasks: number; completed_tasks: number; pending_tasks: number; overdue_tasks: number; active_employees: number; avg_completion_hours: string | number; avg_ai_confidence: string | number }
@@ -84,12 +86,23 @@ export function AnalyticsPage() {
 
   useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
 
-  const insightsQ   = useQuery({ queryKey: ['insights', days],           queryFn: () => fetchInsights(days) })
-  const summaryQ    = useQuery({ queryKey: ['analytics-summary', days],  queryFn: () => fetchSummary(days) })
-  const statusQ     = useQuery({ queryKey: ['analytics-status', days],   queryFn: () => fetchStatus(days) })
-  const trendQ      = useQuery({ queryKey: ['analytics-trend', days],    queryFn: () => fetchTrend(days) })
-  const employeesQ  = useQuery({ queryKey: ['analytics-employees', days],queryFn: () => fetchEmployees(days) })
-  const workloadQ   = useQuery({ queryKey: ['analytics-workload', days], queryFn: () => fetchWorkload(days) })
+  // AI status from backend — always fresh, refetches every 30s
+  // This drives the badge: as soon as GROQ_API_KEY is set in Railway and redeploy completes,
+  // this query returns { active_model: 'groq-llama3' } and the badge updates automatically.
+  const aiStatusQ = useQuery({
+    queryKey: ['ai-status'],
+    queryFn: () => apiFetch<AIStatus>('/api/v1/ai/status'),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  })
+
+  const insightsQ   = useQuery({ queryKey: ['insights', days],           queryFn: () => fetchInsights(days), staleTime: 60_000, refetchInterval: 60_000 })
+  const summaryQ    = useQuery({ queryKey: ['analytics-summary', days],  queryFn: () => fetchSummary(days),  staleTime: 30_000, refetchInterval: 30_000 })
+  const statusQ     = useQuery({ queryKey: ['analytics-status', days],   queryFn: () => fetchStatus(days),   staleTime: 30_000, refetchInterval: 30_000 })
+  const trendQ      = useQuery({ queryKey: ['analytics-trend', days],    queryFn: () => fetchTrend(days),    staleTime: 60_000, refetchInterval: 60_000 })
+  const employeesQ  = useQuery({ queryKey: ['analytics-employees', days],queryFn: () => fetchEmployees(days),staleTime: 60_000, refetchInterval: 60_000 })
+  const workloadQ   = useQuery({ queryKey: ['analytics-workload', days], queryFn: () => fetchWorkload(days), staleTime: 30_000, refetchInterval: 30_000 })
   // AI overview: refetch every 5 min automatically (LLM analysis is expensive — don't spam)
   const backendAiQ  = useQuery({
     queryKey: ['backend-ai-overview', days],
@@ -177,7 +190,9 @@ export function AnalyticsPage() {
   }, [workload.averageOpenTasks, workloadEmployees])
 
   const backendAi = backendAiQ.data
-  const aiModel = backendAi?.ai_model
+  // Use /ai/status as the authoritative badge source — it reflects env vars directly.
+  // Fall back to what the predictive-overview response says if status hasn't loaded yet.
+  const aiModel = aiStatusQ.data?.active_model || backendAi?.ai_model
   const isRealAI = aiModel === 'groq-llama3' || aiModel === 'claude-sonnet'
 
   // Use AI-generated content when available, fall back to rule-based
