@@ -2,8 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
-const { authenticate, requireRole, isOrgWideRole } = require('../middleware/auth');
-const { generateReport, sendReportEmail } = require('../services/reportService');
+const { ensureReportsTable } = require('../utils/ensureReportsTable');
+const { authenticate, isOrgWideRole } = require('../middleware/auth');
+const { generateReport } = require('../services/reportService');
 const PDFDocument = require('pdfkit');
 
 function isMissingReportsTableError(err) {
@@ -12,9 +13,15 @@ function isMissingReportsTableError(err) {
   return code === '42P01' && (msg.includes('reports') || msg.includes('relation'));
 }
 
+async function ensureReportsBeforeRetry(err) {
+  if (!isMissingReportsTableError(err)) return false;
+  await ensureReportsTable();
+  return true;
+}
+
 // GET /reports
 router.get('/', authenticate, async (req, res, next) => {
-  try {
+  async function runListQuery() {
     const pageRaw = Number.parseInt(String(req.query.page || '1'), 10);
     const limitRaw = Number.parseInt(String(req.query.limit || '20'), 10);
     const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
@@ -48,7 +55,20 @@ router.get('/', authenticate, async (req, res, next) => {
     }
 
     if (!rows) throw lastColumnErr;
-    res.json({ reports: rows, total: parseInt(rows[0]?.total || 0) });
+    return rows;
+  }
+
+  try {
+    try {
+      const rows = await runListQuery();
+      return res.json({ reports: rows, total: parseInt(rows[0]?.total || 0) });
+    } catch (err) {
+      if (await ensureReportsBeforeRetry(err)) {
+        const rows = await runListQuery();
+        return res.json({ reports: rows, total: parseInt(rows[0]?.total || 0), autoMigrated: true });
+      }
+      throw err;
+    }
   } catch (err) {
     if (isMissingReportsTableError(err)) {
       return res.json({
@@ -64,16 +84,29 @@ router.get('/', authenticate, async (req, res, next) => {
 
 // GET /reports/:id
 router.get('/:id', authenticate, async (req, res, next) => {
-  try {
+  async function runGetQuery() {
     const isPrivileged = isOrgWideRole(req.user.role);
-    const { rows } = await query(
+    return await query(
       isPrivileged
         ? `SELECT * FROM reports WHERE id = $1 AND org_id = $2`
         : `SELECT * FROM reports WHERE id = $1 AND generated_for = $2`,
       isPrivileged ? [req.params.id, req.user.org_id] : [req.params.id, req.user.id]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Report not found' });
-    res.json({ report: rows[0] });
+  }
+
+  try {
+    try {
+      const { rows } = await runGetQuery();
+      if (!rows.length) return res.status(404).json({ error: 'Report not found' });
+      return res.json({ report: rows[0] });
+    } catch (err) {
+      if (await ensureReportsBeforeRetry(err)) {
+        const { rows } = await runGetQuery();
+        if (!rows.length) return res.status(404).json({ error: 'Report not found' });
+        return res.json({ report: rows[0], autoMigrated: true });
+      }
+      throw err;
+    }
   } catch (err) {
     if (isMissingReportsTableError(err)) {
       return res.status(503).json({ error: 'Reports are not available yet. Run database migrations.', migrationRequired: true });
@@ -83,16 +116,25 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 router.get('/:id/export', authenticate, async (req, res, next) => {
-  try {
-    const format = String(req.query.format || 'json').toLowerCase();
-    // Allow own reports AND org-wide access for managers/admins
+  async function runExportQuery() {
     const isPrivileged = isOrgWideRole(req.user.role);
-    const { rows } = await query(
+    return await query(
       isPrivileged
         ? `SELECT * FROM reports WHERE id = $1 AND org_id = $2`
         : `SELECT * FROM reports WHERE id = $1 AND generated_for = $2`,
       isPrivileged ? [req.params.id, req.user.org_id] : [req.params.id, req.user.id]
     );
+  }
+
+  try {
+    const format = String(req.query.format || 'json').toLowerCase();
+    let rows;
+    try {
+      ({ rows } = await runExportQuery());
+    } catch (err) {
+      if (await ensureReportsBeforeRetry(err)) ({ rows } = await runExportQuery());
+      else throw err;
+    }
     if (!rows.length) return res.status(404).json({ error: 'Report not found' });
 
     const report = rows[0];
@@ -153,7 +195,6 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
     const { reportType = 'on_demand' } = req.body;
-    // Accept both the frontend display names and internal names
     const typeMap = {
       task_completion: 'on_demand',
       employee_performance: 'weekly',
@@ -166,6 +207,8 @@ router.post('/generate', authenticate, async (req, res, next) => {
     const resolvedType = typeMap[reportType] || reportType;
     const allowed = ['on_demand', 'daily', 'weekly', 'monthly'];
     if (!allowed.includes(resolvedType)) return res.status(400).json({ error: 'Invalid report type' });
+
+    await ensureReportsTable();
 
     const end = new Date();
     const start = new Date();
