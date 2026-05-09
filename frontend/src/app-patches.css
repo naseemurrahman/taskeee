@@ -7453,3 +7453,205 @@ html, body, #root {
   position: fixed !important;
   z-index: 99999 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE MODAL + NOTIFICATION + MYTASKS REDESIGN (authoritative, loaded last)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Modal: always visible and correctly stacked on ALL screen sizes ── */
+#root .modalOverlayV2 {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;   /* beats sidebar (500), notif (2000), all cards */
+  display: grid !important;
+  place-items: center !important;
+  padding: 16px !important;
+  background: rgba(0,0,0,0.65) !important;
+  backdrop-filter: blur(6px) !important;
+}
+#root .modalCardV2 {
+  position: relative !important;
+  z-index: 10001 !important;
+  width: 100% !important;
+  max-width: 560px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border-radius: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Mobile (<640px): bottom-sheet */
+@media (max-width: 640px) {
+  #root .modalOverlayV2 {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  #root .modalCardV2 {
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 22px 22px 0 0 !important;
+  }
+  /* Drag handle hint */
+  #root .modalCardV2::before {
+    content: '' !important;
+    display: block !important;
+    width: 40px !important;
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,0.18) !important;
+    margin: 10px auto 0 !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* ── Notifications: always visible on mobile ── */
+@media (max-width: 720px) {
+  #root .topbarNotifyPopover {
+    position: fixed !important;
+    top: 62px !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    z-index: 9500 !important;     /* below modal (10000) but above everything else */
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  #root .topbarNotifyList {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  /* Ensure the notif button is always tappable */
+  #root .topbarNotifyWrap {
+    position: relative !important;
+    z-index: 9501 !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   MY TASKS — redesigned as clean standard list cards
+   Split-panel layout:
+   LEFT: scrollable task list with full-width cards
+   RIGHT: task workspace (unchanged)
+   ══════════════════════════════════════════════════════ */
+
+/* Container */
+#root .myTasksProList {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding: 10px !important;
+  max-height: calc(100dvh - 320px) !important;
+  min-height: 200px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Each task card */
+#root .myTasksProItem {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg1) !important;
+  color: var(--text) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+#root .myTasksProItem:hover {
+  border-color: rgba(226,171,65,0.45) !important;
+  background: var(--bg2) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+  transform: none !important;
+}
+#root .myTasksProItem.active {
+  border-color: #e2ab41 !important;
+  background: linear-gradient(135deg, rgba(226,171,65,0.09), rgba(139,92,246,0.04)) !important;
+  box-shadow: 0 0 0 1px rgba(226,171,65,0.3), 0 4px 20px rgba(226,171,65,0.12) !important;
+}
+
+/* Priority stripe at left edge */
+#root .myTasksProItem::before {
+  display: none !important;   /* off — we use border-left approach in myTasksItemTop */
+}
+
+/* Top row: status dot + title + index */
+#root .myTasksItemTop {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 11px 14px 8px !important;
+}
+#root .myTasksItemTop strong {
+  flex: 1 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: var(--text) !important;
+}
+#root .myTasksItemTop small {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--muted) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Status dot */
+#root .myTasksStatusDot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Meta row: status badge + priority + due */
+#root .myTasksItemMeta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+  padding: 0 14px 8px !important;
+  align-items: center !important;
+}
+
+/* Footer: project + attach count */
+#root .myTasksItemFooter {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 7px 14px !important;
+  border-top: 1px solid var(--border) !important;
+  font-size: 11px !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+  background: rgba(255,255,255,0.018) !important;
+}
+
+/* Compact badges (not oval) */
+#root .myTasksToneBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;   /* rectangular, not pill */
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}

@@ -145,10 +145,14 @@ router.post('/', authenticate, async (req, res, next) => {
     try {
       const { app } = require('../server');
       const io = app.get('io');
+      const commentPayload = { taskId, messageId: rows[0].id, feedback: isFeedback };
       for (const uid of notifyIds) io.to(`user:${uid}`).emit('task_message', { taskId, message: rows[0], feedback: isFeedback });
       io.to(`task:${taskId}`).emit('task_message', { taskId, message: rows[0], feedback: isFeedback });
-      io.to(`org:${orgId}`).emit('task_commented', { taskId, messageId: rows[0].id, feedback: isFeedback });
-      io.to(`org_${orgId}`).emit('task_commented', { taskId, messageId: rows[0].id, feedback: isFeedback });
+      // Emit BOTH event name formats so frontend (task:commented) and any legacy listeners both receive it
+      io.to(`org:${orgId}`).emit('task:commented', commentPayload);
+      io.to(`org:${orgId}`).emit('task_commented', commentPayload);
+      io.to(`org_${orgId}`).emit('task:commented', commentPayload);
+      io.to(`org_${orgId}`).emit('task_commented', commentPayload);
     } catch { /* */ }
 
     res.status(201).json({ message: rows[0] });

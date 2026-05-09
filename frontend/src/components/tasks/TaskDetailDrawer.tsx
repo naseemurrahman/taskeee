@@ -122,7 +122,9 @@ export function TaskDetailDrawer({
     queryKey: ['task-messages', taskId],
     queryFn: () => apiFetch<{ messages: Message[] }>(`/api/v1/tasks/${taskId}/messages`).then(d => d.messages || []),
     enabled: !!taskId,
-    // No polling interval — socket pushes invalidation instantly when a new comment arrives
+    // 8s poll as safety net — socket invalidation fires instantly when connected,
+    // but this ensures messages appear even when VITE_API_BASE_URL isn't set.
+    refetchInterval: 8_000,
   })
   const messages = messagesQ.data || []
 
