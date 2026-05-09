@@ -9,10 +9,11 @@ import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
 type Project = {
   id: string; name: string; description?: string | null
-  color?: string | null; status?: 'active' | 'paused' | 'completed'; task_count?: number
+  color?: string | null; status?: 'active' | 'paused' | 'completed'; task_count?: number; progress?: number
 }
 
 async function fetchProjects() {
@@ -318,6 +319,88 @@ export function ProjectsPage() {
       {q.isError && (
         <div className="alertV4 alertV4Error">Failed to load projects. Please refresh the page.</div>
       )}
+
+      {/* Project health charts */}
+      {!q.isLoading && projects.length > 0 && (() => {
+        const avgProgress = projects.length ? Math.round(projects.reduce((s, p) => s + Number(p.progress || 0), 0) / projects.length) : 0
+        const statusData = [
+          { name: 'Active', value: activeCount, fill: '#22c55e' },
+          { name: 'Paused', value: projects.filter(p => p.status === 'paused').length, fill: '#f59e0b' },
+          { name: 'Completed', value: completedCount, fill: '#8b5cf6' },
+        ].filter(d => d.value > 0)
+        const progressBars = projects.filter(p => Number(p.task_count || 0) > 0).slice(0, 6).map(p => ({
+          name: p.name.length > 14 ? p.name.slice(0,14)+'…' : p.name,
+          progress: Number(p.progress || 0),
+          tasks: Number(p.task_count || 0),
+          fill: p.color || '#e2ab41',
+        }))
+        const ProgressTip = ({ active, payload }: any) => {
+          if (!active || !payload?.length) return null
+          return (
+            <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+              <div style={{ fontWeight: 900, color: 'var(--text)', marginBottom: 4 }}>{payload[0]?.payload?.name}</div>
+              <div style={{ color: '#e2ab41', fontWeight: 700 }}>Progress: <span style={{ color: '#fff' }}>{payload[0]?.value}%</span></div>
+              <div style={{ color: 'var(--muted)', fontWeight: 700 }}>Tasks: <span style={{ color: 'var(--text2)' }}>{payload[0]?.payload?.tasks}</span></div>
+            </div>
+          )
+        }
+        const StatusTip = ({ active, payload }: any) => {
+          if (!active || !payload?.length) return null
+          return (
+            <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+              <div style={{ color: payload[0]?.payload?.fill, fontWeight: 800 }}>{payload[0]?.payload?.name}: <span style={{ color: '#fff' }}>{payload[0]?.value}</span></div>
+            </div>
+          )
+        }
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+            {/* KPI cards */}
+            {[
+              { label: 'Avg Completion', value: `${avgProgress}%`, color: avgProgress > 70 ? '#22c55e' : avgProgress > 40 ? '#f59e0b' : '#ef4444' },
+              { label: 'Active Projects', value: activeCount, color: '#22c55e' },
+              { label: 'Total Tasks', value: totalTasks, color: '#e2ab41' },
+            ].map(kpi => (
+              <div key={kpi.label} style={{ padding: '16px 18px', borderRadius: 14, background: `${kpi.color}10`, border: `1px solid ${kpi.color}25` }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: kpi.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{kpi.label}</div>
+                <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1px' }}>{kpi.value}</div>
+              </div>
+            ))}
+            {/* Status donut */}
+            {statusData.length > 1 && (
+              <div className="card" style={{ padding: '14px 16px' }}>
+                <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Status Split</div>
+                <ResponsiveContainer width="100%" height={100}>
+                  <PieChart>
+                    <Pie data={statusData} cx="50%" cy="50%" outerRadius={40} innerRadius={22} dataKey="value">
+                      {statusData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                    </Pie>
+                    <Tooltip content={<StatusTip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {statusData.map(d => <span key={d.name} style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 4, background: `${d.fill}18`, color: d.fill }}>{d.name} {d.value}</span>)}
+                </div>
+              </div>
+            )}
+            {/* Progress bar chart */}
+            {progressBars.length > 0 && (
+              <div className="card" style={{ gridColumn: statusData.length > 1 ? 'span 2' : 'span 1', padding: '14px 16px' }}>
+                <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Project Progress</div>
+                <ResponsiveContainer width="100%" height={progressBars.length * 32 + 8}>
+                  <BarChart data={progressBars} layout="vertical" margin={{ top: 0, right: 28, left: 0, bottom: 0 }}>
+                    <XAxis type="number" domain={[0,100]} tick={{ fill: 'var(--muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={72} />
+                    <Tooltip content={<ProgressTip />} />
+                    <Bar dataKey="progress" name="Progress" radius={[0,6,6,0]}>
+                      {progressBars.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Toolbar: search + status filter + view toggle */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

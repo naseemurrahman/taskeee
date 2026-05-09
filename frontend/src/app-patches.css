@@ -8061,3 +8061,44 @@ html, body, #root {
 #root .topbarNotifyItemTitle { font-size: 13px !important; font-weight: 800 !important; color: var(--text) !important; }
 #root .topbarNotifyItemBody  { font-size: 12px !important; color: var(--muted) !important; margin-top: 3px !important; }
 #root .topbarNotifyItemMeta  { font-size: 11px !important; color: var(--muted) !important; margin-top: 5px !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NOTIFICATION QUICK-ACTIONS FIX v5 — single-line pill buttons, no wrap
+   Root cause: flex-wrap:wrap + no min-width → buttons collapse to 1 word/line
+   ═══════════════════════════════════════════════════════════════════════════ */
+#root .topbarNotifyQuickActions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;          /* NEVER wrap — scroll instead */
+  gap: 5px !important;
+  padding: 8px 10px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  flex-shrink: 0 !important;
+}
+#root .topbarNotifyQuickActions::-webkit-scrollbar { display: none !important; }
+
+#root .topbarNotifyQuickActions button {
+  flex: 0 0 auto !important;            /* never shrink, never stretch */
+  white-space: nowrap !important;       /* keep all words on one line */
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 5px 11px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text2) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  letter-spacing: 0.01em !important;
+  transition: background 0.12s, border-color 0.12s, color 0.12s !important;
+}
+#root .topbarNotifyQuickActions button:hover {
+  background: rgba(226,171,65,0.12) !important;
+  border-color: rgba(226,171,65,0.28) !important;
+  color: #e2ab41 !important;
+}
