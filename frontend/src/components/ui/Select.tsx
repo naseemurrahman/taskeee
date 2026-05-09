@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, type ReactNode, type CSSPrope
 import { createPortal } from 'react-dom'
 
 const _selectListeners = new Set<() => void>()
-function closeAllSelects() { _selectListeners.forEach(fn => fn()) }
 
 export interface SelectOption {
   value: string
@@ -28,6 +27,7 @@ interface SelectProps {
 }
 
 type OverlayLayer = 'page' | 'notification' | 'modal'
+type OpenDirection = 'up' | 'down'
 
 function overlayLayerFor(el: HTMLElement | null): OverlayLayer {
   if (!el) return 'page'
@@ -37,9 +37,9 @@ function overlayLayerFor(el: HTMLElement | null): OverlayLayer {
 }
 
 function zIndexForLayer(layer: OverlayLayer) {
-  if (layer === 'modal') return 11050
-  if (layer === 'notification') return 9100
-  return 7600
+  if (layer === 'modal') return 2147483200
+  if (layer === 'notification') return 2147483100
+  return 2147483000
 }
 
 export function Select({
@@ -50,6 +50,7 @@ export function Select({
   const [search, setSearch] = useState('')
   const [dropStyle, setDropStyle] = useState<CSSProperties>({})
   const [overlayLayer, setOverlayLayer] = useState<OverlayLayer>('page')
+  const [openDirection, setOpenDirection] = useState<OpenDirection>('down')
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -60,31 +61,53 @@ export function Select({
 
   const closeMe = useCallback(() => { setOpen(false); setSearch('') }, [])
 
+  const closeOtherSelects = useCallback(() => {
+    _selectListeners.forEach(fn => {
+      if (fn !== closeMe) fn()
+    })
+  }, [closeMe])
+
   const positionDropdown = useCallback(() => {
     const rect = ref.current?.getBoundingClientRect()
     if (!rect) return
+
     const layer = overlayLayerFor(ref.current)
     setOverlayLayer(layer)
 
-    const below = window.innerHeight - rect.bottom
+    const viewportW = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    const viewportH = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+    const below = viewportH - rect.bottom
     const above = rect.top
-    const openUp = !!preferOpenUp || (below < 280 && above > below)
-    const viewportWidth = Math.max(180, window.innerWidth - 16)
-    const dropWidth = Math.min(Math.max(rect.width, 180), viewportWidth)
-    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - dropWidth - 8))
-    const availableHeight = openUp ? above - 12 : below - 12
+    const openUp = !!preferOpenUp || (below < 240 && above > below)
+    const direction: OpenDirection = openUp ? 'up' : 'down'
+    setOpenDirection(direction)
+
+    const dropWidth = Math.min(Math.max(rect.width, 180), Math.max(180, viewportW - 16))
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, viewportW - dropWidth - 8))
+    const availableHeight = Math.max(120, openUp ? above - 12 : below - 12)
     const maxHeight = Math.max(160, Math.min(420, availableHeight))
-    const baseStyle: CSSProperties = {
+    const top = rect.bottom + 4
+    const bottom = viewportH - rect.top + 4
+
+    const nextStyle = {
       position: 'fixed',
       left,
+      right: 'auto',
       width: dropWidth,
       maxHeight,
       zIndex: zIndexForLayer(layer),
-    }
+      '--select-left': `${Math.round(left)}px`,
+      '--select-width': `${Math.round(dropWidth)}px`,
+      '--select-max-height': `${Math.round(maxHeight)}px`,
+      '--select-z-index': String(zIndexForLayer(layer)),
+      '--select-top': openUp ? 'auto' : `${Math.round(top)}px`,
+      '--select-bottom': openUp ? `${Math.round(bottom)}px` : 'auto',
+    } as CSSProperties
+
     if (openUp) {
-      setDropStyle({ ...baseStyle, bottom: window.innerHeight - rect.top + 4 })
+      setDropStyle({ ...nextStyle, top: 'auto', bottom })
     } else {
-      setDropStyle({ ...baseStyle, top: rect.bottom + 4 })
+      setDropStyle({ ...nextStyle, top, bottom: 'auto' })
     }
   }, [preferOpenUp])
 
@@ -95,12 +118,11 @@ export function Select({
 
   useEffect(() => {
     function handleClick(e: MouseEvent | PointerEvent) {
-      if (!ref.current?.contains(e.target as Node)) {
-        const target = e.target as HTMLElement
-        if (target.closest('.selectV3Dropdown')) return
-        setOpen(false)
-        setSearch('')
-      }
+      const target = e.target as HTMLElement
+      if (ref.current?.contains(target)) return
+      if (target.closest('.selectV3Dropdown[data-select-portal="true"]')) return
+      setOpen(false)
+      setSearch('')
     }
     document.addEventListener('pointerdown', handleClick)
     return () => document.removeEventListener('pointerdown', handleClick)
@@ -137,20 +159,38 @@ export function Select({
 
   function toggleOpen() {
     if (disabled) return
-    if (!open) closeAllSelects()
-    setOpen(v => !v)
+    if (open) {
+      setOpen(false)
+      setSearch('')
+      return
+    }
+    closeOtherSelects()
+    setOpen(true)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') { setOpen(false); setSearch('') }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      if (!open) { closeAllSelects(); setOpen(true) }
+      if (open) {
+        setOpen(false)
+        setSearch('')
+      } else {
+        closeOtherSelects()
+        setOpen(true)
+      }
     }
   }
 
   const dropdown = open ? createPortal(
-    <div className="selectV3Dropdown" role="listbox" style={dropStyle} data-overlay-layer={overlayLayer}>
+    <div
+      className="selectV3Dropdown"
+      role="listbox"
+      style={dropStyle}
+      data-overlay-layer={overlayLayer}
+      data-open-direction={openDirection}
+      data-select-portal="true"
+    >
       {searchable && (
         <div className="selectV3SearchWrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
