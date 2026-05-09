@@ -126,18 +126,20 @@ export function NotificationCenter() {
   })
 
   useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    function onDoc(e: PointerEvent) {
+      const target = e.target as HTMLElement
+      if (target.closest('.selectV3Dropdown')) return
+      if (!wrapRef.current?.contains(target)) setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
     }
     if (open) {
-      document.addEventListener('mousedown', onDoc)
+      document.addEventListener('pointerdown', onDoc)
       document.addEventListener('keydown', onKey)
     }
     return () => {
-      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('pointerdown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
@@ -156,6 +158,11 @@ export function NotificationCenter() {
       return notificationBucket(n) === tab
     })
   }, [list, tab])
+
+  function toggleOpen() {
+    window.dispatchEvent(new CustomEvent('taskee:close-selects'))
+    setOpen((v) => !v)
+  }
 
   function goFromNotif(n: InAppNotification) {
     setOpen(false)
@@ -189,13 +196,14 @@ export function NotificationCenter() {
         className="topbarNotifyBtn"
         aria-label="Notifications"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <Bell size={18} />
         {unread > 0 ? <span className="topbarNotifyBadge" style={{ animation: 'bellPulse 0.6s ease 3' }}>{unread > 99 ? '99+' : unread}</span> : null}
       </button>
       {open ? (
-        <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications">
+        <div className="topbarNotifyPopover" role="dialog" aria-label="Notifications" onPointerDown={(e) => e.stopPropagation()}>
           <div className="topbarNotifyHead">
             <div>
               <div className="topbarNotifyTitle">Notifications</div>

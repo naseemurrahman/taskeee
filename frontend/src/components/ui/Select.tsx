@@ -26,6 +26,21 @@ interface SelectProps {
   preferOpenUp?: boolean
 }
 
+type OverlayLayer = 'page' | 'notification' | 'modal'
+
+function overlayLayerFor(el: HTMLElement | null): OverlayLayer {
+  if (!el) return 'page'
+  if (el.closest('.modalOverlayV2, .modalV2, [role="dialog"][aria-modal="true"]')) return 'modal'
+  if (el.closest('.topbarNotifyPopover')) return 'notification'
+  return 'page'
+}
+
+function zIndexForLayer(layer: OverlayLayer) {
+  if (layer === 'modal') return 11050
+  if (layer === 'notification') return 9100
+  return 7600
+}
+
 export function Select({
   value, onChange, options, placeholder = 'Select…', label,
   disabled, error, required, searchable, className, preferOpenUp,
@@ -33,6 +48,7 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [dropStyle, setDropStyle] = useState<React.CSSProperties>({})
+  const [overlayLayer, setOverlayLayer] = useState<OverlayLayer>('page')
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -43,55 +59,71 @@ export function Select({
 
   const closeMe = useCallback(() => { setOpen(false); setSearch('') }, [])
 
+  const positionDropdown = useCallback(() => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect) return
+    const layer = overlayLayerFor(ref.current)
+    setOverlayLayer(layer)
+
+    const below = window.innerHeight - rect.bottom
+    const above = rect.top
+    const openUp = !!preferOpenUp || (below < 280 && above > below)
+    const dropWidth = Math.min(Math.max(rect.width, 180), window.innerWidth - 16)
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - dropWidth - 8))
+    const maxHeight = Math.max(180, openUp ? above - 12 : below - 12)
+    const baseStyle: React.CSSProperties = {
+      position: 'fixed',
+      left,
+      width: dropWidth,
+      maxHeight,
+      zIndex: zIndexForLayer(layer),
+    }
+    if (openUp) {
+      setDropStyle({ ...baseStyle, bottom: window.innerHeight - rect.top + 4 })
+    } else {
+      setDropStyle({ ...baseStyle, top: rect.bottom + 4 })
+    }
+  }, [preferOpenUp])
+
   useEffect(() => {
     _selectListeners.add(closeMe)
     return () => { _selectListeners.delete(closeMe) }
   }, [closeMe])
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleClick(e: MouseEvent | PointerEvent) {
       if (!ref.current?.contains(e.target as Node)) {
-        // Also check if click is inside a fixed dropdown (portalled)
         const target = e.target as HTMLElement
         if (target.closest('.selectV3Dropdown')) return
         setOpen(false)
         setSearch('')
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('pointerdown', handleClick)
+    return () => document.removeEventListener('pointerdown', handleClick)
+  }, [])
+
+  useEffect(() => {
+    function handleCloseAll() {
+      setOpen(false)
+      setSearch('')
+    }
+    window.addEventListener('taskee:close-selects', handleCloseAll)
+    return () => window.removeEventListener('taskee:close-selects', handleCloseAll)
   }, [])
 
   useEffect(() => {
     if (!open) return
-    const rect = ref.current?.getBoundingClientRect()
-    if (rect) {
-      const below = window.innerHeight - rect.bottom
-      const above = rect.top
-      const openUp = !!preferOpenUp || (below < 280 && above > below)
-      const dropWidth = Math.max(rect.width, 180)
-      // Clamp left so dropdown doesn't go off-screen right
-      const left = Math.min(rect.left, window.innerWidth - dropWidth - 8)
-      if (openUp) {
-        setDropStyle({
-          position: 'fixed',
-          bottom: window.innerHeight - rect.top + 4,
-          left: Math.max(8, left),
-          width: dropWidth,
-          zIndex: 99999,
-        })
-      } else {
-        setDropStyle({
-          position: 'fixed',
-          top: rect.bottom + 4,
-          left: Math.max(8, left),
-          width: dropWidth,
-          zIndex: 99999,
-        })
-      }
-    }
+    positionDropdown()
     if (searchable && inputRef.current) setTimeout(() => inputRef.current?.focus(), 20)
-  }, [open, preferOpenUp, searchable])
+
+    window.addEventListener('resize', positionDropdown)
+    window.addEventListener('scroll', positionDropdown, true)
+    return () => {
+      window.removeEventListener('resize', positionDropdown)
+      window.removeEventListener('scroll', positionDropdown, true)
+    }
+  }, [open, positionDropdown, searchable])
 
   function handleSelect(opt: SelectOption) {
     if (opt.disabled) return
@@ -148,7 +180,7 @@ export function Select({
       </div>
 
       {open && (
-        <div className="selectV3Dropdown" role="listbox" style={dropStyle}>
+        <div className="selectV3Dropdown" role="listbox" style={dropStyle} data-overlay-layer={overlayLayer}>
           {searchable && (
             <div className="selectV3SearchWrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
