@@ -32,7 +32,7 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [openUp, setOpenUp] = useState(false)
+  const [dropStyle, setDropStyle] = useState<React.CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -51,6 +51,9 @@ export function Select({
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (!ref.current?.contains(e.target as Node)) {
+        // Also check if click is inside a fixed dropdown (portalled)
+        const target = e.target as HTMLElement
+        if (target.closest('.selectV3Dropdown')) return
         setOpen(false)
         setSearch('')
       }
@@ -65,7 +68,27 @@ export function Select({
     if (rect) {
       const below = window.innerHeight - rect.bottom
       const above = rect.top
-      setOpenUp(!!preferOpenUp || (below < 280 && above > below))
+      const openUp = !!preferOpenUp || (below < 280 && above > below)
+      const dropWidth = Math.max(rect.width, 180)
+      // Clamp left so dropdown doesn't go off-screen right
+      const left = Math.min(rect.left, window.innerWidth - dropWidth - 8)
+      if (openUp) {
+        setDropStyle({
+          position: 'fixed',
+          bottom: window.innerHeight - rect.top + 4,
+          left: Math.max(8, left),
+          width: dropWidth,
+          zIndex: 99999,
+        })
+      } else {
+        setDropStyle({
+          position: 'fixed',
+          top: rect.bottom + 4,
+          left: Math.max(8, left),
+          width: dropWidth,
+          zIndex: 99999,
+        })
+      }
     }
     if (searchable && inputRef.current) setTimeout(() => inputRef.current?.focus(), 20)
   }, [open, preferOpenUp, searchable])
@@ -125,7 +148,7 @@ export function Select({
       </div>
 
       {open && (
-        <div className={`selectV3Dropdown ${openUp ? 'selectV3DropdownUp' : ''}`.trim()} role="listbox">
+        <div className="selectV3Dropdown" role="listbox" style={dropStyle}>
           {searchable && (
             <div className="selectV3SearchWrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

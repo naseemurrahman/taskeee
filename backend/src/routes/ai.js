@@ -293,39 +293,72 @@ router.post('/chat', async (req, res, next) => {
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    // ── No API key: return a useful rules-based summary instead of a 503 ──────
-    if (!apiKey) {
-      const tasks = orgContext.tasks || [];
-      const counts = { total: tasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0, submitted: 0 };
-      for (const t of tasks) {
-        if (t.status === 'overdue') counts.overdue++;
-        else if (t.status === 'pending') counts.pending++;
-        else if (t.status === 'in_progress') counts.in_progress++;
-        else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++;
-        else if (t.status === 'submitted') counts.submitted++;
-      }
-      const completionRate = counts.total ? Math.round((counts.completed / counts.total) * 100) : 0;
-      const overdueList = tasks.filter(t => t.status === 'overdue').slice(0, 5)
-        .map(t => `• "${t.title}" — ${t.assigned_to_name || 'unassigned'}`).join('\n');
-      const lb = (orgContext.leaderboard || []).slice(0, 5)
-        .filter(u => Number(u.total) > 0)
-        .map(u => `• ${u.name}: ${u.completed}/${u.total} done, ${u.overdue} overdue`)
-        .join('\n');
-      const projects = (orgContext.projects || []).map(p => p.name).join(', ') || 'none';
 
+    // ── No Anthropic key: try Groq free tier, then fall back to static summary ──
+    if (!apiKey) {
+      const groqKey = process.env.GROQ_API_KEY;
+      const orgTasks = orgContext.tasks || [];
+      const orgCounts = { total: orgTasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0, submitted: 0 };
+      for (const t of orgTasks) {
+        if (t.status === 'overdue') orgCounts.overdue++;
+        else if (t.status === 'pending') orgCounts.pending++;
+        else if (t.status === 'in_progress') orgCounts.in_progress++;
+        else if (t.status === 'completed' || t.status === 'manager_approved') orgCounts.completed++;
+        else if (t.status === 'submitted') orgCounts.submitted++;
+      }
+      const orgOverdueList = orgTasks.filter(t => t.status === 'overdue').slice(0, 8)
+        .map(t => `"${t.title}" (${t.assigned_to_name || 'unassigned'})`).join('; ');
+      const orgLb = (orgContext.leaderboard || []).slice(0, 5)
+        .map(u => `${u.name}: ${u.completed}/${u.total} done, ${u.overdue} overdue`).join('; ');
+      const orgProjects = (orgContext.projects || []).map(p => p.name).join(', ') || 'none';
+
+      const groqSystemPrompt = `You are JecZone AI, intelligent assistant for TaskFlow Pro — an AI-powered task management platform.
+
+LIVE ORG DATA:
+- Tasks: ${orgCounts.total} total | ${orgCounts.completed} completed | ${orgCounts.in_progress} in progress | ${orgCounts.submitted} submitted | ${orgCounts.overdue} overdue
+- Overdue: ${orgOverdueList || 'none'}
+- Team performance: ${orgLb || 'no data'}
+- Active projects: ${orgProjects}
+
+Be concise, actionable, and data-driven. Format responses with markdown. Always reference specific numbers from the live data above.`;
+
+      if (groqKey) {
+        try {
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              max_tokens: 1000,
+              messages: [
+                { role: 'system', content: groqSystemPrompt },
+                ...messages.map(m => ({ role: m.role, content: m.content })),
+              ],
+            }),
+          });
+          if (groqRes.ok) {
+            const groqData = await groqRes.json();
+            const text = groqData.choices?.[0]?.message?.content;
+            if (text) return res.json({ text, model: 'groq-llama3' });
+          }
+        } catch (groqErr) {
+          console.warn('[AI] Groq failed:', groqErr);
+        }
+      }
+
+      const completionRate = orgCounts.total ? Math.round((orgCounts.completed / orgCounts.total) * 100) : 0;
       const fallbackText =
-        `⚠️ **JecZone AI is running in offline mode** — set \`ANTHROPIC_API_KEY\` in your Railway environment variables to enable full AI responses.\n\n` +
-        `Here's a live summary of your org instead:\n\n` +
-        `**Task overview** (${counts.total} total)\n` +
-        `Completed: ${counts.completed} (${completionRate}%) · In Progress: ${counts.in_progress} · Pending: ${counts.pending} · Submitted: ${counts.submitted} · Overdue: ${counts.overdue}\n\n` +
-        (counts.overdue > 0 ? `**Overdue tasks:**\n${overdueList}\n\n` : `✅ No overdue tasks.\n\n`) +
-        (lb ? `**Team performance:**\n${lb}\n\n` : '') +
-        `**Active projects:** ${projects}`;
+        `💡 **Enable free AI:** Add \`GROQ_API_KEY\` in Railway → Variables (free at console.groq.com) — powers JecZone AI with Llama 3.3 70B at no cost.\n\n` +
+        `**Live org snapshot (${orgCounts.total} tasks):**\n` +
+        `✅ ${orgCounts.completed} done (${completionRate}%) · 🔄 ${orgCounts.in_progress} in progress · 📤 ${orgCounts.submitted} submitted · ⏰ ${orgCounts.overdue} overdue\n\n` +
+        (orgCounts.overdue > 0 ? `**Overdue:** ${orgOverdueList}\n\n` : `✅ No overdue tasks.\n\n`) +
+        (orgLb ? `**Team:** ${orgLb}\n\n` : '') +
+        `**Projects:** ${orgProjects}`;
 
       return res.json({ text: fallbackText, offline: true });
     }
 
-    // Build system prompt with live data
+    // Build system prompt with live data    // Build system prompt with live data
     const tasks = orgContext.tasks || [];
     const counts = { total: tasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0, submitted: 0 };
     for (const t of tasks) {
@@ -376,8 +409,37 @@ Be concise, specific, and data-driven. Reference task names and assignees. Sugge
       const status = anthropicRes.status;
       const errMsg = err?.error?.message || '';
 
-      // Credit exhausted (402) or overloaded (529) — fall back to live org summary
+      // Credit exhausted (402) or overloaded (529) — try Groq free tier first
       if (status === 402 || status === 529 || errMsg.toLowerCase().includes('credit')) {
+        const groqKey = process.env.GROQ_API_KEY;
+        if (groqKey) {
+          try {
+            const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${groqKey}`,
+              },
+              body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                max_tokens: 1000,
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  ...messages.map(m => ({ role: m.role, content: m.content })),
+                ],
+              }),
+            });
+            if (groqRes.ok) {
+              const groqData = await groqRes.json();
+              const text = groqData.choices?.[0]?.message?.content;
+              if (text) return res.json({ text, model: 'groq-llama3' });
+            }
+          } catch (groqErr) {
+            console.warn('[AI] Groq fallback failed:', groqErr);
+          }
+        }
+
+        // No Groq key or Groq also failed — return live org summary
         const tasks = orgContext.tasks || [];
         const counts = { total: tasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0 };
         for (const t of tasks) {
@@ -392,9 +454,10 @@ Be concise, specific, and data-driven. Reference task names and assignees. Sugge
           .map(u => `• ${u.name}: ${u.completed}/${u.total} done`).join('\n');
 
         const fallback =
-          `⚠️ **JecZone AI is temporarily unavailable** (API credit limit reached — top up at console.anthropic.com).\n\n` +
-          `Here's a live snapshot of your org instead:\n\n` +
-          `**Tasks:** ${counts.total} total · ${counts.completed} completed · ${counts.in_progress} in progress · ${counts.overdue} overdue\n\n` +
+          `⚠️ **AI temporarily unavailable** (API credits exhausted).\n\n` +
+          `💡 **To enable free AI:** Add \`GROQ_API_KEY\` in Railway (free at groq.com) — uses Llama 3.3 70B.\n\n` +
+          `**Live org snapshot:**\n\n` +
+          `📋 ${counts.total} tasks · ✅ ${counts.completed} done · 🔄 ${counts.in_progress} in progress · ⏰ ${counts.overdue} overdue\n\n` +
           (counts.overdue > 0 ? `**Overdue:**\n${overdueList}\n\n` : `✅ No overdue tasks.\n\n`) +
           (lb ? `**Team:**\n${lb}` : '');
 

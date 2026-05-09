@@ -7655,3 +7655,135 @@ html, body, #root {
   border-width: 1px !important;
   border-style: solid !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL FOOTER + NOTIFICATION CARDS + MYTASKS MOBILE (final authority)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Modal footer buttons — inside scroll body, NOT position:fixed/sticky */
+#root .createTaskActions {
+  position: static !important;  /* was sticky — caused floating above content */
+  bottom: auto !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  padding: 16px 0 4px !important;
+  margin-top: 4px !important;
+  border-top: 1px solid var(--border) !important;
+  background: transparent !important;
+}
+@media (max-width: 640px) {
+  #root .createTaskActions {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  #root .createTaskActions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* 2. Select dropdown always fully visible — position:fixed set by JS */
+#root .selectV3Dropdown {
+  background: #0f172a !important;
+  border: 1.5px solid rgba(226, 171, 65, 0.3) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.3) !important;
+  overflow: hidden !important;
+  max-height: min(320px, 60vh) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+#root .selectV3List {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  max-height: none !important;
+}
+#root .appShellV4Light .selectV3Dropdown {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* 3. Notification items — standard cards instead of flat border-bottom rows */
+#root .topbarNotifyItem {
+  display: block !important;
+  width: 100% !important;
+  margin: 6px 8px !important;
+  width: calc(100% - 16px) !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;  /* override index.css bottom-only */
+  background: rgba(255,255,255,0.03) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: background 0.14s, border-color 0.14s, box-shadow 0.14s !important;
+}
+#root .topbarNotifyItem:hover {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(226,171,65,0.3) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+}
+#root .topbarNotifyItemUnread {
+  background: rgba(226,171,65,0.07) !important;
+  border-color: rgba(226,171,65,0.25) !important;
+}
+#root .topbarNotifyItemUnread:hover {
+  background: rgba(226,171,65,0.12) !important;
+  border-color: rgba(226,171,65,0.4) !important;
+}
+/* Make the list a vertical stack with padding */
+#root .topbarNotifyList {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 4px 0 8px !important;
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+}
+
+/* 4. MyTasks mobile — fix congested layout on small screens */
+@media (max-width: 900px) {
+  #root .myTasksCommandCenter {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    gap: 12px !important;
+  }
+  #root .myTasksQueue {
+    max-height: 40dvh !important;
+    min-height: 180px !important;
+    overflow: hidden !important;
+  }
+  #root .myTasksProList {
+    max-height: calc(40dvh - 90px) !important;
+    min-height: 120px !important;
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+  #root .myTasksProItem {
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+  #root .myTasksItemTop {
+    padding: 10px 12px 6px !important;
+    gap: 8px !important;
+  }
+  #root .myTasksItemTop strong {
+    font-size: 12px !important;
+  }
+  #root .myTasksItemMeta {
+    padding: 0 12px 6px !important;
+    gap: 4px !important;
+  }
+  #root .myTasksItemFooter {
+    padding: 6px 12px !important;
+    font-size: 10px !important;
+  }
+  #root .myTasksToneBadge {
+    font-size: 9px !important;
+    padding: 2px 5px !important;
+  }
+  #root .myTasksWorkspace {
+    min-height: 300px !important;
+  }
+}
