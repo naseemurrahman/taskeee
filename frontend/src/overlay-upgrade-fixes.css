@@ -1,0 +1,114 @@
+/*
+ * Final overlay/touch fixes loaded after app-patches.css.
+ * Keeps transient UI layers in a deterministic order:
+ * page/header selects < notification sheet < modals/toasts.
+ */
+
+:root {
+  --z-page-dropdown: 7600;
+  --z-notification-sheet: 9000;
+  --z-notification-inner-dropdown: 9100;
+  --z-modal-dropdown: 11050;
+}
+
+.topbarV4 {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 300 !important;
+}
+
+.topbarNotifyWrap {
+  position: relative !important;
+  z-index: 310 !important;
+  pointer-events: auto !important;
+  isolation: auto !important;
+}
+
+.topbarNotifyBtn {
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.topbarNotifyPopover {
+  position: fixed !important;
+  top: calc(var(--app-topbar-height, 64px) + 10px) !important;
+  right: max(14px, env(safe-area-inset-right, 0px)) !important;
+  left: auto !important;
+  width: min(420px, calc(100vw - 28px)) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  max-height: calc(100dvh - var(--app-topbar-height, 64px) - 22px - env(safe-area-inset-bottom, 0px)) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: var(--z-notification-sheet) !important;
+}
+
+.topbarNotifyList {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.selectV3Dropdown {
+  z-index: var(--z-page-dropdown) !important;
+}
+
+.topbarNotifyPopover .selectV3Dropdown,
+.selectV3Dropdown[data-overlay-layer='notification'] {
+  z-index: var(--z-notification-inner-dropdown) !important;
+}
+
+.modalOverlayV2 .selectV3Dropdown,
+.modalV2 .selectV3Dropdown,
+.selectV3Dropdown[data-overlay-layer='modal'] {
+  z-index: var(--z-modal-dropdown) !important;
+}
+
+.profileDropdown,
+.topbarV4SearchDropdown {
+  z-index: 7300 !important;
+}
+
+.pageHeaderCard,
+.pageHeaderCardInner,
+.formCardV3Head,
+.cardHead,
+.chartCardV2Head {
+  overflow: visible !important;
+}
+
+@media (max-width: 720px) {
+  .topbarNotifyWrap {
+    display: inline-flex !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+    z-index: 310 !important;
+  }
+
+  .topbarNotifyBtn {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+  }
+
+  .topbarNotifyPopover {
+    top: calc(var(--app-topbar-height, 64px) + env(safe-area-inset-top, 0px) + 8px) !important;
+    left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+    max-height: calc(100dvh - var(--app-topbar-height, 64px) - 18px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 18px !important;
+  }
+
+  .topbarNotifyQuickActions,
+  .topbarNotifyTabs,
+  .topbarNotifyHead {
+    flex-shrink: 0 !important;
+  }
+}
