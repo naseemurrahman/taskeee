@@ -6,7 +6,7 @@ import { Select } from '../../components/ui/Select'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend,
+  PieChart, Pie, Legend, ComposedChart, Area, Line,
 } from 'recharts'
 
 type TaskRow = { status: string; priority?: string; assigned_to_name?: string | null; due_date?: string | null; category_name?: string | null }
@@ -24,12 +24,36 @@ const STATUS_COLORS: Record<string, string> = {
   manager_approved: '#22c55e', completed: '#22c55e', overdue: '#ef4444', cancelled: '#6b7280',
 }
 
-function Metric({ label, value, sub, color = 'var(--brand)' }: { label: string; value: string | number; sub?: string; color?: string }) {
+const PRIORITY_COLORS: Record<string, string> = {
+  low: '#38bdf8', medium: '#8b5cf6', high: '#f97316', critical: '#ef4444', urgent: '#dc2626',
+}
+
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
   return (
-    <div style={{ padding: '16px', borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)', flex: '1 1 130px' }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 950, color, letterSpacing: '-1px' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{sub}</div>}
+    <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 12, padding: '10px 14px', fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 120 }}>
+      {label && <div style={{ fontWeight: 900, color: 'var(--text)', marginBottom: 6, fontSize: 13 }}>{label}</div>}
+      {payload.map((p: any) => (
+        <div key={p.dataKey || p.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
+          <span style={{ color: p.fill || p.color || '#fff', fontWeight: 700 }}>{p.name}</span>
+          <span style={{ color: '#fff', fontWeight: 900 }}>{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub, color = 'var(--brand)', icon }: { label: string; value: string | number; sub?: string; color?: string; icon?: string }) {
+  return (
+    <div style={{
+      padding: '18px 20px', borderRadius: 16, flex: '1 1 130px', minWidth: 120,
+      background: `linear-gradient(135deg, ${color}14, ${color}06)`,
+      border: `1px solid ${color}28`,
+    }}>
+      {icon && <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>}
+      <div style={{ fontSize: 10, fontWeight: 900, color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1px', lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5, fontWeight: 600 }}>{sub}</div>}
     </div>
   )
 }
@@ -38,8 +62,8 @@ function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: string; ti
   const colors = { positive: '#22c55e', warning: '#f59e0b', danger: '#ef4444', neutral: 'var(--brand)' }
   const bgs    = { positive: 'rgba(34,197,94,0.08)', warning: 'rgba(245,158,11,0.08)', danger: 'rgba(239,68,68,0.08)', neutral: 'rgba(226,171,65,0.08)' }
   return (
-    <div style={{ padding: '14px 16px', borderRadius: 14, background: bgs[tone], border: `1.5px solid ${colors[tone]}22`, display: 'flex', gap: 12 }}>
-      <span style={{ fontSize: 20, flexShrink: 0 }}>{icon}</span>
+    <div style={{ padding: '14px 16px', borderRadius: 14, background: bgs[tone], border: `1.5px solid ${colors[tone]}30`, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
       <div>
         <div style={{ fontSize: 13, fontWeight: 800, color: colors[tone], marginBottom: 4 }}>{title}</div>
         <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>{body}</div>
@@ -48,18 +72,8 @@ function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: string; ti
   )
 }
 
-const ChartTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
-      {label && <div style={{ fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>{label}</div>}
-      {payload.map((p: any) => (
-        <div key={p.dataKey} style={{ color: p.fill || p.color || '#fff', fontWeight: 700 }}>
-          {p.name}: <span style={{ color: '#fff' }}>{p.value}</span>
-        </div>
-      ))}
-    </div>
-  )
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>{children}</div>
 }
 
 export function InsightsPage() {
@@ -70,19 +84,24 @@ export function InsightsPage() {
   const tasksQ = useQuery({
     queryKey: ['insights-tasks', days],
     queryFn: () => apiFetch<{ tasks: TaskRow[] }>(`/api/v1/tasks?limit=500&page=1`).then(d => d.tasks || []),
-    staleTime: 120_000,
+    staleTime: 60_000, refetchInterval: 60_000,
   })
 
   const workloadQ = useQuery({
-    queryKey: ['insights-workload'],
+    queryKey: ['insights-workload', dayNum],
     queryFn: () => apiFetch<{ employees: WorkloadRow[] }>(`/api/v1/analytics/workload?days=${dayNum}`).then(d => d.employees || []),
-    staleTime: 120_000,
+    staleTime: 60_000, refetchInterval: 60_000,
+  })
+
+  const analyticsQ = useQuery({
+    queryKey: ['insights-analytics', dayNum],
+    queryFn: () => apiFetch<{ points?: Array<{ day: string; completed: number; created: number; overdue: number }> }>(`/api/v1/analytics/tasks-over-time?days=${dayNum}`).catch(() => ({ points: [] })),
+    staleTime: 60_000, refetchInterval: 60_000,
   })
 
   const stats = useMemo(() => {
     const tasks = tasksQ.data || []
     if (!tasks.length) return null
-
     const total      = tasks.length
     const completed  = tasks.filter(t => t.status === 'completed').length
     const overdue    = tasks.filter(t => t.status === 'overdue').length
@@ -92,55 +111,76 @@ export function InsightsPage() {
     const completionRate = total ? Math.round((completed / total) * 100) : 0
     const overdueRate    = total ? Math.round((overdue  / total) * 100) : 0
 
-    // Priority breakdown
     const byCritical = tasks.filter(t => t.priority === 'critical').length
     const byHigh     = tasks.filter(t => t.priority === 'high').length
     const byMedium   = tasks.filter(t => t.priority === 'medium').length
     const byLow      = tasks.filter(t => t.priority === 'low').length
     const byUrgent   = tasks.filter(t => t.priority === 'urgent').length
 
-    // Top assignees by open tasks
     const assigneeCounts: Record<string, number> = {}
     for (const t of tasks) {
       if (t.assigned_to_name && ['pending','in_progress','overdue'].includes(t.status)) {
         assigneeCounts[t.assigned_to_name] = (assigneeCounts[t.assigned_to_name] || 0) + 1
       }
     }
-    const topAssignees = Object.entries(assigneeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    const topAssignees = Object.entries(assigneeCounts).sort((a, b) => b[1] - a[1]).slice(0, 8)
 
-    // Category breakdown
     const catCounts: Record<string, number> = {}
     for (const t of tasks) {
       if (t.category_name) catCounts[t.category_name] = (catCounts[t.category_name] || 0) + 1
     }
-    const topCategories = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    const topCategories = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
 
-    return { total, completed, overdue, inProgress, pending, submitted, completionRate, overdueRate, byCritical, byHigh, byMedium, byLow, byUrgent, topAssignees, topCategories }
+    // Status counts for donut
+    const statusCounts: Record<string, number> = {}
+    for (const t of tasks) { statusCounts[t.status] = (statusCounts[t.status] || 0) + 1 }
+    const statusPie = Object.entries(statusCounts).map(([name, value]) => ({
+      name: name.replace(/_/g, ' '), value, status: name, fill: STATUS_COLORS[name] || '#94a3b8',
+    })).filter(d => d.value > 0).sort((a, b) => b.value - a.value)
+
+    return { total, completed, overdue, inProgress, pending, submitted, completionRate, overdueRate, byCritical, byHigh, byMedium, byLow, byUrgent, topAssignees, topCategories, statusPie }
   }, [tasksQ.data])
 
   const workload = workloadQ.data || []
-  const overloadedPeople = workload.filter(w => w.open_tasks > 10)
   const avgOpenTasks = workload.length ? (workload.reduce((s, w) => s + w.open_tasks, 0) / workload.length).toFixed(1) : '—'
+  const overloadedPeople = workload.filter(w => w.open_tasks > 10)
 
+  // Trend data for area chart
+  const trendPoints = useMemo(() => {
+    const raw = (analyticsQ.data as any)?.points || []
+    return raw.map((p: any) => ({ day: String(p.day || '').slice(5), completed: p.completed || 0, created: p.created || 0, overdue: p.overdue || 0 }))
+  }, [analyticsQ.data])
+
+  // Priority breakdown for horizontal bar
+  const priorityBars = stats ? [
+    { name: 'Urgent', value: stats.byUrgent, fill: PRIORITY_COLORS.urgent },
+    { name: 'Critical', value: stats.byCritical, fill: PRIORITY_COLORS.critical },
+    { name: 'High', value: stats.byHigh, fill: PRIORITY_COLORS.high },
+    { name: 'Medium', value: stats.byMedium, fill: PRIORITY_COLORS.medium },
+    { name: 'Low', value: stats.byLow, fill: PRIORITY_COLORS.low },
+  ].filter(d => d.value > 0) : []
+
+  // Team workload bar data
+  const workloadBars = workload.slice(0, 8).map(w => ({
+    name: w.employee_name.split(' ')[0],
+    open: w.open_tasks,
+    total: w.total_tasks,
+    done: Math.max(0, w.total_tasks - w.open_tasks),
+  }))
+
+  // Insights
   const insights = useMemo(() => {
     if (!stats) return []
     const items: { icon: string; title: string; body: string; tone: 'positive' | 'warning' | 'danger' | 'neutral' }[] = []
-
     if (stats.completionRate >= 80) items.push({ icon: '🎉', title: 'Strong completion rate', body: `${stats.completionRate}% of tasks completed — your team is executing well.`, tone: 'positive' })
     else if (stats.completionRate < 50) items.push({ icon: '⚠️', title: 'Low completion rate', body: `Only ${stats.completionRate}% of tasks completed. Consider reviewing workloads and deadlines.`, tone: 'warning' })
-
     if (stats.overdueRate > 20) items.push({ icon: '🔴', title: 'High overdue rate', body: `${stats.overdue} tasks (${stats.overdueRate}%) are overdue. Review and reassign or extend deadlines.`, tone: 'danger' })
     else if (stats.overdue === 0) items.push({ icon: '✅', title: 'No overdue tasks', body: 'All tasks are within deadline — great scheduling discipline!', tone: 'positive' })
-
-    if (stats.byCritical > 0) items.push({ icon: '🚨', title: `${stats.byCritical} critical priority tasks`, body: `${stats.byCritical} tasks flagged critical. Ensure these have active owners and are unblocked.`, tone: 'danger' })
-
-    if (overloadedPeople.length > 0) items.push({ icon: '👥', title: `${overloadedPeople.length} people overloaded`, body: `${overloadedPeople.map(p => p.employee_name).join(', ')} each have 10+ open tasks. Consider redistributing.`, tone: 'warning' })
-
-    if (stats.submitted > 0) items.push({ icon: '📋', title: `${stats.submitted} tasks awaiting review`, body: `These are submitted and waiting for manager approval. Review them to unblock your team.`, tone: 'neutral' })
-
-    if (stats.pending > stats.inProgress * 2) items.push({ icon: '📌', title: 'Many tasks not started', body: `${stats.pending} tasks are still pending vs ${stats.inProgress} in progress. Triage the backlog.`, tone: 'warning' })
-
-    if (items.length === 0) items.push({ icon: '📊', title: 'Operations look healthy', body: 'No significant issues detected. Keep monitoring as tasks progress.', tone: 'positive' })
+    if (stats.byCritical > 0) items.push({ icon: '🚨', title: `${stats.byCritical} critical priority tasks`, body: `Ensure these have active owners and are unblocked.`, tone: 'danger' })
+    if (overloadedPeople.length > 0) items.push({ icon: '👥', title: `${overloadedPeople.length} people overloaded`, body: `${overloadedPeople.map(p => p.employee_name).join(', ')} each have 10+ open tasks.`, tone: 'warning' })
+    if (stats.submitted > 0) items.push({ icon: '📋', title: `${stats.submitted} tasks awaiting review`, body: `Review them to unblock your team.`, tone: 'neutral' })
+    if (stats.pending > stats.inProgress * 2) items.push({ icon: '📌', title: 'Many tasks not started', body: `${stats.pending} pending vs ${stats.inProgress} in progress. Triage the backlog.`, tone: 'warning' })
+    if (items.length === 0) items.push({ icon: '📊', title: 'Operations look healthy', body: 'No significant issues detected.', tone: 'positive' })
     return items
   }, [stats, overloadedPeople])
 
@@ -156,141 +196,179 @@ export function InsightsPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Insights
             </div>
-            <div className="pageHeaderCardSub">Real-time performance analysis computed from your task data</div>
+            <div className="pageHeaderCardSub">Real-time performance analysis computed from your live task data</div>
           </div>
-          <div style={{ minWidth: 150 }}>
+          <div style={{ minWidth: 160 }}>
             <Select value={days} onChange={setDays} options={RANGE_OPTS} />
           </div>
         </div>
       </div>
 
-      {loading && <div style={{ padding: 48, textAlign: 'center', color: 'var(--muted)' }}>Analyzing task data…</div>}
+      {loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+          {[1,2,3,4,5].map(i => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 16 }} />)}
+        </div>
+      )}
 
       {!loading && stats && (
         <>
-          {/* KPI row */}
+          {/* KPI strip */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Metric label="Total Tasks"      value={stats.total}          sub="in your org" />
-            <Metric label="Completed"        value={stats.completed}      sub={`${stats.completionRate}% rate`} color="#22c55e" />
-            <Metric label="In Progress"      value={stats.inProgress}     sub="active now" color="#8b5cf6" />
-            <Metric label="Overdue"          value={stats.overdue}        sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} />
-            <Metric label="Avg Open / Person" value={avgOpenTasks}        sub="workload balance" color="#f59e0b" />
+            <StatCard label="Total Tasks"       value={stats.total}          sub="in your org"         color="#e2ab41" icon="📋" />
+            <StatCard label="Completed"         value={stats.completed}      sub={`${stats.completionRate}% rate`} color="#22c55e" icon="✅" />
+            <StatCard label="In Progress"       value={stats.inProgress}     sub="active right now"   color="#8b5cf6" icon="⚡" />
+            <StatCard label="Overdue"           value={stats.overdue}        sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} icon="⏰" />
+            <StatCard label="Avg Open / Person" value={avgOpenTasks}         sub="workload balance"   color="#f59e0b" icon="👥" />
           </div>
 
-          {/* ── Charts row ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-
-            {/* Status distribution pie */}
+          {/* Row 1: Trend + Status Donut */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
+            {/* Trend area chart */}
             <div className="card">
-              <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>📊 Status Distribution</div>
-              <ResponsiveContainer width="100%" height={220}>
+              <SectionTitle>📈 Activity Trend — {dayNum} days</SectionTitle>
+              {trendPoints.length < 2 ? (
+                <div style={{ height: 200, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 13 }}>Collecting trend data…</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <ComposedChart data={trendPoints} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gCreated2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#e2ab41" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#e2ab41" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gDone2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Legend iconType="circle" iconSize={7} formatter={(v) => <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{v}</span>} />
+                    <Area type="monotone" dataKey="created"   name="Created"   fill="url(#gCreated2)" stroke="#e2ab41" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="completed" name="Completed" fill="url(#gDone2)"    stroke="#22c55e" strokeWidth={2} dot={false} />
+                    <Line  type="monotone" dataKey="overdue"   name="Overdue"   stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Status donut */}
+            <div className="card">
+              <SectionTitle>🍩 Status Mix</SectionTitle>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie
-                    data={Object.entries(
-                      (tasksQ.data || []).reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc }, {} as Record<string,number>)
-                    ).map(([name, value]) => ({ name: name.replace(/_/g,' '), value, status: name })).filter(d => d.value > 0)}
-                    cx="50%" cy="50%" outerRadius={80} innerRadius={44}
-                    dataKey="value" nameKey="name"
-                  >
-                    {Object.keys(STATUS_COLORS).map(s => (
-                      <Cell key={s} fill={STATUS_COLORS[s] || '#94a3b8'} />
-                    ))}
+                  <Pie data={stats.statusPie} cx="50%" cy="50%" outerRadius={72} innerRadius={40} dataKey="value" nameKey="name">
+                    {stats.statusPie.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Pie>
                   <Tooltip content={<ChartTooltip />} />
-                  <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{v}</span>} />
+                  <Legend iconType="circle" iconSize={7} formatter={(v) => <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700 }}>{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </div>
 
-            {/* Workload bar chart */}
-            {workload.length > 0 && (
+          {/* Row 2: Team workload grouped bar + Priority horizontal bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            {workloadBars.length > 0 && (
               <div className="card">
-                <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>👥 Team Workload</div>
+                <SectionTitle>👥 Team Workload Distribution</SectionTitle>
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={workload.slice(0, 8).map(w => ({ name: w.employee_name.split(' ')[0], open: w.open_tasks, total: w.total_tasks }))} layout="vertical" margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                    <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} width={60} />
+                  <BarChart data={workloadBars} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="open" name="Open" fill="#8b5cf6" radius={[0,4,4,0]} />
-                    <Bar dataKey="total" name="Total" fill="rgba(226,171,65,0.4)" radius={[0,4,4,0]} />
+                    <Legend iconType="circle" iconSize={7} formatter={(v) => <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{v}</span>} />
+                    <Bar dataKey="done" name="Done"   stackId="a" fill="#22c55e" radius={[0,0,0,0]} />
+                    <Bar dataKey="open" name="Open"   stackId="a" fill="#8b5cf6" radius={[4,4,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {priorityBars.length > 0 && (
+              <div className="card">
+                <SectionTitle>⚡ Priority Breakdown</SectionTitle>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={priorityBars} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 800 }} axisLine={false} tickLine={false} width={56} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="value" name="Tasks" radius={[0,6,6,0]}>
+                      {priorityBars.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Category breakdown */}
+            {stats.topCategories.length > 0 && (
+              <div className="card">
+                <SectionTitle>📁 Tasks by Project</SectionTitle>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={stats.topCategories.map(([name, count]) => ({ name: name.length > 12 ? name.slice(0,12)+'…' : name, count }))} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} width={72} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="count" name="Tasks" fill="#e2ab41" radius={[0,6,6,0]} fillOpacity={0.85} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
 
             {/* Priority radar */}
-            {stats && (() => {
-              const priorityData = [
-                { label: 'Low', value: stats.byLow },
-                { label: 'Medium', value: stats.byMedium },
-                { label: 'High', value: stats.byHigh },
-                { label: 'Critical', value: stats.byCritical },
-                { label: 'Urgent', value: stats.byUrgent || 0 },
-              ].filter(d => d.value > 0)
-              return priorityData.length > 0 ? (
-                <div className="card">
-                  <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>⚡ Priority Pressure</div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <RadarChart data={priorityData}>
-                      <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                      <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} />
-                      <Radar name="Tasks" dataKey="value" stroke="#e2ab41" fill="#e2ab41" fillOpacity={0.25} strokeWidth={2} />
-                      <Tooltip content={<ChartTooltip />} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : null
-            })()}
-
+            {priorityBars.length >= 3 && (
+              <div className="card">
+                <SectionTitle>🎯 Priority Pressure Radar</SectionTitle>
+                <ResponsiveContainer width="100%" height={220}>
+                  <RadarChart data={priorityBars.map(b => ({ label: b.name, value: b.value }))}>
+                    <PolarGrid stroke="rgba(255,255,255,0.09)" />
+                    <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} />
+                    <Radar name="Tasks" dataKey="value" stroke="#e2ab41" fill="#e2ab41" fillOpacity={0.22} strokeWidth={2} />
+                    <Tooltip content={<ChartTooltip />} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
-          {/* AI-style Insights */}
+          {/* Smart Insights */}
           <div className="card">
-            <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🤖</span> Smart Insights
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginLeft: 4 }}>• computed locally from {stats.total} tasks</span>
-            </div>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <SectionTitle>🤖 Smart Insights <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>• computed from {stats.total} tasks</span></SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
               {insights.map((ins, i) => <InsightCard key={i} {...ins} />)}
             </div>
           </div>
 
-          {/* Top Assignees */}
+          {/* Top assignees with progress bars */}
           {stats.topAssignees.length > 0 && (
             <div className="card">
-              <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 12 }}>👥 Heaviest open workload</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {stats.topAssignees.map(([name, count]) => (
-                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--brandDim)', border: '1.5px solid var(--brandBorder)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, color: 'var(--brand)', flexShrink: 0 }}>
-                      {name.split(' ').map(s => s[0]).slice(0, 2).join('')}
+              <SectionTitle>⚖️ Heaviest Workload</SectionTitle>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+                {stats.topAssignees.map(([name, count]) => {
+                  const max = stats.topAssignees[0]?.[1] || 1
+                  const pct = Math.round((count / max) * 100)
+                  const color = count > 12 ? '#ef4444' : count > 7 ? '#f59e0b' : '#22c55e'
+                  return (
+                    <div key={name} style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${color}18`, border: `1.5px solid ${color}35`, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, color, flexShrink: 0 }}>
+                          {name.split(' ').map((s: string) => s[0]).slice(0, 2).join('')}
+                        </div>
+                        <div style={{ flex: 1, fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                        <span style={{ fontSize: 15, fontWeight: 950, color }}>{count}</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 999, background: color, width: `${pct}%`, transition: 'width 0.6s ease' }} />
+                      </div>
                     </div>
-                    <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{name}</div>
-                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', flex: '0 0 120px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, background: count > 10 ? '#ef4444' : count > 5 ? '#f59e0b' : '#22c55e', width: `${Math.min(100, count * 8)}%` }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text2)', minWidth: 28, textAlign: 'right' }}>{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Top Projects */}
-          {stats.topCategories.length > 0 && (
-            <div className="card">
-              <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 12 }}>📁 Tasks by project</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {stats.topCategories.map(([name, count]) => (
-                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{name}</div>
-                    <div style={{ height: 8, borderRadius: 999, background: 'var(--bg2)', flex: '0 0 160px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, background: 'var(--brand)', width: `${Math.min(100, (count / (stats?.total || 1)) * 100 * 2)}%` }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--text2)', minWidth: 28, textAlign: 'right' }}>{count}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -307,3 +385,5 @@ export function InsightsPage() {
     </div>
   )
 }
+
+

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { EmployeeDetailModal } from '../../components/employees/EmployeeDetailModal'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 type UserRow = {
   id: string
@@ -168,6 +169,65 @@ export function TeamPage() {
           )}
         </div>
       </div>
+
+      {/* Charts row: role breakdown + member count bar */}
+      {!q.isLoading && (q.data?.length || 0) > 0 && (() => {
+        const pieData = Object.entries(roleCounts).filter(([, v]) => v > 0).map(([role, value]) => ({
+          name: role.charAt(0).toUpperCase() + role.slice(1),
+          value,
+          fill: ROLE_CONFIG[role]?.color || '#94a3b8',
+        }))
+        const barData = Object.entries(roleCounts).filter(([, v]) => v > 0).map(([role, count]) => ({
+          role: role.charAt(0).toUpperCase() + role.slice(1),
+          count,
+          fill: ROLE_CONFIG[role]?.color || '#94a3b8',
+        }))
+        const ChartTip = ({ active, payload }: any) => {
+          if (!active || !payload?.length) return null
+          return (
+            <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+              <div style={{ color: payload[0]?.payload?.fill || '#fff', fontWeight: 800 }}>{payload[0]?.payload?.name || payload[0]?.payload?.role}</div>
+              <div style={{ color: '#fff', fontWeight: 900 }}>{payload[0]?.value} members</div>
+            </div>
+          )
+        }
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+            <div className="card">
+              <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: 'var(--text)' }}>🍩 Role Distribution</div>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} innerRadius={36} dataKey="value" nameKey="name">
+                    {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 4 }}>
+                {pieData.map(d => (
+                  <span key={d.name} style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: `${d.fill}18`, color: d.fill, border: `1px solid ${d.fill}28` }}>
+                    {d.name} {d.value}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="card">
+              <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: 'var(--text)' }}>📊 Members by Role</div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={barData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="role" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTip />} />
+                  <Bar dataKey="count" radius={[6,6,0,0]}>
+                    {barData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Add member form */}
       {canAdd && showAddForm && (
