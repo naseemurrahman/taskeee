@@ -230,11 +230,127 @@ async function buildIntelligence(user, reqFilters = {}) {
   };
 }
 
+
+// ────────────────────────────────────────────────────────────────────────────
+// enhanceWithAI — sends computed signals to Groq (free) or Anthropic for real
+// LLM-powered suggestions/insights. Falls back to rule-based if no key set.
+// Returns { ai_model, ai_suggestions, ai_insights, ai_generated_at }
+// ────────────────────────────────────────────────────────────────────────────
+async function enhanceWithAI(intelligence, user) {
+  const groqKey      = process.env.GROQ_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!groqKey && !anthropicKey) {
+    return { ai_model: 'rule-based', ai_suggestions: intelligence.suggestions, ai_insights: [], ai_generated_at: intelligence.generated_at };
+  }
+
+  const s = intelligence.summary;
+  const risks = intelligence.predictive_risks || [];
+  const topTasks = (intelligence.risk_tasks || []).slice(0, 5).map(t =>
+    `"${t.title}" (risk ${t.risk_score}%, ${t.reason})`).join('; ');
+  const redistSummary = (intelligence.workload_redistribution || []).slice(0, 3).map(r =>
+    `${r.from} → ${r.to}: ${r.tasks} tasks — ${r.reason}`).join('; ');
+
+  const systemPrompt = `You are an AI operations analyst for TaskFlow Pro, a task management platform.
+You receive live operational data and produce SPECIFIC, ACTIONABLE analytics insights.
+
+RULES:
+- Every suggestion must cite a SPECIFIC data point (number, person, task, %).
+- Do NOT generate generic advice. Only recommend actions backed by the data provided.
+- Return ONLY valid JSON — no markdown, no preamble, no explanation outside the JSON.
+- Output this exact shape:
+{
+  "suggestions": [string, string, string, string, string],
+  "insights": [
+    { "title": string, "description": string, "severity": "low|medium|high|critical", "recommendation": string, "evidence": string }
+  ]
+}`;
+
+  const userPrompt = `LIVE ORG DATA (as of now):
+Tasks: ${s.total} total | ${s.completed} completed (${s.completion_rate}%) | ${s.overdue} overdue (${s.overdue_rate}%) | ${s.pending} pending
+Avg open tasks/person: ${s.avg_open_tasks}
+Risk signals: ${risks.map(r => `${r.title} → score ${r.score}% (${r.severity})`).join('; ')}
+Top risk tasks: ${topTasks || 'none'}
+Workload redistribution needed: ${redistSummary || 'none — balanced'}
+User role: ${user.role}
+
+Generate 5 specific, data-driven action suggestions and 3-5 insight cards for this org right now.`;
+
+  // Try Groq first (free, fast), then Anthropic
+  for (const [provider, fn] of [
+    ['groq-llama3',   () => callGroq(groqKey, systemPrompt, userPrompt)],
+    ['claude-sonnet', () => callAnthropic(anthropicKey, systemPrompt, userPrompt)],
+  ]) {
+    if (!groqKey && provider === 'groq-llama3') continue;
+    if (!anthropicKey && provider === 'claude-sonnet') continue;
+    try {
+      const text = await fn();
+      const clean = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      if (Array.isArray(parsed.suggestions) && Array.isArray(parsed.insights)) {
+        return {
+          ai_model: provider,
+          ai_suggestions: parsed.suggestions.slice(0, 5),
+          ai_insights: parsed.insights.slice(0, 6),
+          ai_generated_at: new Date().toISOString(),
+        };
+      }
+    } catch (err) {
+      console.warn(`[AI] ${provider} enhance failed:`, err.message);
+    }
+  }
+
+  // All providers failed — use rule-based
+  return { ai_model: 'rule-based', ai_suggestions: intelligence.suggestions, ai_insights: [], ai_generated_at: intelligence.generated_at };
+}
+
+async function callGroq(key, systemPrompt, userPrompt) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 1200,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || '';
+}
+
+async function callAnthropic(key, systemPrompt, userPrompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+  const d = await res.json();
+  return d.content?.[0]?.text || '';
+}
+
 router.use(authenticate);
 
 router.get('/predictive-overview', async (req, res, next) => {
   try {
-    res.json(await buildIntelligence(req.user, filters(req)));
+    const data = await buildIntelligence(req.user, filters(req));
+
+    // ── Try to enhance suggestions/insights with real LLM analysis ──────────
+    const enhanced = await enhanceWithAI(data, req.user);
+    res.json({ ...data, ...enhanced });
   } catch (err) {
     next(err);
   }
@@ -252,7 +368,12 @@ router.get('/risk-tasks', async (req, res, next) => {
 router.get('/suggestions', async (req, res, next) => {
   try {
     const data = await buildIntelligence(req.user, filters(req));
-    res.json({ generated_at: data.generated_at, suggestions: data.suggestions });
+    const enhanced = await enhanceWithAI(data, req.user);
+    res.json({
+      generated_at: enhanced.ai_generated_at || data.generated_at,
+      ai_model: enhanced.ai_model,
+      suggestions: enhanced.ai_suggestions || data.suggestions,
+    });
   } catch (err) {
     next(err);
   }
