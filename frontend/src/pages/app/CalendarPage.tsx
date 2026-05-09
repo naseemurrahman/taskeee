@@ -11,6 +11,7 @@ type Task = {
   id: string
   title: string
   status: string
+  priority?: string | null
   due_date?: string | null
   assigned_to_name?: string | null
   category_name?: string | null
@@ -80,6 +81,12 @@ export function CalendarPage() {
 
   const tasks = tq.data || []
   const projects = pq.data || []
+
+  // Tasks with no due date — shown in Unscheduled section below the calendar
+  const unscheduled = useMemo(() =>
+    tasks.filter(t => !t.due_date && !['completed','cancelled','manager_approved'].includes(t.status)),
+    [tasks]
+  )
 
   const { cells } = useMemo(() => {
     const year = cursor.getFullYear()
@@ -345,6 +352,38 @@ export function CalendarPage() {
           initialDueDate={createDueDate}
           onClose={() => { setCreateOpen(false); setCreateDueDate(null); qc.invalidateQueries({ queryKey: ['calendar'] }) }}
         />
+      )}
+
+      {/* Unscheduled tasks — no due date set */}
+      {unscheduled.length > 0 && (
+        <div className="card" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 16 }}>📋</span>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)' }}>Unscheduled Tasks</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{unscheduled.length} task{unscheduled.length !== 1 ? 's' : ''} with no due date — drag to a date or open to schedule</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {unscheduled.map(t => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer' }}
+                onClick={() => {
+                  // Open create modal pre-filled with task title — or navigate to task
+                  if (canCreate) { setCreateDueDate(null); setCreateOpen(true) }
+                }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background:
+                  t.priority === 'high' || t.priority === 'urgent' ? '#ef4444'
+                  : t.priority === 'medium' ? '#f59e0b'
+                  : 'var(--muted)' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'capitalize', flexShrink: 0 }}>{t.status.replace(/_/g, ' ')}</span>
+                {(t as any).assigned_to_name && (
+                  <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{(t as any).assigned_to_name}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

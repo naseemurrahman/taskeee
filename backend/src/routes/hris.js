@@ -5,6 +5,7 @@ const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/a
 const { logAudit } = require('../services/auditService');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { canAddEmployee } = require('../services/subscriptionService');
+const emailService = require('../services/emailService');
 
 async function resolveOrgId(req) {
   const orgId = await orgIdForSessionUser(req);
@@ -606,6 +607,65 @@ router.patch('/time-off/requests/:id', authenticate, async (req, res, next) => {
       ip: req.ip,
       userAgent: req.headers['user-agent'] || null
     });
+
+    // ── Email notification to the requester ─────────────────────────────────
+    if (status === 'approved' || status === 'rejected') {
+      try {
+        // Get requester email + name
+        const { rows: userRows } = await query(
+          `SELECT u.email, u.full_name, e.full_name AS emp_name
+           FROM users u
+           LEFT JOIN employees e ON e.user_id = u.id AND e.org_id = $2
+           WHERE u.id = $1`,
+          [existing.requested_by || existing.employee_user_id, orgId]
+        );
+        if (userRows.length && userRows[0].email) {
+          const recipient = userRows[0];
+          const name = recipient.emp_name || recipient.full_name || 'Team Member';
+          const approverName = req.user.name || req.user.full_name || 'Your manager';
+          const isApproved = status === 'approved';
+          const startFmt = new Date(existing.start_date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+          const endFmt   = new Date(existing.end_date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+          const accentColor = isApproved ? '#22c55e' : '#ef4444';
+          const icon = isApproved ? '✅' : '❌';
+
+          const html = `
+            <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;background:#0f172a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+              <div style="padding:28px 32px;background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:3px solid ${accentColor}">
+                <div style="font-size:28px;margin-bottom:6px">${icon}</div>
+                <h1 style="margin:0;font-size:22px;font-weight:900;color:#f1f5f9">Time-Off Request ${isApproved ? 'Approved' : 'Rejected'}</h1>
+              </div>
+              <div style="padding:28px 32px;color:#cbd5e1">
+                <p style="margin:0 0 16px">Hi <strong style="color:#f1f5f9">${name}</strong>,</p>
+                <p style="margin:0 0 16px">Your time-off request has been <strong style="color:${accentColor}">${status}</strong> by <strong style="color:#f1f5f9">${approverName}</strong>.</p>
+                <div style="background:#1e293b;border-radius:12px;padding:16px 20px;margin:20px 0;border:1px solid rgba(255,255,255,0.08)">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                    <span style="color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">FROM</span>
+                    <span style="color:#f1f5f9;font-weight:700">${startFmt}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                    <span style="color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">TO</span>
+                    <span style="color:#f1f5f9;font-weight:700">${endFmt}</span>
+                  </div>
+                  ${existing.reason ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)"><span style="color:#94a3b8;font-size:12px">Reason: </span><span style="color:#cbd5e1">${existing.reason}</span></div>` : ''}
+                </div>
+                ${!isApproved ? `<p style="margin:16px 0 0;color:#94a3b8;font-size:13px">If you have questions about this decision, please speak with your manager directly.</p>` : ''}
+              </div>
+              <div style="padding:16px 32px;background:#1e293b;border-top:1px solid rgba(255,255,255,0.06)">
+                <p style="margin:0;font-size:12px;color:#475569">This is an automated notification from TaskFlow Pro.</p>
+              </div>
+            </div>`;
+
+          await emailService.sendEmail(
+            userRows[0].email,
+            `${icon} Time-Off ${isApproved ? 'Approved' : 'Rejected'} — ${startFmt} to ${endFmt}`,
+            html
+          );
+        }
+      } catch (emailErr) {
+        console.warn('[hris] leave email notification failed (non-fatal):', emailErr.message);
+      }
+    }
 
     res.json({ request: rows[0] });
   } catch (err) { next(err); }

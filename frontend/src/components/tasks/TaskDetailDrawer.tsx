@@ -451,10 +451,23 @@ export function TaskDetailDrawer({
                   <div style={{ display: 'grid', gap: 8 }}>
                     {photos.map(photo => {
                       const url = photo.file_url || photo.photo_url
+                      const mime = (photo as any).mime_type || ''
+                      const name = (photo as any).original_filename || 'Attachment'
+                      const isImg = mime.startsWith('image/')
+                      const isPdf = mime === 'application/pdf'
+                      const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? '📊' : mime.includes('word') ? '📝' : '📎'
                       return (
-                        <a key={photo.id} href={url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--text2)' }}>
-                          <span style={{ fontSize: 12 }}>{photo.uploaded_by_name || 'Unknown'} · {timeAgo(photo.created_at)}</span>
-                          <span style={{ fontSize: 12, fontWeight: 800 }}>Open</span>
+                        <a key={photo.id} href={url || '#'} target="_blank" rel="noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg1)', overflow: 'hidden' }}>
+                          {isImg && url
+                            ? <img src={url} alt={name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 7, flexShrink: 0, background: 'var(--bg2)' }} />
+                            : <span style={{ fontSize: 28, width: 48, textAlign: 'center', flexShrink: 0 }}>{fileIcon}</span>
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{photo.uploaded_by_name || 'Unknown'} · {timeAgo(photo.created_at)}</div>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand)', flexShrink: 0 }}>↗</span>
                         </a>
                       )
                     })}
@@ -496,13 +509,23 @@ export function TaskDetailDrawer({
                 ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--muted)' }}><div style={{ fontSize: 28 }}>📎</div><div style={{ fontWeight: 700, fontSize: 13, marginTop: 8 }}>No files yet</div></div>
                 : photos.map(ph => {
                     const url = ph.file_url || ph.photo_url
+                    const mime = (ph as any).mime_type || ''
+                    const name = (ph as any).original_filename || 'Attachment'
+                    const isImg = mime.startsWith('image/')
+                    const isPdf = mime === 'application/pdf'
+                    const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? '📊' : mime.includes('word') ? '📝' : '📎'
                     return (
-                      <a key={ph.id} href={url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg2)' }}>
-                        <span style={{ fontSize: 20 }}>{(ph as any).mime_type?.startsWith('image/') ? '🖼' : '📄'}</span>
+                      <a key={ph.id} href={url || '#'} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg2)' }}>
+                        {isImg && url
+                          ? <img src={url} alt={name} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, flexShrink: 0, background: 'var(--bg1)' }} />
+                          : <span style={{ fontSize: 32, width: 52, textAlign: 'center', flexShrink: 0 }}>{fileIcon}</span>
+                        }
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(ph as any).original_filename || 'Attachment'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{ph.uploaded_by_name || 'Unknown'} · {timeAgo(ph.created_at)}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{ph.uploaded_by_name || 'Unknown'} · {timeAgo(ph.created_at)}</div>
                         </div>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand)', flexShrink: 0 }}>↗ Open</span>
                       </a>
                     )
                   })

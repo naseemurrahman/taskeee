@@ -308,6 +308,22 @@ export function TasksPage() {
   const toggleAll = (ids: string[]) => setSelected(prev => prev.size === ids.length ? new Set() : new Set(ids))
   const clearSelected = () => setSelected(new Set())
 
+  // Bulk assign
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false)
+  const assignableQ = useQuery({
+    queryKey: ['tasks-assignable-users'],
+    queryFn: () => apiFetch<{ users: Array<{ id: string; name: string; role?: string }> }>('/api/v1/tasks/assignable-users').then(d => d.users || []),
+    staleTime: 60_000,
+    enabled: bulkAssignOpen,
+  })
+  const bulkAssignM = useMutation({
+    mutationFn: (assigneeId: string) => Promise.all([...selected].map(id =>
+      apiFetch(`/api/v1/tasks/${id}`, { method: 'PATCH', json: { assigned_to: assigneeId } })
+    )),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', 'list'] }); toastSuccess('Assigned', `${selected.size} tasks reassigned`); clearSelected(); setBulkAssignOpen(false) },
+    onError: () => toastError('Assign failed', 'Could not reassign selected tasks'),
+  })
+
   const bulkStatusM = useMutation({
     mutationFn: (newStatus: string) => Promise.all([...selected].map(id => apiFetch(`/api/v1/tasks/${id}/status`, { method: 'PATCH', json: { status: newStatus } }))),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', 'list'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); toastSuccess('Updated', `${selected.size} tasks updated`); clearSelected() },
@@ -429,25 +445,52 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Bulk action bar — shown when items are selected */}
+      {/* Bulk action bar */}
       {selected.size > 0 && canManage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 12, background: 'rgba(226,171,65,0.10)', border: '1.5px solid rgba(226,171,65,0.3)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 12, background: 'rgba(226,171,65,0.10)', border: '1.5px solid rgba(226,171,65,0.3)', flexWrap: 'wrap', position: 'relative', zIndex: 20 }}>
           <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--brand)' }}>{selected.size} selected</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Bulk Assign */}
+            {canCreate && (
+              <div style={{ position: 'relative' }}>
+                <button className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 12, fontWeight: 800 }}
+                  onClick={() => setBulkAssignOpen(o => !o)}>
+                  👤 Assign to…
+                </button>
+                {bulkAssignOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, minWidth: 200, background: 'var(--bg1)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 9999, maxHeight: 260, overflowY: 'auto' }}>
+                    {assignableQ.isLoading
+                      ? <div style={{ padding: 14, fontSize: 12, color: 'var(--muted)' }}>Loading…</div>
+                      : (assignableQ.data || []).map(u => (
+                          <button key={u.id} onClick={() => bulkAssignM.mutate(u.id)} disabled={bulkAssignM.isPending}
+                            style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg2)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                            {u.name}
+                            {u.role && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 6, fontWeight: 400 }}>{u.role}</span>}
+                          </button>
+                        ))
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Bulk Status */}
             {(['in_progress','submitted','completed'] as const).map(s => (
               <button key={s} className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 12 }}
                 onClick={() => bulkStatusM.mutate(s)} disabled={bulkStatusM.isPending}>
                 → {s.replace(/_/g,' ')}
               </button>
             ))}
+            {/* Bulk Delete */}
             {canCreate && (
               <button className="btn" style={{ height: 30, padding: '0 10px', fontSize: 12, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}
                 onClick={() => { if (confirm(`Delete ${selected.size} tasks? This cannot be undone.`)) bulkDeleteM.mutate() }} disabled={bulkDeleteM.isPending}>
-                Delete {selected.size}
+                🗑 Delete {selected.size}
               </button>
             )}
           </div>
-          <button onClick={clearSelected} style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>
+          <button onClick={() => { clearSelected(); setBulkAssignOpen(false) }} style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Clear</button>
         </div>
       )}
 

@@ -94,10 +94,28 @@ export function SearchPage() {
   const initialQ = params.get('q') || ''
   const initialType = params.get('type') || 'all'
   const [input, setInput] = useState(initialQ)
+  const [debounced, setDebounced] = useState(initialQ)
 
+  // Sync input from URL on navigation
   useEffect(() => setInput(initialQ), [initialQ])
 
-  const q = initialQ.trim()
+  // Debounce: update search after 300ms of inactivity
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trimmed = input.trim()
+      setDebounced(trimmed)
+      // Keep URL in sync for shareable links & back-nav
+      if (trimmed !== (params.get('q') || '')) {
+        const next: Record<string, string> = {}
+        if (trimmed) next.q = trimmed
+        if (activeType !== 'all') next.type = activeType
+        setParams(next, { replace: true })
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [input])
+
+  const q = debounced
   const activeType = TABS.some(t => t.key === initialType) ? initialType : 'all'
   const apiType = activeType === 'all' ? '' : `&type=${encodeURIComponent(activeType)}`
 
@@ -105,7 +123,7 @@ export function SearchPage() {
     queryKey: ['full-search', q, activeType],
     queryFn: () => apiFetch<SearchResponse>(`/api/v1/search?q=${encodeURIComponent(q)}&limit=20${apiType}`),
     enabled: q.length >= 2,
-    staleTime: 30_000,
+    staleTime: 15_000,
   })
 
   const grouped = useMemo(() => ({
@@ -121,14 +139,6 @@ export function SearchPage() {
     ? grouped
     : { tasks: [], users: [], projects: [], reports: [], notifications: [], [activeType]: grouped[activeType as keyof typeof grouped] } as typeof grouped
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const next = input.trim()
-    const nextParams: Record<string, string> = {}
-    if (next) nextParams.q = next
-    if (activeType !== 'all') nextParams.type = activeType
-    setParams(nextParams)
-  }
 
   function setType(type: string) {
     const nextParams: Record<string, string> = {}
@@ -148,15 +158,17 @@ export function SearchPage() {
         </div>
       </div>
 
-      <form onSubmit={submit} className="searchPageForm">
+      <div className="searchPageForm">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Search your workspace..."
+          placeholder="Search your workspace… (results appear as you type)"
           autoFocus
         />
-        <button className="btn btnPrimary" type="submit">Search</button>
-      </form>
+        {searchQ.isFetching && q.length >= 2 && (
+          <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)' }}>Searching…</span>
+        )}
+      </div>
 
       <div className="searchTabs">
         {TABS.map(tab => (
