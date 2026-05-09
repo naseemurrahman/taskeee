@@ -20,13 +20,20 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     `SELECT id, full_name, email, role FROM users WHERE id = $1`, [userId]
   );
 
+  if (!user) throw new Error('User not found');
+
   let targetUserIds = [userId];
 
-  if (['supervisor', 'manager', 'director', 'admin'].includes(user.role)) {
-    const { rows } = await query(
-      `SELECT user_id FROM get_subordinate_ids($1)`, [userId]
-    );
-    targetUserIds = [userId, ...rows.map(r => r.user_id)];
+  if (['supervisor', 'manager', 'director', 'admin', 'hr'].includes(user.role)) {
+    try {
+      const { rows } = await query(
+        `SELECT user_id FROM get_subordinate_ids($1)`, [userId]
+      );
+      targetUserIds = [userId, ...rows.map(r => r.user_id).filter(Boolean)];
+    } catch (_err) {
+      // get_subordinate_ids() may not exist on older DB schemas — fall back to own tasks only
+      logger.warn(`[reportService] get_subordinate_ids not available, using self-only scope for ${userId}`);
+    }
   }
 
   // Task stats

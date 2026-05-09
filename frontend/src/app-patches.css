@@ -7745,99 +7745,122 @@ html, body, #root {
 /* MyTasks mobile — moved to final authority block below */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FINAL AUTHORITY v3 — MyTasks mobile, notification popover, dropdown z-index
+   FINAL AUTHORITY v4 — dropdown, notification, MyTasks mobile (correct)
+   All rules use #root prefix for maximum specificity. Loaded last, win all.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Notification popover: correct stacking + click handling ── */
-/* overflow:visible caused hit-test gaps where taps fell through.
-   The popover must clip its content (overflow:hidden) but the 
-   Select dropdown escapes via position:fixed from JS.             */
-#root .topbarNotifyPopover {
-  overflow: hidden !important;        /* restore clipping — no tap-through gaps */
-  position: absolute !important;
-  z-index: 9500 !important;
-  pointer-events: auto !important;
-}
-/* On mobile: fixed positioning fills screen */
-@media (max-width: 720px) {
-  #root .topbarNotifyPopover {
-    position: fixed !important;
-    top: 60px !important;
-    left: 8px !important;
-    right: 8px !important;
-    bottom: 16px !important;
-    width: auto !important;
-    max-width: none !important;
-    max-height: none !important;
-    border-radius: 18px !important;
-    z-index: 9500 !important;
-  }
+/* ── 1. TOPBAR: ensure it creates a proper stacking context ── */
+#root .topbarV4 {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 200 !important;      /* above content (0), below modal (10000) */
+  isolation: isolate !important;
 }
 
-/* Notification button — always tappable, always on top */
+/* ── 2. NOTIFICATION WRAP: contained within topbar stacking context ── */
 #root .topbarNotifyWrap {
   position: relative !important;
-  z-index: 9501 !important;
+  z-index: 1 !important;        /* relative to topbarV4's stacking context */
 }
 #root .topbarNotifyBtn {
   position: relative !important;
-  z-index: 9501 !important;
+  z-index: 1 !important;
   pointer-events: auto !important;
-  -webkit-tap-highlight-color: rgba(226,171,65,0.2) !important;
   touch-action: manipulation !important;
+  -webkit-tap-highlight-color: rgba(226,171,65,0.15) !important;
+  cursor: pointer !important;
 }
 
-/* Select dropdown always above notification (99999 > 9500) */
-#root .selectV3Dropdown {
-  z-index: 99999 !important;
+/* ── 3. NOTIFICATION POPOVER: sits in viewport stacking, above topbar ── */
+#root .topbarNotifyPopover {
+  position: fixed !important;    /* fixed: escapes topbar stacking context */
+  top: 66px !important;
+  right: 12px !important;
+  width: min(380px, calc(100vw - 24px)) !important;
+  max-height: min(520px, calc(100dvh - 80px)) !important;
+  z-index: 8000 !important;     /* above page content, below modal (10000) */
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 16px !important;
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.25) !important;
   pointer-events: auto !important;
 }
+/* Mobile: full-width panel below topbar */
+@media (max-width: 720px) {
+  #root .topbarNotifyPopover {
+    top: 62px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 78px - env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 14px !important;
+  }
+}
 
-/* ── MyTasks: mobile full-screen flow layout ── */
-/* On mobile, switch from side-by-side to stacked:
-   Queue on top (scrollable list), Workspace below (full detail).
-   User taps a task → workspace fills the screen.                 */
+/* ── 4. SELECT DROPDOWN: above notification (8001 > 8000) ── */
+/* The dropdown is rendered via position:fixed from JS (getBoundingClientRect).
+   It must be above the notification popover but below the modal.            */
+#root .selectV3Dropdown {
+  z-index: 8001 !important;     /* just 1 above popover, far below modal */
+  pointer-events: auto !important;
+  position: fixed !important;   /* always fixed — escapes any overflow container */
+}
+
+/* ── 5. MODAL: always on top of everything ── */
+#root .modalOverlayV2 {
+  z-index: 10000 !important;
+}
+#root .modalCardV2 {
+  z-index: 10001 !important;
+  position: relative !important;
+}
+
+/* ── 6. MYTASKS: correct mobile layout ── */
 @media (max-width: 900px) {
-  /* Stack command center into 2-col grid */
+  /* Command center: 2-column grid, progress card spans full width */
   #root .myTasksCommandCenter {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
   #root .myTasksProgressCard {
-    grid-column: 1 / -1 !important;  /* progress card full width */
+    grid-column: 1 / -1 !important;
   }
 
-  /* Toolbar: stack vertically */
+  /* Toolbar: single column */
   #root .myTasksToolbar {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
 
-  /* Layout: stack queue above workspace */
+  /* Layout: queue above workspace, full width */
   #root .myTasksProLayout {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
 
-  /* Queue panel: natural height, NOT fixed 40dvh */
+  /* Queue: natural height, let the list scroll internally */
   #root .myTasksQueue {
     max-height: none !important;
     min-height: auto !important;
-    overflow: visible !important;  /* card handles its own scroll */
+    overflow: visible !important;
   }
 
-  /* Task list scroll container */
+  /* Task list: fixed scroll window */
   #root .myTasksProList {
-    max-height: 55dvh !important;
-    min-height: 160px !important;
+    max-height: 52dvh !important;
+    min-height: 150px !important;
     padding: 8px !important;
     gap: 6px !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
-  /* Task cards: slightly more compact */
+  /* Task cards: compact but readable */
   #root .myTasksProItem {
-    padding: 0 !important;
     border-radius: 12px !important;
   }
   #root .myTasksItemTop {
@@ -7845,16 +7868,15 @@ html, body, #root {
   }
   #root .myTasksItemTop strong {
     font-size: 13px !important;
-    white-space: normal !important;    /* allow wrapping on mobile */
+    white-space: normal !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
   }
   #root .myTasksItemMeta {
-    padding: 0 12px 8px !important;
+    padding: 0 12px 7px !important;
     gap: 4px !important;
-    flex-wrap: wrap !important;
   }
   #root .myTasksItemFooter {
     padding: 7px 12px !important;
@@ -7866,26 +7888,18 @@ html, body, #root {
     border-radius: 5px !important;
   }
 
-  /* Workspace: full width below the list */
+  /* Workspace: fills below the list */
   #root .myTasksWorkspace {
-    min-height: 400px !important;
+    min-height: 380px !important;
     max-height: none !important;
   }
 }
 
 @media (max-width: 640px) {
-  /* On phone: command center → single column */
-  #root .myTasksCommandCenter {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-  #root .myTasksProgressCard {
-    grid-column: 1 / -1 !important;
-  }
-  /* Stat cards: 2×2 grid */
   #root .myTasksStatCard strong {
     font-size: 20px !important;
   }
   #root .myTasksProList {
-    max-height: 48dvh !important;
+    max-height: 46dvh !important;
   }
 }
