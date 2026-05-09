@@ -187,7 +187,7 @@ function ModernRealtimeDashboardChart() {
                 {completedPath && <path d={completedPath} fill="none" stroke={COLORS.completed} strokeWidth="4" strokeLinecap="round" filter="url(#modernGlow)" />}
                 {overduePath && <path d={overduePath} fill="none" stroke={COLORS.overdue} strokeWidth="3" strokeLinecap="round" strokeDasharray="8 8" />}
 
-                {trend.map((d, i) => {
+                {trend.map((_, i) => {
                   const p = completedPts[i]
                   return <circle key={i} cx={p.x} cy={p.y} r="4" fill={COLORS.completed} stroke="rgba(10,12,18,0.85)" strokeWidth="2" />
                 })}
