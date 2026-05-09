@@ -37,7 +37,7 @@
   top: calc(var(--app-topbar-height, 64px) + 10px) !important;
   right: max(14px, env(safe-area-inset-right, 0px)) !important;
   left: auto !important;
-  width: min(420px, calc(100vw - 28px)) !important;
+  width: min(440px, calc(100vw - 28px)) !important;
   min-width: 0 !important;
   max-width: none !important;
   max-height: calc(100dvh - var(--app-topbar-height, 64px) - 22px - env(safe-area-inset-bottom, 0px)) !important;
@@ -45,6 +45,64 @@
   display: flex !important;
   flex-direction: column !important;
   z-index: var(--z-notification-sheet) !important;
+}
+
+.topbarNotifyHead,
+.topbarNotifyQuickActions {
+  flex: 0 0 auto !important;
+}
+
+.topbarNotifyTabs {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 48px !important;
+  padding: 9px 12px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-gutter: stable !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.topbarNotifyTabs::-webkit-scrollbar {
+  height: 4px !important;
+}
+
+.topbarNotifyTab {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  width: auto !important;
+  min-width: max-content !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.topbarNotifyTab > span,
+.topbarNotifyTabCount {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.topbarNotifyTabCount {
+  justify-content: center !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
 }
 
 .topbarNotifyList {
@@ -133,6 +191,11 @@
     width: auto !important;
     max-height: calc(100dvh - var(--app-topbar-height, 64px) - 18px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
     border-radius: 18px !important;
+  }
+
+  .topbarNotifyTabs {
+    min-height: 46px !important;
+    padding: 8px 10px !important;
   }
 
   .topbarNotifyQuickActions,
