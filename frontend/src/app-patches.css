@@ -7389,3 +7389,67 @@ html, body, #root {
   content: none !important;
   display: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FINAL FIXES — notification dropdown + header stripe overflow
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Notification popover: allow internal selects/dropdowns to escape.
+      The "All" filter dropdown was clipped because the popover had
+      overflow:hidden. The list content scrolls via the inner list div,
+      not the popover itself. */
+#root .topbarNotifyPopover {
+  overflow: visible !important;
+}
+/* The scrollable notification list inside — THIS scrolls, not the popover */
+#root .topbarNotifyList {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+/* Any select/dropdown inside the popover must escape via z-index */
+#root .topbarNotifyPopover .selectV3Dropdown,
+#root .topbarNotifyPopover [class*="dropdown"],
+#root .topbarNotifyPopover [class*="Dropdown"] {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* 2. Header card golden stripe — fix the ::before overflowing card bounds.
+      With overflow:visible on the card, the absolute ::before extends past
+      the border-radius corners visually. Fix: clip only the top corners
+      using a wrapper clip approach with clip-path on the stripe itself. */
+#root .pageHeaderCard {
+  overflow: hidden !important;     /* clip the ::before stripe to card bounds */
+  position: relative !important;
+  z-index: 10 !important;
+  isolation: isolate !important;
+}
+/* Restore overflow:visible on the INNER content so dropdowns still escape */
+#root .pageHeaderCardInner {
+  position: relative !important;
+  z-index: 2 !important;
+  overflow: visible !important;
+}
+/* The stripe — sits at top, clipped by parent overflow:hidden */
+#root .pageHeaderCard::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, #c98317, #e2ab41, #f59e0b, #e2ab41, #c98317) !important;
+  border-radius: 0 !important;    /* parent clips to its own radius — no double radius */
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+
+/* 3. Dropdowns inside pageHeaderCard: break out via position:fixed */
+#root .pageHeaderCard .selectV3Dropdown,
+#root .pageHeaderCard [class*="Dropdown"],
+#root .pageHeaderCard .selectDropdown {
+  position: fixed !important;
+  z-index: 99999 !important;
+}

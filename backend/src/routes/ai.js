@@ -373,8 +373,36 @@ Be concise, specific, and data-driven. Reference task names and assignees. Sugge
 
     if (!anthropicRes.ok) {
       const err = await anthropicRes.json().catch(() => ({}));
-      return res.status(anthropicRes.status).json({
-        error: err?.error?.message || `Anthropic API error: ${anthropicRes.status}`
+      const status = anthropicRes.status;
+      const errMsg = err?.error?.message || '';
+
+      // Credit exhausted (402) or overloaded (529) — fall back to live org summary
+      if (status === 402 || status === 529 || errMsg.toLowerCase().includes('credit')) {
+        const tasks = orgContext.tasks || [];
+        const counts = { total: tasks.length, overdue: 0, pending: 0, in_progress: 0, completed: 0 };
+        for (const t of tasks) {
+          if (t.status === 'overdue') counts.overdue++;
+          else if (t.status === 'pending') counts.pending++;
+          else if (t.status === 'in_progress') counts.in_progress++;
+          else if (t.status === 'completed' || t.status === 'manager_approved') counts.completed++;
+        }
+        const overdueList = tasks.filter(t => t.status === 'overdue').slice(0, 5)
+          .map(t => `• "${t.title}" — ${t.assigned_to_name || 'unassigned'}`).join('\n');
+        const lb = (orgContext.leaderboard || []).slice(0, 5).filter(u => Number(u.total) > 0)
+          .map(u => `• ${u.name}: ${u.completed}/${u.total} done`).join('\n');
+
+        const fallback =
+          `⚠️ **JecZone AI is temporarily unavailable** (API credit limit reached — top up at console.anthropic.com).\n\n` +
+          `Here's a live snapshot of your org instead:\n\n` +
+          `**Tasks:** ${counts.total} total · ${counts.completed} completed · ${counts.in_progress} in progress · ${counts.overdue} overdue\n\n` +
+          (counts.overdue > 0 ? `**Overdue:**\n${overdueList}\n\n` : `✅ No overdue tasks.\n\n`) +
+          (lb ? `**Team:**\n${lb}` : '');
+
+        return res.json({ text: fallback, offline: true });
+      }
+
+      return res.status(status).json({
+        error: errMsg || `AI service error (${status}). Please try again shortly.`
       });
     }
 

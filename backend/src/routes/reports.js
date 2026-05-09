@@ -144,16 +144,27 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
     const { reportType = 'on_demand' } = req.body;
+    // Accept both the frontend display names and internal names
+    const typeMap = {
+      task_completion: 'on_demand',
+      employee_performance: 'weekly',
+      project_summary: 'monthly',
+      on_demand: 'on_demand',
+      daily: 'daily',
+      weekly: 'weekly',
+      monthly: 'monthly',
+    };
+    const resolvedType = typeMap[reportType] || reportType;
     const allowed = ['on_demand', 'daily', 'weekly', 'monthly'];
-    if (!allowed.includes(reportType)) return res.status(400).json({ error: 'Invalid report type' });
+    if (!allowed.includes(resolvedType)) return res.status(400).json({ error: 'Invalid report type' });
 
     const end = new Date();
     const start = new Date();
-    if (reportType === 'weekly') start.setDate(end.getDate() - 7);
-    else if (reportType === 'monthly') start.setMonth(end.getMonth() - 1);
+    if (resolvedType === 'weekly') start.setDate(end.getDate() - 7);
+    else if (resolvedType === 'monthly') start.setMonth(end.getMonth() - 1);
     else start.setDate(end.getDate() - 1);
 
-    const data = await generateReport(req.user.id, req.user.org_id, start, end, reportType);
+    const data = await generateReport(req.user.id, req.user.org_id, start, end, resolvedType);
     res.json({ report: data });
   } catch (err) {
     if (isMissingReportsTableError(err)) {
