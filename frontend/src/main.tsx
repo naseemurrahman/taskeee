@@ -7,6 +7,8 @@ import './index.css'       // design tokens, keyframes, base component classes
 import './overrides.css'   // component layout overrides, grid utilities
 import './app-patches.css' // all feature-specific patches (consolidated from 28 files)
 import './overlay-upgrade-fixes.css' // final z-index, dropdown, and mobile notification fixes
+import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visualization
+import './dashboard-modern-chart-upgrade' // dashboard chart injector
 import './task-checkbox-event-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
