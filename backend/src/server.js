@@ -164,6 +164,8 @@ async function start() {
   if (process.env.ENABLE_LEGACY_AUTO_MIGRATE === 'true') {
     try { await require('./utils/autoMigrate').runAutoMigrations(); } catch (err) { logger.warn('Legacy auto-migration warning: ' + err.message); }
   }
+  // Schema verification — surfaces schema drift at startup instead of silent runtime failures
+  try { await require('./utils/schemaVerify').verifySchema(); } catch (err) { logger.warn('Schema verification failed: ' + err.message); }
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
 }
 

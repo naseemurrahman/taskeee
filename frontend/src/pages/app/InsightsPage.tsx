@@ -3,6 +3,11 @@ import { useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie, Legend,
+} from 'recharts'
 
 type TaskRow = { status: string; priority?: string; assigned_to_name?: string | null; due_date?: string | null; category_name?: string | null }
 type WorkloadRow = { employee_id: string; employee_name: string; open_tasks: number; total_tasks: number }
@@ -12,6 +17,12 @@ const RANGE_OPTS = [
   { value: '30d', label: 'Last 30 days' },
   { value: '90d', label: 'Last 90 days' },
 ]
+
+const STATUS_COLORS: Record<string, string> = {
+  pending: '#94a3b8', in_progress: '#8b5cf6', submitted: '#38bdf8',
+  ai_reviewing: '#06b6d4', ai_approved: '#10b981', ai_rejected: '#f97316',
+  manager_approved: '#22c55e', completed: '#22c55e', overdue: '#ef4444', cancelled: '#6b7280',
+}
 
 function Metric({ label, value, sub, color = 'var(--brand)' }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
@@ -33,6 +44,20 @@ function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: string; ti
         <div style={{ fontSize: 13, fontWeight: 800, color: colors[tone], marginBottom: 4 }}>{title}</div>
         <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>{body}</div>
       </div>
+    </div>
+  )
+}
+
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+      {label && <div style={{ fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>{label}</div>}
+      {payload.map((p: any) => (
+        <div key={p.dataKey} style={{ color: p.fill || p.color || '#fff', fontWeight: 700 }}>
+          {p.name}: <span style={{ color: '#fff' }}>{p.value}</span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -70,6 +95,9 @@ export function InsightsPage() {
     // Priority breakdown
     const byCritical = tasks.filter(t => t.priority === 'critical').length
     const byHigh     = tasks.filter(t => t.priority === 'high').length
+    const byMedium   = tasks.filter(t => t.priority === 'medium').length
+    const byLow      = tasks.filter(t => t.priority === 'low').length
+    const byUrgent   = tasks.filter(t => t.priority === 'urgent').length
 
     // Top assignees by open tasks
     const assigneeCounts: Record<string, number> = {}
@@ -87,7 +115,7 @@ export function InsightsPage() {
     }
     const topCategories = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
-    return { total, completed, overdue, inProgress, pending, submitted, completionRate, overdueRate, byCritical, byHigh, topAssignees, topCategories }
+    return { total, completed, overdue, inProgress, pending, submitted, completionRate, overdueRate, byCritical, byHigh, byMedium, byLow, byUrgent, topAssignees, topCategories }
   }, [tasksQ.data])
 
   const workload = workloadQ.data || []
@@ -147,6 +175,74 @@ export function InsightsPage() {
             <Metric label="In Progress"      value={stats.inProgress}     sub="active now" color="#8b5cf6" />
             <Metric label="Overdue"          value={stats.overdue}        sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} />
             <Metric label="Avg Open / Person" value={avgOpenTasks}        sub="workload balance" color="#f59e0b" />
+          </div>
+
+          {/* ── Charts row ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+
+            {/* Status distribution pie */}
+            <div className="card">
+              <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>📊 Status Distribution</div>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(
+                      (tasksQ.data || []).reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc }, {} as Record<string,number>)
+                    ).map(([name, value]) => ({ name: name.replace(/_/g,' '), value, status: name })).filter(d => d.value > 0)}
+                    cx="50%" cy="50%" outerRadius={80} innerRadius={44}
+                    dataKey="value" nameKey="name"
+                  >
+                    {Object.keys(STATUS_COLORS).map(s => (
+                      <Cell key={s} fill={STATUS_COLORS[s] || '#94a3b8'} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{v}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Workload bar chart */}
+            {workload.length > 0 && (
+              <div className="card">
+                <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>👥 Team Workload</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={workload.slice(0, 8).map(w => ({ name: w.employee_name.split(' ')[0], open: w.open_tasks, total: w.total_tasks }))} layout="vertical" margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} width={60} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="open" name="Open" fill="#8b5cf6" radius={[0,4,4,0]} />
+                    <Bar dataKey="total" name="Total" fill="rgba(226,171,65,0.4)" radius={[0,4,4,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Priority radar */}
+            {stats && (() => {
+              const priorityData = [
+                { label: 'Low', value: stats.byLow },
+                { label: 'Medium', value: stats.byMedium },
+                { label: 'High', value: stats.byHigh },
+                { label: 'Critical', value: stats.byCritical },
+                { label: 'Urgent', value: stats.byUrgent || 0 },
+              ].filter(d => d.value > 0)
+              return priorityData.length > 0 ? (
+                <div className="card">
+                  <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14 }}>⚡ Priority Pressure</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <RadarChart data={priorityData}>
+                      <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                      <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 11, fontWeight: 700 }} />
+                      <Radar name="Tasks" dataKey="value" stroke="#e2ab41" fill="#e2ab41" fillOpacity={0.25} strokeWidth={2} />
+                      <Tooltip content={<ChartTooltip />} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : null
+            })()}
+
           </div>
 
           {/* AI-style Insights */}
