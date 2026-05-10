@@ -53,7 +53,7 @@ class EmailService {
 
         try {
             const mailOptions = {
-                from: process.env.SMTP_FROM || process.env.SMTP_USER || 'TaskFlow Pro <noreply@taskflowpro.com>',
+                from: process.env.SMTP_FROM || process.env.SMTP_USER || 'TASKEE <noreply@taskeepro.com>',
                 to,
                 subject,
                 html: htmlContent,
@@ -73,23 +73,23 @@ class EmailService {
         return `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verify Your Email - TaskFlow Pro</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verify Your Email - TASKEE</title></head>
 <body style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
     <div style="background:#242220;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0">
-        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TaskFlow Pro</div>
-        <div>AI Task Management Platform</div>
+        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TASKEE</div>
+        <div>AI Task Intelligence Platform</div>
     </div>
     <div style="background:#f8fafc;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
-        <h2>Welcome to TaskFlow Pro, ${userName}!</h2>
-        <p>Thank you for signing up. To complete your registration and start using TaskFlow Pro, please verify your email address.</p>
+        <h2>Welcome to TASKEE, ${userName}!</h2>
+        <p>Thank you for signing up. To complete your registration and start using TASKEE, please verify your email address.</p>
         <p><a href="${verificationLink}" style="display:inline-block;padding:12px 30px;background:#242220;color:white;text-decoration:none;border-radius:5px;margin:20px 0">Verify Email Address</a></p>
         <p>Or copy and paste this link into your browser:</p>
         <p><a href="${verificationLink}">${verificationLink}</a></p>
         <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
-        <p>If you didn't create an account with TaskFlow Pro, you can safely ignore this email.</p>
+        <p>If you didn't create an account with TASKEE, you can safely ignore this email.</p>
     </div>
     <div style="text-align:center;margin-top:30px;color:#64748b;font-size:14px">
-        <p>&copy; 2024 TaskFlow Pro. All rights reserved.</p>
+        <p>&copy; 2024 TASKEE. All rights reserved.</p>
         <p>This is an automated message, please do not reply to this email.</p>
     </div>
 </body>
@@ -100,16 +100,16 @@ class EmailService {
         return `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Reset Your Password - TaskFlow Pro</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Reset Your Password - TASKEE</title></head>
 <body style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
     <div style="background:#242220;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0">
-        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TaskFlow Pro</div>
-        <div>AI Task Management Platform</div>
+        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TASKEE</div>
+        <div>AI Task Intelligence Platform</div>
     </div>
     <div style="background:#f8fafc;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
         <h2>Password Reset Request</h2>
         <p>Hi ${userName},</p>
-        <p>We received a request to reset your password for your TaskFlow Pro account.</p>
+        <p>We received a request to reset your password for your TASKEE account.</p>
         <p><a href="${resetLink}" style="display:inline-block;padding:12px 30px;background:#242220;color:white;text-decoration:none;border-radius:5px;margin:20px 0;font-weight:bold">Reset Password</a></p>
         <p>Or copy and paste this link into your browser:</p>
         <p><a href="${resetLink}">${resetLink}</a></p>
@@ -123,7 +123,7 @@ class EmailService {
         </div>
     </div>
     <div style="text-align:center;margin-top:30px;color:#64748b;font-size:14px">
-        <p>&copy; 2024 TaskFlow Pro. All rights reserved.</p>
+        <p>&copy; 2024 TASKEE. All rights reserved.</p>
         <p>This is an automated message, please do not reply to this email.</p>
     </div>
 </body>
@@ -134,21 +134,21 @@ class EmailService {
         return `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Welcome to TaskFlow Pro</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Welcome to TASKEE</title></head>
 <body style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
     <div style="background:#242220;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0">
-        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TaskFlow Pro</div>
-        <div>AI Task Management Platform</div>
+        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TASKEE</div>
+        <div>AI Task Intelligence Platform</div>
     </div>
     <div style="background:#f8fafc;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
-        <h2>Welcome to TaskFlow Pro, ${userName}!</h2>
+        <h2>Welcome to TASKEE, ${userName}!</h2>
         <p>Your account has been successfully created and you're ready to start managing tasks more efficiently.</p>
         <h3>Organization: ${organizationName}</h3>
         <p>You can create and manage tasks, collaborate with your team, track project progress, and generate reports.</p>
         <p>We're excited to have you on board.</p>
     </div>
     <div style="text-align:center;margin-top:30px;color:#64748b;font-size:14px">
-        <p>&copy; 2024 TaskFlow Pro. All rights reserved.</p>
+        <p>&copy; 2024 TASKEE. All rights reserved.</p>
         <p>This is an automated message, please do not reply to this email.</p>
     </div>
 </body>
@@ -162,7 +162,7 @@ class EmailService {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Welcome to ${organizationName} - Your Account Details</title></head>
 <body style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
     <div style="background:#242220;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0">
-        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TaskFlow Pro</div>
+        <div style="font-size:24px;font-weight:bold;margin-bottom:10px">TASKEE</div>
         <div>Welcome to ${organizationName}</div>
     </div>
     <div style="background:#f8fafc;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
@@ -187,7 +187,7 @@ class EmailService {
         </div>
     </div>
     <div style="text-align:center;margin-top:30px;color:#64748b;font-size:14px">
-        <p>&copy; 2024 TaskFlow Pro. All rights reserved.</p>
+        <p>&copy; 2024 TASKEE. All rights reserved.</p>
         <p>This is an automated message, please do not reply to this email.</p>
     </div>
 </body>

@@ -96,10 +96,14 @@ export function SignInPage() {
           {/* Brand */}
           <div>
             <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 16px rgba(226,171,65,0.35)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#1c1710,#0d0b08)', border: '1.5px solid rgba(226,171,65,0.35)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 20px rgba(226,171,65,0.2)' }}>
+                <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+                  <defs><linearGradient id="authGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9e6a2"/><stop offset="100%" stopColor="#e2ab41"/></linearGradient></defs>
+                  <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#authGold)"/>
+                  <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#authGold)"/>
+                </svg>
               </div>
-              <span style={{ fontWeight: 950, fontSize: 20, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
+              <span style={{ fontWeight: 950, fontSize: 20, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg,#f9e6a2,#e2ab41)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>TASKEE</span>
             </Link>
           </div>
 

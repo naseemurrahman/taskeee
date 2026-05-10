@@ -49,7 +49,7 @@ export function OnboardingBanner() {
             <span style={{ fontSize: 20 }}><IconZap size={14} /></span>
             <div>
               <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--text)', letterSpacing: '-0.2px' }}>
-                Set up TaskFlow Pro — {completedSteps.length}/{STEPS.length} steps complete
+                Set up TASKEE — {completedSteps.length}/{STEPS.length} steps complete
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                 Complete setup to unlock the full power of AI task management

@@ -64,7 +64,7 @@ export function MarketingLayout() {
               </svg>
             </div>
             <div className="mktBrandText">
-              <div className="mktBrandName">TaskFlow Pro</div>
+              <div className="mktBrandName">TASKEE</div>
               <div className="mktBrandSub">HR + Workflows + AI</div>
             </div>
           </Link>
@@ -179,7 +179,7 @@ export function MarketingLayout() {
                     <path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                   </svg>
                 </div>
-                <div className="mktFooterBrand">TaskFlow Pro</div>
+                <div className="mktFooterBrand">TASKEE</div>
               </div>
               <div className="mktFooterSub">
                 Subscription per employee seat · Admin/HR controlled onboarding · AI-assisted approvals.
@@ -201,7 +201,7 @@ export function MarketingLayout() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Link className="mktFooterLink" to="/signin">Sign in</Link>
                   <Link className="mktFooterLink" to="/signup">Sign up free</Link>
-                  <a className="mktFooterLink" href="mailto:support@taskflow.local">Support</a>
+                  <a className="mktFooterLink" href="mailto:support@taskee.local">Support</a>
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@ export function MarketingLayout() {
 
           <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              © {new Date().getFullYear()} TaskFlow Pro. All rights reserved.
+              © {new Date().getFullYear()} TASKEE. All rights reserved.
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <select className="mktLang" style={{ height: 32, fontSize: 11 }} value={lang} onChange={e => setLang(e.target.value as Lang)} aria-label="Language">

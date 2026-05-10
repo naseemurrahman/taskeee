@@ -652,7 +652,7 @@ router.patch('/time-off/requests/:id', authenticate, async (req, res, next) => {
                 ${!isApproved ? `<p style="margin:16px 0 0;color:#94a3b8;font-size:13px">If you have questions about this decision, please speak with your manager directly.</p>` : ''}
               </div>
               <div style="padding:16px 32px;background:#1e293b;border-top:1px solid rgba(255,255,255,0.06)">
-                <p style="margin:0;font-size:12px;color:#475569">This is an automated notification from TaskFlow Pro.</p>
+                <p style="margin:0;font-size:12px;color:#475569">This is an automated notification from TASKEE.</p>
               </div>
             </div>`;
 

@@ -232,9 +232,18 @@ export function AppLayout() {
         <div className="sidebarV4Logo">
           <NavLink to="/" className="sidebarV4LogoLink">
             <div className="sidebarV4LogoMark">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="sideGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#f9e6a2"/>
+                    <stop offset="100%" stopColor="#e2ab41"/>
+                  </linearGradient>
+                </defs>
+                <rect x="7" y="11" width="34" height="6.5" rx="3.25" fill="url(#sideGold)"/>
+                <rect x="19.5" y="17" width="9" height="19" rx="2.5" fill="url(#sideGold)"/>
+              </svg>
             </div>
-            {!collapsed && <div><span className="sidebarV4BrandName">TaskFlow Pro</span><span className="sidebarV4BrandSub">Task Management by AI</span></div>}
+            {!collapsed && <div><span className="sidebarV4BrandName">TASKEE</span><span className="sidebarV4BrandSub">AI Task Intelligence</span></div>}
           </NavLink>
           <button type="button" onClick={toggleSidebar} className="sidebarCollapseBtn" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>{collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}</button>
         </div>

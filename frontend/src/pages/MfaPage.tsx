@@ -54,7 +54,7 @@ export function MfaPage() {
         <div className="authBrand">
           <div className="authLogo">TF</div>
           <div>
-            <div className="authName">TaskFlow Pro</div>
+            <div className="authName">TASKEE</div>
             <div className="authTag">Multi-factor authentication</div>
           </div>
         </div>

@@ -146,7 +146,7 @@ async function deliverNotificationChannels(userId, notificationId, { type, title
   if (emailEnabled && contact.email) {
     const result = await sendEmail({
       to: contact.email,
-      subject: `[TaskFlow] ${title}`,
+      subject: `[TASKEE] ${title}`,
       text,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
@@ -154,7 +154,7 @@ async function deliverNotificationChannels(userId, notificationId, { type, title
             <h2 style="color:#e2ab41;margin:0 0 8px">${title}</h2>
             <p style="color:#cbd5e1;margin:0;line-height:1.6">${String(body || '').replace(/\n/g,'<br>')}</p>
           </div>
-          <p style="color:#94a3b8;font-size:12px;margin-top:16px;text-align:center">TaskFlow Pro</p>
+          <p style="color:#94a3b8;font-size:12px;margin-top:16px;text-align:center">TASKEE</p>
         </div>
       `
     }).catch(e => ({ error: e.message }));
@@ -243,14 +243,14 @@ async function retryNotificationDelivery(logId, channel = null) {
   const contact = await getUserContact(log.user_id);
   if (!contact) throw new Error('User contact not found');
 
-  const title = log.title || log.notif_type || 'TaskFlow notification';
+  const title = log.title || log.notif_type || 'TASKEE notification';
   const body = log.body || '';
   const text = `${title}\n${body}`.trim();
   let result;
 
   if (selectedChannel === 'email') {
     if (!contact.email) throw new Error('User has no email address');
-    result = await sendEmail({ to: contact.email, subject: `[TaskFlow] ${title}`, text, html: `<p>${String(body || title).replace(/</g, '&lt;')}</p>` });
+    result = await sendEmail({ to: contact.email, subject: `[TASKEE] ${title}`, text, html: `<p>${String(body || title).replace(/</g, '&lt;')}</p>` });
   } else if (selectedChannel === 'whatsapp') {
     const toE164 = contact.whatsapp_e164 || contact.phone_e164;
     if (!toE164) throw new Error('User has no WhatsApp/phone number');

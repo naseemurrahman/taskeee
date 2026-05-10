@@ -1,17 +1,13 @@
 {
-  "name": "TaskFlow Pro",
-  "short_name": "TaskFlow",
-  "description": "TaskFlow Pro - team task management and analytics",
-  "start_url": "/",
+  "name": "TASKEE",
+  "short_name": "TASKEE",
+  "description": "TASKEE — AI-powered task intelligence for high-performance teams",
+  "start_url": "/app/dashboard",
   "display": "standalone",
-  "background_color": "#111827",
+  "background_color": "#0d0b08",
   "theme_color": "#e2ab41",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    { "src": "/favicon.svg",  "sizes": "48x48",   "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }

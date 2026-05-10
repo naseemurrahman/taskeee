@@ -141,7 +141,7 @@ function buildSafeSystemPrompt(orgContext, signals) {
     ? signals.slice(0, 6).map(s => `  - [${s.type}] ${s.entityType} "${s.entityName}": ${JSON.stringify(Object.fromEntries(Object.entries(s).filter(([k]) => !['type','entityType','entityId','entityName'].includes(k))))}`).join('\n')
     : '  - No significant signals detected.';
 
-  return `You are JecZone AI, the intelligent assistant for TaskFlow Pro.
+  return `You are JecZone AI, the intelligent assistant for TASKEE.
 
 SAFETY RULES (NEVER break these):
 1. You CANNOT perform any action (assign task, change status, delete, etc.) without the user explicitly saying "Yes, apply this".

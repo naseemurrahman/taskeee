@@ -267,7 +267,7 @@ export function MarketingHomePage() {
             Built for how real teams work
           </h2>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', maxWidth: 560, margin: '0 auto' }}>
-            From solo freelancers to enterprise organizations — TaskFlow Pro scales with your business and adapts to your workflow.
+            From solo freelancers to enterprise organizations — TASKEE scales with your business and adapts to your workflow.
           </p>
         </div>
         <div className="featGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
@@ -303,7 +303,7 @@ export function MarketingHomePage() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>{'★★★★★'.split('').map((s, i) => <span key={i} style={{ color: '#e2ab41', fontSize: 20 }}>{s}</span>)}</div>
         </div>
         <div className="testGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          <Testimonial quote="TaskFlow Pro cut our project delivery time by 35%. The AI insights flag at-risk tasks before they become real problems." name="Sarah Al-Rashid" role="VP Engineering" company="Horizon Tech" avatar="S" />
+          <Testimonial quote="TASKEE cut our project delivery time by 35%. The AI insights flag at-risk tasks before they become real problems." name="Sarah Al-Rashid" role="VP Engineering" company="Horizon Tech" avatar="S" />
           <Testimonial quote="Finally a task tool that understands org hierarchy. Our managers see their team, employees see their work — clean separation." name="Mohammed Khalid" role="Operations Director" company="Gulf Ventures" avatar="M" />
           <Testimonial quote="The WhatsApp notifications alone saved us 2 hours of follow-up calls per day. Our team actually responds now." name="Aisha Bakr" role="HR Manager" company="Nafis Group" avatar="A" />
         </div>
@@ -332,10 +332,14 @@ export function MarketingHomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 48 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#e2ab41', display: 'grid', placeItems: 'center' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#1c1710,#0d0b08)', border: '1.5px solid rgba(226,171,65,0.35)', display: 'grid', placeItems: 'center', boxShadow: '0 2px 12px rgba(226,171,65,0.15)' }}>
+                <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                  <rect x="7" y="11" width="34" height="6" rx="3" fill="url(#mktGold)"/>
+                  <rect x="19.5" y="17" width="9" height="18" rx="2.5" fill="url(#mktGold)"/>
+                  <defs><linearGradient id="mktGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9e6a2"/><stop offset="100%" stopColor="#e2ab41"/></linearGradient></defs>
+                </svg>
               </div>
-              <span style={{ fontWeight: 950, fontSize: 16, color: '#fff' }}>TaskFlow Pro</span>
+              <span style={{ fontWeight: 950, fontSize: 17, letterSpacing: '0.12em', textTransform: 'uppercase', background: 'linear-gradient(135deg,#f9e6a2,#e2ab41)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>TASKEE</span>
             </div>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, maxWidth: 260 }}>AI-powered task management for organizations that demand performance and accountability.</p>
           </div>
@@ -349,7 +353,7 @@ export function MarketingHomePage() {
           ))}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>© 2026 TaskFlow Pro. All rights reserved.</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>© 2026 TASKEE. All rights reserved.</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             Built with <Heart size={14} /> for high-performance teams
           </div>

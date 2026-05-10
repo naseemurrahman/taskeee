@@ -8102,3 +8102,63 @@ html, body, #root {
   border-color: rgba(226,171,65,0.28) !important;
   color: #e2ab41 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TASKEE BRAND — premium wordmark styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Sidebar brand wordmark */
+#root .sidebarV4BrandName {
+  font-size: 17px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  background: linear-gradient(135deg, #f9e6a2 0%, #e2ab41 50%, #c98317 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  line-height: 1.1 !important;
+  display: block !important;
+}
+
+#root .sidebarV4BrandSub {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--muted) !important;
+  text-transform: uppercase !important;
+  margin-top: 1px !important;
+  display: block !important;
+}
+
+/* Logo mark icon */
+#root .sidebarV4LogoMark {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 9px !important;
+  background: linear-gradient(135deg, #1c1710, #0d0b08) !important;
+  border: 1.5px solid rgba(226,171,65,0.3) !important;
+  display: grid !important;
+  place-items: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 12px rgba(226,171,65,0.12) !important;
+}
+
+/* Marketing page — TASKEE wordmark in hero */
+.mktBrandName,
+.mktFooterBrand {
+  font-weight: 950 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  background: linear-gradient(135deg, #f9e6a2 0%, #e2ab41 60%, #c98317 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Auth pages — TASKEE wordmark */
+.authName {
+  font-weight: 950 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}

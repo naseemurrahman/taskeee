@@ -1,5 +1,5 @@
 /**
- * AppIcons — Premium custom SVG icon set for TaskFlow Pro
+ * AppIcons — Premium custom SVG icon set for TASKEE
  * Every icon is hand-crafted, pixel-aligned, and consistent at 20×20 viewport.
  * Use size prop to scale. strokeWidth kept at 1.6 for elegance at small sizes.
  */
