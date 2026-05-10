@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { IconClipboard } from '../../components/ui/AppIcons'
 import { Link } from 'react-router-dom'
 import { apiFetch, getApiErrorMessage } from '../../lib/api'
 import { useState } from 'react'
@@ -124,7 +125,7 @@ export function ReportsPage() {
             </div>
             <div className="pageHeaderCardSub">Generate performance and task reports for your organization. Reports capture a snapshot of task states, scores, and team metrics.</div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📋</span> Generate reports</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconClipboard size={14} /></span> Generate reports</span>
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📥</span> Download PDF/CSV</span>
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🕐</span> Historical snapshots</span>
             </div>
@@ -159,7 +160,7 @@ export function ReportsPage() {
         {q.isError ? <div className="alertV4 alertV4Error">{listError}</div> : null}
         {!q.isLoading && (q.data?.reports?.length || 0) === 0 ? (
           <div className="emptyStateV3">
-            <div className="emptyStateV3Icon">📋</div>
+            <div className="emptyStateV3Icon"><IconClipboard size={14} /></div>
             <div className="emptyStateV3Title">No reports yet</div>
             <div className="emptyStateV3Body">Click "Generate" above to create your first report snapshot.</div>
           </div>

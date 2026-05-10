@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect, useState, type ReactNode } from 'react'
+import { IconBarChart } from '../ui/AppIcons'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, AreaChart, Area, RadialBarChart, RadialBar,
@@ -84,7 +85,7 @@ function EmptyChart({ title }: { title: string }) {
   return (
     <div style={{ minHeight: 200, display: 'grid', placeItems: 'center', color: 'var(--muted)', textAlign: 'center', padding: 24 }}>
       <div>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+        <div style={{ fontSize: 32, marginBottom: 8 }}><IconBarChart size={14} /></div>
         <div style={{ fontWeight: 800, fontSize: 14 }}>{title}</div>
         <div style={{ fontSize: 12, marginTop: 4 }}>Data will appear once tasks are added</div>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconCheckCircle, IconFolder, IconUsers, IconZap } from './ui/AppIcons'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../lib/api'
@@ -14,9 +15,9 @@ async function fetchSetupStatus() {
 }
 
 const STEPS = [
-  { id: 'team', label: 'Add your first team member', icon: '👥', href: '/app/hr/employees', done: (s: any) => s.employees > 1 },
-  { id: 'project', label: 'Create a project', icon: '📁', href: '/app/projects', done: (s: any) => s.projects > 0 },
-  { id: 'task', label: 'Assign your first task', icon: '✅', href: '/app/tasks', done: (s: any) => s.tasks > 0 },
+  { id: 'team', label: 'Add your first team member', icon: <IconUsers size={14} />, href: '/app/hr/employees', done: (s: any) => s.employees > 1 },
+  { id: 'project', label: 'Create a project', icon: <IconFolder size={14} />, href: '/app/projects', done: (s: any) => s.projects > 0 },
+  { id: 'task', label: 'Assign your first task', icon: <IconCheckCircle size={14} />, href: '/app/tasks', done: (s: any) => s.tasks > 0 },
 ]
 
 export function OnboardingBanner() {
@@ -45,7 +46,7 @@ export function OnboardingBanner() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 20 }}>🚀</span>
+            <span style={{ fontSize: 20 }}><IconZap size={14} /></span>
             <div>
               <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--text)', letterSpacing: '-0.2px' }}>
                 Set up TaskFlow Pro — {completedSteps.length}/{STEPS.length} steps complete

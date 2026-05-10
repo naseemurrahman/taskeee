@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react'
+import { IconLock, IconMessage } from '../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -312,7 +313,7 @@ function NotificationsTab({ me }: { me: ReturnType<typeof getUser> }) {
         <div style={{ display: 'grid', gap: 8 }}>
           {[
             { key: 'ch_email',    label: 'Email',    desc: 'Sent to your account email address',         icon: '✉️' },
-            { key: 'ch_whatsapp', label: 'WhatsApp', desc: 'Sent to your WhatsApp number (set in Profile)', icon: '💬' },
+            { key: 'ch_whatsapp', label: 'WhatsApp', desc: 'Sent to your WhatsApp number (set in Profile)', icon: <IconMessage size={14} /> },
           ].map(ch => (
             <div key={ch.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'13px 16px', borderRadius:12, background:'var(--bg2)', border:'1px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -421,7 +422,7 @@ export function SettingsPage() {
 
   if (!canView) return (
     <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+      <div style={{ fontSize: 32, marginBottom: 12 }}><IconLock size={14} /></div>
       <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)' }}>Access restricted</div>
       <div style={{ fontSize: 13, marginTop: 6 }}>Settings are available to managers and above.</div>
     </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, type KeyboardEvent } from 'react'
+import { IconClipboard } from '../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { ChevronRight, MessageCircleMore } from 'lucide-react'
@@ -455,7 +456,7 @@ export function TasksPage() {
               <div style={{ position: 'relative' }}>
                 <button className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 12, fontWeight: 800 }}
                   onClick={() => setBulkAssignOpen(o => !o)}>
-                  👤 Assign to…
+                  Assign to…
                 </button>
                 {bulkAssignOpen && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, minWidth: 200, background: 'var(--bg1)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 9999, maxHeight: 260, overflowY: 'auto' }}>
@@ -502,7 +503,7 @@ export function TasksPage() {
           <ErrorRetry queryKey={['tasks', 'list', status, priority, search, isEmployee, page]} message="Could not load tasks. Check your connection and try again." />
         ) : tasks.length === 0 ? (
           <EmptyState
-            icon="📋"
+            icon={<IconClipboard size={14} />}
             title={search || status !== 'all' || priority !== 'all' ? 'No tasks match your filters' : isEmployee ? 'No tasks assigned to you yet' : 'No tasks yet'}
             sub={search || status !== 'all' || priority !== 'all' ? 'Try adjusting the filters above' : canCreate ? 'Create your first task to get started' : 'Tasks assigned to you will appear here.'}
             action={canCreate ? (

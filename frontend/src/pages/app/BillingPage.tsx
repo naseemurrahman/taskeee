@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconTrendUp, IconUsers } from '../../components/ui/AppIcons'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Select } from '../../components/ui/Select'
 import { apiFetch, ApiError } from '../../lib/api'
@@ -98,8 +99,8 @@ export function BillingPage() {
             <div className="pageHeaderCardSub">Manage your subscription plan, view seat usage, update payment details, and track billing history.</div>
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💳</span> Subscription plan</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👥</span> Seat usage</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📈</span> Billing history</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconUsers size={14} /></span> Seat usage</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconTrendUp size={14} /></span> Billing history</span>
             </div>
           </div>
           <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => portalM.mutate()} disabled={portalM.isPending}>

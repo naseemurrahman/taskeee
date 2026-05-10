@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { IconRobot } from '../ui/AppIcons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -39,7 +40,7 @@ function renderMessage(text: string, onApply: (taskId: string, status: string) =
       return (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 11, fontWeight: 800, margin: '2px 0', cursor: 'pointer' }}
           onClick={() => onApply(match[1], match[2])}>
-          ⚡ Apply: set to {match[2]}
+          Apply: set to {match[2]}
         </span>
       )
     }
@@ -88,7 +89,7 @@ export function AiAssistant() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
-      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Done — task status updated to "${vars.status}".`, ts: Date.now() }])
+      setMessages(prev => [...prev, { role: 'assistant', content: ` Done — task status updated to "${vars.status}".`, ts: Date.now() }])
       toastSuccess('Status applied', `Task set to "${vars.status}"`)
       setPendingAction(null)
     },
@@ -128,7 +129,7 @@ export function AiAssistant() {
       <div className="formCardV3">
         <div className="formCardV3Head">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #6d5efc, #e2ab41)', display: 'grid', placeItems: 'center', fontSize: 22 }}>🤖</div>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #6d5efc, #e2ab41)', display: 'grid', placeItems: 'center', fontSize: 22 }}><IconRobot size={14} /></div>
             <div>
               <div className="formCardV3Title">JecZone AI Assistant</div>
               <div className="formCardV3Sub">Live org data · Status suggestions · Team analysis</div>
@@ -160,7 +161,7 @@ export function AiAssistant() {
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
               <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: m.role === 'assistant' ? 14 : 12, fontWeight: 900, background: m.role === 'assistant' ? 'linear-gradient(135deg, #6d5efc, #e2ab41)' : 'var(--brandDim)', border: m.role === 'user' ? '1.5px solid var(--brandBorder)' : 'none', color: m.role === 'user' ? 'var(--brand)' : undefined }}>
-                {m.role === 'assistant' ? '🤖' : (me?.fullName || 'U').charAt(0).toUpperCase()}
+                {m.role === 'assistant' ? <IconRobot size={14} /> : (me?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               <div style={{ maxWidth: '78%' }}>
                 <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: m.role === 'user' ? 'var(--brandDim)' : 'var(--surfaceUp)', border: '1px solid ' + (m.role === 'user' ? 'var(--brandBorder)' : 'var(--border)'), fontSize: 13, lineHeight: 1.6, color: 'var(--text)', wordBreak: 'break-word' }}>
@@ -171,7 +172,7 @@ export function AiAssistant() {
           ))}
           {loading && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#6d5efc,#e2ab41)', display: 'grid', placeItems: 'center', fontSize: 14 }}>🤖</div>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#6d5efc,#e2ab41)', display: 'grid', placeItems: 'center', fontSize: 14 }}><IconRobot size={14} /></div>
               <div style={{ padding: '12px 16px', borderRadius: '14px 14px 14px 4px', background: 'var(--surfaceUp)', border: '1px solid var(--border)' }}>
                 <span style={{ display: 'inline-flex', gap: 5 }}>
                   {[0,1,2].map(n => <span key={n} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--brand)', display: 'inline-block', animation: `pulse 1.2s ${n*0.2}s ease-in-out infinite` }} />)}

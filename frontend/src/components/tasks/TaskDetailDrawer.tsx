@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
+import { IconBarChart, IconReport } from '../ui/AppIcons'
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, MessageCircle, Trash2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
@@ -457,7 +458,7 @@ export function TaskDetailDrawer({
                       const name = (photo as any).original_filename || 'Attachment'
                       const isImg = mime.startsWith('image/')
                       const isPdf = mime === 'application/pdf'
-                      const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? '📊' : mime.includes('word') ? '📝' : '📎'
+                      const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? <IconBarChart size={14} /> : mime.includes('word') ? <IconReport size={14} /> : '📎'
                       return (
                         <a key={photo.id} href={url || '#'} target="_blank" rel="noreferrer"
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg1)', overflow: 'hidden' }}>
@@ -515,7 +516,7 @@ export function TaskDetailDrawer({
                     const name = (ph as any).original_filename || 'Attachment'
                     const isImg = mime.startsWith('image/')
                     const isPdf = mime === 'application/pdf'
-                    const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? '📊' : mime.includes('word') ? '📝' : '📎'
+                    const fileIcon = isPdf ? '📄' : mime.includes('spreadsheet') || mime.includes('excel') ? <IconBarChart size={14} /> : mime.includes('word') ? <IconReport size={14} /> : '📎'
                     return (
                       <a key={ph.id} href={url || '#'} target="_blank" rel="noreferrer"
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', textDecoration: 'none', background: 'var(--bg2)' }}>

@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react'
+import { IconAlertTriangle, IconCalendar, IconClipboard, IconTarget } from '../../components/ui/AppIcons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -150,9 +151,9 @@ export function CalendarPage() {
             </div>
             <div className="pageHeaderCardSub">Monthly calendar view of all task due dates. Click any day to see tasks due that day. Color coded by overdue, due today, or upcoming.</div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📅</span> Monthly view</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🎯</span> Due date tracking</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>⚠️</span> Overdue alerts</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconCalendar size={14} /></span> Monthly view</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconTarget size={14} /></span> Due date tracking</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconAlertTriangle size={14} /></span> Overdue alerts</span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -358,7 +359,7 @@ export function CalendarPage() {
       {unscheduled.length > 0 && (
         <div className="card" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 16 }}>📋</span>
+            <span style={{ fontSize: 16 }}><IconClipboard size={14} /></span>
             <div>
               <div style={{ fontWeight: 900, fontSize: 14, color: 'var(--text)' }}>Unscheduled Tasks</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{unscheduled.length} task{unscheduled.length !== 1 ? 's' : ''} with no due date — drag to a date or open to schedule</div>

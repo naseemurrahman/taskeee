@@ -1,4 +1,6 @@
+import type React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { IconAlertTriangle } from './AppIcons'
 
 /* ─── Skeleton loader ────────────────────────────────────────── */
 export function SkeletonRows({ count = 5 }: { count?: number }) {
@@ -48,7 +50,7 @@ export function ErrorRetry({
   }
   return (
     <div className="errorRetryCard">
-      <div className="errorIcon">⚠️</div>
+      <div className="errorIcon"><IconAlertTriangle size={14} /></div>
       <div className="errorTitle">Failed to load</div>
       <div className="errorSub">{message}</div>
       <button className="btn btnPrimary" onClick={handleRetry} style={{ marginTop: 4, height: 36, padding: '0 20px', fontSize: 13 }}>
@@ -65,7 +67,7 @@ export function EmptyState({
   sub,
   action,
 }: {
-  icon?: string
+  icon?: React.ReactNode
   title: string
   sub?: string
   action?: React.ReactNode
