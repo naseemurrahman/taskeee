@@ -73,7 +73,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   function clearField(name: keyof FieldErrors) { setFieldErrors(prev => ({ ...prev, [name]: undefined })) }
   function handleClose() { setDept(''); setAssignedTo(''); setPriority('medium'); setProjectId(props.defaultProjectId || ''); setError(null); setFieldErrors({}); props.onClose() }
   const m = useMutation({
-    mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks/create-simple', { method: 'POST', json: input }),
+    mutationFn: (input: CreateTaskInput) => apiFetch<{ task: unknown }>('/api/v1/tasks', { method: 'POST', json: input, timeoutMs: 45_000 }),
     onSuccess: () => {
       setError(null); setFieldErrors({})
       qc.invalidateQueries({ queryKey: ['dashboard'] }); qc.invalidateQueries({ queryKey: ['tasks'] })
