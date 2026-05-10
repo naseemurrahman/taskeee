@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from 'react'
+import { IconZap } from '../../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../../lib/api'
 
@@ -113,7 +114,7 @@ export function CrmPipelinePage() {
         </div>
       </div>
       <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '40px 32px', textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🚀</div>
+        <div style={{ fontSize: 48, marginBottom: 16 }}><IconZap size={14} /></div>
         <div style={{ fontWeight: 900, fontSize: 20, color: 'var(--text)', marginBottom: 8 }}>Set up your pipeline</div>
         <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>Create your default sales pipeline with pre-built stages to start tracking deals from prospect to close.</div>
         {error && <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 16, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13, fontWeight: 700 }}>{error}</div>}

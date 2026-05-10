@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { IconAward } from '../../components/ui/AppIcons'
 import type React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -868,7 +869,7 @@ function AtRiskList() {
   const tasks = data || []
   if (!tasks.length) return (
     <div style={{ padding: '20px 0', textAlign: 'center', color: C.muted }}>
-      <div style={{ fontSize: 24, marginBottom: 6 }}>🎉</div>
+      <div style={{ fontSize: 24, marginBottom: 6 }}><IconAward size={14} /></div>
       <div style={{ fontWeight: 800, fontSize: 13 }}>All tasks on track!</div>
       <div style={{ fontSize: 11, marginTop: 3 }}>No overdue items.</div>
     </div>

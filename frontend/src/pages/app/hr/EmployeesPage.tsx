@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconKey, IconUsers } from '../../../components/ui/AppIcons'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
@@ -257,7 +258,7 @@ export function EmployeesPage() {
           <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>Loading employees…</div>
         ) : employees.length === 0 ? (
           <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+            <div style={{ fontSize: 32, marginBottom: 12 }}><IconUsers size={14} /></div>
             <div style={{ fontWeight: 800, fontSize: 15 }}>No employees found</div>
             <div style={{ fontSize: 13, marginTop: 6, color: 'var(--muted)' }}>Try adjusting your search or status filter</div>
           </div>
@@ -310,7 +311,7 @@ export function EmployeesPage() {
             </div>
           </div>
           <div className="formCardV3Body">
-            {!acctQ.isLoading && orgUsers.length === 0 && <div className="emptyStateV3"><div className="emptyStateV3Icon">🔑</div><div className="emptyStateV3Title">No accounts found</div></div>}
+            {!acctQ.isLoading && orgUsers.length === 0 && <div className="emptyStateV3"><div className="emptyStateV3Icon"><IconKey size={14} /></div><div className="emptyStateV3Title">No accounts found</div></div>}
             <div style={{ display: 'grid', gap: 6 }}>
               {orgUsers.map(u => (
                 <button key={u.id} type="button" onClick={() => setPickId(u.id)}

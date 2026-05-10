@@ -369,7 +369,7 @@ export function BoardPage() {
                       fontSize:12, fontWeight:700,
                     }}>
                       {draggedTaskId
-                        ? (isDragOver ? `⊕ Drop here → ${col.label}` : `Drop to move to ${col.label}`)
+                        ? (isDragOver ? ` Drop here → ${col.label}` : `Drop to move to ${col.label}`)
                         : 'No tasks'}
                     </div>
                   )}

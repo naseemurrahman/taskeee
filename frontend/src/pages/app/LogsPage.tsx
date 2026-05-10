@@ -1,4 +1,6 @@
+import type React from 'react'
 import { useMemo, useState } from 'react'
+import { IconBarChart, IconCalendar, IconCheckCircle, IconClipboard, IconFolder, IconKey, IconLightning, IconMessage, IconRefresh, IconReport, IconUser, IconUsers } from '../../components/ui/AppIcons'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -26,23 +28,23 @@ async function fetchOrgLogs(days: number, type: string, page: number) {
   return await apiFetch<{ logs: ActivityLog[]; total?: number }>(`/api/v1/activity?${qs.toString()}`)
 }
 
-const TYPE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
+const TYPE_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
   login:                  { label: 'Login',             icon: '🔐', color: '#22c55e', bg: 'rgba(34,197,94,0.10)'   },
-  user_added:             { label: 'User Added',        icon: '👤', color: '#38bdf8', bg: 'rgba(56,189,248,0.10)'  },
-  task_created:           { label: 'Task Created',      icon: '✅', color: '#818cf8', bg: 'rgba(129,140,248,0.10)' },
-  task_status_changed:    { label: 'Status Changed',    icon: '🔄', color: '#e2ab41', bg: 'rgba(226,171,65,0.10)'  },
-  task_priority_changed:  { label: 'Priority Changed',  icon: '⚡', color: '#f97316', bg: 'rgba(249,115,22,0.10)'  },
+  user_added:             { label: 'User Added',        icon: <IconUser size={14} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.10)'  },
+  task_created:           { label: 'Task Created',      icon: <IconCheckCircle size={14} />, color: '#818cf8', bg: 'rgba(129,140,248,0.10)' },
+  task_status_changed:    { label: 'Status Changed',    icon: <IconRefresh size={14} />, color: '#e2ab41', bg: 'rgba(226,171,65,0.10)'  },
+  task_priority_changed:  { label: 'Priority Changed',  icon: <IconLightning size={14} />, color: '#f97316', bg: 'rgba(249,115,22,0.10)'  },
   task_time_logged:       { label: 'Time Logged',       icon: '⏱️', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)' },
-  task_comment_added:     { label: 'Comment Added',     icon: '💬', color: '#60a5fa', bg: 'rgba(96,165,250,0.10)'  },
+  task_comment_added:     { label: 'Comment Added',     icon: <IconMessage size={14} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.10)'  },
   profile_updated:        { label: 'Profile Updated',   icon: '✏️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
   profile_avatar_updated: { label: 'Avatar Updated',    icon: '🖼️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
-  project_created:        { label: 'Project Created',   icon: '📁', color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
-  project_updated:        { label: 'Project Updated',   icon: '📝', color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
-  password_changed:       { label: 'Password Changed',  icon: '🔑', color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
+  project_created:        { label: 'Project Created',   icon: <IconFolder size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  project_updated:        { label: 'Project Updated',   icon: <IconReport size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  password_changed:       { label: 'Password Changed',  icon: <IconKey size={14} />, color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
 }
 
 function getTypeMeta(type: string) {
-  return TYPE_META[type] ?? { label: type.replace(/_/g, ' '), icon: '📋', color: '#9ca3af', bg: 'rgba(156,163,175,0.10)' }
+  return TYPE_META[type] ?? { label: type.replace(/_/g, ' '), icon: <IconClipboard size={14} />, color: '#9ca3af', bg: 'rgba(156,163,175,0.10)' }
 }
 
 function relativeTime(dateStr: string) {
@@ -196,10 +198,10 @@ export function LogsPage() {
       {/* Stats row */}
       <div className="grid4">
         {[
-          { label: 'Total events', value: q.isLoading ? '—' : String(stats.total), icon: '📊', color: '#818cf8' },
-          { label: 'Today',        value: q.isLoading ? '—' : String(stats.today), icon: '📅', color: '#22c55e' },
+          { label: 'Total events', value: q.isLoading ? '—' : String(stats.total), icon: <IconBarChart size={14} />, color: '#818cf8' },
+          { label: 'Today',        value: q.isLoading ? '—' : String(stats.today), icon: <IconCalendar size={14} />, color: '#22c55e' },
           { label: 'Logins',       value: q.isLoading ? '—' : String(stats.logins), icon: '🔐', color: '#38bdf8' },
-          { label: 'Active users', value: q.isLoading ? '—' : String(stats.uniqueUsers), icon: '👥', color: '#e2ab41' },
+          { label: 'Active users', value: q.isLoading ? '—' : String(stats.uniqueUsers), icon: <IconUsers size={14} />, color: '#e2ab41' },
         ].map(s => (
           <div key={s.label} className="miniCard">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -262,7 +264,7 @@ export function LogsPage() {
               {!q.isLoading && logs.length === 0 && (
                 <tr><td colSpan={4}>
                   <div className="emptyStateV3">
-                    <div className="emptyStateV3Icon">📋</div>
+                    <div className="emptyStateV3Icon"><IconClipboard size={14} /></div>
                     <div className="emptyStateV3Title">No events found</div>
                     <div className="emptyStateV3Body">Try adjusting the date range or event type filter.</div>
                   </div>

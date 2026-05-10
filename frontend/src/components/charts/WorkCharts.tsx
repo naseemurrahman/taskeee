@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect, useState, type ReactNode } from 'react'
+import { IconFolder, IconUsers } from '../ui/AppIcons'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 
 const H    = 280
@@ -72,7 +73,7 @@ export function ProjectProgressChart(props: { rows: Array<{ name:string; done:nu
   })
   if (!data.length) return (
     <div style={{ minHeight:200, display:'grid', placeItems:'center', color:'var(--muted)' }}>
-      <div style={{ textAlign:'center' }}>📁<div style={{ marginTop:8, fontWeight:800 }}>No projects yet</div></div>
+      <div style={{ textAlign:'center' }}><div style={{ marginBottom:8 }}><IconFolder size={22} color="var(--muted)" /></div><div style={{ marginTop:8, fontWeight:800 }}>No projects yet</div></div>
     </div>
   )
   return (
@@ -107,7 +108,7 @@ export function AssignmentsChart(props: { rows: Array<{ name:string; active:numb
   }))
   if (!data.length) return (
     <div style={{ minHeight:200, display:'grid', placeItems:'center', color:'var(--muted)' }}>
-      <div style={{ textAlign:'center' }}>👥<div style={{ marginTop:8, fontWeight:800 }}>No assignments yet</div></div>
+      <div style={{ textAlign:'center' }}><div style={{ marginBottom:8 }}><IconUsers size={22} color='var(--muted)' /></div><div style={{ marginTop:8, fontWeight:800 }}>No assignments yet</div></div>
     </div>
   )
   const h = Math.max(H, data.length*44)

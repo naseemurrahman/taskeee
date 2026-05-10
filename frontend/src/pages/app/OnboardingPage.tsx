@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconAward, IconInsight, IconUser, IconZap } from '../../components/ui/AppIcons'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
@@ -16,7 +17,7 @@ async function fetchOrg() {
 
 const STEPS = [
   { id: 'departments', title: 'Set up departments', icon: '🏢', desc: 'Organize your team into departments for cleaner task routing.' },
-  { id: 'role', title: 'Default invite role', icon: '👤', desc: 'Choose the default role when you invite new team members.' },
+  { id: 'role', title: 'Default invite role', icon: <IconUser size={14} />, desc: 'Choose the default role when you invite new team members.' },
   { id: 'invites', title: 'Invite your team', icon: '✉️', desc: 'Enter email addresses to send invites when ready.' },
 ]
 
@@ -65,7 +66,7 @@ export function OnboardingPage() {
           </div>
         </div>
         <div className="card" style={{ textAlign: 'center', padding: '56px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 52 }}>🎉</div>
+          <div style={{ fontSize: 52 }}><IconAward size={14} /></div>
           <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text)' }}>Onboarding already complete</div>
           <div style={{ color: 'var(--text2)', fontSize: 14, maxWidth: 360, lineHeight: 1.6 }}>
             Your organization is set up and running. Manage settings from the Settings page.
@@ -84,7 +85,7 @@ export function OnboardingPage() {
         <div className="pageHeaderCardInner">
           <div className="pageHeaderCardLeft">
             <div className="pageHeaderCardTitle">
-              <span style={{ fontSize: 20 }}>🚀</span>
+              <span style={{ fontSize: 20 }}><IconZap size={14} /></span>
               Set Up Your Workspace
             </div>
             <div className="pageHeaderCardSub">Configure your organization in {STEPS.length} quick steps.</div>
@@ -249,7 +250,7 @@ export function OnboardingPage() {
 
       {/* Help tip */}
       <div style={{ padding: '14px 20px', borderRadius: 14, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', display: 'flex', gap: 12, alignItems: 'center' }}>
-        <span style={{ fontSize: 18 }}>💡</span>
+        <span style={{ fontSize: 18 }}><IconInsight size={14} /></span>
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
           You can change all of these settings later from <strong style={{ color: 'var(--text)' }}>Settings → Organization</strong>. This wizard just gives you a head start.
         </div>

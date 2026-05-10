@@ -22,7 +22,7 @@ const errorHandler = require('./middleware/errorHandler');
 const { securityHeaders, sensitiveOpLogger, mfaRateLimiter, notificationRateLimiter, bulkActionRateLimiter } = require('./middleware/security');
 const { requestContext } = require('./middleware/requestContext');
 const { requireJsonBody } = require('./utils/validation');
-const { enforceTaskCollectionAccess } = require('./middleware/taskAccessPolicy');
+// taskAccessPolicy is required inline at the /api/v1/tasks mount below (after authenticate)
 
 if (!process.env.JWT_SECRET) { process.env.JWT_SECRET = 'taskflow-fallback-jwt-secret-change-me'; logger.warn('JWT_SECRET missing — using fallback secret. Set JWT_SECRET in production.'); }
 if (!process.env.JWT_REFRESH_SECRET) { process.env.JWT_REFRESH_SECRET = 'taskflow-fallback-refresh-secret-change-me'; logger.warn('JWT_REFRESH_SECRET missing — using fallback secret. Set JWT_REFRESH_SECRET in production.'); }
@@ -110,7 +110,11 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
 app.use('/api/v1/ai', require('./routes/ai'));
-app.use('/api/v1/tasks', enforceTaskCollectionAccess);
+// authenticate MUST run before enforceTaskCollectionAccess so req.user is populated.
+// Previously the policy ran unauthenticated: req.user was undefined, role normalized to '',
+// which is not in MANAGEMENT_ROLES, blocking ALL users including admin from creating tasks.
+const { authenticate: _taskAuth, enforceTaskCollectionAccess } = require('./middleware/taskAccessPolicy');
+app.use('/api/v1/tasks', _taskAuth, enforceTaskCollectionAccess);
 app.use('/api/v1/tasks', tasksListCompatRoutes);
 app.use('/api/v1/tasks/bulk', bulkActionRateLimiter);
 app.use('/api/v1/task-templates', taskTemplatesRoutes);

@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconUser } from '../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { getUser } from '../../state/auth'
@@ -337,7 +338,7 @@ export function TeamPage() {
         {q.isError && <div className="alert alertError">Failed to load team.</div>}
         {!q.isLoading && users.length === 0 && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '32px 0', color: 'var(--text2)' }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>👤</div>
+            <div style={{ fontSize: 28, marginBottom: 8 }}><IconUser size={14} /></div>
             No members found.
           </div>
         )}

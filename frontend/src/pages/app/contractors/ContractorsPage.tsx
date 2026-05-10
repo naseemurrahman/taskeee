@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconUser } from '../../../components/ui/AppIcons'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
@@ -101,7 +102,7 @@ export function ContractorsPage() {
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🤝</span> External workers</span>
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📄</span> Contract tracking</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👤</span> Profiles</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconUser size={14} /></span> Profiles</span>
             </div>
           </div>
           <div className="contractorsToolbar" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

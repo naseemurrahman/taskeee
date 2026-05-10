@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { IconSpark } from '../../components/ui/AppIcons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
@@ -383,7 +384,7 @@ export function AnalyticsPage() {
             {aiSuggestions.map((suggestion, index) => (
               <div key={suggestion} className="miniCard" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderLeft: `3px solid ${isRealAI ? '#8b5cf6' : 'var(--border)'}` }}>
                 <span className="pill pillMuted" style={{ color: isRealAI ? '#8b5cf6' : 'var(--muted)', flexShrink: 0 }}>
-                  {isRealAI ? '✦' : '→'} {index + 1}
+                  {isRealAI ? <IconSpark size={14} /> : '→'} {index + 1}
                 </span>
                 <div style={{ color: 'var(--text2)', lineHeight: 1.6, fontSize: 13 }}>{suggestion}</div>
               </div>

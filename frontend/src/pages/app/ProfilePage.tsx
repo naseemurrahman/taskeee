@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { IconKey, IconUser } from '../../components/ui/AppIcons'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, apiUpload, ApiError } from '../../lib/api'
@@ -203,8 +204,8 @@ export function ProfilePage() {
             </div>
             <div className="pageHeaderCardSub">Update your personal information, change your password, manage security settings, and upload a profile photo.</div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>👤</span> Personal info</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>🔑</span> Password &amp; security</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconUser size={14} /></span> Personal info</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconKey size={14} /></span> Password &amp; security</span>
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📸</span> Profile photo</span>
             </div>
           </div>

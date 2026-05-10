@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconBarChart, IconCalendar, IconCheckCircle } from '../../../components/ui/AppIcons'
 import { useToast } from '../../../components/ui/ToastSystem'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
@@ -98,9 +99,9 @@ export function TimeOffPage() {
             </div>
             <div className="pageHeaderCardSub">Submit and manage leave requests. Managers and HR can approve or reject requests. View the full history of all time-off requests.</div>
             <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📅</span> Leave requests</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>✅</span> Approve / Reject</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📊</span> Full history</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconCalendar size={14} /></span> Leave requests</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconCheckCircle size={14} /></span> Approve / Reject</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconBarChart size={14} /></span> Full history</span>
             </div>
           </div>
           <div style={{ width: 160 }}>

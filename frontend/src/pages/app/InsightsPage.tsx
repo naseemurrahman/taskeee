@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { IconAlertTriangle, IconAward, IconBarChart, IconCheckCircle, IconClipboard, IconCritical, IconFlag, IconLightning, IconOverdue, IconRisk, IconUsers } from '../../components/ui/AppIcons'
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
@@ -43,7 +44,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function StatCard({ label, value, sub, color = 'var(--brand)', icon }: { label: string; value: string | number; sub?: string; color?: string; icon?: string }) {
+function StatCard({ label, value, sub, color = 'var(--brand)', icon }: { label: string; value: string | number; sub?: string; color?: string; icon?: React.ReactNode }) {
   return (
     <div style={{
       padding: '18px 20px', borderRadius: 16, flex: '1 1 130px', minWidth: 120,
@@ -58,7 +59,7 @@ function StatCard({ label, value, sub, color = 'var(--brand)', icon }: { label: 
   )
 }
 
-function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: string; title: string; body: string; tone?: 'positive' | 'warning' | 'danger' | 'neutral' }) {
+function InsightCard({ icon, title, body, tone = 'neutral' }: { icon: React.ReactNode; title: string; body: string; tone?: 'positive' | 'warning' | 'danger' | 'neutral' }) {
   const colors = { positive: '#22c55e', warning: '#f59e0b', danger: '#ef4444', neutral: 'var(--brand)' }
   const bgs    = { positive: 'rgba(34,197,94,0.08)', warning: 'rgba(245,158,11,0.08)', danger: 'rgba(239,68,68,0.08)', neutral: 'rgba(226,171,65,0.08)' }
   return (
@@ -171,16 +172,16 @@ export function InsightsPage() {
   // Insights
   const insights = useMemo(() => {
     if (!stats) return []
-    const items: { icon: string; title: string; body: string; tone: 'positive' | 'warning' | 'danger' | 'neutral' }[] = []
-    if (stats.completionRate >= 80) items.push({ icon: '🎉', title: 'Strong completion rate', body: `${stats.completionRate}% of tasks completed — your team is executing well.`, tone: 'positive' })
-    else if (stats.completionRate < 50) items.push({ icon: '⚠️', title: 'Low completion rate', body: `Only ${stats.completionRate}% of tasks completed. Consider reviewing workloads and deadlines.`, tone: 'warning' })
-    if (stats.overdueRate > 20) items.push({ icon: '🔴', title: 'High overdue rate', body: `${stats.overdue} tasks (${stats.overdueRate}%) are overdue. Review and reassign or extend deadlines.`, tone: 'danger' })
-    else if (stats.overdue === 0) items.push({ icon: '✅', title: 'No overdue tasks', body: 'All tasks are within deadline — great scheduling discipline!', tone: 'positive' })
-    if (stats.byCritical > 0) items.push({ icon: '🚨', title: `${stats.byCritical} critical priority tasks`, body: `Ensure these have active owners and are unblocked.`, tone: 'danger' })
-    if (overloadedPeople.length > 0) items.push({ icon: '👥', title: `${overloadedPeople.length} people overloaded`, body: `${overloadedPeople.map(p => p.employee_name).join(', ')} each have 10+ open tasks.`, tone: 'warning' })
-    if (stats.submitted > 0) items.push({ icon: '📋', title: `${stats.submitted} tasks awaiting review`, body: `Review them to unblock your team.`, tone: 'neutral' })
-    if (stats.pending > stats.inProgress * 2) items.push({ icon: '📌', title: 'Many tasks not started', body: `${stats.pending} pending vs ${stats.inProgress} in progress. Triage the backlog.`, tone: 'warning' })
-    if (items.length === 0) items.push({ icon: '📊', title: 'Operations look healthy', body: 'No significant issues detected.', tone: 'positive' })
+    const items: { icon: React.ReactNode; title: string; body: string; tone: 'positive' | 'warning' | 'danger' | 'neutral' }[] = []
+    if (stats.completionRate >= 80) items.push({ icon: <IconAward size={14} />, title: 'Strong completion rate', body: `${stats.completionRate}% of tasks completed — your team is executing well.`, tone: 'positive' })
+    else if (stats.completionRate < 50) items.push({ icon: <IconAlertTriangle size={14} />, title: 'Low completion rate', body: `Only ${stats.completionRate}% of tasks completed. Consider reviewing workloads and deadlines.`, tone: 'warning' })
+    if (stats.overdueRate > 20) items.push({ icon: <IconRisk size={14} />, title: 'High overdue rate', body: `${stats.overdue} tasks (${stats.overdueRate}%) are overdue. Review and reassign or extend deadlines.`, tone: 'danger' })
+    else if (stats.overdue === 0) items.push({ icon: <IconCheckCircle size={14} />, title: 'No overdue tasks', body: 'All tasks are within deadline — great scheduling discipline!', tone: 'positive' })
+    if (stats.byCritical > 0) items.push({ icon: <IconCritical size={14} />, title: `${stats.byCritical} critical priority tasks`, body: `Ensure these have active owners and are unblocked.`, tone: 'danger' })
+    if (overloadedPeople.length > 0) items.push({ icon: <IconUsers size={14} />, title: `${overloadedPeople.length} people overloaded`, body: `${overloadedPeople.map(p => p.employee_name).join(', ')} each have 10+ open tasks.`, tone: 'warning' })
+    if (stats.submitted > 0) items.push({ icon: <IconClipboard size={14} />, title: `${stats.submitted} tasks awaiting review`, body: `Review them to unblock your team.`, tone: 'neutral' })
+    if (stats.pending > stats.inProgress * 2) items.push({ icon: <IconFlag size={14} />, title: 'Many tasks not started', body: `${stats.pending} pending vs ${stats.inProgress} in progress. Triage the backlog.`, tone: 'warning' })
+    if (items.length === 0) items.push({ icon: <IconBarChart size={14} />, title: 'Operations look healthy', body: 'No significant issues detected.', tone: 'positive' })
     return items
   }, [stats, overloadedPeople])
 
@@ -214,11 +215,11 @@ export function InsightsPage() {
         <>
           {/* KPI strip */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <StatCard label="Total Tasks"       value={stats.total}          sub="in your org"         color="#e2ab41" icon="📋" />
-            <StatCard label="Completed"         value={stats.completed}      sub={`${stats.completionRate}% rate`} color="#22c55e" icon="✅" />
-            <StatCard label="In Progress"       value={stats.inProgress}     sub="active right now"   color="#8b5cf6" icon="⚡" />
-            <StatCard label="Overdue"           value={stats.overdue}        sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} icon="⏰" />
-            <StatCard label="Avg Open / Person" value={avgOpenTasks}         sub="workload balance"   color="#f59e0b" icon="👥" />
+            <StatCard label="Total Tasks"       value={stats.total}          sub="in your org"         color="#e2ab41" icon={<IconClipboard size={14} />} />
+            <StatCard label="Completed"         value={stats.completed}      sub={`${stats.completionRate}% rate`} color="#22c55e" icon={<IconCheckCircle size={14} />} />
+            <StatCard label="In Progress"       value={stats.inProgress}     sub="active right now"   color="#8b5cf6" icon={<IconLightning size={14} />} />
+            <StatCard label="Overdue"           value={stats.overdue}        sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} icon={<IconOverdue size={14} />} />
+            <StatCard label="Avg Open / Person" value={avgOpenTasks}         sub="workload balance"   color="#f59e0b" icon={<IconUsers size={14} />} />
           </div>
 
           {/* Row 1: Trend + Status Donut */}
@@ -377,7 +378,7 @@ export function InsightsPage() {
 
       {!loading && !stats && (
         <div className="card" style={{ padding: 48, textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}><IconBarChart size={14} /></div>
           <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)' }}>No task data yet</div>
           <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Create tasks and assign them to your team to see insights here.</div>
         </div>

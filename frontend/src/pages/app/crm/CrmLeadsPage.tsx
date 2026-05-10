@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { IconReport } from '../../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
 import { Select } from '../../../components/ui/Select'
@@ -94,7 +95,7 @@ export function CrmLeadsPage() {
             <div className="pageHeaderCardMeta">
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📞</span> Lead tracking</span>
               <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💼</span> Sales pipeline</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>📝</span> Notes & status</span>
+              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconReport size={14} /></span> Notes & status</span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

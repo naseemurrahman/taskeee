@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, type FormEvent, type KeyboardEvent } from 'react'
+import { IconFolder } from '../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, ApiError } from '../../lib/api'
@@ -465,7 +466,7 @@ export function ProjectsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14 }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📁</div>
+          <div style={{ fontSize: 36, marginBottom: 12 }}><IconFolder size={14} /></div>
           <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', marginBottom: 6 }}>
             {search || statusFilter !== 'all' ? 'No projects match' : 'No projects yet'}
           </div>

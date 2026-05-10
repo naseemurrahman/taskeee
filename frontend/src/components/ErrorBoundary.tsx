@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { IconAlertTriangle } from './ui/AppIcons'
 
 interface Props { children: ReactNode; fallback?: ReactNode; label?: string }
 interface State { error: Error | null }
@@ -23,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
             width: 72, height: 72, borderRadius: 24, fontSize: 32,
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
             display: 'grid', placeItems: 'center',
-          }}>⚠️</div>
+          }}><IconAlertTriangle size={14} /></div>
           <div>
             <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>
               Something went wrong
