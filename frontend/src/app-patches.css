@@ -8162,3 +8162,209 @@ html, body, #root {
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INSIGHTS PAGE — fully responsive chart layout system
+   All layout is driven by CSS custom properties set from JS (useLayout hook)
+   so breakpoints respond to the CONTENT column width, not the viewport.
+   This means charts adapt correctly when the sidebar is open or collapsed.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Page root */
+.insightsPage {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Header inner */
+.insightsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.insightsRangeSelect {
+  min-width: 148px;
+  flex-shrink: 0;
+}
+
+/* ── KPI strip ── */
+.insightsKpiStrip {
+  display: grid;
+  grid-template-columns: repeat(var(--kpi-cols, 5), minmax(0, 1fr));
+  gap: 10px;
+}
+.insightsKpiCard {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--kpi-color) 12%, transparent), color-mix(in srgb, var(--kpi-color) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--kpi-color) 22%, transparent);
+  min-width: 0;
+}
+.insightsKpiIcon { margin-bottom: 8px; color: var(--kpi-color); }
+.insightsKpiLabel {
+  font-size: 9.5px; font-weight: 900; color: var(--kpi-color);
+  text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px;
+}
+.insightsKpiValue {
+  font-size: clamp(20px, 4vw, 28px); font-weight: 950;
+  color: var(--text); letter-spacing: -1px; line-height: 1;
+}
+.insightsKpiSub {
+  font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600;
+}
+.insightsKpiSkeleton { height: 88px; border-radius: 14px; }
+
+/* ── Chart cards ── */
+.insightsChartCard { padding: 16px !important; }
+.insightsChartTitle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 900; color: var(--text);
+  letter-spacing: -0.02em; margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.insightsChartIcon { color: var(--muted); display: flex; align-items: center; flex-shrink: 0; }
+.insightsChartBody { min-width: 0; width: 100%; }
+.insightsMeta { font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* ── Row 1: Trend + Donut (2fr 1fr → stacked on small screens) ── */
+.insightsRow1 {
+  display: grid;
+  grid-template-columns: var(--row1-cols, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+/* Row 1 children never overflow */
+.insightsRow1 > * { min-width: 0; }
+
+/* ── Row 2: chart grid (auto-fit) ── */
+.insightsRow2 {
+  display: grid;
+  grid-template-columns: var(--row2-cols, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+.insightsRow2 > * { min-width: 0; }
+
+/* ── Legend (shown on mobile below chart instead of inside Recharts) ── */
+.insightsLegendRow {
+  display: flex; flex-wrap: wrap; gap: 8px 14px;
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.insightsLegendGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px 12px;
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.insightsLegendItem {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  white-space: nowrap;
+}
+.insightsLegendDot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Smart Insights section ── */
+.insightsInsightSection { padding: 16px !important; }
+.insightsInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 10px;
+}
+.insightsInsightCard {
+  padding: 12px 14px; border-radius: 13px;
+  display: flex; gap: 10px; align-items: flex-start;
+  border-width: 1.5px; border-style: solid;
+}
+.insightsInsightCard--positive { background: rgba(34,197,94,0.07);  border-color: rgba(34,197,94,0.22);  }
+.insightsInsightCard--warning  { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.22); }
+.insightsInsightCard--danger   { background: rgba(239,68,68,0.07);  border-color: rgba(239,68,68,0.22);  }
+.insightsInsightCard--neutral  { background: rgba(226,171,65,0.07); border-color: rgba(226,171,65,0.22); }
+.insightsInsightIcon { flex-shrink: 0; margin-top: 1px; }
+.insightsInsightTitle { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.insightsInsightCard--positive .insightsInsightTitle { color: #22c55e; }
+.insightsInsightCard--warning  .insightsInsightTitle { color: #f59e0b; }
+.insightsInsightCard--danger   .insightsInsightTitle { color: #ef4444; }
+.insightsInsightCard--neutral  .insightsInsightTitle { color: var(--brand); }
+.insightsInsightBody { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* ── Workload tiles ── */
+.insightsWorkloadGrid {
+  display: grid;
+  grid-template-columns: var(--wl-cols, repeat(3, 1fr));
+  gap: 8px;
+}
+.insightsWorkloadTile {
+  padding: 11px 13px; border-radius: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  min-width: 0;
+}
+.insightsWorkloadTileHead {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.insightsWorkloadAvatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: color-mix(in srgb, var(--av-color) 15%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--av-color) 30%, transparent);
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 900; color: var(--av-color);
+}
+.insightsWorkloadName {
+  flex: 1; font-size: 12px; font-weight: 800; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+}
+.insightsWorkloadCount { font-size: 15px; font-weight: 950; flex-shrink: 0; }
+.insightsWorkloadBar {
+  height: 5px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.insightsWorkloadBarFill {
+  height: 100%; border-radius: 999px;
+  transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Empty states ── */
+.insightsEmpty {
+  height: 140px; display: grid; place-items: center;
+  color: var(--muted); font-size: 13px;
+}
+.insightsEmpty--full {
+  padding: 48px 24px !important; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.insightsEmptyTitle { font-weight: 800; font-size: 16px; color: var(--text); }
+.insightsEmptySub   { font-size: 13px; color: var(--muted); }
+
+/* ── Tooltip ── */
+.insightsTooltip {
+  background: rgba(15,23,42,0.97);
+  border: 1px solid rgba(226,171,65,0.25);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  min-width: 120px;
+}
+.insightsTooltipLabel {
+  font-weight: 900; color: var(--text); margin-bottom: 6px; font-size: 13px;
+}
+.insightsTooltipRow {
+  display: flex; justify-content: space-between; gap: 12px; margin-bottom: 3px;
+}
+
+/* ── Viewport breakpoints (backup for pages that don't use useLayout) ── */
+@media (max-width: 640px) {
+  .insightsKpiCard { padding: 10px 12px !important; }
+  .insightsKpiValue { font-size: 22px !important; }
+  .insightsWorkloadTile { padding: 9px 10px !important; }
+  .insightsChartCard { padding: 12px !important; }
+  .insightsChartTitle { font-size: 12px !important; margin-bottom: 10px !important; }
+}
