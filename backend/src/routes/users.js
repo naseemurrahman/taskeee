@@ -305,11 +305,11 @@ router.get('/:id', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /users – director/admin (full); manager (employee/supervisor under self)
+// POST /users — admin/director (full); hr (full); manager (limited to own team)
 router.post('/', authenticate, (req, res, next) => {
-  if (!['director', 'admin', 'manager'].includes(req.user.role))
-    return res.status(403).json({ error: 'Insufficient permissions' });
-  const chain = ['director', 'admin'].includes(req.user.role) ? validateUserCreate : validateManagerUserCreate;
+  if (!['director', 'admin', 'hr', 'manager'].includes(req.user.role))
+    return res.status(403).json({ error: 'Insufficient permissions. User creation requires HR, Manager, Director, or Admin role.' });
+  const chain = ['director', 'admin', 'hr'].includes(req.user.role) ? validateUserCreate : validateManagerUserCreate;
   runMiddlewareChain(chain, req, res, next);
 }, async (req, res, next) => {
   try {
@@ -335,7 +335,7 @@ router.post('/', authenticate, (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 12);
 
     let newUser;
-    if (['director', 'admin'].includes(req.user.role)) {
+    if (['director', 'admin', 'hr'].includes(req.user.role)) {
       const { rows } = await query(`
         INSERT INTO users (org_id, email, password_hash, full_name, role, manager_id, department, employee_code)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
