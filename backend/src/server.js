@@ -24,8 +24,8 @@ const { requestContext } = require('./middleware/requestContext');
 const { requireJsonBody } = require('./utils/validation');
 // taskAccessPolicy is required inline at the /api/v1/tasks mount below (after authenticate)
 
-if (!process.env.JWT_SECRET) { process.env.JWT_SECRET = 'taskflow-fallback-jwt-secret-change-me'; logger.warn('JWT_SECRET missing — using fallback secret. Set JWT_SECRET in production.'); }
-if (!process.env.JWT_REFRESH_SECRET) { process.env.JWT_REFRESH_SECRET = 'taskflow-fallback-refresh-secret-change-me'; logger.warn('JWT_REFRESH_SECRET missing — using fallback secret. Set JWT_REFRESH_SECRET in production.'); }
+if (!process.env.JWT_SECRET) { process.env.JWT_SECRET = 'taskee-fallback-jwt-secret-change-me'; logger.warn('JWT_SECRET missing — using fallback secret. Set JWT_SECRET in production.'); }
+if (!process.env.JWT_REFRESH_SECRET) { process.env.JWT_REFRESH_SECRET = 'taskee-fallback-refresh-secret-change-me'; logger.warn('JWT_REFRESH_SECRET missing — using fallback secret. Set JWT_REFRESH_SECRET in production.'); }
 
 const authRoutes  = require('./routes/auth');
 const mfaRoutes   = require('./routes/mfa');
@@ -143,7 +143,7 @@ app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
-app.get('/', (_req, res) => res.status(200).json({ name: 'TaskFlow Pro API', version: '2.0.0', status: 'ok', docs: '/api/v1/health', timestamp: new Date().toISOString() }));
+app.get('/', (_req, res) => res.status(200).json({ name: 'TASKEE API', version: '2.0.0', status: 'ok', docs: '/api/v1/health', timestamp: new Date().toISOString() }));
 
 async function buildHealthPayload() {
   const start = Date.now();
@@ -173,7 +173,7 @@ async function start() {
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
 }
 
-server.on('listening', () => { logger.info('TaskFlow Pro API started'); logger.info(`  Health : http://localhost:${PORT}/health`); logger.info(`  Login  : POST http://localhost:${PORT}/api/v1/auth/login`); });
+server.on('listening', () => { logger.info('TASKEE API started'); logger.info(`  Health : http://localhost:${PORT}/health`); logger.info(`  Login  : POST http://localhost:${PORT}/api/v1/auth/login`); });
 server.on('error', err => { if (err.code === 'EADDRINUSE') { logger.error(`Port ${PORT} already in use.`); } else { logger.error('Server error: ' + err.message); } process.exit(1); });
 start().catch(err => { logger.error('Startup failed: ' + err.message); process.exit(1); });
 

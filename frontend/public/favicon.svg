@@ -1,12 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1410"/>
+      <stop offset="100%" stop-color="#0d0b08"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9e6a2"/>
+      <stop offset="50%" stop-color="#e2ab41"/>
+      <stop offset="100%" stop-color="#c98317"/>
+    </linearGradient>
+    <linearGradient id="goldH" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#f9e6a2"/>
       <stop offset="100%" stop-color="#e2ab41"/>
     </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <rect width="48" height="48" rx="12" fill="#1a1a1a"/>
-  <path d="M24 8L10 16l14 7 14-7L24 8z" fill="url(#grad)"/>
-  <path d="M10 31l14 7 14-7" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M10 24l14 7 14-7" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Background: rounded square with dark premium base -->
+  <rect width="48" height="48" rx="11" fill="url(#bg)"/>
+  <!-- Subtle inner border for depth -->
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="10.5" fill="none" stroke="rgba(255,210,80,0.12)" stroke-width="1"/>
+
+  <!-- "T" lettermark — bold, geometric, centered -->
+  <!-- Horizontal bar of T -->
+  <rect x="9" y="13" width="30" height="5.5" rx="2.75" fill="url(#goldH)" filter="url(#glow)"/>
+  <!-- Vertical stem of T -->
+  <rect x="19.5" y="18" width="9" height="17" rx="2" fill="url(#gold)"/>
+
+  <!-- Accent: small check-dot bottom right indicating task completion -->
+  <circle cx="37" cy="36" r="5" fill="url(#gold)" opacity="0.95"/>
+  <polyline points="34.2,36 36.2,38 39.8,33.5" stroke="#1a1410" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>

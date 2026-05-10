@@ -125,7 +125,7 @@ async function sendReportEmail(userId, orgId, reportData) {
 
   try {
     await transporter.sendMail({
-      from: `"TaskFlow Pro" <${process.env.SMTP_FROM}>`,
+      from: `"TASKEE" <${process.env.SMTP_FROM}>`,
       to: user.email,
       subject: `${reportData.period.type.charAt(0).toUpperCase() + reportData.period.type.slice(1)} Task Report - ${new Date().toLocaleDateString()}`,
       html
@@ -193,7 +193,7 @@ function buildEmailHtml(report) {
   <html>
   <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
     <div style="background:#6c47d9;padding:24px;border-radius:8px;color:white;margin-bottom:24px">
-      <h1 style="margin:0;font-size:22px">TaskFlow Pro</h1>
+      <h1 style="margin:0;font-size:22px">TASKEE</h1>
       <p style="margin:8px 0 0;opacity:0.85">${period.type.charAt(0).toUpperCase()+period.type.slice(1)} Report for ${user.fullName}</p>
     </div>
 
@@ -243,7 +243,7 @@ function buildEmailHtml(report) {
     </table>` : ''}
 
     <p style="margin-top:32px;font-size:12px;color:#999;text-align:center">
-      Generated at ${new Date().toLocaleString()} · TaskFlow Pro
+      Generated at ${new Date().toLocaleString()} · TASKEE
     </p>
   </body>
   </html>`;

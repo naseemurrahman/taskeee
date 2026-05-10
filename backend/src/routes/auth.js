@@ -364,7 +364,7 @@ router.post('/mfa/verify', authRateLimiter, async (req, res, next) => {
 // POST /api/v1/auth/mfa/enroll/start
 router.post('/mfa/enroll/start', authenticate, async (req, res, next) => {
   try {
-    const issuer = process.env.MFA_ISSUER || 'TaskFlow Pro';
+    const issuer = process.env.MFA_ISSUER || 'TASKEE';
     const accountName = req.user.email;
     const secret = authenticator.generateSecret();
     const otpauthUrl = authenticator.keyuri(accountName, issuer, secret);
@@ -500,7 +500,7 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res, next) => 
       
       const emailResult = await emailService.sendEmail(
         normalizedEmail,
-        'Reset Your Password - TaskFlow Pro',
+        'Reset Your Password - TASKEE',
         resetEmailHtml
       );
       
@@ -756,7 +756,7 @@ router.post('/signup', async (req, res, next) => {
       
       await emailService.sendEmail(
         signupResult.user.email,
-        'Verify Your Email Address - TaskFlow Pro',
+        'Verify Your Email Address - TASKEE',
         verificationEmailHtml
       );
       

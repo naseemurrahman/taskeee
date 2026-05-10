@@ -79,7 +79,7 @@ async function sendEmployeeWelcomeNotification(employee, orgId) {
       const { sendWhatsApp } = require('./notificationChannels');
       await sendWhatsApp({
         toE164: employee.phone_e164 || employee.phone,
-        body: `Welcome to ${orgName}! Your TaskFlow account is ready. Check your email (${employee.work_email || employee.email}) for login credentials.`
+        body: `Welcome to ${orgName}! Your TASKEE account is ready. Check your email (${employee.work_email || employee.email}) for login credentials.`
       });
     } catch (e) {
       logger.warn('WhatsApp welcome notification failed: ' + e.message);

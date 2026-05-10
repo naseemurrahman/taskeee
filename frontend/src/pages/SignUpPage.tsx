@@ -91,10 +91,14 @@ export function SignUpPage() {
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)', top: -100, right: -100 }} />
         <div style={{ width: '100%', maxWidth: 520, margin: '0 auto', display: 'grid', gap: 34 }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #e2ab41, #f59e0b)', display: 'grid', placeItems: 'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <span style={{ fontWeight: 950, fontSize: 20, color: '#fff', letterSpacing: '-0.5px' }}>TaskFlow Pro</span>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#1c1710,#0d0b08)', border: '1.5px solid rgba(226,171,65,0.35)', display: 'grid', placeItems: 'center', boxShadow: '0 4px 20px rgba(226,171,65,0.2)' }}>
+                <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+                  <defs><linearGradient id="authGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9e6a2"/><stop offset="100%" stopColor="#e2ab41"/></linearGradient></defs>
+                  <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#authGold)"/>
+                  <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#authGold)"/>
+                </svg>
+              </div>
+            <span style={{ fontWeight: 950, fontSize: 20, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'linear-gradient(135deg,#f9e6a2,#e2ab41)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>TASKEE</span>
           </Link>
 
         <div>
@@ -122,7 +126,7 @@ export function SignUpPage() {
         {/* Testimonial */}
         <div style={{ padding: '20px 24px', borderRadius: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 14 }}>
-            "TaskFlow Pro cut our project delivery time by 35%. The AI insights flag at-risk tasks before they become real problems."
+            "TASKEE cut our project delivery time by 35%. The AI insights flag at-risk tasks before they become real problems."
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #e2ab41, #8B5CF6)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 900, color: '#fff' }}>S</div>
@@ -192,7 +196,7 @@ export function SignUpPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Workspace URL</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: 14, color: 'rgba(255,255,255,0.35)', fontSize: 14, pointerEvents: 'none', whiteSpace: 'nowrap' }}>app.taskflow.pro/</span>
+                    <span style={{ position: 'absolute', left: 14, color: 'rgba(255,255,255,0.35)', fontSize: 14, pointerEvents: 'none', whiteSpace: 'nowrap' }}>app.taskee.pro/</span>
                     <input className="authInput" style={{ paddingLeft: 150, paddingRight: 16 }} type="text" value={orgSlug} onChange={e => { setOrgSlug(autoSlug(e.target.value)); setSlugEdited(true) }} placeholder="acme-corp" />
                   </div>
                   {orgSlug && <div style={{ marginTop: 6, fontSize: 11, color: slugOk ? '#22c55e' : '#ef4444', fontWeight: 700 }}>{slugOk ? '✓ Valid URL' : '✗ 3-50 lowercase letters, numbers, hyphens only'}</div>}

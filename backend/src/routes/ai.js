@@ -452,7 +452,7 @@ router.post('/chat', async (req, res, next) => {
         .map(u => `${u.name}: ${u.completed}/${u.total} done, ${u.overdue} overdue`).join('; ');
       const orgProjects = (orgContext.projects || []).map(p => p.name).join(', ') || 'none';
 
-      const groqSystemPrompt = `You are JecZone AI, intelligent assistant for TaskFlow Pro — an AI-powered task management platform.
+      const groqSystemPrompt = `You are JecZone AI, intelligent assistant for TASKEE — an AI-powered task management platform.
 
 LIVE ORG DATA:
 - Tasks: ${orgCounts.total} total | ${orgCounts.completed} completed | ${orgCounts.in_progress} in progress | ${orgCounts.submitted} submitted | ${orgCounts.overdue} overdue

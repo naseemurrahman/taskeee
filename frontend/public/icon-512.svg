@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1710"/>
+      <stop offset="100%" stop-color="#0d0b08"/>
+    </linearGradient>
+    <linearGradient id="gold512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="40%" stop-color="#f4ca57"/>
+      <stop offset="100%" stop-color="#c98317"/>
+    </linearGradient>
+    <linearGradient id="goldH512" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#e2ab41"/>
+    </linearGradient>
+    <linearGradient id="accent512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9e6a2"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="softglow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innershadow">
+      <feOffset dx="0" dy="2"/>
+      <feGaussianBlur stdDeviation="3"/>
+      <feComposite operator="out" in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="116" fill="url(#bg512)"/>
+  <!-- Border glow -->
+  <rect x="2" y="2" width="508" height="508" rx="114" fill="none" stroke="rgba(255,210,80,0.15)" stroke-width="3"/>
+  <!-- Subtle top highlight -->
+  <rect x="2" y="2" width="508" height="200" rx="114" fill="url(#goldH512)" opacity="0.03"/>
+
+  <!-- T lettermark — dominant, geometric, premium -->
+  <!-- Top bar -->
+  <rect x="80" y="128" width="352" height="64" rx="32" fill="url(#goldH512)" filter="url(#softglow)"/>
+  <!-- Vertical stem -->
+  <rect x="224" y="192" width="64" height="192" rx="28" fill="url(#gold512)"/>
+
+  <!-- Completion badge — bottom right -->
+  <circle cx="400" cy="384" r="68" fill="#0d0b08"/>
+  <circle cx="400" cy="384" r="64" fill="url(#accent512)"/>
+  <!-- Checkmark in badge -->
+  <polyline
+    points="370,386 390,406 432,360"
+    stroke="#1a1410"
+    stroke-width="20"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"/>
+</svg>

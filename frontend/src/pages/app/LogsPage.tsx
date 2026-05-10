@@ -165,7 +165,7 @@ export function LogsPage() {
                 const now = new Date()
                 const dateStr = now.toISOString().slice(0, 10)
                 const csvRows = [
-                  ['# TaskFlow Pro — Activity Log Export'],
+                  ['# TASKEE — Activity Log Export'],
                   [`# Exported: ${now.toLocaleString()}`],
                   [`# Period: last ${days} days · Type filter: ${type || 'all'}`],
                   [`# Total records: ${rows.length}`],
@@ -184,7 +184,7 @@ export function LogsPage() {
                 const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
-                a.href = url; a.download = `taskflow-activity-logs-${dateStr}.csv`; a.click()
+                a.href = url; a.download = `taskee-activity-logs-${dateStr}.csv`; a.click()
                 URL.revokeObjectURL(url)
               }}
             >

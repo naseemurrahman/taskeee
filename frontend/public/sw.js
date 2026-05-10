@@ -1,6 +1,6 @@
 // Service Worker — network-first for HTML, cache-first for immutable assets
 const CACHE_VERSION = 'v' + Date.now(); // Updated on each deploy
-const STATIC_CACHE = 'taskflow-static-' + CACHE_VERSION;
+const STATIC_CACHE = 'taskee-static-' + CACHE_VERSION;
 const ASSET_RE = /\/assets\//;
 
 self.addEventListener('install', (event) => {

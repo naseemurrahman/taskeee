@@ -33,7 +33,7 @@ function downloadReportCsv(rows: ReportRow[], orgName?: string) {
   const org = orgName ? orgName.replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'org'
   const csvRows = [
     // Header with metadata
-    [`# TaskFlow Pro — Report Export`],
+    [`# TASKEE — Report Export`],
     [`# Organization: ${orgName || 'Unknown'}`],
     [`# Exported: ${now.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })}`],
     [`# Total records: ${rows.length}`],
@@ -53,7 +53,7 @@ function downloadReportCsv(rows: ReportRow[], orgName?: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `taskflow-${org}-reports-${dateStr}-${timeStr}.csv`
+  a.download = `taskee-${org}-reports-${dateStr}-${timeStr}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

@@ -13,7 +13,7 @@ function getStoredUserRole(): string {
     const candidates = [
       localStorage.getItem('user'),
       localStorage.getItem('tf_user'),
-      localStorage.getItem('taskflow_user'),
+      localStorage.getItem('taskee_user'),
       sessionStorage.getItem('user'),
       sessionStorage.getItem('tf_user'),
     ].filter(Boolean) as string[]

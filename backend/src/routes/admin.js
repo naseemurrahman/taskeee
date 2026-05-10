@@ -172,7 +172,7 @@ router.post('/test-email', async (req, res, next) => {
     let to = req.body?.to;
     if (!to) { const { rows } = await query('SELECT email FROM users WHERE id = $1', [req.user.id]); to = rows[0]?.email; }
     if (!to) return res.status(400).json({ error: 'Recipient email is required' });
-    const result = await sendEmail({ to, subject: req.body?.subject || 'TaskFlow test email', text: req.body?.text || 'This is a test email from TaskFlow admin diagnostics.', html: `<p>${String(req.body?.text || 'This is a test email from TaskFlow admin diagnostics.').replace(/</g, '&lt;')}</p>` });
+    const result = await sendEmail({ to, subject: req.body?.subject || 'TASKEE test email', text: req.body?.text || 'This is a test email from TASKEE admin diagnostics.', html: `<p>${String(req.body?.text || 'This is a test email from TASKEE admin diagnostics.').replace(/</g, '&lt;')}</p>` });
     await logAuditEvent({ req, action: 'admin_test_email_sent', entityType: 'email', metadata: { to, result } });
     res.json({ ok: !result?.skipped, result });
   } catch (err) { next(err); }
@@ -183,7 +183,7 @@ router.post('/test-whatsapp', async (req, res, next) => {
     let toE164 = req.body?.toE164 || req.body?.to;
     if (!toE164) { const { rows } = await query('SELECT whatsapp_e164, phone_e164 FROM users WHERE id = $1', [req.user.id]); toE164 = rows[0]?.whatsapp_e164 || rows[0]?.phone_e164; }
     if (!toE164) return res.status(400).json({ error: 'Recipient WhatsApp number is required' });
-    const result = await sendWhatsApp({ toE164, body: req.body?.body || 'This is a test WhatsApp notification from TaskFlow.' });
+    const result = await sendWhatsApp({ toE164, body: req.body?.body || 'This is a test WhatsApp notification from TASKEE.' });
     await logAuditEvent({ req, action: 'admin_test_whatsapp_sent', entityType: 'whatsapp', metadata: { toE164: String(toE164).replace(/\d(?=\d{4})/g, '*'), result } });
     res.json({ ok: !result?.skipped, result });
   } catch (err) { next(err); }

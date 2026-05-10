@@ -484,7 +484,7 @@ export function SettingsPage() {
                 </Field>
                 <Field label="Workspace URL" hint="Cannot be changed after creation">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>app.taskflow.pro/</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>app.taskee.pro/</span>
                     <input style={{ ...inputStyle(), opacity: 0.6 }} value={org?.slug || ''} disabled />
                   </div>
                 </Field>
