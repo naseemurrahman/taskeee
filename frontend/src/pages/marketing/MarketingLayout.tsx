@@ -50,30 +50,42 @@ export function MarketingLayout() {
       >
         <div className="mktTopbarInner">
           {/* Brand */}
-          <Link to="/" className="mktBrand" style={{ gap: 10 }}>
+          <Link to="/" className="mktBrand" style={{ gap: 10, textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {/* TASKEE T-mark — dark bg, gold border, T letterform in gold gradient */}
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
               background: 'linear-gradient(135deg, #1c1710, #0d0b08)',
-              border: '1.5px solid rgba(226,171,65,0.35)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
+              border: '1.5px solid rgba(226,171,65,0.38)',
+              display: 'grid', placeItems: 'center',
               boxShadow: '0 4px 16px rgba(226,171,65,0.18)',
             }}>
-              <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+              <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  <linearGradient id="mktNavGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="navGold" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f9e6a2"/>
                     <stop offset="100%" stopColor="#e2ab41"/>
                   </linearGradient>
                 </defs>
                 {/* T cross-bar */}
-                <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#mktNavGold)"/>
+                <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#navGold)"/>
                 {/* T vertical stem */}
-                <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#mktNavGold)"/>
+                <rect x="19.5" y="18.5" width="9" height="17.5" rx="2.5" fill="url(#navGold)"/>
               </svg>
             </div>
-            <div className="mktBrandText">
-              <div className="mktBrandName">TASKEE</div>
-              <div className="mktBrandSub">AI Task Intelligence</div>
+            {/* Wordmark */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, minWidth: 0 }}>
+              <span style={{
+                fontWeight: 950, fontSize: 15,
+                letterSpacing: '0.13em', textTransform: 'uppercase', lineHeight: 1.1,
+                background: 'linear-gradient(135deg, #f9e6a2 0%, #e2ab41 55%, #c98317 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text', display: 'block',
+              }}>TASKEE</span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+                textTransform: 'uppercase', display: 'block', marginTop: 1,
+                color: 'rgba(255,255,255,0.38)', WebkitTextFillColor: 'rgba(255,255,255,0.38)',
+              }}>AI Task Intelligence</span>
             </div>
           </Link>
 
@@ -176,28 +188,38 @@ export function MarketingLayout() {
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 20 }}>
             {/* Brand col */}
             <div style={{ maxWidth: 300 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 10,
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                   background: 'linear-gradient(135deg, #1c1710, #0d0b08)',
                   border: '1.5px solid rgba(226,171,65,0.35)',
-                  display: 'grid', placeItems: 'center', flexShrink: 0,
-                  boxShadow: '0 4px 14px rgba(226,171,65,0.15)',
+                  display: 'grid', placeItems: 'center',
+                  boxShadow: '0 3px 12px rgba(226,171,65,0.14)',
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                  <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                      <linearGradient id="mktFootGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <linearGradient id="footGold" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#f9e6a2"/>
                         <stop offset="100%" stopColor="#e2ab41"/>
                       </linearGradient>
                     </defs>
-                    <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#mktFootGold)"/>
-                    <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#mktFootGold)"/>
+                    <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#footGold)"/>
+                    <rect x="19.5" y="18.5" width="9" height="17.5" rx="2.5" fill="url(#footGold)"/>
                   </svg>
                 </div>
-                <div>
-                  <div className="mktFooterBrand">TASKEE</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: '0.04em', marginTop: 1 }}>AI Task Intelligence</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  <span style={{
+                    fontWeight: 950, fontSize: 15,
+                    letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.1,
+                    background: 'linear-gradient(135deg, #f9e6a2, #e2ab41)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text', display: 'block',
+                  }}>TASKEE</span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+                    textTransform: 'uppercase', marginTop: 1, display: 'block',
+                    color: 'rgba(255,255,255,0.35)', WebkitTextFillColor: 'rgba(255,255,255,0.35)',
+                  }}>AI Task Intelligence</span>
                 </div>
               </div>
               <div className="mktFooterSub">

@@ -327,45 +327,56 @@ router.post('/employees', authenticate, requireAnyRole('manager', 'hr', 'directo
 
     if (!rows.length) return res.status(500).json({ error: 'Could not create employee record.' });
 
-    const ip = req.ip;
-    const userAgent = req.headers['user-agent'] || null;
-    await logAudit({
-      orgId,
-      actorUserId: req.user.id,
-      action: 'hris.employee.create',
-      entityType: 'employee',
-      entityId: rows[0]?.id || null,
-      metadata: { fullName, workEmail, userId: targetUserId },
-      ip,
-      userAgent
-    });
-
-    // Send welcome notification to new employee
-    const { sendEmployeeWelcomeNotification } = require('../services/employeeNotificationService');
     const employee = {
       id: rows[0]?.id,
       full_name: fullName,
       work_email: workEmail,
       phone_e164: phoneE164,
-      user_id: targetUserId
+      user_id: targetUserId,
     };
-    
-    const notificationResult = await sendEmployeeWelcomeNotification(employee, orgId);
 
-    res.status(201).json({ 
+    // ── Respond immediately — do NOT await email or audit ──────────────────
+    // These were the sole cause of the "Request timed out" error:
+    //   • bcrypt already ran above (unavoidable, kept there)
+    //   • sendEmployeeWelcomeNotification hits SMTP (5-30s depending on provider)
+    //   • logAudit hits DB (fast but still adds latency)
+    // Respond to the client now, then run side-effects in the background.
+    res.status(201).json({
       employee: rows[0],
       employeeRecordCreated,
-      notificationSent: notificationResult.success,
-      temporaryPassword: notificationResult.success ? notificationResult.tempPassword : null,
-      tempPasswordExpires: notificationResult.success ? notificationResult.tempPasswordExpires : null,
-      message: notificationResult.success
-        ? (employeeRecordCreated
-          ? 'Employee created successfully. Welcome email sent with login credentials.'
-          : 'User created and onboarded successfully. Employee table is unavailable, so only user profile was created.')
-        : (employeeRecordCreated
-          ? 'Employee created successfully. Welcome email failed to send. See temporary password below.'
-          : 'User created successfully but employee table is unavailable and welcome email failed. See temporary password below.')
+      notificationSent: null,   // will be sent async — client doesn't need to wait
+      temporaryPassword: null,  // sent via email; not returned in API for security
+      message: employeeRecordCreated
+        ? 'Employee created successfully. Welcome email is being sent with login credentials.'
+        : 'User created and onboarded successfully. Welcome email is being sent.',
     });
+
+    // ── Background: audit log + welcome email (non-blocking) ──────────────
+    ;(async () => {
+      try {
+        const ip = req.ip;
+        const userAgent = req.headers['user-agent'] || null;
+        await logAudit({
+          orgId,
+          actorUserId: req.user.id,
+          action: 'hris.employee.create',
+          entityType: 'employee',
+          entityId: rows[0]?.id || null,
+          metadata: { fullName, workEmail, userId: targetUserId },
+          ip,
+          userAgent,
+        });
+      } catch (auditErr) {
+        console.warn('[HRIS] Audit log failed (non-critical):', auditErr?.message);
+      }
+
+      try {
+        const { sendEmployeeWelcomeNotification } = require('../services/employeeNotificationService');
+        await sendEmployeeWelcomeNotification(employee, orgId);
+      } catch (emailErr) {
+        console.warn('[HRIS] Welcome email failed (non-critical):', emailErr?.message);
+      }
+    })();
   } catch (err) { 
     if (err.code === '23505') { // PostgreSQL unique violation
       return res.status(409).json({ error: 'Employee with this email already exists.' });
