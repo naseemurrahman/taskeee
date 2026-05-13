@@ -218,6 +218,8 @@ export function PriorityPieChart(props: { byPriority: Record<string,number>; fil
 }
 
 // ─── Deadlines Trend ──────────────────────────────────────────────────────────
+// Shows daily task activity for the past N days (due, completed, overdue).
+// All three fields must be present in each point — buildDeadlineSeries returns them.
 export function DeadlinesTrendChart(props: {
   points: Array<{ day:string; due:number; completed?:number; overdue:number }>
   fillHeight?: boolean; loading?: boolean }) {
@@ -226,19 +228,19 @@ export function DeadlinesTrendChart(props: {
   return (
     <Shell height={h} loading={props.loading}>
       {(w) => (
-        <AreaChart width={w} height={h} data={props.points} margin={{ top:14, right:16, left:0, bottom:8 }}>
+        <AreaChart width={w} height={h} data={props.points} margin={{ top:14, right:16, left:10, bottom:32 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
           <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} minTickGap={20}
-            label={{ value: 'Date', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+            label={{ value: 'Day', position: 'insideBottom', offset: -14, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
           <YAxis tick={AXIS} axisLine={false} tickLine={false} width={42} allowDecimals={false}
-            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 10, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 18, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
           <Tooltip content={<GlassTooltip />} />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:12, fontWeight:700, color:'var(--chart-tick2)', paddingTop:12 }} />
-          <Area type="monotone" dataKey="due"       name="Created"   stroke="#6366f1" strokeWidth={3} fill="#6366f1" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
-          <Area type="monotone" dataKey="completed" name="Completed" stroke="#22c55e" strokeWidth={3} fill="#22c55e" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
-          <Area type="monotone" dataKey="overdue"   name="Overdue"   stroke="#ef4444" strokeWidth={3} fill="#ef4444" fillOpacity={0.10} dot={false} activeDot={{ r:5 }} />
+          <Area type="monotone" dataKey="due"       name="Due"       stroke="#6366f1" strokeWidth={2.5} fill="#6366f1" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
+          <Area type="monotone" dataKey="completed" name="Completed" stroke="#22c55e" strokeWidth={2.5} fill="#22c55e" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
+          <Area type="monotone" dataKey="overdue"   name="Overdue"   stroke="#ef4444" strokeWidth={2.5} fill="#ef4444" fillOpacity={0.10} dot={false} activeDot={{ r:5 }} />
         </AreaChart>
       )}
     </Shell>
