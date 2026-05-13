@@ -2,6 +2,7 @@
 const { query } = require('../utils/db');
 const logger = require('../utils/logger');
 const { sendEmail, sendWhatsApp } = require('./notificationChannels');
+const { deliverBrowserPush } = require('./pushService');
 
 const DEDUPE_WINDOW_MINUTES = parseInt(process.env.NOTIFICATION_DEDUPE_WINDOW_MINUTES || '60', 10);
 
@@ -125,23 +126,31 @@ async function logDelivery(userId, notifType, channel, status, errorMsg = null, 
 async function deliverNotificationChannels(userId, notificationId, { type, title, body, data = {} }) {
   let emailSent = false;
   let whatsappSent = false;
+  let pushSent = false;
   const deliveryErrors = [];
 
   const contact = await getUserContact(userId);
-  if (!contact) return { emailSent, whatsappSent, deliveryErrors };
+  if (!contact) return { emailSent, whatsappSent, pushSent, deliveryErrors };
 
   const prefs = normalizePrefs(contact.notification_prefs);
   const channels = prefs.channels || {};
   const emailEnabled = channels.email !== false;
   const waEnabled = channels.whatsapp !== false;
+  const pushEnabled = channels.push !== false;
   const typeEnabled = isNotifEnabled(prefs, type);
 
   if (!typeEnabled) {
     logger.debug(`Notification suppressed by user pref: ${type} for user ${userId}`);
-    return { emailSent, whatsappSent, deliveryErrors };
+    return { emailSent, whatsappSent, pushSent, deliveryErrors };
   }
 
   const text = `${title}\n${body || ''}`.trim();
+
+  if (pushEnabled) {
+    const result = await deliverBrowserPush(userId, notificationId, { type, title, body, data }).catch(e => ({ failed: 1, error: e.message }));
+    pushSent = Number(result?.sent || 0) > 0;
+    if (result?.error) deliveryErrors.push(`push: ${result.error}`);
+  }
 
   if (emailEnabled && contact.email) {
     const result = await sendEmail({
@@ -179,7 +188,7 @@ async function deliverNotificationChannels(userId, notificationId, { type, title
     if (result?.error) deliveryErrors.push(`whatsapp: ${result.error}`);
   }
 
-  return { emailSent, whatsappSent, deliveryErrors };
+  return { emailSent, whatsappSent, pushSent, deliveryErrors };
 }
 
 async function emitNotification(userId, { type, title, body, data = {}, dedupeKey = null }) {
@@ -208,7 +217,7 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
       return;
     }
 
-    const { emailSent, whatsappSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body, data });
+    const { emailSent, whatsappSent, pushSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body, data });
 
     if (notificationId) {
       try {
@@ -221,6 +230,7 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
           [notificationId, emailSent, whatsappSent, deliveryErrors.join('; ')]
         );
       } catch { /* older schemas may not have these columns yet */ }
+      if (pushSent) logger.debug(`Browser push delivered for notification ${notificationId}`);
     }
   } catch (err) {
     logger.error(`Failed to send notification to ${userId}:`, err.message);
