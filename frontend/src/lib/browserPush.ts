@@ -34,13 +34,17 @@ export async function enableBrowserPush() {
   if (permission !== 'granted') throw new Error('Notification permission was not granted.')
 
   const registration = await navigator.serviceWorker.ready
-  let subscription = await registration.pushManager.getSubscription()
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    })
+  const existing = await registration.pushManager.getSubscription()
+
+  if (existing) {
+    await apiFetch('/api/v1/push/subscriptions', { method: 'DELETE', json: { endpoint: existing.endpoint } }).catch(() => null)
+    await existing.unsubscribe().catch(() => null)
   }
+
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicKey),
+  })
 
   const subscriptionPayload = JSON.parse(JSON.stringify(subscription.toJSON())) as Record<string, unknown>
   await apiFetch('/api/v1/push/subscriptions', { method: 'POST', json: subscriptionPayload })
