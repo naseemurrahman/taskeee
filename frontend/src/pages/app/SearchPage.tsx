@@ -49,14 +49,14 @@ function typeLabel(type: string) {
   return type
 }
 
-function ResultCard({ type, item }: { type: string; item: any }) {
+function ResultCard({ type, item, search }: { type: string; item: any; search: string }) {
   const navigate = useNavigate()
   const title = pickTitle(type, item)
   const subtitle = pickSubtitle(type, item)
 
   function open() {
     if (type === 'tasks') navigate('/app/tasks', { state: { openTaskId: item.id } })
-    else if (type === 'users') navigate('/app/hr/employees')
+    else if (type === 'users') navigate(`/app/hr/employees?search=${encodeURIComponent(item.email || item.full_name || search)}`)
     else if (type === 'projects') navigate('/app/projects')
     else if (type === 'reports') navigate(item.id ? `/app/reports/${item.id}` : '/app/reports')
     else navigate('/app/dashboard')
@@ -73,7 +73,7 @@ function ResultCard({ type, item }: { type: string; item: any }) {
   )
 }
 
-function SearchGroup({ type, items }: { type: string; items: any[] }) {
+function SearchGroup({ type, items, search }: { type: string; items: any[]; search: string }) {
   if (!items.length) return null
   const tab = TABS.find(t => t.key === type)
   return (
@@ -83,7 +83,7 @@ function SearchGroup({ type, items }: { type: string; items: any[] }) {
         <span>{items.length}</span>
       </div>
       <div className="searchResultsGrid">
-        {items.map((item) => <ResultCard key={`${type}-${item.id}`} type={type} item={item} />)}
+        {items.map((item) => <ResultCard key={`${type}-${item.id}`} type={type} item={item} search={search} />)}
       </div>
     </section>
   )
@@ -93,19 +93,23 @@ export function SearchPage() {
   const [params, setParams] = useSearchParams()
   const initialQ = params.get('q') || ''
   const initialType = params.get('type') || 'all'
+  const activeType = TABS.some(t => t.key === initialType) ? initialType : 'all'
   const [input, setInput] = useState(initialQ)
   const [debounced, setDebounced] = useState(initialQ)
 
-  // Sync input from URL on navigation
-  useEffect(() => setInput(initialQ), [initialQ])
+  // Sync input from URL on navigation.
+  useEffect(() => {
+    setInput(initialQ)
+    setDebounced(initialQ.trim())
+  }, [initialQ])
 
-  // Debounce: update search after 300ms of inactivity
+  // Debounce: update search after 300ms of inactivity.
   useEffect(() => {
     const t = setTimeout(() => {
       const trimmed = input.trim()
       setDebounced(trimmed)
-      // Keep URL in sync for shareable links & back-nav
-      if (trimmed !== (params.get('q') || '')) {
+      const current = params.get('q') || ''
+      if (trimmed !== current) {
         const next: Record<string, string> = {}
         if (trimmed) next.q = trimmed
         if (activeType !== 'all') next.type = activeType
@@ -113,10 +117,9 @@ export function SearchPage() {
       }
     }, 300)
     return () => clearTimeout(t)
-  }, [input])
+  }, [input, activeType, params, setParams])
 
   const q = debounced
-  const activeType = TABS.some(t => t.key === initialType) ? initialType : 'all'
   const apiType = activeType === 'all' ? '' : `&type=${encodeURIComponent(activeType)}`
 
   const searchQ = useQuery({
@@ -124,6 +127,7 @@ export function SearchPage() {
     queryFn: () => apiFetch<SearchResponse>(`/api/v1/search?q=${encodeURIComponent(q)}&limit=20${apiType}`),
     enabled: q.length >= 2,
     staleTime: 15_000,
+    retry: false,
   })
 
   const grouped = useMemo(() => ({
@@ -138,7 +142,6 @@ export function SearchPage() {
   const visibleGroups = activeType === 'all'
     ? grouped
     : { tasks: [], users: [], projects: [], reports: [], notifications: [], [activeType]: grouped[activeType as keyof typeof grouped] } as typeof grouped
-
 
   function setType(type: string) {
     const nextParams: Record<string, string> = {}
@@ -189,11 +192,11 @@ export function SearchPage() {
       ) : (
         <>
           <div className="searchMeta">{total} result{total === 1 ? '' : 's'} for “{q}”{searchQ.data?.meta?.took_ms != null ? ` · ${searchQ.data.meta.took_ms}ms` : ''}</div>
-          <SearchGroup type="tasks" items={visibleGroups.tasks} />
-          <SearchGroup type="users" items={visibleGroups.users} />
-          <SearchGroup type="projects" items={visibleGroups.projects} />
-          <SearchGroup type="reports" items={visibleGroups.reports} />
-          <SearchGroup type="notifications" items={visibleGroups.notifications} />
+          <SearchGroup type="tasks" items={visibleGroups.tasks} search={q} />
+          <SearchGroup type="users" items={visibleGroups.users} search={q} />
+          <SearchGroup type="projects" items={visibleGroups.projects} search={q} />
+          <SearchGroup type="reports" items={visibleGroups.reports} search={q} />
+          <SearchGroup type="notifications" items={visibleGroups.notifications} search={q} />
         </>
       )}
     </div>
