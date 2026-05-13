@@ -1,4 +1,5 @@
 const express = require('express');
+const { logAudit } = require('../services/auditService');
 const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
@@ -299,6 +300,30 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
+
+    // ── Completion guard: block if active tasks still exist ──────────────────
+    if (req.body.status === 'completed') {
+      const override = req.body.override_completion === true;
+      if (!override) {
+        const { rows: activeTasks } = await query(
+          `SELECT COUNT(*) AS cnt FROM tasks
+           WHERE project_id = $1 AND org_id = $2
+             AND status NOT IN ('completed','manager_approved','cancelled')`,
+          [projectId, orgId]
+        );
+        const activeCount = parseInt(activeTasks[0]?.cnt || '0', 10);
+        if (activeCount > 0) {
+          return res.status(409).json({
+            error: `Cannot complete project: ${activeCount} active task(s) still in progress.`,
+            code: 'PROJECT_HAS_ACTIVE_TASKS',
+            activeTaskCount: activeCount,
+            hint: 'Complete or cancel all tasks first, or pass override_completion:true (director/admin only).',
+          });
+        }
+      } else if (!['director', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({ error: 'Only Director or Admin can override project completion with active tasks.' });
+      }
+    }
 
     const store = await resolveProjectStore();
     if (!store) return res.status(404).json({ error: 'Project not found' });

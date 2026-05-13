@@ -105,3 +105,91 @@ router.post('/bulk/status', authenticate, requireAnyRole(...MANAGER_ROLES), asyn
 });
 
 module.exports = router;
+
+// ─── Bulk soft-delete ─────────────────────────────────────────────────────────
+// DELETE /api/v1/tasks/bulk/delete
+// Body: { taskIds: string[] }
+// Requires manager+ role. Soft-deletes (sets deleted_at) all matching tasks
+// in the org. Returns count of deleted tasks.
+router.delete('/bulk/delete', authenticate, requireAnyRole(...MANAGER_ROLES), async (req, res, next) => {
+  try {
+    const orgId   = req.user.org_id ?? req.user.orgId;
+    const taskIds = Array.isArray(req.body?.taskIds) ? req.body.taskIds.map(String).filter(Boolean) : [];
+    if (!taskIds.length) return res.status(400).json({ error: 'taskIds array is required and must not be empty.' });
+    if (taskIds.length > 100) return res.status(400).json({ error: 'Cannot bulk delete more than 100 tasks at once.' });
+
+    // Check dependency: block if any task is depended upon by non-deleted tasks
+    const { rows: blocked } = await query(
+      `SELECT t.id, t.title FROM tasks t
+       JOIN task_dependencies td ON td.depends_on_id = t.id
+       WHERE t.id = ANY($1::uuid[]) AND t.org_id = $2
+         AND td.task_id NOT IN (SELECT unnest($1::uuid[]))
+         AND (SELECT deleted_at FROM tasks WHERE id = td.task_id) IS NULL`,
+      [taskIds, orgId]
+    ).catch(() => ({ rows: [] }));
+
+    if (blocked.length) {
+      return res.status(409).json({
+        error: 'Some tasks cannot be deleted because other tasks depend on them.',
+        blocked: blocked.map(t => ({ id: t.id, title: t.title })),
+      });
+    }
+
+    const { rows } = await query(
+      `UPDATE tasks SET deleted_at = NOW()
+       WHERE id = ANY($1::uuid[]) AND org_id = $2 AND deleted_at IS NULL
+       RETURNING id`,
+      [taskIds, orgId]
+    );
+
+    // Audit log (fire and forget)
+    ;(async () => {
+      try {
+        const { logAudit } = require('../services/auditService');
+        await logAudit({ orgId, actorUserId: req.user.id, action: 'task.bulk_delete', entityType: 'task', metadata: { taskIds: rows.map(r => r.id), count: rows.length } });
+      } catch {}
+    })();
+
+    return res.json({ deleted: rows.length, ids: rows.map(r => r.id) });
+  } catch (err) { next(err); }
+});
+
+// ─── List archived (soft-deleted) tasks ──────────────────────────────────────
+// GET /api/v1/tasks/bulk/archived
+// Returns tasks where deleted_at IS NOT NULL for this org (manager+).
+router.get('/archived', authenticate, requireAnyRole(...MANAGER_ROLES), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const page  = Math.max(1, parseInt(String(req.query.page  || '1'),  10));
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '50'), 10)));
+    const offset = (page - 1) * limit;
+
+    const { rows } = await query(
+      `SELECT t.id, t.title, t.status, t.priority, t.deleted_at,
+              u.full_name AS deleted_by_name
+       FROM tasks t
+       LEFT JOIN users u ON u.id = t.assigned_to
+       WHERE t.org_id = $1 AND t.deleted_at IS NOT NULL
+       ORDER BY t.deleted_at DESC
+       LIMIT $2 OFFSET $3`,
+      [orgId, limit, offset]
+    );
+
+    return res.json({ archived: rows, page, limit });
+  } catch (err) { next(err); }
+});
+
+// ─── Restore archived task ────────────────────────────────────────────────────
+// POST /api/v1/tasks/bulk/restore/:taskId
+router.post('/restore/:taskId', authenticate, requireAnyRole(...MANAGER_ROLES), async (req, res, next) => {
+  try {
+    const orgId  = req.user.org_id ?? req.user.orgId;
+    const taskId = String(req.params.taskId || '');
+    const { rows } = await query(
+      `UPDATE tasks SET deleted_at = NULL WHERE id = $1 AND org_id = $2 AND deleted_at IS NOT NULL RETURNING id, title`,
+      [taskId, orgId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Archived task not found.' });
+    return res.json({ restored: rows[0] });
+  } catch (err) { next(err); }
+});
