@@ -176,7 +176,7 @@ export function JeczoneDashboardPage() {
     return m
   }, [filteredTasks])
 
-  const deadlines = useMemo(() => buildDeadlineSeries(filteredTasks, 7), [filteredTasks])
+  const deadlines = useMemo(() => buildDeadlineSeries(filteredTasks, 14), [filteredTasks])
 
   function openDetail(title: string, kind: 'kpi' | 'chart') {
     if (!canOpenChartDetails && kind === 'chart') {
@@ -300,7 +300,7 @@ export function JeczoneDashboardPage() {
           <div className="grid2">
             <ChartCard
               title="Deadlines"
-              subtitle="Next 7 days due vs overdue."
+              subtitle="Last 14 days — tasks due, completed, and overdue per day."
               right={<button type="button" className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => openDetail('Deadlines', 'chart')}>Details</button>}
             >
               <div
