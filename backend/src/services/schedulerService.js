@@ -23,6 +23,13 @@ async function runDueRecurringTasks() {
   }
 }
 
+function normalizeDigestChannels(channels) {
+  const allowed = new Set(['in_app', 'push', 'email']);
+  if (!Array.isArray(channels)) return ['in_app'];
+  const normalized = [...new Set(channels.map(String).filter(channel => allowed.has(channel)))];
+  return normalized.length ? normalized : ['in_app'];
+}
+
 async function runScheduledDigests() {
   try {
     const now = new Date();
@@ -43,42 +50,48 @@ async function runScheduledDigests() {
       const periodStart = pref.frequency === 'weekly'
         ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const channels = normalizeDigestChannels(pref.channels);
+      const periodStartIso = periodStart.toISOString();
+      const periodEndIso = now.toISOString();
+
       const { rows: existing } = await query(
         `SELECT 1 FROM notification_digest_runs
           WHERE user_id = $1 AND frequency = $2 AND period_start::date = $3::date AND period_end::date = $4::date
+            AND channel = ANY($5::text[])
           LIMIT 1`,
-        [pref.user_id, pref.frequency, periodStart.toISOString(), now.toISOString()]
+        [pref.user_id, pref.frequency, periodStartIso, periodEndIso, channels]
       ).catch(() => ({ rows: [] }));
       if (existing.length) continue;
 
       const { rows: taskRows } = await query(`
         SELECT
-          COUNT(*) FILTER (WHERE t.due_date::date = CURRENT_DATE AND COALESCE(t.status,'pending') NOT IN ('completed','manager_approved','cancelled'))::int AS due_today,
-          COUNT(*) FILTER (WHERE t.due_date < NOW() AND COALESCE(t.status,'pending') NOT IN ('completed','manager_approved','cancelled'))::int AS overdue,
+          COUNT(*) FILTER (WHERE $4::boolean = TRUE AND t.due_date::date = CURRENT_DATE AND COALESCE(t.status,'pending') NOT IN ('completed','manager_approved','cancelled'))::int AS due_today,
+          COUNT(*) FILTER (WHERE $5::boolean = TRUE AND t.due_date < NOW() AND COALESCE(t.status,'pending') NOT IN ('completed','manager_approved','cancelled'))::int AS overdue,
           COUNT(*) FILTER (WHERE COALESCE(t.status,'pending') IN ('completed','manager_approved') AND t.updated_at >= $3)::int AS completed
         FROM tasks t
         WHERE t.org_id = $1
           AND (t.assigned_to = $2 OR t.assigned_by = $2)
           AND COALESCE(t.deleted_at IS NULL, TRUE)
-      `, [pref.org_id, pref.user_id, periodStart.toISOString()]).catch(() => ({ rows: [{}] }));
+      `, [pref.org_id, pref.user_id, periodStartIso, pref.include_due_today !== false, pref.include_overdue !== false]).catch(() => ({ rows: [{}] }));
       const summary = taskRows[0] || {};
       const title = pref.frequency === 'weekly' ? 'Weekly task digest' : 'Daily task digest';
       const body = `${summary.due_today || 0} due today · ${summary.overdue || 0} overdue · ${summary.completed || 0} completed`;
+      const dedupeKey = `digest:${pref.user_id}:${pref.frequency}:${periodStartIso.slice(0, 10)}:${periodEndIso.slice(0, 10)}`;
 
       await emitNotification(pref.user_id, {
         type: 'notification_digest',
         title,
         body,
-        data: { frequency: pref.frequency, summary },
-        dedupeKey: `digest:${pref.user_id}:${pref.frequency}:${periodStart.toISOString().slice(0, 10)}:${now.toISOString().slice(0, 10)}`,
+        data: { frequency: pref.frequency, summary, deliveryChannels: channels },
+        dedupeKey,
       });
 
-      await query(
+      await Promise.all(channels.map(channel => query(
         `INSERT INTO notification_digest_runs (org_id, user_id, frequency, period_start, period_end, channel, summary, status)
-         VALUES ($1,$2,$3,$4,$5,'in_app',$6::jsonb,'sent')
+         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,'sent')
          ON CONFLICT DO NOTHING`,
-        [pref.org_id, pref.user_id, pref.frequency, periodStart.toISOString(), now.toISOString(), JSON.stringify(summary)]
-      ).catch(() => null);
+        [pref.org_id, pref.user_id, pref.frequency, periodStartIso, periodEndIso, channel, JSON.stringify(summary)]
+      ).catch(() => null)));
     }
   } catch (e) {
     logger.warn('Notification digest scheduler: ' + e.message);
@@ -89,7 +102,7 @@ function start() {
   // Recurring task generation: every hour
   cron.schedule('5 * * * *', runDueRecurringTasks);
 
-  // Notification digests: hourly, respects per-user delivery hour
+  // Notification digests: hourly, respects per-user delivery hour and channels
   cron.schedule('15 * * * *', runScheduledDigests);
 
   // Daily report: every day at 8:00 AM
