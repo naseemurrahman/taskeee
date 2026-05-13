@@ -42,7 +42,8 @@ export async function enableBrowserPush() {
     })
   }
 
-  await apiFetch('/api/v1/push/subscriptions', { method: 'POST', json: subscription.toJSON() })
+  const subscriptionPayload = JSON.parse(JSON.stringify(subscription.toJSON())) as Record<string, unknown>
+  await apiFetch('/api/v1/push/subscriptions', { method: 'POST', json: subscriptionPayload })
   return subscription
 }
 
