@@ -110,8 +110,12 @@ export function StatusBarChart(props: { byStatus: Record<string, number>; fillHe
         <BarChart width={w} height={h} data={data} barSize={Math.max(20, Math.min(44, (w / data.length) * 0.5))} margin={{ top: 14, right: 8, left: 0, bottom: 40 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
           <XAxis dataKey="name" tick={AXIS} axisLine={false} tickLine={false} interval={0}
-            angle={data.length > 4 ? -20 : 0} textAnchor={data.length > 4 ? 'end' : 'middle'} height={data.length > 4 ? 60 : 36} />
-          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+            angle={data.length > 4 ? -20 : 0} textAnchor={data.length > 4 ? 'end' : 'middle'} height={data.length > 4 ? 60 : 36}
+            label={{ value: 'Status', offset: -4, position: 'insideBottom', style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={42} allowDecimals={false}
+            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 10, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
           <Tooltip content={<GlassTooltip />} cursor={{ fill: 'rgba(99,102,241,0.06)' }} />
           <Bar dataKey="value" name="Tasks" radius={[8,8,3,3]}>
             {data.map(d => <Cell key={d.key} fill={COLORS[d.key]||'#6366f1'} />)}
@@ -224,8 +228,12 @@ export function DeadlinesTrendChart(props: {
       {(w) => (
         <AreaChart width={w} height={h} data={props.points} margin={{ top:14, right:16, left:0, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-          <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} minTickGap={20} />
-          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+          <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} minTickGap={20}
+            label={{ value: 'Date', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={42} allowDecimals={false}
+            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 10, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
           <Tooltip content={<GlassTooltip />} />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:12, fontWeight:700, color:'var(--chart-tick2)', paddingTop:12 }} />
           <Area type="monotone" dataKey="due"       name="Created"   stroke="#6366f1" strokeWidth={3} fill="#6366f1" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
@@ -245,8 +253,12 @@ export function CompletedTrendChart(props: { points: Array<{ day:string; complet
       {(w) => (
         <AreaChart width={w} height={H} data={props.points} margin={{ top:14, right:16, left:0, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-          <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} minTickGap={20} />
-          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+          <XAxis dataKey="day" tick={AXIS} axisLine={false} tickLine={false} minTickGap={20}
+            label={{ value: 'Date', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={42} allowDecimals={false}
+            label={{ value: 'Completed', angle: -90, position: 'insideLeft', offset: 12, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
           <Tooltip content={<GlassTooltip />} />
           <Area type="monotone" dataKey="completed" name="Completed" stroke="#22c55e" strokeWidth={3} fill="#22c55e" fillOpacity={0.12} dot={false} activeDot={{ r:5 }} />
         </AreaChart>
@@ -332,7 +344,9 @@ export function AssigneeScoreChart(props: {
         <BarChart width={w} height={h} data={data} layout="vertical"
           barCategoryGap="32%" margin={{ top:8, right:16, left:4, bottom:24 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" horizontal={false} />
-          <XAxis xAxisId="score" type="number" domain={[0,100]} tick={AXIS} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+          <XAxis xAxisId="score" type="number" domain={[0,100]} tick={AXIS} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`}
+            label={{ value: 'Performance Score (0–100%)', position: 'insideBottom', offset: -10, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
           <XAxis xAxisId="count" type="number" domain={[0,maxCount]} hide />
           <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
           <Tooltip content={<GlassTooltip />} cursor={{ fill:'rgba(99,102,241,0.05)' }} />

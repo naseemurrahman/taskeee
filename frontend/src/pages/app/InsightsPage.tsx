@@ -325,8 +325,12 @@ export function InsightsPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis dataKey="day" tick={xTick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                      <YAxis tick={yTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <XAxis dataKey="day" tick={xTick} axisLine={false} tickLine={false} interval="preserveStartEnd"
+                        label={{ value: 'Date', position: 'insideBottom', offset: -2, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                      />
+                      <YAxis tick={yTick} axisLine={false} tickLine={false} allowDecimals={false}
+                        label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                      />
                       <Tooltip content={<ChartTooltip />} />
                       {!L.isMobile && (
                         <Legend iconType="circle" iconSize={7}
@@ -379,8 +383,12 @@ export function InsightsPage() {
                 <ResponsiveContainer width="100%" height={L.chartH}>
                   <BarChart data={workloadBars} margin={{ top: 4, right: 8, left: L.leftMargin, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="name" tick={xTick} axisLine={false} tickLine={false} />
-                    <YAxis tick={yTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <XAxis dataKey="name" tick={xTick} axisLine={false} tickLine={false}
+                      label={{ value: 'Team Member', position: 'insideBottom', offset: -2, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
+                    <YAxis tick={yTick} axisLine={false} tickLine={false} allowDecimals={false}
+                      label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 12, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
                     <Tooltip content={<ChartTooltip />} />
                     <Bar dataKey="done" name="Done" stackId="a" fill="#22c55e" radius={[0,0,0,0]} />
                     <Bar dataKey="open" name="Open" stackId="a" fill="#8b5cf6" radius={[4,4,0,0]} />
@@ -395,9 +403,13 @@ export function InsightsPage() {
                   <BarChart data={priorityBars} layout="vertical"
                     margin={{ top: 4, right: L.isMobile ? 16 : 24, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                    <XAxis type="number" tick={xTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <XAxis type="number" tick={xTick} axisLine={false} tickLine={false} allowDecimals={false}
+                      label={{ value: 'Number of Tasks', position: 'insideBottom', offset: -2, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
                     <YAxis type="category" dataKey="name" tick={{ ...yTick, fontWeight: 800 }}
-                      axisLine={false} tickLine={false} width={L.isMobile ? 48 : 56} />
+                      axisLine={false} tickLine={false} width={L.isMobile ? 48 : 56}
+                      label={{ value: 'Priority', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
                     <Tooltip content={<ChartTooltip />} />
                     <Bar dataKey="value" name="Tasks" radius={[0,6,6,0]}>
                       {priorityBars.map((e, i) => <Cell key={i} fill={e.fill} />)}
@@ -418,7 +430,9 @@ export function InsightsPage() {
                     layout="vertical"
                     margin={{ top: 4, right: L.isMobile ? 16 : 24, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                    <XAxis type="number" tick={xTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <XAxis type="number" tick={xTick} axisLine={false} tickLine={false} allowDecimals={false}
+                      label={{ value: 'Number of Tasks', position: 'insideBottom', offset: -2, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
                     <YAxis type="category" dataKey="name" tick={{ ...yTick, fontWeight: 700 }}
                       axisLine={false} tickLine={false} width={L.yAxisW} />
                     <Tooltip content={<ChartTooltip />} />

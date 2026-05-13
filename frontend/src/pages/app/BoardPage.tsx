@@ -249,7 +249,10 @@ export function BoardPage() {
               : intelligence.topRisk.map(item=>(
                 <button key={item.task.id} type="button" onClick={()=>setSelectedTaskId(item.task.id)} style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',background:'none',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
                   <span style={{fontSize:12,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text)'}}>{item.task.title}</span>
-                  <span className={signalBadgeClass(item.signal.level)} style={{flexShrink:0}}>{item.signal.score}%</span>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:1, flexShrink:0 }}>
+                    <span className={signalBadgeClass(item.signal.level)} style={{flexShrink:0}} title={`Risk score: ${item.signal.score}%`}>{item.signal.score}%</span>
+                    <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>risk</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -341,7 +344,15 @@ export function BoardPage() {
                         {isMoving && <div style={{position:'absolute',top:8,right:8,width:14,height:14,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} />}
                         <div style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:7,paddingTop:task.priority?6:0}}>
                           <div style={{fontWeight:750,fontSize:13,color:'var(--text)',lineHeight:1.4,flex:1}}>{task.title}</div>
-                          <span className={signalBadgeClass(signal.level)} style={{flexShrink:0}}>{signal.score}%</span>
+                          {/* Risk score badge with label */}
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:1, flexShrink:0 }}>
+                            <span className={signalBadgeClass(signal.level)} style={{ flexShrink:0 }} title={`AI Risk Score: ${signal.score}% — based on deadline, priority & assignee workload`}>
+                              {signal.score}%
+                            </span>
+                            <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', whiteSpace:'nowrap' }}>
+                              risk score
+                            </span>
+                          </div>
                         </div>
                         {signal.needsAttention && <div style={{color:'#f97316',fontSize:11,fontWeight:700,marginBottom:6}}>{signal.note}</div>}
                         {signal.loadNote && <div style={{color:'#ef4444',fontSize:11,fontWeight:700,marginBottom:6}}>⚠ {signal.loadNote}</div>}

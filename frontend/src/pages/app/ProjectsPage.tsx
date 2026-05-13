@@ -389,8 +389,12 @@ export function ProjectsPage() {
                 <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Project Progress</div>
                 <ResponsiveContainer width="100%" height={progressBars.length * 32 + 8}>
                   <BarChart data={progressBars} layout="vertical" margin={{ top: 0, right: 28, left: 0, bottom: 0 }}>
-                    <XAxis type="number" domain={[0,100]} tick={{ fill: 'var(--muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={72} />
+                    <XAxis type="number" domain={[0,100]} tick={{ fill: 'var(--muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`}
+                      label={{ value: 'Completion %', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={72}
+                      label={{ value: 'Project', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
+                    />
                     <Tooltip content={<ProgressTip />} />
                     <Bar dataKey="progress" name="Progress" radius={[0,6,6,0]}>
                       {progressBars.map((e, i) => <Cell key={i} fill={e.fill} />)}

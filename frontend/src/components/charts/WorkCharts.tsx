@@ -117,8 +117,12 @@ export function AssignmentsChart(props: { rows: Array<{ name:string; active:numb
       {(w) => (
         <BarChart width={w} height={h} data={data} layout="vertical" margin={{ top:8, right:16, left:4, bottom:8 }}>
           <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" horizontal={false} />
-          <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
-          <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={80} />
+          <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false}
+            label={{ value: 'Number of Tasks', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={80}
+            label={{ value: 'Team Member', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
           <Tooltip content={<GlassTooltip />} cursor={{ fill:'rgba(99,102,241,0.06)' }} />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:12, fontWeight:700, color:'var(--chart-tick2)', paddingTop:10 }} />
           <Bar dataKey="Done"    stackId="a" fill="#22c55e" radius={[0,6,6,0]} barSize={16} />
