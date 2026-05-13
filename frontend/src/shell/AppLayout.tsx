@@ -12,7 +12,7 @@ import {
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
   UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat,
-  Moon, Sun,
+  Moon, Sun, BookOpen,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -23,6 +23,8 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Board: FolderKanban,
   Projects: Network,
   Calendar: Calendar,
+  'Time tracking': Clock,
+  'Knowledge base': BookOpen,
   Analytics: BarChart3,
   Billing: CreditCard,
   Contractors: Briefcase,
@@ -45,7 +47,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 function labelKey(label: string): string {
   const map: Record<string, string> = {
     Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
-    Board: 'nav.board', Projects: 'nav.projects', Calendar: 'nav.calendar',
+    Board: 'nav.board', Projects: 'nav.projects', Calendar: 'nav.calendar', 'Time tracking': 'Time tracking', 'Knowledge base': 'Knowledge base',
     Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
@@ -63,7 +65,7 @@ function canSeeItem(role: string, item: string) {
   return true
 }
 function canSee(role: string, min: string) {
-  const order = ['employee', 'supervisor', 'manager', 'hr', 'director', 'admin']
+  const order = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin']
   return order.indexOf(role) >= order.indexOf(min)
 }
 
@@ -221,7 +223,7 @@ export function AppLayout() {
   const avatarBroken = !!avatarSrc && failedAvatarSrc === avatarSrc
 
   const hasResults = searchResults && (
-    (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) > 0
+    (searchResults.tasks?.length || 0) + (searchResults.users?.length || 0) + (searchResults.projects?.length || 0) + (searchResults.attachments?.length || 0) + (searchResults.knowledge?.length || 0) > 0
   )
   const activeLang: Lang = (lang || 'en') as Lang
 
@@ -254,6 +256,8 @@ export function AppLayout() {
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          <NavItem to="/app/time-tracking" label="Time tracking" display="Time tracking" collapsed={collapsed} onNavigate={closeMobileNav} />
+          <NavItem to="/app/knowledge-base" label="Knowledge base" display="Knowledge base" collapsed={collapsed} onNavigate={closeMobileNav} />
           {canSee(role, 'manager') && <>{!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Management</div>}{canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}</>}
           {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Other</div>}
           {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
@@ -269,7 +273,7 @@ export function AppLayout() {
           <button type="button" className="topbarV4MenuBtn" ref={mobileMenuBtnRef} onClick={() => setMobileOpen(v => !v)} aria-label="Menu"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
           <div className="topbarV4SearchWrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="topbarV4SearchIcon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input ref={searchInputRef} className="topbarV4SearchInput" value={search} onChange={e => runSearch(e.target.value)} onFocus={() => { if (search.length >= 2) setSearchOpen(true) }} onBlur={() => setTimeout(() => setSearchOpen(false), 150)} placeholder="Search tasks, people, projects…" />
+            <input ref={searchInputRef} className="topbarV4SearchInput" value={search} onChange={e => runSearch(e.target.value)} onFocus={() => { if (search.length >= 2) setSearchOpen(true) }} onBlur={() => setTimeout(() => setSearchOpen(false), 150)} placeholder="Search tasks, files, docs, people…" />
             {!search && <kbd style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--muted)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontFamily: 'inherit', pointerEvents: 'none', lineHeight: 1.6, zIndex: 1 }}>/</kbd>}
             {search && <button type="button" className="topbarV4SearchClear" onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false) }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
             {searchOpen && <div className="topbarV4SearchDropdown"><div className="topbarV4SearchEmpty">{searchBusy ? 'Searching…' : hasResults ? 'Open full search for more results.' : `No results for "${search}"`}</div></div>}
