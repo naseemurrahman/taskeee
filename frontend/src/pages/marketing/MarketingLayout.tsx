@@ -50,22 +50,30 @@ export function MarketingLayout() {
       >
         <div className="mktTopbarInner">
           {/* Brand */}
-          <Link to="/" className="mktBrand" style={{ gap: 12 }}>
+          <Link to="/" className="mktBrand" style={{ gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 11,
-              background: 'linear-gradient(135deg, #f4ca57, #d4a030)',
+              width: 36, height: 36, borderRadius: 10,
+              background: 'linear-gradient(135deg, #1c1710, #0d0b08)',
+              border: '1.5px solid rgba(226,171,65,0.35)',
               display: 'grid', placeItems: 'center', flexShrink: 0,
-              color: '#0b0d12', boxShadow: '0 4px 14px rgba(244,202,87,0.35)',
+              boxShadow: '0 4px 16px rgba(226,171,65,0.18)',
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
+              <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="mktNavGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#f9e6a2"/>
+                    <stop offset="100%" stopColor="#e2ab41"/>
+                  </linearGradient>
+                </defs>
+                {/* T cross-bar */}
+                <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#mktNavGold)"/>
+                {/* T vertical stem */}
+                <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#mktNavGold)"/>
               </svg>
             </div>
             <div className="mktBrandText">
               <div className="mktBrandName">TASKEE</div>
-              <div className="mktBrandSub">HR + Workflows + AI</div>
+              <div className="mktBrandSub">AI Task Intelligence</div>
             </div>
           </Link>
 
@@ -170,16 +178,27 @@ export function MarketingLayout() {
             <div style={{ maxWidth: 300 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: 'linear-gradient(135deg, #f4ca57, #d4a030)',
-                  display: 'grid', placeItems: 'center', color: '#0b0d12',
+                  width: 34, height: 34, borderRadius: 10,
+                  background: 'linear-gradient(135deg, #1c1710, #0d0b08)',
+                  border: '1.5px solid rgba(226,171,65,0.35)',
+                  display: 'grid', placeItems: 'center', flexShrink: 0,
+                  boxShadow: '0 4px 14px rgba(226,171,65,0.15)',
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                  <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                    <defs>
+                      <linearGradient id="mktFootGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#f9e6a2"/>
+                        <stop offset="100%" stopColor="#e2ab41"/>
+                      </linearGradient>
+                    </defs>
+                    <rect x="7" y="12" width="34" height="6.5" rx="3.25" fill="url(#mktFootGold)"/>
+                    <rect x="19.5" y="18" width="9" height="18" rx="2.5" fill="url(#mktFootGold)"/>
                   </svg>
                 </div>
-                <div className="mktFooterBrand">TASKEE</div>
+                <div>
+                  <div className="mktFooterBrand">TASKEE</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: '0.04em', marginTop: 1 }}>AI Task Intelligence</div>
+                </div>
               </div>
               <div className="mktFooterSub">
                 Subscription per employee seat · Admin/HR controlled onboarding · AI-assisted approvals.

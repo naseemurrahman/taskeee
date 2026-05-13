@@ -8368,3 +8368,70 @@ html, body, #root {
   .insightsChartCard { padding: 12px !important; }
   .insightsChartTitle { font-size: 12px !important; margin-bottom: 10px !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MARKETING BRAND — correct T-mark logo + TASKEE wordmark layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Brand container in the navbar */
+#root .mktBrand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  flex-shrink: 0 !important;
+}
+
+/* Text column: stacked, no wrapping */
+#root .mktBrandText {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  gap: 0 !important;
+}
+
+/* TASKEE wordmark — gradient gold, uppercase, tracked */
+#root .mktBrandName {
+  font-size: 16px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  line-height: 1.1 !important;
+  background: linear-gradient(135deg, #f9e6a2 0%, #e2ab41 55%, #c98317 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  display: block !important;
+}
+
+/* Sub-label beneath wordmark */
+#root .mktBrandSub {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  color: rgba(255,255,255,0.4) !important;
+  text-transform: uppercase !important;
+  margin-top: 1px !important;
+  display: block !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.4) !important;
+}
+
+/* Footer brand wordmark — same gradient style */
+#root .mktFooterBrand {
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  background: linear-gradient(135deg, #f9e6a2, #e2ab41) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  line-height: 1.1 !important;
+  display: block !important;
+}
+
+/* Hide sub on very small screens to save space */
+@media (max-width: 360px) {
+  #root .mktBrandSub { display: none !important; }
+}
