@@ -1,9 +1,12 @@
 name: Deploy TASKEE to AWS
 
+# This workflow targets an AWS (EC2 + S3 + CloudFront) deployment.
+# The app currently runs on Railway (backend) and Vercel (frontend).
+# Disabled auto-triggers to prevent failing checks until AWS is provisioned.
+# Enable by adding back push/pull_request triggers once EC2_HOST,
+# EC2_SSH_PRIVATE_KEY, and S3/CloudFront secrets are configured.
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:   # Allow manual trigger from GitHub UI
+  workflow_dispatch:   # Manual trigger only
 
 # Cancel in-progress runs when a new push comes in
 concurrency:

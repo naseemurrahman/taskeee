@@ -136,7 +136,14 @@ export function AppLayout() {
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchBusy, setSearchBusy] = useState(false)
-  const [searchResults, setSearchResults] = useState<any>(null)
+  interface SearchResults {
+    tasks?: { id: string; title: string; status?: string }[]
+    users?: { id: string; name?: string; email?: string }[]
+    projects?: { id: string; name?: string; title?: string }[]
+    attachments?: { id: string; filename?: string; task_id?: string }[]
+    knowledge?: { id: string; title?: string; category?: string }[]
+  }
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function runSearch(v: string) {
@@ -146,7 +153,7 @@ export function AppLayout() {
     setSearchBusy(true); setSearchOpen(true)
     searchTimer.current = setTimeout(async () => {
       try {
-        const r = await apiFetch<any>(`/api/v1/search?q=${encodeURIComponent(v.trim())}&limit=8`)
+        const r = await apiFetch<SearchResults>(`/api/v1/search?q=${encodeURIComponent(v.trim())}&limit=8`)
         setSearchResults(r)
       } catch { setSearchResults(null) }
       setSearchBusy(false)
@@ -155,7 +162,7 @@ export function AppLayout() {
 
   const profileQ = useQuery({
     queryKey: ['profile', 'shell'],
-    queryFn: () => apiFetch<any>('/api/v1/users/profile'),
+    queryFn: () => apiFetch<{ id: string; name?: string; email?: string; avatar_url?: string; role?: string }>('/api/v1/users/profile'),
     staleTime: 5 * 60 * 1000,
   })
   const statsQ = useQuery({
