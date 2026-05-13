@@ -51,6 +51,7 @@
     "socket.io": "^4.6.2",
     "stripe": "^22.0.0",
     "uuid": "^9.0.1",
+    "web-push": "^3.6.7",
     "winston": "^3.11.0"
   },
   "devDependencies": {
