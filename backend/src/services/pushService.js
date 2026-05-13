@@ -30,7 +30,7 @@ async function logDelivery(userId, notifType, status, errorMsg = null, notificat
 }
 
 async function deliverBrowserPush(userId, notificationId, notification) {
-  if (!isConfigured()) return { sent: 0, failed: 0, skipped: true };
+  if (!isConfigured()) return { sent: 0, failed: 0, skipped: true, reason: 'web_push_not_configured' };
   configureWebPush();
   const { rows } = await query(
     `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1 AND is_active = TRUE`,
