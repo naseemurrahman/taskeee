@@ -146,9 +146,9 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_articles_category ON knowledge_articles
 CREATE INDEX IF NOT EXISTS idx_knowledge_articles_tags ON knowledge_articles USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_knowledge_articles_search ON knowledge_articles USING GIN (
   (
-    setweight(to_tsvector('simple', COALESCE(title, '')), 'A') ||
-    setweight(to_tsvector('simple', COALESCE(summary, '')), 'B') ||
-    setweight(to_tsvector('simple', COALESCE(content, '')), 'C') ||
-    setweight(to_tsvector('simple', COALESCE(array_to_string(tags, ' '), '')), 'B')
+    setweight(to_tsvector('simple'::regconfig, COALESCE(title, '')), 'A') ||
+    setweight(to_tsvector('simple'::regconfig, COALESCE(summary, '')), 'B') ||
+    setweight(to_tsvector('simple'::regconfig, COALESCE(content, '')), 'C') ||
+    setweight(to_tsvector('simple'::regconfig, COALESCE(array_to_string(tags, ' '), '')), 'B')
   )
 );
