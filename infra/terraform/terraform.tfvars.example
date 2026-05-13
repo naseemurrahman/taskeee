@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# terraform.tfvars — YOUR ACTUAL VALUES (never commit this file to git!)
+# Copy this to terraform.tfvars and fill in your values.
+# terraform.tfvars is already in .gitignore.
+# ─────────────────────────────────────────────────────────────────────────────
+
+project     = "taskee"
+environment = "prod"
+aws_region  = "us-east-1"
+
+# Your custom domain — must own it (buy from Namecheap, GoDaddy, etc.)
+domain_name = "taskee.app"
+
+# Your current IP for SSH access: run `curl ifconfig.me` and add /32
+admin_ip_cidr = "YOUR_IP_ADDRESS/32"
+
+# Path to your SSH public key
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Database — use a strong password
+db_name     = "taskee_prod"
+db_username = "taskee_admin"
+db_password = "CHANGE_ME_STRONG_PASSWORD_32_CHARS"
+
+# JWT secrets — generate with: openssl rand -hex 64
+jwt_secret         = "GENERATE_WITH_openssl_rand_hex_64"
+jwt_refresh_secret = "GENERATE_WITH_openssl_rand_hex_64_DIFFERENT"
+
+# AI keys (optional but recommended)
+anthropic_api_key = ""
+groq_api_key      = "your_groq_key_here"
+
+# SMTP — AWS SES is cheapest (first 62,000 emails/month free when sent from EC2)
+smtp_host = "email-smtp.us-east-1.amazonaws.com"
+smtp_port = "587"
+smtp_user = ""   # From AWS SES SMTP credentials
+smtp_pass = ""   # From AWS SES SMTP credentials
+smtp_from = "noreply@taskee.app"
