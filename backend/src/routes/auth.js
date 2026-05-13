@@ -661,6 +661,10 @@ router.post('/signup', async (req, res, next) => {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
+    // Enforce password policy
+    const pwError = validatePasswordStrength(password);
+    if (pwError) return res.status(400).json({ error: pwError, code: 'WEAK_PASSWORD' });
+
     const passwordHash = await bcrypt.hash(password, 12);
     const signupResult = await withTransaction(async (client) => {
       const subscription = {
@@ -889,4 +893,19 @@ router.post('/change-password', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Strong password policy validator — enforced on register and password change.
+// Min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char.
+function validatePasswordStrength(password) {
+  if (!password || password.length < 8)
+    return 'Password must be at least 8 characters long.';
+  if (!/[A-Z]/.test(password))
+    return 'Password must contain at least one uppercase letter.';
+  if (!/[a-z]/.test(password))
+    return 'Password must contain at least one lowercase letter.';
+  if (!/\d/.test(password))
+    return 'Password must contain at least one number.';
+  if (!/[^a-zA-Z0-9]/.test(password))
+    return 'Password must contain at least one special character (e.g. !@#$%).';
+  return null; // valid
+}
 module.exports = router;

@@ -7,6 +7,7 @@ const { emitNotification } = require('../services/notificationService');
 const { logUserActivity } = require('../services/activityService');
 const { triggerAITaskReview } = require('../services/aiService');
 const { orgIdForSessionUser } = require('../utils/orgContext');
+const { logAudit } = require('../services/auditService');
 
 const _tableColsCache = new Map();
 async function getTableColumns(tableName) {
@@ -282,6 +283,18 @@ router.post('/create-simple', authenticate, async (req, res, next) => {
     }
     
     res.status(201).json({ task });
+
+    // Fire-and-forget audit
+    ;(async () => {
+      try {
+        await logAudit({
+          orgId: req.user.org_id ?? req.user.orgId, actorUserId: req.user.id,
+          action: 'task.create', entityType: 'task', entityId: task?.id,
+          metadata: { title: task?.title, assignedTo: task?.assigned_to, priority: task?.priority },
+          ip: req.ip, userAgent: req.headers['user-agent'],
+        });
+      } catch {}
+    })();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
