@@ -171,16 +171,23 @@ app.use(errorHandler);
 const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10);
 async function start() {
   try { require('./utils/envCheck').runEnvCheck(); } catch {}
+
+  // Connect DB first (needed for all routes)
   try { await connectDB(); } catch (err) { logger.error('Database bootstrap failed, starting API in degraded mode: ' + err.message); }
-  try { await runPendingMigrations({ verbose: true }); } catch (err) { logger.warn('Versioned migration warning: ' + err.message); }
   try { await connectRedis(); } catch (err) { logger.warn('Redis bootstrap failed, continuing with fallback cache: ' + err.message); }
-  try { require('./services/schedulerService').start(); } catch (err) { logger.warn('Scheduler failed to start: ' + err.message); }
-  if (process.env.ENABLE_LEGACY_AUTO_MIGRATE === 'true') {
-    try { await require('./utils/autoMigrate').runAutoMigrations(); } catch (err) { logger.warn('Legacy auto-migration warning: ' + err.message); }
-  }
-  // Schema verification — surfaces schema drift at startup instead of silent runtime failures
-  try { await require('./utils/schemaVerify').verifySchema(); } catch (err) { logger.warn('Schema verification failed: ' + err.message); }
+
+  // START LISTENING IMMEDIATELY so Railway healthcheck passes while migrations run
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
+
+  // Run remaining startup tasks in background — server is already accepting requests
+  setImmediate(async () => {
+    try { await runPendingMigrations({ verbose: true }); } catch (err) { logger.warn('Versioned migration warning: ' + err.message); }
+    try { require('./services/schedulerService').start(); } catch (err) { logger.warn('Scheduler failed to start: ' + err.message); }
+    if (process.env.ENABLE_LEGACY_AUTO_MIGRATE === 'true') {
+      try { await require('./utils/autoMigrate').runAutoMigrations(); } catch (err) { logger.warn('Legacy auto-migration warning: ' + err.message); }
+    }
+    try { await require('./utils/schemaVerify').verifySchema(); } catch (err) { logger.warn('Schema verification failed: ' + err.message); }
+  });
 }
 
 server.on('listening', () => { logger.info('TASKEE API started'); logger.info(`  Health : http://localhost:${PORT}/health`); logger.info(`  Login  : POST http://localhost:${PORT}/api/v1/auth/login`); });

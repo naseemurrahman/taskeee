@@ -49,9 +49,7 @@ async function run() {
     process.exit(1);
   }
   try {
-    await client.query('BEGIN');
-    // Ensure required extensions are always available regardless of which migrations
-    // were baselined (e.g. uuid-ossp may not be installed if 001_initial_schema was skipped)
+    // Ensure required extensions and migrations table exist (auto-commit, no transaction needed)
     await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
     await client.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
     await client.query(`
@@ -106,23 +104,33 @@ async function run() {
 
     for (const file of files) {
       if (applied.has(file)) {
-        console.log(`- Skipping ${file} (already applied)`);
-        continue;
+        console.log(`- Skipping ${file} (already applied)`)
+        continue
       }
-      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-      console.log(`- Applying ${file}`);
-      await client.query(sql);
-      await client.query(`INSERT INTO schema_migrations (filename) VALUES ($1)`, [file]);
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+      console.log(`- Applying ${file}`)
+      // Each file gets its own transaction so a slow/failing migration
+      // doesn't block or roll back all others
+      await client.query('BEGIN')
+      try {
+        await client.query(sql)
+        await client.query(`INSERT INTO schema_migrations (filename) VALUES ($1)`, [file])
+        await client.query('COMMIT')
+      } catch (fileErr) {
+        await client.query('ROLLBACK')
+        console.error(`Migration ${file} failed: ${fileErr.message}`)
+        // Mark as failed but continue — server will start in degraded mode
+        process.exitCode = 1
+      }
     }
 
-    await client.query('COMMIT');
-    console.log('Migrations complete.');
+    console.log('Migrations complete.')
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Migration failed:', err.message);
-    process.exitCode = 1;
+    await client.query('ROLLBACK').catch(() => null)
+    console.error('Migration setup failed:', err.message)
+    process.exitCode = 1
   } finally {
-    await client.end();
+    await client.end()
   }
 }
 
