@@ -61,16 +61,17 @@ export function TaskDetailDrawer({
   taskId,
   onClose,
   initialTab = 'details',
-}: { taskId: string | null; onClose: () => void; initialTab?: 'details' | 'comments' }) {
+}: { taskId: string | null; onClose: () => void; initialTab?: 'details' | 'comments' | 'feedback' }) {
   const me = getUser()
   const qc = useQueryClient()
   const canManage = canCreateTasksAndProjects(me?.role)
   const { success: toastSuccess, error: toastError } = useToast()
   const [comment, setComment] = useState('')
+  const [feedback, setFeedback] = useState('')
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'files'>(initialTab as 'details' | 'comments' | 'files')
+  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'files' | 'feedback'>(initialTab as 'details' | 'comments' | 'files' | 'feedback')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -160,6 +161,16 @@ export function TaskDetailDrawer({
     onError: (err: any) => {
       toastError('Comment failed', err instanceof ApiError ? err.message : 'Failed to send comment')
     }
+  })
+
+  const feedbackM = useMutation({
+    mutationFn: (body: string) => apiFetch(`/api/v1/tasks/${taskId}/messages`, { method: 'POST', json: { body, message_type: 'feedback' } }),
+    onSuccess: () => {
+      setFeedback('')
+      qc.invalidateQueries({ queryKey: ['task-messages', taskId] })
+      toastSuccess('Feedback sent', 'Your feedback has been sent to the task assignee.')
+    },
+    onError: (err: any) => toastError('Feedback failed', err instanceof ApiError ? err.message : 'Failed to send feedback'),
   })
 
   const statusM = useMutation({
@@ -317,7 +328,8 @@ export function TaskDetailDrawer({
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 20px' }}>
           {[
             { key: 'details', label: 'Details' },
-            { key: 'comments', label: 'Comments', badge: messages.length },
+            { key: 'comments', label: 'Comments', badge: messages.filter((m:any) => m.message_type !== 'feedback').length },
+            { key: 'feedback', label: 'Feedback', badge: messages.filter((m:any) => m.message_type === 'feedback').length },
             { key: 'files', label: 'Files', badge: photos.length },
           ].map(({ key, label, badge }) => (
             <button key={key} onClick={() => setActiveTab(key as any)} style={{
@@ -534,6 +546,50 @@ export function TaskDetailDrawer({
                   })
               }
             </div>
+          ) : activeTab === 'feedback' ? (
+            /* Feedback Tab */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(244,114,182,0.06)', border: '1px solid rgba(244,114,182,0.2)', fontSize: 12, color: '#f472b6', fontWeight: 700 }}>
+                💬 Feedback is visible to the task assignee and managers. Use this for reviews, approvals, or revision notes.
+              </div>
+              {/* Feedback messages */}
+              {messages.filter((m: any) => m.message_type === 'feedback').length === 0
+                ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--muted)' }}>
+                    <div style={{ fontSize: 28 }}>💬</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginTop: 8 }}>No feedback yet</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Add feedback below to notify the assignee</div>
+                  </div>
+                : messages.filter((m: any) => m.message_type === 'feedback').map((msg: any) => {
+                    const isMe = msg.sender_id === me?.id
+                    return (
+                      <div key={msg.id} style={{ display: 'flex', gap: 10, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: 'rgba(244,114,182,0.18)', border: '1.5px solid rgba(244,114,182,0.3)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 900, color: '#f472b6' }}>
+                          {(msg.sender_name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ maxWidth: '75%' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', marginBottom: 3, textAlign: isMe ? 'right' : 'left' }}>
+                            {msg.sender_name} · {timeAgo(msg.created_at)}
+                          </div>
+                          <div style={{ padding: '8px 12px', borderRadius: isMe ? '12px 4px 12px 12px' : '4px 12px 12px 12px', background: isMe ? 'rgba(244,114,182,0.15)' : 'var(--bg2)', border: `1px solid ${isMe ? 'rgba(244,114,182,0.3)' : 'var(--border)'}`, fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
+                            {msg.body}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+              }
+              {/* Feedback input */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginTop: 8 }}>
+                <textarea value={feedback} onChange={e => setFeedback(e.target.value)}
+                  placeholder="Write feedback for the assignee… (approval notes, revision requests, etc.)"
+                  style={{ flex: 1, height: 72, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(244,114,182,0.3)', background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, resize: 'none', fontFamily: 'inherit' }} />
+                <button type="button" onClick={() => { const t = feedback.trim(); if (t && !feedbackM.isPending) feedbackM.mutate(t) }}
+                  disabled={!feedback.trim() || feedbackM.isPending}
+                  style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'rgba(244,114,182,0.8)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: !feedback.trim() || feedbackM.isPending ? 0.45 : 1 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+            </div>
           ) : (
             /* Comments Tab */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: '100%' }}>
@@ -541,7 +597,7 @@ export function TaskDetailDrawer({
                 <div style={{ display: 'grid', gap: 10 }}>
                   {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 12 }} />)}
                 </div>
-              ) : messages.length === 0 ? (
+              ) : messages.filter((m: any) => m.message_type !== 'feedback').length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
                   <div style={{ marginBottom: 8, display: 'grid', placeItems: 'center' }}>
                     <MessageCircle size={24} />
@@ -550,7 +606,7 @@ export function TaskDetailDrawer({
                   <div style={{ fontSize: 12, marginTop: 4 }}>Start the conversation below</div>
                 </div>
               ) : (
-                messages.map(msg => {
+                messages.filter((m: any) => m.message_type !== 'feedback').map(msg => {
                   const isMe = msg.sender_id === me?.id
                   const color = hashColor(msg.sender_name || msg.sender_id)
                   return (

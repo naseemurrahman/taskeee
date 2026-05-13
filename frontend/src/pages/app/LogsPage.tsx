@@ -29,18 +29,24 @@ async function fetchOrgLogs(days: number, type: string, page: number) {
 }
 
 const TYPE_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
-  login:                  { label: 'Login',             icon: '🔐', color: '#22c55e', bg: 'rgba(34,197,94,0.10)'   },
-  user_added:             { label: 'User Added',        icon: <IconUser size={14} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.10)'  },
-  task_created:           { label: 'Task Created',      icon: <IconCheckCircle size={14} />, color: '#818cf8', bg: 'rgba(129,140,248,0.10)' },
-  task_status_changed:    { label: 'Status Changed',    icon: <IconRefresh size={14} />, color: '#e2ab41', bg: 'rgba(226,171,65,0.10)'  },
-  task_priority_changed:  { label: 'Priority Changed',  icon: <IconLightning size={14} />, color: '#f97316', bg: 'rgba(249,115,22,0.10)'  },
-  task_time_logged:       { label: 'Time Logged',       icon: '⏱️', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)' },
-  task_comment_added:     { label: 'Comment Added',     icon: <IconMessage size={14} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.10)'  },
-  profile_updated:        { label: 'Profile Updated',   icon: '✏️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
-  profile_avatar_updated: { label: 'Avatar Updated',    icon: '🖼️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
-  project_created:        { label: 'Project Created',   icon: <IconFolder size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
-  project_updated:        { label: 'Project Updated',   icon: <IconReport size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
-  password_changed:       { label: 'Password Changed',  icon: <IconKey size={14} />, color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
+  login:                    { label: 'Login',               icon: '🔐', color: '#22c55e', bg: 'rgba(34,197,94,0.10)'   },
+  user_added:               { label: 'User Added',          icon: <IconUser size={14} />, color: '#38bdf8', bg: 'rgba(56,189,248,0.10)'  },
+  task_created:             { label: 'Task Created',        icon: <IconCheckCircle size={14} />, color: '#818cf8', bg: 'rgba(129,140,248,0.10)' },
+  task_status_changed:      { label: 'Status Changed',      icon: <IconRefresh size={14} />, color: '#e2ab41', bg: 'rgba(226,171,65,0.10)'  },
+  task_priority_changed:    { label: 'Priority Changed',    icon: <IconLightning size={14} />, color: '#f97316', bg: 'rgba(249,115,22,0.10)'  },
+  task_time_logged:         { label: 'Time Logged',         icon: '⏱️', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)' },
+  task_comment_added:       { label: 'Comment Added',       icon: <IconMessage size={14} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.10)'  },
+  task_deleted:             { label: 'Task Deleted',        icon: '🗑️', color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
+  task_feedback_added:      { label: 'Feedback Added',      icon: '💬', color: '#f472b6', bg: 'rgba(244,114,182,0.10)' },
+  task_file_uploaded:       { label: 'File Uploaded',       icon: '📎', color: '#34d399', bg: 'rgba(52,211,153,0.10)'  },
+  profile_updated:          { label: 'Profile Updated',     icon: '✏️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
+  profile_avatar_updated:   { label: 'Avatar Updated',      icon: '🖼️', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
+  project_created:          { label: 'Project Created',     icon: <IconFolder size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  project_updated:          { label: 'Project Updated',     icon: <IconReport size={14} />, color: '#fb923c', bg: 'rgba(251,146,60,0.10)'  },
+  project_status_changed:   { label: 'Project Status',      icon: <IconRefresh size={14} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.10)'  },
+  password_changed:         { label: 'Password Changed',    icon: <IconKey size={14} />, color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
+  employee_status_changed:  { label: 'Employee Status',     icon: <IconUsers size={14} />, color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)'  },
+  employee_terminated:      { label: 'Employee Terminated', icon: '🚫', color: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
 }
 
 function getTypeMeta(type: string) {

@@ -6,11 +6,15 @@ const { query } = require('../utils/db');
 const { authenticate } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { logAudit } = require('../services/auditService');
+const { isConfigured: isBrowserPushConfigured } = require('../services/pushService');
 
 router.use(authenticate);
 
 router.get('/vapid-public-key', (_req, res) => {
-  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null, enabled: !!process.env.VAPID_PUBLIC_KEY });
+  res.json({
+    publicKey: process.env.VAPID_PUBLIC_KEY || null,
+    enabled: !!process.env.VAPID_PUBLIC_KEY && isBrowserPushConfigured(),
+  });
 });
 
 router.post('/subscriptions', async (req, res, next) => {
@@ -20,11 +24,24 @@ router.post('/subscriptions', async (req, res, next) => {
     const endpoint = String(req.body?.endpoint || '').trim();
     const keys = req.body?.keys || {};
     if (!endpoint || !keys.p256dh || !keys.auth) return res.status(400).json({ error: 'Valid push subscription is required' });
+
+    // A browser endpoint must belong to exactly one signed-in account at a time.
+    // Shared browsers otherwise leak notifications across accounts because the same
+    // PushSubscription endpoint can be reused by the browser.
+    await query(
+      `UPDATE push_subscriptions
+          SET is_active = FALSE
+        WHERE endpoint = $1
+          AND (user_id <> $2 OR org_id <> $3)`,
+      [endpoint, req.user.id, orgId]
+    ).catch(() => null);
+
     const { rows } = await query(
       `INSERT INTO push_subscriptions (org_id, user_id, endpoint, p256dh, auth, user_agent, is_active, last_seen_at)
        VALUES ($1,$2,$3,$4,$5,$6,TRUE,NOW())
        ON CONFLICT (user_id, endpoint)
-       DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_agent = EXCLUDED.user_agent, is_active = TRUE, last_seen_at = NOW()
+       DO UPDATE SET org_id = EXCLUDED.org_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth,
+                     user_agent = EXCLUDED.user_agent, is_active = TRUE, last_seen_at = NOW()
        RETURNING id, endpoint, is_active, last_seen_at`,
       [orgId, req.user.id, endpoint, keys.p256dh, keys.auth, req.headers['user-agent'] || null]
     );
@@ -63,7 +80,11 @@ router.put('/digest-preferences', async (req, res, next) => {
     const frequency = String(req.body?.frequency || 'daily').toLowerCase();
     if (!['off', 'daily', 'weekly'].includes(frequency)) return res.status(400).json({ error: 'Invalid frequency' });
     const deliveryHour = Math.max(0, Math.min(23, parseInt(String(req.body?.delivery_hour ?? req.body?.deliveryHour ?? 8), 10) || 8));
-    const channels = Array.isArray(req.body?.channels) ? req.body.channels.map(String).filter(Boolean) : ['in_app'];
+    const allowedChannels = new Set(['in_app', 'push', 'email']);
+    const channels = Array.isArray(req.body?.channels)
+      ? [...new Set(req.body.channels.map(String).filter(c => allowedChannels.has(c)))]
+      : ['in_app'];
+    if (frequency !== 'off' && channels.length === 0) channels.push('in_app');
     const { rows } = await query(
       `INSERT INTO notification_digest_preferences (org_id, user_id, frequency, delivery_hour, channels, include_overdue, include_due_today, include_mentions, is_enabled, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())

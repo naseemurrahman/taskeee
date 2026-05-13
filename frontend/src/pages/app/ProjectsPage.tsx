@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, type FormEvent, type KeyboardEvent } from 'react'
+import { useMemo, useState, useRef, useCallback, type FormEvent, type KeyboardEvent } from 'react'
 import { IconFolder } from '../../components/ui/AppIcons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -16,10 +16,16 @@ type Project = {
   id: string; name: string; description?: string | null
   color?: string | null; status?: 'active' | 'paused' | 'completed'; task_count?: number; progress?: number
 }
+type ActiveTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assignee_name?: string | null }
+type StatusChangeTarget = { project: Project; targetStatus: 'active' | 'paused' | 'completed' }
 
 async function fetchProjects() {
   const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
   return d.projects || []
+}
+async function fetchActiveTasks(projectId: string): Promise<ActiveTask[]> {
+  const d = await apiFetch<{ tasks: ActiveTask[] }>(`/api/v1/projects/${projectId}/active-tasks`)
+  return d.tasks || []
 }
 async function createProject(input: { name: string; description?: string; color?: string }) {
   return await apiFetch<{ project: Project }>('/api/v1/projects', { method: 'POST', json: input })
@@ -27,8 +33,11 @@ async function createProject(input: { name: string; description?: string; color?
 async function renameProject(id: string, name: string) {
   return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { name } })
 }
-async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed') {
-  return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { status } })
+async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed', opts?: { override?: boolean; reason?: string; force?: boolean }) {
+  const body: Record<string, unknown> = { status }
+  if (opts?.override) { body.override_completion = true; body.override_reason = opts.reason }
+  if (opts?.force) body.force_pause = true
+  return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: body })
 }
 
 const PROJECT_PALETTE = [
@@ -108,12 +117,7 @@ function InlineProjectName({ project, canEdit }: { project: Project; canEdit: bo
   )
 }
 
-function StatusBadge({ project, canEdit }: { project: Project; canEdit: boolean }) {
-  const qc = useQueryClient()
-  const m = useMutation({
-    mutationFn: (status: 'active' | 'paused' | 'completed') => changeProjectStatus(project.id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),
-  })
+function StatusBadge({ project, canEdit, onChangeRequest }: { project: Project; canEdit: boolean; onChangeRequest: (p: Project, s: 'active' | 'paused' | 'completed') => void }) {
   const value = (project.status || 'active') as 'active' | 'paused' | 'completed'
   const cfg = STATUS_CONFIG[value]
 
@@ -132,7 +136,11 @@ function StatusBadge({ project, canEdit }: { project: Project; canEdit: boolean 
       borderRadius: 6, background: cfg.bg, border: `1px solid ${cfg.color}35`,
       fontSize: 11, fontWeight: 800, color: cfg.color }}>
       <div style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-      <select value={value} onChange={e => m.mutate(e.target.value as any)} disabled={m.isPending}
+      <select value={value}
+        onChange={e => {
+          const next = e.target.value as 'active' | 'paused' | 'completed'
+          if (next !== value) onChangeRequest(project, next)
+        }}
         onClick={e => e.stopPropagation()}
         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}>
         <option value="active">Active</option>
@@ -145,7 +153,7 @@ function StatusBadge({ project, canEdit }: { project: Project; canEdit: boolean 
   )
 }
 
-function ProjectCard({ p, canCreate, onClick }: { p: Project; canCreate: boolean; onClick: () => void }) {
+function ProjectCard({ p, canCreate, onClick, onChangeRequest }: { p: Project; canCreate: boolean; onClick: () => void; onChangeRequest: (p: Project, s: 'active'|'paused'|'completed') => void }) {
   const accent = p.color || '#e2ab41'
   const taskCount = Number(p.task_count || 0)
 
@@ -184,13 +192,13 @@ function ProjectCard({ p, canCreate, onClick }: { p: Project; canCreate: boolean
           </svg>
           {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
         </div>
-        <StatusBadge project={p} canEdit={canCreate} />
+        <StatusBadge project={p} canEdit={canCreate} onChangeRequest={onChangeRequest} />
       </div>
     </div>
   )
 }
 
-function ProjectRow({ p, canCreate, onClick }: { p: Project; canCreate: boolean; onClick: () => void }) {
+function ProjectRow({ p, canCreate, onClick, onChangeRequest }: { p: Project; canCreate: boolean; onClick: () => void; onChangeRequest: (p: Project, s: 'active'|'paused'|'completed') => void }) {
   const accent = p.color || '#e2ab41'
   const taskCount = Number(p.task_count || 0)
 
@@ -223,7 +231,7 @@ function ProjectRow({ p, canCreate, onClick }: { p: Project; canCreate: boolean;
       </div>
       {/* Status */}
       <div onClick={e => e.stopPropagation()}>
-        <StatusBadge project={p} canEdit={canCreate} />
+        <StatusBadge project={p} canEdit={canCreate} onChangeRequest={onChangeRequest} />
       </div>
     </div>
   )
@@ -233,6 +241,7 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
+  const isAdmin = me?.role === 'admin' || me?.role === 'director'
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2, staleTime: 30_000, refetchInterval: 60_000 })
   const { success: toastSuccess, error: toastError } = useToast()
@@ -249,6 +258,51 @@ export function ProjectsPage() {
   })
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all')
+
+  // ── Status change with active-tasks popup ──────────────────────────────────
+  const [statusChangeTarget, setStatusChangeTarget] = useState<StatusChangeTarget | null>(null)
+  const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([])
+  const [loadingActiveTasks, setLoadingActiveTasks] = useState(false)
+  const [overrideReason, setOverrideReason] = useState('')
+
+  const statusChangeMutation = useMutation({
+    mutationFn: ({ id, status, opts }: { id: string; status: 'active'|'paused'|'completed'; opts?: Parameters<typeof changeProjectStatus>[2] }) =>
+      changeProjectStatus(id, status, opts),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['projects'] })
+      toastSuccess('Status updated', `Project is now ${statusChangeTarget?.targetStatus}`)
+      setStatusChangeTarget(null); setActiveTasks([]); setOverrideReason('')
+    },
+    onError: (err) => toastError('Update failed', err instanceof ApiError ? err.message : 'Could not update status'),
+  })
+
+  const handleStatusChangeRequest = useCallback(async (project: Project, targetStatus: 'active'|'paused'|'completed') => {
+    if (targetStatus === 'active') {
+      // Direct change to active — no popup needed
+      statusChangeMutation.mutate({ id: project.id, status: 'active' })
+      return
+    }
+    setStatusChangeTarget({ project, targetStatus })
+    setOverrideReason('')
+    setLoadingActiveTasks(true)
+    try {
+      const tasks = await fetchActiveTasks(project.id)
+      setActiveTasks(tasks)
+    } catch {
+      setActiveTasks([])
+    } finally {
+      setLoadingActiveTasks(false)
+    }
+  }, [statusChangeMutation])
+
+  function confirmStatusChange(force = false) {
+    if (!statusChangeTarget) return
+    const { project, targetStatus } = statusChangeTarget
+    const opts: Parameters<typeof changeProjectStatus>[2] = {}
+    if (targetStatus === 'completed' && force) { opts.override = true; opts.reason = overrideReason }
+    if (targetStatus === 'paused' && force) opts.force = true
+    statusChangeMutation.mutate({ id: project.id, status: targetStatus, opts })
+  }
 
   const projects = useMemo(() => q.data || [], [q.data])
   const filtered = useMemo(() => {
@@ -491,11 +545,11 @@ export function ProjectsPage() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="projGrid">
-          {filtered.map(p => <ProjectCard key={p.id} p={p} canCreate={canCreate} onClick={() => setDetailId(p.id)} />)}
+          {filtered.map(p => <ProjectCard key={p.id} p={p} canCreate={canCreate} onClick={() => setDetailId(p.id)} onChangeRequest={handleStatusChangeRequest} />)}
         </div>
       ) : (
         <div className="projList">
-          {filtered.map(p => <ProjectRow key={p.id} p={p} canCreate={canCreate} onClick={() => setDetailId(p.id)} />)}
+          {filtered.map(p => <ProjectRow key={p.id} p={p} canCreate={canCreate} onClick={() => setDetailId(p.id)} onChangeRequest={handleStatusChangeRequest} />)}
         </div>
       )}
 
@@ -540,6 +594,127 @@ export function ProjectsPage() {
 
       <ProjectDetailModal projectId={detailId} onClose={() => setDetailId(null)}
         onOpenTasks={() => { setDetailId(null); navigate('/app/tasks') }} />
+
+      {/* ── Status Change Popup ─────────────────────────────────────────────── */}
+      {statusChangeTarget && (
+        <div className="modalOverlayV2" onMouseDown={() => { if (!statusChangeMutation.isPending) { setStatusChangeTarget(null); setActiveTasks([]) } }}>
+          <div className="modalCardV2" style={{ maxWidth: 500 }} onMouseDown={e => e.stopPropagation()}>
+            <div className="modalV2Head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center',
+                  background: statusChangeTarget.targetStatus === 'completed' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
+                  border: `1px solid ${statusChangeTarget.targetStatus === 'completed' ? 'rgba(99,102,241,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                  color: statusChangeTarget.targetStatus === 'completed' ? '#818cf8' : '#f59e0b' }}>
+                  {statusChangeTarget.targetStatus === 'completed'
+                    ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  }
+                </div>
+                <div>
+                  <div className="modalV2Title">
+                    {statusChangeTarget.targetStatus === 'completed' ? 'Complete Project?' : 'Pause Project?'}
+                  </div>
+                  <div className="modalV2Sub" style={{ fontWeight: 700 }}>"{statusChangeTarget.project.name}"</div>
+                </div>
+              </div>
+              <button className="modalV2Close" onClick={() => { setStatusChangeTarget(null); setActiveTasks([]) }}
+                type="button" disabled={statusChangeMutation.isPending}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="modalV2Body">
+              {loadingActiveTasks ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>Checking active tasks…</div>
+              ) : activeTasks.length > 0 ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10,
+                    background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', marginBottom: 14 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span style={{ fontSize: 13, color: '#f59e0b', fontWeight: 700 }}>
+                      {activeTasks.length} active task{activeTasks.length > 1 ? 's' : ''} still in progress
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                    {activeTasks.map(t => (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 9, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                          background: t.status === 'in_progress' ? '#8b5cf6' : t.status === 'submitted' ? '#38bdf8' : '#f59e0b' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                            {t.status.replace(/_/g, ' ')}
+                            {t.assignee_name ? ` · ${t.assignee_name}` : ''}
+                            {t.due_date ? ` · Due ${new Date(t.due_date).toLocaleDateString()}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {statusChangeTarget.targetStatus === 'paused' && (
+                    <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                      Pausing this project will <strong>halt all active tasks</strong>. Team members won't lose progress but won't be able to submit until the project is resumed.
+                    </p>
+                  )}
+                  {statusChangeTarget.targetStatus === 'completed' && (
+                    <>
+                      <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                        <strong>Recommended:</strong> Complete or cancel all tasks before marking the project as done.
+                        {isAdmin && ' As admin/director you may override with a reason.'}
+                      </p>
+                      {isAdmin && (
+                        <div style={{ marginBottom: 14 }}>
+                          <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                            Override Reason (required)
+                          </label>
+                          <textarea value={overrideReason} onChange={e => setOverrideReason(e.target.value)}
+                            placeholder="Explain why you're completing with active tasks…"
+                            style={{ width: '100%', height: 72, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                              background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                  {statusChangeTarget.targetStatus === 'completed'
+                    ? 'All tasks are done. You can safely mark this project as completed.'
+                    : 'No active tasks found. You can safely pause this project.'}
+                </p>
+              )}
+            </div>
+            <div className="modalV2Foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" className="btn btnGhost" onClick={() => { setStatusChangeTarget(null); setActiveTasks([]) }}
+                disabled={statusChangeMutation.isPending}>Cancel</button>
+
+              {/* Can proceed directly — no active tasks */}
+              {activeTasks.length === 0 && (
+                <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending}
+                  onClick={() => confirmStatusChange(false)}>
+                  {statusChangeMutation.isPending ? 'Updating…' : `Mark as ${statusChangeTarget.targetStatus}`}
+                </button>
+              )}
+
+              {/* Paused with active tasks — force option */}
+              {activeTasks.length > 0 && statusChangeTarget.targetStatus === 'paused' && (
+                <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending}
+                  style={{ background: '#f59e0b', color: '#1a1d2e' }}
+                  onClick={() => confirmStatusChange(true)}>
+                  {statusChangeMutation.isPending ? 'Pausing…' : 'Pause Anyway'}
+                </button>
+              )}
+
+              {/* Completed with active tasks — override for admin/director only */}
+              {activeTasks.length > 0 && statusChangeTarget.targetStatus === 'completed' && isAdmin && (
+                <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending || overrideReason.trim().length < 8}
+                  onClick={() => confirmStatusChange(true)}>
+                  {statusChangeMutation.isPending ? 'Completing…' : 'Override & Complete'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

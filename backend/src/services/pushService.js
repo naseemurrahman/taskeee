@@ -30,10 +30,10 @@ async function logDelivery(userId, notifType, status, errorMsg = null, notificat
 }
 
 async function deliverBrowserPush(userId, notificationId, notification) {
-  if (!isConfigured()) return { sent: 0, failed: 0, skipped: true };
+  if (!isConfigured()) return { sent: 0, failed: 0, skipped: true, reason: 'web_push_not_configured' };
   configureWebPush();
   const { rows } = await query(
-    `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1 AND is_active = TRUE`,
+    `SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1 AND is_active = TRUE`,
     [userId]
   ).catch(() => ({ rows: [] }));
   const payload = JSON.stringify({
@@ -57,7 +57,15 @@ async function deliverBrowserPush(userId, notificationId, notification) {
       const msg = String(err?.body || err?.message || 'push failed').slice(0, 500);
       await logDelivery(userId, notification.type, 'failed', msg, notificationId);
       if (code === 404 || code === 410) {
-        await query(`UPDATE push_subscriptions SET is_active = FALSE WHERE endpoint = $1`, [sub.endpoint]).catch(() => null);
+        // Scope the deactivation to THIS user's subscription only.
+        // push_subscriptions is unique on (user_id, endpoint), but the same browser
+        // endpoint CAN exist for multiple users on shared devices. Filtering by
+        // both subscription id AND user_id prevents accidentally silencing push
+        // for other users whose subscriptions share the same endpoint.
+        await query(
+          `UPDATE push_subscriptions SET is_active = FALSE WHERE id = $1 AND user_id = $2`,
+          [sub.id, userId]
+        ).catch(() => null);
       }
       logger.warn(`Browser push failed for user ${userId}: ${msg}`);
     }

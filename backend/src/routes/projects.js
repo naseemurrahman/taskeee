@@ -341,12 +341,66 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
   }
 });
 
+// GET /:projectId/active-tasks — list active tasks for this project (for status-change popups)
+router.get('/:projectId/active-tasks', authenticate, requireAnyRole('admin', 'director', 'hr', 'manager'), async (req, res, next) => {
+  try {
+    const orgId = await resolveOrgId(req);
+    if (!orgId) return res.status(404).json({ error: 'Not found' });
+    const projectId = String(req.params.projectId || '').trim();
+    const taskCols = await getTaskColumns();
+    const tables = await getTableNames();
+
+    const relationParts = [];
+    if (taskCols.has('category_id')) relationParts.push('t.category_id = $2');
+    if (taskCols.has('project_id')) relationParts.push('t.project_id = $2');
+    if (tables.has('project_tasks')) relationParts.push('EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = t.id AND pt.project_id = $2)');
+    if (!relationParts.length) return res.json({ tasks: [] });
+
+    const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`];
+    if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+    if (taskCols.has('status')) conditions.push(`COALESCE(t.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`);
+
+    const assigneeJoin = taskCols.has('assigned_to')
+      ? `LEFT JOIN users u ON u.id = t.assigned_to`
+      : '';
+    const assigneeSel = taskCols.has('assigned_to')
+      ? `COALESCE(u.full_name, u.email, 'Unassigned') AS assignee_name`
+      : `'Unassigned' AS assignee_name`;
+
+    const { rows } = await query(
+      `SELECT t.id, t.title, COALESCE(t.status,'pending') AS status,
+              t.priority, t.due_date, ${assigneeSel}
+         FROM tasks t
+         ${assigneeJoin}
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY t.created_at DESC
+        LIMIT 50`,
+      [orgId, projectId]
+    );
+    return res.json({ tasks: rows });
+  } catch (err) { next(err); }
+});
+
 router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'hr', 'manager'), async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
     const requestedStatus = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : null;
+
+    // ── Paused guard: warn if active tasks still exist ───────────────────────
+    if (requestedStatus === 'paused') {
+      const activeCount = await countActiveProjectTasks(orgId, projectId);
+      const force = req.body.force_pause === true;
+      if (activeCount > 0 && !force) {
+        return res.status(409).json({
+          error: `This project has ${activeCount} active task(s). Pausing will halt all progress.`,
+          code: 'PROJECT_HAS_ACTIVE_TASKS',
+          activeTaskCount: activeCount,
+          hint: 'Pass force_pause:true to proceed, or complete/cancel active tasks first.',
+        });
+      }
+    }
 
     // ── Completion guard: block if active tasks still exist ──────────────────
     if (requestedStatus === 'completed') {
@@ -429,6 +483,13 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
         values
       );
       if (!rows.length) return res.status(404).json({ error: 'Project not found' });
+      // Log status change for task_categories path
+      if (requestedStatus) {
+        try {
+          await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: rows[0]?.name, newStatus: requestedStatus } });
+          await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: rows[0]?.name }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+        } catch { /* non-critical */ }
+      }
       return res.json({ project: rows[0] });
     }
 
@@ -456,6 +517,29 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Project not found' });
+
+    // ── Log status changes ──────────────────────────────────────────────────
+    if (requestedStatus) {
+      try {
+        await logUserActivity({
+          orgId,
+          userId: req.user.id,
+          activityType: 'project_status_changed',
+          metadata: { projectId, projectName: rows[0]?.name, newStatus: requestedStatus },
+        });
+        await logAudit({
+          orgId,
+          actorUserId: req.user.id,
+          action: 'project.status.changed',
+          entityType: 'project',
+          entityId: projectId,
+          metadata: { newStatus: requestedStatus, projectName: rows[0]?.name },
+          ip: req.ip,
+          userAgent: req.headers['user-agent'] || null,
+        });
+      } catch { /* non-critical */ }
+    }
+
     return res.json({ project: rows[0] });
   } catch (err) {
     console.error('PATCH /projects error:', err.message);

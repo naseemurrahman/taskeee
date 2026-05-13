@@ -15,6 +15,7 @@ type Employee = {
   id: string; full_name: string; status: string; title?: string | null
   department?: string | null; work_email?: string | null; manager_name?: string | null
 }
+type ActiveTaskForEmp = { id: string; title: string; status: string; project_name?: string | null; due_date?: string | null }
 type CreatedEmployee = {
   employee?: { id?: string }; temporaryPassword?: string | null
   tempPasswordExpires?: string | null; notificationSent?: boolean; loginEmail?: string
@@ -23,6 +24,13 @@ type OrgUser = {
   id: string; email: string; full_name?: string | null; role: string
   department?: string | null; last_login_at?: string | null
 }
+
+const EMP_STATUS_OPTS = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'on_leave', label: 'On Leave' },
+  { value: 'terminated', label: 'Terminated' },
+]
 
 const EMP_PAGE_SIZE = 25
 
@@ -119,18 +127,46 @@ export function EmployeesPage() {
   }
 
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
+  const [terminateActiveTasks, setTerminateActiveTasks] = useState<ActiveTaskForEmp[]>([])
+  const [terminateLoading, setTerminateLoading] = useState(false)
+  const [statusChangeTarget, setStatusChangeTarget] = useState<{ emp: Employee; newStatus: string } | null>(null)
+
+  // ── Per-employee status change ─────────────────────────────────────────────
+  const statusChangeM = useMutation({
+    mutationFn: ({ empId, status }: { empId: string; status: string }) =>
+      apiFetch(`/api/v1/hris/employees/${empId}`, { method: 'PATCH', json: { status } }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
+      toastSuccess('Status updated', `Employee status changed to ${vars.status.replace(/_/g, ' ')}`)
+      setStatusChangeTarget(null)
+    },
+    onError: (err: any) => toastError('Update failed', err?.message || 'Could not update status'),
+  })
 
   const deleteEmpM = useMutation({
     mutationFn: (empId: string) => apiFetch(`/api/v1/hris/employees/${empId}`, { method: 'DELETE' }),
     onSuccess: () => {
       const name = deleteTarget?.full_name || 'Employee'
-      setDeleteTarget(null)
+      setDeleteTarget(null); setTerminateActiveTasks([])
       qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
       qc.invalidateQueries({ queryKey: ['hris', 'orgUsers'] })
       toastSuccess('Employee removed', `${name} has been removed.`)
     },
     onError: (err: any) => toastError('Remove failed', err?.message || 'Could not remove employee'),
   })
+
+  async function handleDeleteClick(emp: Employee) {
+    setDeleteTarget(emp)
+    setTerminateLoading(true)
+    try {
+      const d = await apiFetch<{ tasks: ActiveTaskForEmp[] }>(`/api/v1/hris/employees/${emp.id}/active-tasks`)
+      setTerminateActiveTasks(d.tasks || [])
+    } catch {
+      setTerminateActiveTasks([])
+    } finally {
+      setTerminateLoading(false)
+    }
+  }
 
   const m = useMutation({
     mutationFn: (input: Record<string, string>) => createEmployee(input).then(d => ({ ...d, loginEmail: input.email })),
@@ -263,30 +299,46 @@ export function EmployeesPage() {
             <div style={{ fontSize: 13, marginTop: 6, color: 'var(--muted)' }}>Try adjusting your search or status filter</div>
           </div>
         ) : employees.map(e => (
-          <a key={e.id} href={`/app/hr/employees/${e.id}`}
-            style={{ display: 'grid', gridTemplateColumns: '44px 1fr', gap: '0 12px', alignItems: 'center', padding: '14px 16px', borderRadius: 14, background: 'var(--bg1)', border: '1px solid var(--border)', textDecoration: 'none', color: 'inherit', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+          <div key={e.id}
+            style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0 12px', alignItems: 'center', padding: '14px 16px', borderRadius: 14, background: 'var(--bg1)', border: '1px solid var(--border)', transition: 'border-color 0.15s, box-shadow 0.15s' }}
             onMouseEnter={ev => { ev.currentTarget.style.borderColor = 'rgba(226,171,65,0.4)'; ev.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)' }}
-            onMouseLeave={ev => { ev.currentTarget.style.borderColor = 'var(--border)'; ev.currentTarget.style.boxShadow = '' }}
-          >
+            onMouseLeave={ev => { ev.currentTarget.style.borderColor = 'var(--border)'; ev.currentTarget.style.boxShadow = '' }}>
             {/* Avatar */}
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: hashColor(e.full_name), display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
-              {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
-            </div>
-            {/* Info row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <a href={`/app/hr/employees/${e.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: hashColor(e.full_name), display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                {e.full_name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
+            </a>
+            {/* Info + status */}
+            <a href={`/app/hr/employees/${e.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.full_name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {e.work_email || '—'}{e.department ? ` · ${e.department}` : ''}{e.title ? ` · ${e.title}` : ''}
                 </div>
               </div>
-              {/* Status badge — constrained width, never overflows */}
               <span className={`statusBadge ${e.status === 'active' ? 'statusCompleted' : e.status === 'terminated' ? 'statusOverdue' : e.status === 'on_leave' ? 'statusSubmitted' : 'statusPending'}`}
                 style={{ fontSize: 10, flexShrink: 0, whiteSpace: 'nowrap' }}>
                 {(e.status || 'active').replace(/_/g, ' ')}
               </span>
+            </a>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={ev => ev.stopPropagation()}>
+              <button type="button"
+                onClick={() => setStatusChangeTarget({ emp: e, newStatus: e.status || 'active' })}
+                title="Change status"
+                style={{ height: 32, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text2)', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Status
+              </button>
+              <button type="button"
+                onClick={() => handleDeleteClick(e)}
+                title="Remove employee"
+                style={{ height: 32, width: 32, borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 13, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              </button>
             </div>
-          </a>
+          </div>
         ))}
       </div>
 
@@ -338,10 +390,38 @@ export function EmployeesPage() {
         </div>
       )}
 
-      {/* ── Delete Employee Confirm ── */}
+      {/* ── Status Change Modal ── */}
+      {statusChangeTarget && (
+        <div className="modalOverlayV2" onMouseDown={() => { if (!statusChangeM.isPending) setStatusChangeTarget(null) }}>
+          <div className="modalCardV2" style={{ maxWidth: 380 }} onMouseDown={e => e.stopPropagation()}>
+            <div className="modalV2Head">
+              <div>
+                <div className="modalV2Title">Change Employee Status</div>
+                <div className="modalV2Sub">{statusChangeTarget.emp.full_name}</div>
+              </div>
+              <button className="modalV2Close" onClick={() => setStatusChangeTarget(null)} type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div className="modalV2Body" style={{ display: 'grid', gap: 8 }}>
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text2)' }}>Select the new status for this employee. This will be logged.</p>
+              {EMP_STATUS_OPTS.map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => statusChangeM.mutate({ empId: statusChangeTarget.emp.id, status: opt.value })}
+                  disabled={statusChangeM.isPending || opt.value === statusChangeTarget.emp.status}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: opt.value === statusChangeTarget.emp.status ? 'var(--brandDim)' : 'var(--bg2)', cursor: opt.value === statusChangeTarget.emp.status ? 'default' : 'pointer', textAlign: 'left', width: '100%' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.value === 'active' ? '#22c55e' : opt.value === 'terminated' ? '#ef4444' : opt.value === 'on_leave' ? '#38bdf8' : '#94a3b8', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>{opt.label}</span>
+                  {opt.value === statusChangeTarget.emp.status && <span style={{ fontSize: 10, color: 'var(--brand)', fontWeight: 700, marginLeft: 'auto' }}>Current</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete / Terminate Employee Confirm ── */}
       {deleteTarget && (
-        <div className="modalOverlayV2" onMouseDown={() => { if (!deleteEmpM.isPending) setDeleteTarget(null) }}>
-          <div className="modalCardV2" style={{ maxWidth: 420 }} onMouseDown={e => e.stopPropagation()}>
+        <div className="modalOverlayV2" onMouseDown={() => { if (!deleteEmpM.isPending) { setDeleteTarget(null); setTerminateActiveTasks([]) } }}>
+          <div className="modalCardV2" style={{ maxWidth: 480 }} onMouseDown={e => e.stopPropagation()}>
             <div className="modalV2Head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
@@ -352,7 +432,7 @@ export function EmployeesPage() {
                   <div className="modalV2Sub">This will deactivate their account</div>
                 </div>
               </div>
-              <button className="modalV2Close" onClick={() => setDeleteTarget(null)} type="button" disabled={deleteEmpM.isPending}>
+              <button className="modalV2Close" onClick={() => { setDeleteTarget(null); setTerminateActiveTasks([]) }} type="button" disabled={deleteEmpM.isPending}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -366,13 +446,44 @@ export function EmployeesPage() {
                   {deleteTarget.title && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{deleteTarget.title}</div>}
                 </div>
               </div>
+
+              {/* Active tasks warning */}
+              {terminateLoading ? (
+                <div style={{ padding: '12px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>Checking active tasks…</div>
+              ) : terminateActiveTasks.length > 0 ? (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', marginBottom: 10 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>
+                      ⚠️ This employee has {terminateActiveTasks.length} active task{terminateActiveTasks.length > 1 ? 's' : ''} assigned
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8 }}>
+                    {terminateActiveTasks.map(t => (
+                      <div key={t.id} style={{ display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 7, background: 'var(--bg2)', border: '1px solid var(--border)', fontSize: 12 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0, marginTop: 4 }} />
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--text)' }}>{t.title}</div>
+                          <div style={{ color: 'var(--muted)', fontSize: 11 }}>
+                            {t.status.replace(/_/g, ' ')}{t.project_name ? ` · ${t.project_name}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>
+                    ⚠️ Please reassign these tasks before removing this employee, or they will become unassigned.
+                  </p>
+                </div>
+              ) : null}
+
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>
-                Removing <strong>{deleteTarget.full_name}</strong> will <strong>delete their HRIS record</strong> and <strong>deactivate their login</strong>. They will no longer be able to sign in.
+                Removing <strong>{deleteTarget.full_name}</strong> will <strong>delete their HRIS record</strong> and <strong>deactivate their login</strong>.
               </p>
               <p style={{ margin: '10px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>⚠️ This action cannot be undone.</p>
             </div>
             <div className="modalV2Foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button type="button" className="btn btnGhost" onClick={() => setDeleteTarget(null)} disabled={deleteEmpM.isPending}>Cancel</button>
+              <button type="button" className="btn btnGhost" onClick={() => { setDeleteTarget(null); setTerminateActiveTasks([]) }} disabled={deleteEmpM.isPending}>Cancel</button>
               <button
                 type="button"
                 disabled={deleteEmpM.isPending}
@@ -381,7 +492,7 @@ export function EmployeesPage() {
               >
                 {deleteEmpM.isPending
                   ? <><svg className="animate-rotate" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31" strokeDashoffset="10" opacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/></svg> Removing…</>
-                  : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Remove Employee</>
+                  : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> {terminateActiveTasks.length > 0 ? 'Remove Anyway' : 'Remove Employee'}</>
                 }
               </button>
             </div>
