@@ -121,10 +121,13 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
             tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
             axisLine={false} tickLine={false}
             interval="preserveStartEnd"
+            label={{ value: 'Date', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
           <YAxis
             tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
             axisLine={false} tickLine={false} allowDecimals={false}
+            width={42}
+            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
