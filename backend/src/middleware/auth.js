@@ -1,19 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { query, isDemo } = require('../utils/db');
 const { cacheGet, cacheSet } = require('../utils/redis');
-
-// Higher index = more authority (for requireRole min-level checks)
-const ROLE_HIERARCHY = ['employee', 'technician', 'supervisor', 'manager', 'hr', 'director', 'admin'];
+const { ROLE_HIERARCHY, roleLevel, isOrgWideRole } = require('../security/rbac');
 
 function getRoleLevel(role) {
-  return ROLE_HIERARCHY.indexOf(String(role || '').toLowerCase());
-}
-
-/** Roles that can see all users/tasks in the org (read-only HR + exec). */
-const ORG_WIDE_ROLES = new Set(['hr', 'director', 'admin']);
-
-function isOrgWideRole(role) {
-  return ORG_WIDE_ROLES.has(String(role || '').toLowerCase());
+  return roleLevel(role);
 }
 
 // ─── Verify JWT and attach user to req ────────────────────────────────────
