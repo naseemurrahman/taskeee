@@ -3,6 +3,7 @@ const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/auth');
 const { logAudit } = require('../services/auditService');
+const { logUserActivity } = require('../services/activityService');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { canAddEmployee } = require('../services/subscriptionService');
 const emailService = require('../services/emailService');
@@ -457,13 +458,25 @@ router.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'a
     );
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
 
+    // Specific log for status changes
+    if (body.status) {
+      try {
+        await logUserActivity({
+          orgId,
+          userId: req.user.id,
+          activityType: 'employee_status_changed',
+          metadata: { employeeId: rows[0]?.id, employeeName: rows[0]?.full_name, newStatus: body.status },
+        });
+      } catch { /* non-critical */ }
+    }
+
     await logAudit({
       orgId,
       actorUserId: req.user.id,
-      action: 'hris.employee.update',
+      action: body.status ? `hris.employee.status.${body.status}` : 'hris.employee.update',
       entityType: 'employee',
       entityId: rows[0]?.id || null,
-      metadata: { fields: updates.map(x => x.split('=')[0].trim()) },
+      metadata: { fields: updates.map(x => x.split('=')[0].trim()), newStatus: body.status || undefined, employeeName: rows[0]?.full_name },
       ip: req.ip,
       userAgent: req.headers['user-agent'] || null
     });
@@ -473,6 +486,34 @@ router.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'a
 });
 
 // POST /hris/time-off/requests
+
+// GET /hris/employees/:id/active-tasks — fetch active tasks for an employee (for terminate popup)
+router.get('/employees/:id/active-tasks', authenticate, requireAnyRole('hr', 'director', 'admin', 'manager'), async (req, res, next) => {
+  try {
+    const orgId = req.user.org_id ?? req.user.orgId;
+    const { id } = req.params;
+    const { rows: empRows } = await query(`SELECT user_id FROM employees WHERE id = $1 AND org_id = $2`, [id, orgId]);
+    if (!empRows.length) return res.json({ tasks: [] });
+    const userId = empRows[0].user_id;
+    if (!userId) return res.json({ tasks: [] });
+
+    const { rows } = await query(
+      `SELECT t.id, t.title, COALESCE(t.status,'pending') AS status, t.priority, t.due_date,
+              COALESCE(cat.name, proj.name) AS project_name
+         FROM tasks t
+         LEFT JOIN task_categories cat ON cat.id = t.category_id
+         LEFT JOIN projects proj ON proj.id = t.project_id
+        WHERE t.org_id = $1
+          AND t.assigned_to = $2
+          AND COALESCE(t.status,'pending') NOT IN ('completed','manager_approved','cancelled')
+          AND t.deleted_at IS NULL
+        ORDER BY t.created_at DESC
+        LIMIT 50`,
+      [orgId, userId]
+    );
+    res.json({ tasks: rows });
+  } catch (err) { next(err); }
+});
 
 // DELETE /hris/employees/:id — hard delete employee + deactivate user (admin/hr only)
 router.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'admin'), async (req, res, next) => {
@@ -501,6 +542,11 @@ router.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', '
       );
     }
     await query(`DELETE FROM employees WHERE id = $1 AND org_id = $2`, [id, orgId]);
+
+    try {
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_terminated', metadata: { employeeId: id, employeeName: emp.full_name } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'hris.employee.terminated', entityType: 'employee', entityId: id, metadata: { employeeName: emp.full_name }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+    } catch { /* non-critical */ }
 
     res.json({ success: true, message: 'Employee deleted and account deactivated.' });
   } catch (err) { next(err); }
