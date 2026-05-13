@@ -58,6 +58,8 @@ const contractorsRoutes = require('./routes/contractors');
 const statsRoutes = require('./routes/stats');
 const analyticsRoutes = require('./routes/analytics');
 const adminRoutes = require('./routes/admin');
+const timeTrackingRoutes = require('./routes/timeTracking');
+const knowledgeBaseRoutes = require('./routes/knowledgeBase');
 
 const app = express();
 const server = http.createServer(app);
@@ -142,6 +144,8 @@ app.use('/api/v1/contractors', contractorsRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/time-tracking', timeTrackingRoutes);
+app.use('/api/v1/knowledge-base', knowledgeBaseRoutes);
 
 app.get('/', (_req, res) => res.status(200).json({ name: 'TASKEE API', version: '2.0.0', status: 'ok', docs: '/api/v1/health', timestamp: new Date().toISOString() }));
 
