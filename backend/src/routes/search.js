@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
-const { authenticate, isOrgWideRole } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { hasPermission, hasAnyPermission, isOrgWideRole, actorScopeLabel } = require('../security/rbac');
 const logger = require('../utils/logger');
 
 async function safeQuery(label, sql, params) {
@@ -27,7 +28,7 @@ async function getScopedTargetUserIds(user) {
       [orgId]
     );
     targetUserIds = rows.map(r => r.id);
-  } else if (['supervisor', 'manager', 'director'].includes(String(user.role || '').toLowerCase())) {
+  } else if (hasPermission(user.role, 'search:team')) {
     const { rows } = await safeQuery(
       'scope:subordinates',
       `SELECT user_id FROM get_subordinate_ids($1)`,
@@ -61,7 +62,7 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
     if (q.length < 2) {
       return res.json({
         tasks: [], users: [], reports: [], notifications: [], projects: [], results: [],
-        meta: { query: q, total: 0, took_ms: 0 }
+        meta: { query: q, total: 0, took_ms: 0, scope: actorScopeLabel(req.user) }
       });
     }
 
@@ -70,6 +71,10 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
     const like = `%${q}%`;
     const startMs = Date.now();
     const shouldFetch = (type) => !typeFilter || typeFilter === type || typeFilter === type.replace(/s$/, '');
+    const canSearchPeopleOrg = hasPermission(req.user.role, 'search:people:org');
+    const canSearchPeopleTeam = hasPermission(req.user.role, 'search:team');
+    const canSearchProjectsOrg = hasAnyPermission(req.user.role, ['projects:read:org', 'projects:update']);
+    const canSearchReports = hasPermission(req.user.role, 'reports:read:org');
 
     const [tasksRes, usersRes, reportsRes, notifRes, projectsRes] = await Promise.all([
       shouldFetch('tasks') ? safeQuery('tasks', `
@@ -85,9 +90,8 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
         WHERE t.org_id = $1
           AND COALESCE(t.deleted_at IS NULL, TRUE)
           AND (
-            $2::uuid[] IS NULL OR
-            cardinality($2::uuid[]) = 0 OR
             t.assigned_to = ANY($2::uuid[]) OR
+            t.assigned_by = ANY($2::uuid[]) OR
             $5::boolean = TRUE
           )
           AND (
@@ -103,11 +107,12 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
         LIMIT $4
       `, [orgId, scopedIds, like, limit, isOrgWideRole(req.user.role)]) : { rows: [] },
 
-      shouldFetch('users') ? safeQuery('users', `
+      shouldFetch('users') && (canSearchPeopleOrg || canSearchPeopleTeam) ? safeQuery('users', `
         SELECT id, full_name, email, role, department, avatar_url, 'user' AS _type
         FROM users
         WHERE org_id = $1
           AND COALESCE(is_active, TRUE) = TRUE
+          AND ($4::boolean = TRUE OR id = ANY($5::uuid[]))
           AND (
             COALESCE(full_name, '') ILIKE $2 OR
             COALESCE(email, '') ILIKE $2 OR
@@ -119,9 +124,9 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
           full_name ASC NULLS LAST,
           email ASC
         LIMIT $3
-      `, [orgId, like, Math.ceil(limit * 0.75)]) : { rows: [] },
+      `, [orgId, like, Math.ceil(limit * 0.75), canSearchPeopleOrg, scopedIds]) : { rows: [] },
 
-      shouldFetch('reports') ? safeQuery('reports', `
+      shouldFetch('reports') && canSearchReports ? safeQuery('reports', `
         SELECT id, report_type, scope_type, created_at, 'report' AS _type
         FROM reports
         WHERE generated_for = $1
@@ -146,7 +151,7 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
         LIMIT $3
       `, [req.user.id, like, Math.ceil(limit * 0.75)]) : { rows: [] },
 
-      shouldFetch('projects') ? safeQuery('projects', `
+      shouldFetch('projects') && canSearchProjectsOrg ? safeQuery('projects', `
         SELECT id, name, description, color, is_active, 'project' AS _type
         FROM task_categories
         WHERE org_id = $1
@@ -182,6 +187,7 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
         type: typeFilter || 'all',
         total,
         took_ms: Date.now() - startMs,
+        scope: actorScopeLabel(req.user),
       },
     });
   } catch (err) {
