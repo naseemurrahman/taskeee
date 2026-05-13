@@ -2,6 +2,7 @@
 const { query } = require('../utils/db');
 const logger = require('../utils/logger');
 const { sendEmail, sendWhatsApp } = require('./notificationChannels');
+const { deliverBrowserPush } = require('./pushService');
 
 const DEDUPE_WINDOW_MINUTES = parseInt(process.env.NOTIFICATION_DEDUPE_WINDOW_MINUTES || '60', 10);
 
@@ -32,6 +33,15 @@ function normalizePrefs(rawPrefs) {
 
 function normalizeDedupePart(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-').slice(0, 96);
+}
+
+function requestedChannelSet(data = {}) {
+  if (!Array.isArray(data.deliveryChannels)) return null;
+  return new Set(data.deliveryChannels.map(String));
+}
+
+function wantsChannel(requested, channel) {
+  return !requested || requested.has(channel);
 }
 
 function buildDedupeKey(type, title, data = {}) {
@@ -93,7 +103,7 @@ async function insertOrGroupNotification(userId, { type, title, body, data = {},
       [userId, type, title, body, JSON.stringify(data), key]
     );
     return { id: inserted.rows?.[0]?.id || null, grouped: false, groupCount: inserted.rows?.[0]?.group_count || 1, dedupeKey: key };
-  } catch (err) {
+  } catch {
     const inserted = await query(
       `INSERT INTO notifications (user_id, type, title, body, data)
        VALUES ($1, $2, $3, $4, $5)
@@ -125,38 +135,39 @@ async function logDelivery(userId, notifType, channel, status, errorMsg = null, 
 async function deliverNotificationChannels(userId, notificationId, { type, title, body, data = {} }) {
   let emailSent = false;
   let whatsappSent = false;
+  let pushSent = false;
   const deliveryErrors = [];
 
   const contact = await getUserContact(userId);
-  if (!contact) return { emailSent, whatsappSent, deliveryErrors };
+  if (!contact) return { emailSent, whatsappSent, pushSent, deliveryErrors };
 
   const prefs = normalizePrefs(contact.notification_prefs);
   const channels = prefs.channels || {};
-  const emailEnabled = channels.email !== false;
-  const waEnabled = channels.whatsapp !== false;
+  const requested = requestedChannelSet(data);
+  const emailEnabled = channels.email !== false && wantsChannel(requested, 'email');
+  const waEnabled = channels.whatsapp !== false && wantsChannel(requested, 'whatsapp');
+  const pushEnabled = channels.push !== false && wantsChannel(requested, 'push');
   const typeEnabled = isNotifEnabled(prefs, type);
 
   if (!typeEnabled) {
     logger.debug(`Notification suppressed by user pref: ${type} for user ${userId}`);
-    return { emailSent, whatsappSent, deliveryErrors };
+    return { emailSent, whatsappSent, pushSent, deliveryErrors };
   }
 
   const text = `${title}\n${body || ''}`.trim();
+
+  if (pushEnabled) {
+    const result = await deliverBrowserPush(userId, notificationId, { type, title, body, data }).catch(e => ({ failed: 1, error: e.message }));
+    pushSent = Number(result?.sent || 0) > 0;
+    if (result?.error) deliveryErrors.push(`push: ${result.error}`);
+  }
 
   if (emailEnabled && contact.email) {
     const result = await sendEmail({
       to: contact.email,
       subject: `[TASKEE] ${title}`,
       text,
-      html: `
-        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-          <div style="background:#161920;border-radius:12px;padding:24px">
-            <h2 style="color:#e2ab41;margin:0 0 8px">${title}</h2>
-            <p style="color:#cbd5e1;margin:0;line-height:1.6">${String(body || '').replace(/\n/g,'<br>')}</p>
-          </div>
-          <p style="color:#94a3b8;font-size:12px;margin-top:16px;text-align:center">TASKEE</p>
-        </div>
-      `
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px"><div style="background:#161920;border-radius:12px;padding:24px"><h2 style="color:#e2ab41;margin:0 0 8px">${title}</h2><p style="color:#cbd5e1;margin:0;line-height:1.6">${String(body || '').replace(/\n/g,'<br>')}</p></div><p style="color:#94a3b8;font-size:12px;margin-top:16px;text-align:center">TASKEE</p></div>`
     }).catch(e => ({ error: e.message }));
 
     emailSent = !!result?.sent;
@@ -179,36 +190,43 @@ async function deliverNotificationChannels(userId, notificationId, { type, title
     if (result?.error) deliveryErrors.push(`whatsapp: ${result.error}`);
   }
 
-  return { emailSent, whatsappSent, deliveryErrors };
+  return { emailSent, whatsappSent, pushSent, deliveryErrors };
 }
 
 async function emitNotification(userId, { type, title, body, data = {}, dedupeKey = null }) {
   if (!userId) return;
 
   try {
-    const inserted = await insertOrGroupNotification(userId, { type, title, body, data, dedupeKey });
-    const notificationId = inserted.id;
+    const requested = requestedChannelSet(data);
+    const shouldCreateInApp = wantsChannel(requested, 'in_app') && data.suppressInApp !== true;
+    let inserted = { id: null, grouped: false, groupCount: 1 };
 
-    try {
-      const { app } = require('../server');
-      const io = app.get('io');
-      if (io) io.to(`user:${userId}`).emit('notification', {
-        id: notificationId,
-        type,
-        title,
-        body,
-        data,
-        grouped: inserted.grouped,
-        group_count: inserted.groupCount,
-      });
-    } catch { /* optional */ }
+    if (shouldCreateInApp) {
+      inserted = await insertOrGroupNotification(userId, { type, title, body, data, dedupeKey });
+      const notificationId = inserted.id;
 
-    if (inserted.grouped) {
-      logger.debug(`Notification grouped for user ${userId}: ${type}`);
-      return;
+      try {
+        const { app } = require('../server');
+        const io = app.get('io');
+        if (io) io.to(`user:${userId}`).emit('notification', {
+          id: notificationId,
+          type,
+          title,
+          body,
+          data,
+          grouped: inserted.grouped,
+          group_count: inserted.groupCount,
+        });
+      } catch { /* optional */ }
+
+      if (inserted.grouped) {
+        logger.debug(`Notification grouped for user ${userId}: ${type}`);
+        return;
+      }
     }
 
-    const { emailSent, whatsappSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body, data });
+    const notificationId = inserted.id;
+    const { emailSent, whatsappSent, pushSent, deliveryErrors } = await deliverNotificationChannels(userId, notificationId, { type, title, body, data });
 
     if (notificationId) {
       try {
@@ -221,6 +239,7 @@ async function emitNotification(userId, { type, title, body, data = {}, dedupeKe
           [notificationId, emailSent, whatsappSent, deliveryErrors.join('; ')]
         );
       } catch { /* older schemas may not have these columns yet */ }
+      if (pushSent) logger.debug(`Browser push delivered for notification ${notificationId}`);
     }
   } catch (err) {
     logger.error(`Failed to send notification to ${userId}:`, err.message);
@@ -259,16 +278,7 @@ async function retryNotificationDelivery(logId, channel = null) {
     throw new Error('Unsupported retry channel');
   }
 
-  await logDelivery(
-    log.user_id,
-    log.notif_type,
-    selectedChannel,
-    result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent',
-    result?.error || null,
-    log.notification_id || null,
-    log.id
-  );
-
+  await logDelivery(log.user_id, log.notif_type, selectedChannel, result?.skipped ? 'skipped' : result?.error ? 'failed' : 'sent', result?.error || null, log.notification_id || null, log.id);
   if (result?.error) throw new Error(result.error);
   return result;
 }
