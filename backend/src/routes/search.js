@@ -40,18 +40,28 @@ async function getScopedTargetUserIds(user) {
   return targetUserIds.length ? targetUserIds : [user.id];
 }
 
-function makeFlatResults({ tasks, users, reports, notifications, projects }) {
+function visibleKnowledgeScopes(role) {
+  const r = String(role || '').toLowerCase();
+  if (r === 'admin') return ['org', 'management', 'hr', 'admin'];
+  if (r === 'director' || r === 'hr') return ['org', 'management', 'hr'];
+  if (r === 'manager' || r === 'supervisor') return ['org', 'management'];
+  return ['org'];
+}
+
+function makeFlatResults({ tasks, users, reports, notifications, projects, attachments, knowledge }) {
   return [
     ...tasks.map((r) => ({ id: r.id, type: 'task', title: r.title, subtitle: [r.status, r.priority].filter(Boolean).join(' · '), url: `/app/tasks`, raw: r })),
     ...users.map((r) => ({ id: r.id, type: 'user', title: r.full_name || r.email, subtitle: [r.role, r.department].filter(Boolean).join(' · '), url: `/app/hr/employees`, raw: r })),
     ...projects.map((r) => ({ id: r.id, type: 'project', title: r.name, subtitle: 'Project', url: `/app/projects`, raw: r })),
     ...reports.map((r) => ({ id: r.id, type: 'report', title: r.report_type || 'Report', subtitle: r.scope_type || '', url: `/app/reports`, raw: r })),
     ...notifications.map((r) => ({ id: r.id, type: 'notification', title: r.title, subtitle: r.body || r.type, url: `/app/dashboard`, raw: r })),
+    ...attachments.map((r) => ({ id: r.id, type: 'attachment', title: r.original_filename || 'Attachment', subtitle: [r.task_title, r.mime_type, r.scan_status].filter(Boolean).join(' · '), url: `/app/tasks`, raw: r })),
+    ...knowledge.map((r) => ({ id: r.id, type: 'knowledge', title: r.title, subtitle: [r.category, (r.tags || []).join(', ')].filter(Boolean).join(' · '), url: `/app/knowledge-base/${r.id}`, raw: r })),
   ];
 }
 
 /**
- * GET /api/v1/search?q=<query>[&type=tasks|users|reports|notifications|projects][&limit=10]
+ * GET /api/v1/search?q=<query>[&type=tasks|users|reports|notifications|projects|attachments|knowledge][&limit=10]
  */
 router.get(['/', '/global'], authenticate, async (req, res, next) => {
   try {
@@ -61,7 +71,7 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
 
     if (q.length < 2) {
       return res.json({
-        tasks: [], users: [], reports: [], notifications: [], projects: [], results: [],
+        tasks: [], users: [], reports: [], notifications: [], projects: [], attachments: [], knowledge: [], results: [],
         meta: { query: q, total: 0, took_ms: 0, scope: actorScopeLabel(req.user) }
       });
     }
@@ -69,14 +79,16 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
     const orgId = req.user.org_id ?? req.user.orgId;
     const scopedIds = await getScopedTargetUserIds(req.user);
     const like = `%${q}%`;
+    const tsQuery = q.split(/\s+/).filter(Boolean).join(' & ');
     const startMs = Date.now();
     const shouldFetch = (type) => !typeFilter || typeFilter === type || typeFilter === type.replace(/s$/, '');
     const canSearchPeopleOrg = hasPermission(req.user.role, 'search:people:org');
     const canSearchPeopleTeam = hasPermission(req.user.role, 'search:team');
     const canSearchProjectsOrg = hasAnyPermission(req.user.role, ['projects:read:org', 'projects:update']);
     const canSearchReports = hasPermission(req.user.role, 'reports:read:org');
+    const knowledgeScopes = visibleKnowledgeScopes(req.user.role);
 
-    const [tasksRes, usersRes, reportsRes, notifRes, projectsRes] = await Promise.all([
+    const [tasksRes, usersRes, reportsRes, notifRes, projectsRes, attachRes, knowledgeRes] = await Promise.all([
       shouldFetch('tasks') ? safeQuery('tasks', `
         SELECT
           t.id, t.title, t.status, t.priority, t.assigned_to,
@@ -165,6 +177,50 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
           name ASC
         LIMIT $3
       `, [orgId, like, limit]) : { rows: [] },
+
+      shouldFetch('attachments') || shouldFetch('files') ? safeQuery('attachments', `
+        SELECT sa.id, sa.task_id, sa.uploaded_by, sa.original_filename, sa.mime_type,
+               sa.tags, sa.description, sa.scan_status, sa.created_at, sa.task_title,
+               'attachment' AS _type
+          FROM searchable_attachments sa
+          JOIN tasks t ON t.id = sa.task_id
+         WHERE sa.org_id = $1
+           AND COALESCE(sa.scan_status, 'pending') <> 'quarantined'
+           AND (
+             t.assigned_to = ANY($2::uuid[]) OR
+             t.assigned_by = ANY($2::uuid[]) OR
+             sa.uploaded_by = $5 OR
+             $6::boolean = TRUE
+           )
+           AND (
+             sa.original_filename ILIKE $3 OR
+             COALESCE(sa.description, '') ILIKE $3 OR
+             COALESCE(array_to_string(sa.tags, ' '), '') ILIKE $3 OR
+             COALESCE(sa.task_title, '') ILIKE $3 OR
+             sa.search_vector @@ to_tsquery('simple', $7)
+           )
+         ORDER BY sa.created_at DESC
+         LIMIT $4
+      `, [orgId, scopedIds, like, limit, req.user.id, isOrgWideRole(req.user.role), tsQuery || q]) : { rows: [] },
+
+      shouldFetch('knowledge') || shouldFetch('docs') ? safeQuery('knowledge', `
+        SELECT ka.id, ka.title, ka.summary, ka.category, ka.tags, ka.visibility, ka.updated_at,
+               'knowledge' AS _type
+          FROM knowledge_articles ka
+         WHERE ka.org_id = $1
+           AND ka.is_published = TRUE
+           AND ka.visibility = ANY($5::text[])
+           AND (
+             ka.title ILIKE $2 OR
+             COALESCE(ka.summary, '') ILIKE $2 OR
+             COALESCE(ka.content, '') ILIKE $2 OR
+             COALESCE(array_to_string(ka.tags, ' '), '') ILIKE $2
+           )
+         ORDER BY
+           CASE WHEN ka.title ILIKE $2 THEN 0 ELSE 1 END,
+           ka.updated_at DESC
+         LIMIT $3
+      `, [orgId, like, limit, req.user.id, knowledgeScopes]) : { rows: [] },
     ]);
 
     const tasks = tasksRes.rows || [];
@@ -172,7 +228,9 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
     const reports = reportsRes.rows || [];
     const notifications = notifRes.rows || [];
     const projects = projectsRes.rows || [];
-    const results = makeFlatResults({ tasks, users, reports, notifications, projects });
+    const attachments = attachRes.rows || [];
+    const knowledge = knowledgeRes.rows || [];
+    const results = makeFlatResults({ tasks, users, reports, notifications, projects, attachments, knowledge });
     const total = results.length;
 
     res.json({
@@ -181,6 +239,8 @@ router.get(['/', '/global'], authenticate, async (req, res, next) => {
       reports,
       notifications,
       projects,
+      attachments,
+      knowledge,
       results,
       meta: {
         query: q,
