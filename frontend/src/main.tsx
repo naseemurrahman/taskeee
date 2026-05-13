@@ -11,6 +11,7 @@ import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visua
 import './dashboard-modern-chart-upgrade' // dashboard chart injector
 import './task-checkbox-event-guard'
 import './global-search-submit'
+import './employee-profile-delete-action'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
