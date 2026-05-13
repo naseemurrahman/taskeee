@@ -31,6 +31,7 @@ function projectScopeForRole(role) {
 let tablesCache = null;
 let taskCategoryColumns = null;
 let projectColumns = null;
+let taskColumns = null;
 
 async function getTableNames() {
   if (tablesCache) return tablesCache;
@@ -65,6 +66,12 @@ async function getProjectColumns() {
   return projectColumns;
 }
 
+async function getTaskColumns() {
+  if (taskColumns) return taskColumns;
+  taskColumns = await getColumns('tasks');
+  return taskColumns;
+}
+
 async function resolveProjectStore() {
   const tables = await getTableNames();
   if (tables.has('task_categories')) return 'task_categories';
@@ -76,6 +83,45 @@ async function resolveOrgId(req) {
   const orgId = await orgIdForSessionUser(req);
   if (!orgId) return null;
   return String(orgId);
+}
+
+async function countActiveProjectTasks(orgId, projectId) {
+  try {
+    const { rows } = await query(`SELECT active_project_task_count($1::uuid, $2::uuid)::int AS cnt`, [orgId, projectId]);
+    if (rows[0]?.cnt != null) return parseInt(rows[0].cnt, 10) || 0;
+  } catch {
+    // Function may not exist until migrations run. Fall back to schema-aware SQL below.
+  }
+
+  const tables = await getTableNames();
+  const taskCols = await getTaskColumns();
+  const relationParts = [];
+  if (taskCols.has('category_id')) relationParts.push('t.category_id = $2');
+  if (taskCols.has('project_id')) relationParts.push('t.project_id = $2');
+  if (tables.has('project_tasks')) relationParts.push('EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = t.id AND pt.project_id = $2)');
+  if (!relationParts.length) return 0;
+
+  const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`];
+  if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  if (taskCols.has('status')) conditions.push(`COALESCE(t.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`);
+
+  const { rows } = await query(
+    `SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`,
+    [orgId, projectId]
+  );
+  return parseInt(rows[0]?.cnt || 0, 10);
+}
+
+async function recordProjectOverride({ orgId, actorUserId, projectId, activeTaskCount, reason }) {
+  try {
+    await query(
+      `INSERT INTO governance_overrides (org_id, actor_user_id, entity_type, entity_id, action, reason, metadata)
+       VALUES ($1, $2, 'project', $3, 'project.complete.override', $4, $5::jsonb)`,
+      [orgId, actorUserId, projectId, reason, JSON.stringify({ activeTaskCount })]
+    );
+  } catch {
+    // Governance override table can be absent before migrations run. Audit still records intent.
+  }
 }
 
 function categorySelectSql(cols, personalOnly = false, userIdParam = null) {
@@ -300,28 +346,39 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
     const projectId = String(req.params.projectId || '').trim();
+    const requestedStatus = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : null;
 
     // ── Completion guard: block if active tasks still exist ──────────────────
-    if (req.body.status === 'completed') {
+    if (requestedStatus === 'completed') {
+      const activeCount = await countActiveProjectTasks(orgId, projectId);
       const override = req.body.override_completion === true;
-      if (!override) {
-        const { rows: activeTasks } = await query(
-          `SELECT COUNT(*) AS cnt FROM tasks
-           WHERE project_id = $1 AND org_id = $2
-             AND status NOT IN ('completed','manager_approved','cancelled')`,
-          [projectId, orgId]
-        );
-        const activeCount = parseInt(activeTasks[0]?.cnt || '0', 10);
-        if (activeCount > 0) {
-          return res.status(409).json({
-            error: `Cannot complete project: ${activeCount} active task(s) still in progress.`,
-            code: 'PROJECT_HAS_ACTIVE_TASKS',
-            activeTaskCount: activeCount,
-            hint: 'Complete or cancel all tasks first, or pass override_completion:true (director/admin only).',
-          });
+
+      if (activeCount > 0 && !override) {
+        return res.status(409).json({
+          error: `Cannot complete project: ${activeCount} active task(s) still in progress.`,
+          code: 'PROJECT_HAS_ACTIVE_TASKS',
+          activeTaskCount: activeCount,
+          hint: 'Complete or cancel all tasks first, or pass override_completion:true with a reason (director/admin only).',
+        });
+      }
+
+      if (activeCount > 0 && override) {
+        if (!['director', 'admin'].includes(req.user.role)) {
+          return res.status(403).json({ error: 'Only Director or Admin can override project completion with active tasks.' });
         }
-      } else if (!['director', 'admin'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Only Director or Admin can override project completion with active tasks.' });
+        const reason = String(req.body.override_reason || req.body.reason || '').trim();
+        if (reason.length < 8) return res.status(400).json({ error: 'override_reason is required and must be at least 8 characters.' });
+        await recordProjectOverride({ orgId, actorUserId: req.user.id, projectId, activeTaskCount: activeCount, reason });
+        await logAudit({
+          orgId,
+          actorUserId: req.user.id,
+          action: 'project.complete.override',
+          entityType: 'project',
+          entityId: projectId,
+          metadata: { activeTaskCount: activeCount, reason },
+          ip: req.ip,
+          userAgent: req.headers['user-agent'] || null,
+        });
       }
     }
 
@@ -349,9 +406,9 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       if (cols.has('icon') && typeof req.body?.icon === 'string') { values.push(req.body.icon.trim() || null); sets.push(`icon = $${values.length}`); }
       if (cols.has('color') && typeof req.body?.color === 'string') { values.push(normalizeColor(req.body.color)); sets.push(`color = $${values.length}`); }
       if (cols.has('is_active') && typeof req.body?.is_active === 'boolean') { values.push(req.body.is_active); sets.push(`is_active = $${values.length}`); }
-      if (typeof req.body?.status === 'string') {
+      if (requestedStatus) {
         const allowed = new Set(['active', 'paused', 'completed']);
-        const status = req.body.status.trim().toLowerCase();
+        const status = requestedStatus;
         if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
         if (cols.has('status')) { values.push(status); sets.push(`status = $${values.length}`); }
         if (cols.has('is_active')) { values.push(status === 'active'); sets.push(`is_active = $${values.length}`); }
@@ -380,9 +437,9 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       values.push(req.body.is_active ? 'active' : 'archived');
       sets.push(`status = $${values.length}`);
     }
-    if (cols.has('status') && typeof req.body?.status === 'string') {
+    if (cols.has('status') && requestedStatus) {
       const allowed = new Set(['active', 'paused', 'completed']);
-      const status = req.body.status.trim().toLowerCase();
+      const status = requestedStatus;
       if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
       values.push(status);
       sets.push(`status = $${values.length}`);
