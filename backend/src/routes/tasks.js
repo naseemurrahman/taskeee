@@ -315,7 +315,9 @@ router.get('/', authenticate, async (req, res, next) => {
     } else if (String(mine || '') === 'true') {
       /** Only tasks assigned to the signed-in user. */
       targetUserIds = await getOwnTargetUserIds(user, orgId);
-    } else if (userId && targetUserIds.includes(userId)) {
+    } else if (userId) {
+      // When userId is explicitly provided (e.g. employee profile view), ALWAYS filter to that user
+      // This ensures admin clicking on an employee profile sees only that employee's tasks
       targetUserIds = [userId];
     }
 

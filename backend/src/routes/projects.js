@@ -490,6 +490,37 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
           await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: rows[0]?.name }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
         } catch { /* non-critical */ }
       }
+
+      // When project is paused, mark all active tasks as on_hold
+      // When project is re-activated, restore on_hold tasks to pending
+      if (requestedStatus === 'paused') {
+        try {
+          const taskCols = await getTaskColumns();
+          if (taskCols.has('status') && taskCols.has('category_id')) {
+            await query(
+              `UPDATE tasks SET status = 'on_hold'
+               WHERE org_id = $1 AND category_id = $2
+               AND status NOT IN ('completed','manager_approved','cancelled','on_hold')
+               AND deleted_at IS NULL`,
+              [orgId, projectId]
+            );
+          }
+        } catch { /* non-critical — tasks table may use different schema */ }
+      } else if (requestedStatus === 'active') {
+        try {
+          const taskCols = await getTaskColumns();
+          if (taskCols.has('status') && taskCols.has('category_id')) {
+            await query(
+              `UPDATE tasks SET status = 'pending'
+               WHERE org_id = $1 AND category_id = $2
+               AND status = 'on_hold'
+               AND deleted_at IS NULL`,
+              [orgId, projectId]
+            );
+          }
+        } catch { /* non-critical */ }
+      }
+
       return res.json({ project: rows[0] });
     }
 

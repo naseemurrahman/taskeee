@@ -27,14 +27,14 @@ async function createWorkspace(data: {
   return apiFetch<{
     accessToken: string; refreshToken: string
     user: { id: string; email: string; fullName: string; role: string; orgId: string }
-  }>('/api/v1/auth/signup', { method: 'POST', json: data, timeoutMs: 30_000 })
+  }>('/api/v1/auth/signup', { method: 'POST', json: data, timeoutMs: 60_000 })
 }
 
 async function login(email: string, password: string) {
   return apiFetch<LoginResponse>('/api/v1/auth/login', {
     method: 'POST',
     json: { email, password },
-    timeoutMs: 30_000,
+    timeoutMs: 60_000,
   })
 }
 

@@ -534,7 +534,7 @@ export function TasksPage() {
                     </th>
                   )}
                   <th className="thCell">Task</th>
-                  <th className="thCell" style={{ minWidth: 160 }}>AI Signal</th>
+                  <th className="thCell" style={{ minWidth: 160 }}>Priority Signal</th>
                   <th className="thCell">Project</th>
                   {!isEmployee && <th className="thCell" style={{ whiteSpace: 'nowrap' }}>Assignee</th>}
                   <th className="thCell">Status</th>
@@ -574,7 +574,7 @@ export function TasksPage() {
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                               <span className={signalBadgeClass(sig.level)} style={{ alignSelf: 'flex-start' }}>
-                                {sig.score}%{sig.needsAttention ? ' Needs attention' : ''}
+                                {sig.level === 'critical' ? '🔴 Critical' : sig.level === 'high' ? '🟠 High Risk' : sig.level === 'medium' ? '🟡 Monitor' : '🟢 On Track'}
                               </span>
                               {(sig.note || sig.loadNote) && (
                                 <span style={{ fontSize: 10, color: sig.needsAttention ? '#f97316' : 'var(--muted)', lineHeight: 1.4, maxWidth: 155 }}>

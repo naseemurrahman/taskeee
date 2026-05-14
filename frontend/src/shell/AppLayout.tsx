@@ -12,7 +12,6 @@ import {
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
   UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat,
-  Moon, Sun, BookOpen,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -23,8 +22,6 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Board: FolderKanban,
   Projects: Network,
   Calendar: Calendar,
-  'Time tracking': Clock,
-  'Knowledge base': BookOpen,
   Analytics: BarChart3,
   Billing: CreditCard,
   Contractors: Briefcase,
@@ -47,7 +44,6 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 function labelKey(label: string): string {
   const map: Record<string, string> = {
     Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
-    Board: 'nav.board', Projects: 'nav.projects', Calendar: 'nav.calendar', 'Time tracking': 'Time tracking', 'Knowledge base': 'Knowledge base',
     Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
@@ -263,8 +259,6 @@ export function AppLayout() {
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
-          <NavItem to="/app/time-tracking" label="Time tracking" display="Time tracking" collapsed={collapsed} onNavigate={closeMobileNav} />
-          <NavItem to="/app/knowledge-base" label="Knowledge base" display="Knowledge base" collapsed={collapsed} onNavigate={closeMobileNav} />
           {canSee(role, 'manager') && <>{!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Management</div>}{canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}</>}
           {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Other</div>}
           {canSeeItem(role, 'Contractors') && <NavItem to="/app/contractors" label="Contractors" display={t(labelKey('Contractors'))} collapsed={collapsed} onNavigate={closeMobileNav} />}

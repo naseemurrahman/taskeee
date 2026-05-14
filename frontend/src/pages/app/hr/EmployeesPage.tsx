@@ -215,6 +215,7 @@ export function EmployeesPage() {
       designation: normalizedDesignation,
       title: normalizedDesignation,
       roleType,
+      role: roleType,  // maps to users.role in the backend
     })
   }
 

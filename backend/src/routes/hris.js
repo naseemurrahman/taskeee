@@ -260,8 +260,16 @@ router.post('/employees', authenticate, requireAnyRole('manager', 'hr', 'directo
         values.push(fullName);
       }
       if (!userColsKnown || userCols.has('role')) {
+        const allowedRoles = ['employee', 'manager', 'hr', 'supervisor', 'director', 'technician', 'admin'];
+        const requestedRole = String(req.body?.role || 'employee').toLowerCase();
+        // Only admin can create admin/director users
+        const roleToAssign = allowedRoles.includes(requestedRole) ? requestedRole : 'employee';
+        const protectedRoles = ['admin', 'director'];
+        const finalRole = protectedRoles.includes(roleToAssign) && !['admin', 'director'].includes(req.user.role)
+          ? 'employee'
+          : roleToAssign;
         fields.push('role');
-        values.push('employee');
+        values.push(finalRole);
       }
       if (!userColsKnown || userCols.has('is_active')) {
         fields.push('is_active');
@@ -345,11 +353,13 @@ router.post('/employees', authenticate, requireAnyRole('manager', 'hr', 'directo
     res.status(201).json({
       employee: rows[0],
       employeeRecordCreated,
-      notificationSent: null,   // will be sent async — client doesn't need to wait
-      temporaryPassword: null,  // sent via email; not returned in API for security
+      notificationSent: null,
+      temporaryPassword: tempPassword,  // shown once in the UI for admin to share
+      tempPasswordExpires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      loginEmail: normalizedEmail,
       message: employeeRecordCreated
-        ? 'Employee created successfully. Welcome email is being sent with login credentials.'
-        : 'User created and onboarded successfully. Welcome email is being sent.',
+        ? 'Employee created successfully. Save the temporary password shown — it will not be shown again.'
+        : 'User created and onboarded successfully.',
     });
 
     // ── Background: audit log + welcome email (non-blocking) ──────────────
@@ -480,6 +490,48 @@ router.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'a
       ip: req.ip,
       userAgent: req.headers['user-agent'] || null
     });
+
+    // Fix 6/7: Sync user account active state and quarantine tasks on status change
+    if (body.status) {
+      const emp = rows[0];
+      const isActive = body.status === 'active';
+      const nonActiveStatuses = ['inactive', 'terminated', 'suspended', 'on_leave'];
+      const isNonActive = nonActiveStatuses.includes(body.status);
+
+      // Deactivate / reactivate the linked user account (blocks login per auth.js is_active check)
+      if (emp?.user_id) {
+        try {
+          await query(
+            `UPDATE users SET is_active = $1 WHERE id = $2 AND org_id = $3`,
+            [isActive, emp.user_id, orgId]
+          );
+        } catch { /* non-critical */ }
+      }
+
+      // When deactivated: put all assigned tasks on_hold so they appear in a quarantine state
+      // When reactivated: restore on_hold tasks to pending
+      if (isNonActive && emp?.user_id) {
+        try {
+          await query(
+            `UPDATE tasks SET status = 'on_hold'
+             WHERE org_id = $1 AND assigned_to = $2
+             AND status NOT IN ('completed','manager_approved','cancelled','on_hold')
+             AND deleted_at IS NULL`,
+            [orgId, emp.user_id]
+          );
+        } catch { /* non-critical */ }
+      } else if (isActive && emp?.user_id) {
+        try {
+          await query(
+            `UPDATE tasks SET status = 'pending'
+             WHERE org_id = $1 AND assigned_to = $2
+             AND status = 'on_hold'
+             AND deleted_at IS NULL`,
+            [orgId, emp.user_id]
+          );
+        } catch { /* non-critical */ }
+      }
+    }
 
     res.json({ employee: rows[0] });
   } catch (err) { next(err); }
