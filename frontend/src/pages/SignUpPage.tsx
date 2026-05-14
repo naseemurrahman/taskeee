@@ -140,7 +140,7 @@ export function SignUpPage() {
             <Field label="Work email" value={email} onChange={setEmail} placeholder="you@company.com" type="email" autoComplete="email" />
             <Field label="Password" value={password} onChange={setPassword} placeholder="Minimum 8 characters" type="password" autoComplete="new-password" />
             {password && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, color: 'rgba(255,255,255,.65)', fontSize: 12 }}>{passwordChecks.map((check) => <span key={check.label} style={{ color: check.ok ? '#4ade80' : 'rgba(255,255,255,.35)' }}>{check.ok ? '✓' : '○'} {check.label}</span>)}</div>}
-            <Field label="Re-enter password" value={confirmPw} onChange={setConfirmPw} placeholder="Repeat password" type="password" autoComplete="new-password" />
+            <Field label="Re-enter password" value={confirmPw} onChange={setConfirmPw} placeholder="Repeat password" type="password" autoComplete="new-password" error={confirmPw.length > 0 && confirmPw !== password ? "Passwords do not match" : undefined} />
           </>}
 
           {step === 1 && <>
@@ -159,14 +159,28 @@ export function SignUpPage() {
   )
 }
 
-function Field(props: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string; autoComplete?: string; prefix?: string }) {
+function Field(props: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string; autoComplete?: string; prefix?: string; error?: string }) {
+  const [show, setShow] = useState(false)
+  const isPassword = props.type === 'password'
+  const inputType = isPassword ? (show ? 'text' : 'password') : (props.type || 'text')
   return (
     <label style={{ display: 'grid', gap: 8 }}>
       <span style={{ color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', fontSize: 12, fontWeight: 800, letterSpacing: '.08em' }}>{props.label}</span>
       <div style={{ position: 'relative' }}>
         {props.prefix && <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.35)', fontSize: 14 }}>{props.prefix}</span>}
-        <input value={props.value} onChange={(event) => props.onChange(event.target.value)} placeholder={props.placeholder} type={props.type || 'text'} autoComplete={props.autoComplete} style={{ width: '100%', height: 50, borderRadius: 12, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: '#fff', outline: 'none', padding: props.prefix ? '0 14px 0 94px' : '0 14px', fontSize: 15 }} />
+        <input value={props.value} onChange={(event) => props.onChange(event.target.value)} placeholder={props.placeholder} type={inputType} autoComplete={props.autoComplete}
+          style={{ width: '100%', height: 50, borderRadius: 12, border: props.error ? '1px solid rgba(239,68,68,.6)' : '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: '#fff', outline: 'none', padding: props.prefix ? '0 42px 0 94px' : isPassword ? '0 44px 0 14px' : '0 14px', fontSize: 15 }} />
+        {isPassword && (
+          <button type="button" onClick={() => setShow(s => !s)}
+            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.45)', padding: 0, display: 'flex', alignItems: 'center' }}>
+            {show
+              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        )}
       </div>
+      {props.error && <span style={{ color: 'rgba(239,68,68,.9)', fontSize: 12, fontWeight: 500 }}>{props.error}</span>}
     </label>
   )
 }
