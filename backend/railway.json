@@ -3,7 +3,6 @@
     "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "(node src/utils/migrate.js || echo 'Migrations failed, starting server in degraded mode') && node src/server.js",
     "restartPolicyType": "Always",
     "restartPolicyMaxRetries": 10,
     "healthcheckPath": "/health",
