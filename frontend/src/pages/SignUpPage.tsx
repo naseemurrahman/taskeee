@@ -9,8 +9,6 @@ const PLANS = [
   { value: 'enterprise', label: 'Enterprise', desc: 'Custom integrations and governance', price: 'Custom' },
 ]
 
-}
-
 async function createWorkspace(data: {
   fullName: string
   email: string
@@ -26,13 +24,6 @@ async function createWorkspace(data: {
   }>('/api/v1/auth/signup', { method: 'POST', json: data, timeoutMs: 60_000 })
 }
 
-async function login(email: string, password: string) {
-  return apiFetch<LoginResponse>('/api/v1/auth/login', {
-    method: 'POST',
-    json: { email, password },
-    timeoutMs: 60_000,
-  })
-}
 
 function autoSlug(value: string) {
   return value
