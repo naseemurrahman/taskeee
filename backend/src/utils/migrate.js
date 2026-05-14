@@ -22,14 +22,25 @@ async function tableExists(client, tableName) {
 
 async function run() {
   const connectionString = process.env.DATABASE_URL;
+  console.log('[migrate] Starting migration runner...');
   if (!connectionString) {
-    console.error('Missing DATABASE_URL. Cannot run migrations.');
+    console.error('[migrate] ERROR: Missing DATABASE_URL. Cannot run migrations.');
     process.exitCode = 1;
     return;
   }
+  console.log('[migrate] DATABASE_URL found, connecting...');
+
+  // Railway Postgres URLs include ?sslmode=require&channel_binding=require
+  // which conflicts with passing a separate ssl:{} object to node-postgres.
+  // Strip those params and let pgSsl.js handle SSL to avoid ECONNRESET errors.
+  const cleanUrl = connectionString
+    .replace(/[?&]sslmode=[^&]*/g, '')
+    .replace(/[?&]channel_binding=[^&]*/g, '')
+    .replace(/\?$/, '')
+    .replace(/[?&]$/, '');
 
   const client = new Client({
-    connectionString,
+    connectionString: cleanUrl,
     ssl: resolvePgSsl(),
   });
 
@@ -43,12 +54,9 @@ async function run() {
   try {
     await client.connect();
   } catch (err) {
-    console.error('Failed to connect to Postgres for migrations.');
-    console.error('Make sure Postgres is running and DATABASE_URL is correct.');
-    console.error(`DATABASE_URL=${connectionString}`);
-    console.error(`Error: ${err.message}`);
-    // Use exitCode (soft) not exit() so the shell's || can catch it and still
-    // allow the server to start in degraded mode.
+    console.error('[migrate] FAILED to connect to Postgres.');
+    console.error(`[migrate] Error: ${err.message}`);
+    console.error(`[migrate] Code: ${err.code}`);
     process.exitCode = 1;
     return;
   }
@@ -122,13 +130,13 @@ async function run() {
         await client.query('COMMIT')
       } catch (fileErr) {
         await client.query('ROLLBACK')
-        console.error(`Migration ${file} failed: ${fileErr.message}`)
+        console.error(`[migrate] FAILED ${file}: ${fileErr.message}`)
         // Mark as failed but continue — server will start in degraded mode
         process.exitCode = 1
       }
     }
 
-    console.log('Migrations complete.')
+    console.log('[migrate] All migrations complete.')
   } catch (err) {
     await client.query('ROLLBACK').catch(() => null)
     console.error('Migration setup failed:', err.message)
