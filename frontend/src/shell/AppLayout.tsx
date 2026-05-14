@@ -162,7 +162,7 @@ export function AppLayout() {
 
   const profileQ = useQuery({
     queryKey: ['profile', 'shell'],
-    queryFn: () => apiFetch<{ id: string; name?: string; email?: string; avatar_url?: string; role?: string }>('/api/v1/users/profile'),
+    queryFn: () => apiFetch<{ user?: { id: string; full_name?: string; name?: string; email?: string; avatar_url?: string; role?: string } }>('/api/v1/users/profile'),
     staleTime: 5 * 60 * 1000,
   })
   const statsQ = useQuery({
