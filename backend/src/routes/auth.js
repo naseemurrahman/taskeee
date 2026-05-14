@@ -710,20 +710,6 @@ router.post('/signup', async (req, res, next) => {
       return { organization, user, subscription };
     });
 
-    const accessToken = signAccessToken(signupResult.user.id, signupResult.user.org_id, signupResult.user.role);
-    const refreshToken = signRefreshToken(signupResult.user.id);
-    const tokenHash = require('crypto').createHash('sha256').update(refreshToken).digest('hex');
-
-    try {
-      await query(
-        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-         VALUES ($1, $2, NOW() + INTERVAL '30 days')`,
-        [signupResult.user.id, tokenHash]
-      );
-    } catch (rtErr) {
-      console.warn('refresh_tokens insert skipped:', rtErr.message);
-    }
-
     try {
       await logUserActivity({
         orgId: signupResult.user.org_id,
@@ -735,46 +721,64 @@ router.post('/signup', async (req, res, next) => {
       console.warn('activity log skipped:', actErr.message);
     }
 
-    // Generate + store email verification token (24h) - optional, don't fail signup
+    // Generate + store email verification token and send welcome email (optional — never fail signup)
     try {
       const verificationToken = randomToken(32);
       const verificationTokenHash = sha256Hex(verificationToken);
-      await query(
-        `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
-         VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
-        [signupResult.user.id, verificationTokenHash]
-      );
-    } catch (tokenErr) {
-      console.error('Could not store verification token (table may not exist):', tokenErr.message);
+      const origin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+      const verificationLink = `${origin.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+      try {
+        await query(
+          `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+           VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
+          [signupResult.user.id, verificationTokenHash]
+        );
+      } catch (tokenErr) {
+        console.warn('Could not store verification token:', tokenErr.message);
+      }
+
+      try {
+        const verificationEmailHtml = emailService.getVerificationEmailTemplate(
+          signupResult.user.full_name,
+          verificationLink
+        );
+        await emailService.sendEmail(
+          signupResult.user.email,
+          'Verify Your Email Address - TASKEE',
+          verificationEmailHtml
+        );
+        console.log('Verification email sent to:', signupResult.user.email);
+      } catch (emailError) {
+        console.warn('Failed to send verification email:', emailError.message);
+      }
+    } catch (outerErr) {
+      console.warn('Post-signup email flow failed (non-fatal):', outerErr.message);
     }
 
-    const origin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
-    const verificationLink = `${origin.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-
-    // Send verification email - don't fail signup if email fails
+    // Return tokens so the frontend can auto-login after signup
+    const accessToken = signAccessToken(signupResult.user.id, signupResult.user.org_id, signupResult.user.role);
+    const refreshToken2 = signRefreshToken(signupResult.user.id);
+    const tokenHash2 = require('crypto').createHash('sha256').update(refreshToken2).digest('hex');
     try {
-      const verificationEmailHtml = emailService.getVerificationEmailTemplate(
-        signupResult.user.full_name,
-        verificationLink
+      await query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '30 days')
+         ON CONFLICT DO NOTHING`,
+        [signupResult.user.id, tokenHash2]
       );
-      
-      await emailService.sendEmail(
-        signupResult.user.email,
-        'Verify Your Email Address - TASKEE',
-        verificationEmailHtml
-      );
-      
-      console.log('Verification email sent to:', signupResult.user.email);
-    } catch (emailError) {
-      console.error('Failed to send verification email (SMTP may not be configured):', emailError.message);
-    }
+    } catch (rtErr2) { console.warn('refresh_tokens insert skipped:', rtErr2.message); }
 
     res.status(201).json({
-      message: 'Account created successfully! You can now login.',
+      message: 'Account created successfully!',
+      accessToken,
+      refreshToken: refreshToken2,
       user: {
         id: signupResult.user.id,
         email: signupResult.user.email,
         fullName: signupResult.user.full_name,
+        role: signupResult.user.role,
+        orgId: signupResult.user.org_id,
         emailVerified: true
       }
     });

@@ -24,7 +24,10 @@ async function createWorkspace(data: {
   plan: string
   seats: number
 }) {
-  return apiFetch('/api/v1/auth/signup', { method: 'POST', json: data, timeoutMs: 30_000 })
+  return apiFetch<{
+    accessToken: string; refreshToken: string
+    user: { id: string; email: string; fullName: string; role: string; orgId: string }
+  }>('/api/v1/auth/signup', { method: 'POST', json: data, timeoutMs: 30_000 })
 }
 
 async function login(email: string, password: string) {
@@ -98,7 +101,7 @@ export function SignUpPage() {
     setLoading(true)
     try {
       const normalizedEmail = email.trim().toLowerCase()
-      await createWorkspace({
+      const result = await createWorkspace({
         fullName: fullName.trim(),
         email: normalizedEmail,
         password,
@@ -108,10 +111,9 @@ export function SignUpPage() {
         seats: 1,
       })
 
-      const session = await login(normalizedEmail, password)
-      setAccessToken(session.accessToken)
-      setRefreshToken(session.refreshToken)
-      setUser(session.user)
+      setAccessToken(result.accessToken)
+      setRefreshToken(result.refreshToken)
+      setUser(result.user)
       navigate('/app/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create your workspace. Please try again.')
