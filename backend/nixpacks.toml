@@ -8,4 +8,4 @@ cmds = ["npm install --omit=dev"]
 cmds = []
 
 [start]
-cmd = "(node src/utils/migrate.js || echo 'Migrations failed, starting server in degraded mode') && node src/server.js"
+cmd = "sh start.sh"
