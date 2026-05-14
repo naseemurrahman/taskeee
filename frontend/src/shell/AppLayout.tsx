@@ -11,7 +11,7 @@ import {
   BarChart3, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
-  UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat,
+  UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat, Moon, Sun,
 } from 'lucide-react'
 
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {

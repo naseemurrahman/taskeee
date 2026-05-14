@@ -9,10 +9,6 @@ const PLANS = [
   { value: 'enterprise', label: 'Enterprise', desc: 'Custom integrations and governance', price: 'Custom' },
 ]
 
-type LoginResponse = {
-  accessToken: string
-  refreshToken: string
-  user: { id: string; email: string; fullName: string; role: string; orgId: string }
 }
 
 async function createWorkspace(data: {
