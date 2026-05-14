@@ -24,7 +24,8 @@ async function run() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     console.error('Missing DATABASE_URL. Cannot run migrations.');
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   const client = new Client({
@@ -46,7 +47,10 @@ async function run() {
     console.error('Make sure Postgres is running and DATABASE_URL is correct.');
     console.error(`DATABASE_URL=${connectionString}`);
     console.error(`Error: ${err.message}`);
-    process.exit(1);
+    // Use exitCode (soft) not exit() so the shell's || can catch it and still
+    // allow the server to start in degraded mode.
+    process.exitCode = 1;
+    return;
   }
   try {
     // Ensure required extensions and migrations table exist (auto-commit, no transaction needed)
