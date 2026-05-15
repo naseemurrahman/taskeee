@@ -42,12 +42,8 @@ async function projectExists(orgId, projectId) {
 
 async function countActiveTasks(orgId, projectId) {
   const taskCols = await getColumns('tasks');
-  if (!taskCols.has('status')) return 0;
-  const relation = [];
-  if (taskCols.has('project_id')) relation.push('t.project_id = $2');
-  if (taskCols.has('category_id')) relation.push('t.category_id = $2');
-  if (!relation.length) return 0;
-  const conditions = ['t.org_id = $1', `(${relation.join(' OR ')})`, activeTaskCondition('t')];
+  if (!taskCols.has('status') || !taskCols.has('project_id')) return 0;
+  const conditions = ['t.org_id = $1', 't.project_id = $2', activeTaskCondition('t')];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
   const { rows } = await query(`SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`, [orgId, projectId]);
   return Number(rows[0]?.cnt || 0);
@@ -55,12 +51,8 @@ async function countActiveTasks(orgId, projectId) {
 
 async function mutateTasksForStatus(tx, { orgId, projectId, status, actorUserId }) {
   const taskCols = await getColumns('tasks');
-  if (!taskCols.has('status')) return;
-  const relation = [];
-  if (taskCols.has('project_id')) relation.push('t.project_id = $2');
-  if (taskCols.has('category_id')) relation.push('t.category_id = $2');
-  if (!relation.length) return;
-  const conditions = ['t.org_id = $1', `(${relation.join(' OR ')})`];
+  if (!taskCols.has('status') || !taskCols.has('project_id')) return;
+  const conditions = ['t.org_id = $1', 't.project_id = $2'];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
 
   const updateMetadata = (params, setParts, metadata) => {
@@ -106,7 +98,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const projectId = String(req.params.projectId || '').trim();
     const existing = await projectExists(orgId, projectId);
-    if (!existing) return next();
+    if (!existing) return res.status(404).json({ error: 'Project not found in canonical projects table.' });
 
     const activeTaskCount = await countActiveTasks(orgId, projectId);
     if (requestedStatus === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) {
