@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS org_id uuid NULL;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS name text NULL;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS description text NULL;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS status varchar(20) NOT NULL DEFAULT 'active';
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_id uuid NULL;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS manager_id uuid NULL;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS start_date date NULL;
