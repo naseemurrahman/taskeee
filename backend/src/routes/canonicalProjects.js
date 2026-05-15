@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { randomUUID } = require('crypto');
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
@@ -48,10 +49,6 @@ function normalizedRole(req) {
 
 function isPersonalRole(role) {
   return ['employee', 'technician'].includes(String(role || '').toLowerCase());
-}
-
-function normalizeColor(_color) {
-  return null;
 }
 
 function projectSelectSql({ personalOnly = false, userParam = null, idFilter = false }) {
@@ -156,8 +153,8 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
     if (name.length > 100) return res.status(400).json({ error: 'Project name is too long (max 100)' });
 
     const cols = await getColumns('projects');
-    const insertColumns = ['org_id', 'name', 'description'];
-    const values = [orgId, name, description];
+    const insertColumns = ['id', 'org_id', 'name', 'description'];
+    const values = [randomUUID(), orgId, name, description];
     if (cols.has('status')) { insertColumns.push('status'); values.push('active'); }
     if (cols.has('created_by')) { insertColumns.push('created_by'); values.push(req.user.id); }
     if (cols.has('updated_by')) { insertColumns.push('updated_by'); values.push(req.user.id); }
