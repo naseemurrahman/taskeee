@@ -55,12 +55,25 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
 
   // Overdue tasks
   const { rows: overdueTasks } = await query(`
-    SELECT t.title, t.due_date, u.full_name AS assigned_to_name
-    FROM tasks t JOIN users u ON u.id = t.assigned_to
+    SELECT t.title, t.due_date, u.full_name AS assigned_to_name,
+           p.name AS project_name
+    FROM tasks t
+    JOIN users u ON u.id = t.assigned_to
+    LEFT JOIN projects p ON p.id = t.project_id AND p.org_id = t.org_id
     WHERE t.assigned_to = ANY($1) AND t.org_id = $2
       AND t.due_date < NOW() AND t.status NOT IN ('completed','cancelled')
     ORDER BY t.due_date ASC LIMIT 10
-  `, [targetUserIds, orgId]);
+  `, [targetUserIds, orgId]).catch(async (err) => {
+    if (err.code !== '42P01' && err.code !== '42703') throw err;
+    return query(`
+      SELECT t.title, t.due_date, u.full_name AS assigned_to_name,
+             NULL::text AS project_name
+      FROM tasks t JOIN users u ON u.id = t.assigned_to
+      WHERE t.assigned_to = ANY($1) AND t.org_id = $2
+        AND t.due_date < NOW() AND t.status NOT IN ('completed','cancelled')
+      ORDER BY t.due_date ASC LIMIT 10
+    `, [targetUserIds, orgId]);
+  });
 
   // AI rejection rate
   const { rows: [aiStats] } = await query(`
@@ -72,7 +85,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     JOIN tasks t ON t.id = tp.task_id
     WHERE t.assigned_to = ANY($1) AND t.org_id = $2
       AND tp.created_at BETWEEN $3 AND $4
-  `, [targetUserIds, orgId, periodStart, periodEnd]);
+  `, [targetUserIds, orgId]);
 
   // Top performers (for managers+)
   let topPerformers = [];
@@ -90,6 +103,31 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     topPerformers = rows;
   }
 
+  let projectBreakdown = [];
+  try {
+    const { rows } = await query(`
+      SELECT p.id AS project_id,
+             p.name AS project_name,
+             COALESCE(p.status, 'active') AS project_status,
+             COUNT(t.id)::int AS total_tasks,
+             COUNT(t.id) FILTER (WHERE t.status IN ('completed','manager_approved'))::int AS completed_tasks,
+             COUNT(t.id) FILTER (WHERE t.status NOT IN ('completed','manager_approved','cancelled'))::int AS open_tasks
+        FROM projects p
+        LEFT JOIN tasks t ON t.project_id = p.id
+                         AND t.org_id = p.org_id
+                         AND t.assigned_to = ANY($1)
+                         AND t.created_at BETWEEN $3 AND $4
+       WHERE p.org_id = $2
+       GROUP BY p.id, p.name, p.status
+       ORDER BY open_tasks DESC, total_tasks DESC, p.name ASC
+       LIMIT 20
+    `, [targetUserIds, orgId, periodStart, periodEnd]);
+    projectBreakdown = rows;
+  } catch (err) {
+    if (err.code !== '42P01' && err.code !== '42703') throw err;
+    projectBreakdown = [];
+  }
+
   const reportData = {
     user: { id: userId, fullName: user.full_name, role: user.role },
     period: { start: periodStart, end: periodEnd, type: reportType },
@@ -98,6 +136,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     overdueTasks,
     aiStats,
     topPerformers,
+    projectBreakdown,
     generatedAt: new Date().toISOString()
   };
 
@@ -170,7 +209,7 @@ async function runHierarchicalReports(orgId, reportType) {
 }
 
 function buildEmailHtml(report) {
-  const { summary, statusBreakdown, overdueTasks, topPerformers, user, period } = report;
+  const { summary, statusBreakdown, overdueTasks, topPerformers, projectBreakdown = [], user, period } = report;
 
   const statusRows = statusBreakdown.map(s =>
     `<tr><td style="padding:6px 12px">${s.status.replace(/_/g,' ')}</td>
@@ -179,6 +218,7 @@ function buildEmailHtml(report) {
 
   const overdueRows = overdueTasks.map(t =>
     `<tr><td style="padding:6px 12px;color:#e53e3e">${t.title}</td>
+     <td style="padding:6px 12px">${t.project_name || '—'}</td>
      <td style="padding:6px 12px">${t.assigned_to_name}</td>
      <td style="padding:6px 12px">${new Date(t.due_date).toLocaleDateString()}</td></tr>`
   ).join('');
@@ -186,6 +226,13 @@ function buildEmailHtml(report) {
   const performerRows = topPerformers.map(p =>
     `<tr><td style="padding:6px 12px">${p.full_name}</td>
      <td style="padding:6px 12px;text-align:center">${p.completed}/${p.total}</td></tr>`
+  ).join('');
+
+  const projectRows = projectBreakdown.map(p =>
+    `<tr><td style="padding:6px 12px">${p.project_name}</td>
+     <td style="padding:6px 12px;text-align:center">${p.project_status}</td>
+     <td style="padding:6px 12px;text-align:center">${p.open_tasks}</td>
+     <td style="padding:6px 12px;text-align:center">${p.completed_tasks}/${p.total_tasks}</td></tr>`
   ).join('');
 
   return `
@@ -221,11 +268,24 @@ function buildEmailHtml(report) {
       <tbody>${statusRows}</tbody>
     </table>
 
+    ${projectBreakdown.length ? `
+    <h3>Project Breakdown</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f0f0f0">
+        <th style="padding:8px 12px;text-align:left">Project</th>
+        <th style="padding:8px 12px;text-align:center">Status</th>
+        <th style="padding:8px 12px;text-align:center">Open</th>
+        <th style="padding:8px 12px;text-align:center">Completed/Total</th>
+      </tr></thead>
+      <tbody>${projectRows}</tbody>
+    </table>` : ''}
+
     ${overdueTasks.length ? `
     <h3 style="color:#e53e3e">Overdue Tasks</h3>
     <table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:#fff5f5">
         <th style="padding:8px 12px;text-align:left">Task</th>
+        <th style="padding:8px 12px;text-align:left">Project</th>
         <th style="padding:8px 12px;text-align:left">Assigned To</th>
         <th style="padding:8px 12px;text-align:left">Due</th>
       </tr></thead>
