@@ -227,12 +227,21 @@ export function InsightsPage() {
 
   const trendPoints = useMemo(() => {
     const raw = (analyticsQ.data as any)?.points || []
-    return raw.map((p: any) => ({
-      day: String(p.day || '').slice(5),
-      completed: p.completed || 0,
-      created:   p.created   || 0,
-      overdue:   p.overdue   || 0,
-    }))
+    // Build a baseline of the last 14 days with zeros
+    const baseline: Record<string, { day: string; completed: number; created: number; overdue: number }> = {}
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const label = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      baseline[label] = { day: label, completed: 0, created: 0, overdue: 0 }
+    }
+    // Overlay real data on top of baseline
+    raw.forEach((p: any) => {
+      const key = String(p.day || '').slice(5)
+      if (baseline[key]) {
+        baseline[key] = { day: key, completed: p.completed || 0, created: p.created || 0, overdue: p.overdue || 0 }
+      }
+    })
+    return Object.values(baseline)
   }, [analyticsQ.data])
 
   const priorityBars = stats ? [
@@ -310,8 +319,8 @@ export function InsightsPage() {
           {/* ── Row 1: Trend area chart + Status donut ── */}
           <div className="insightsRow1" style={{ '--row1-cols': L.row1Cols } as React.CSSProperties}>
             <ChartCard title="Activity Trend" icon={<IconBarChart size={14} />}>
-              {trendPoints.length < 2
-                ? <div className="insightsEmpty">Collecting trend data…</div>
+              {false
+                ? null
                 : <ResponsiveContainer width="100%" height={L.trendH}>
                     <ComposedChart data={trendPoints} margin={{ top: 4, right: 4, left: L.leftMargin, bottom: 0 }}>
                       <defs>

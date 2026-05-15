@@ -61,7 +61,7 @@ export function SignUpPage() {
   const slugOk = /^[a-z0-9-]{3,50}$/.test(organizationSlug.trim())
   const passwordOk = passwordChecks.every((check) => check.ok)
   const step0Ok = fullName.trim().length >= 2 && email.includes('@') && passwordOk && password === confirmPw
-  const step1Ok = organizationName.trim().length >= 2 && slugOk
+  const step1Ok = organizationName.trim().length >= 2 && organizationSlug.length >= 3
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -78,7 +78,7 @@ export function SignUpPage() {
 
     if (step === 1) {
       if (!step1Ok) {
-        setError('Enter a valid organization name and workspace slug.')
+        setError('Enter your organization or company name (at least 2 characters).')
         return
       }
       setStep(2)
@@ -117,7 +117,7 @@ export function SignUpPage() {
           <div style={{ color: '#e2ab41', textTransform: 'uppercase', fontSize: 12, fontWeight: 800, letterSpacing: '.12em' }}>Step {step + 1} of 3</div>
           <h1 style={{ margin: '8px 0 6px', fontSize: 28, lineHeight: 1.1 }}>{step === 0 ? 'Create your account' : step === 1 ? 'Name your workspace' : 'Choose your plan'}</h1>
           <p style={{ margin: 0, color: 'rgba(255,255,255,.55)', fontSize: 14 }}>
-            {step === 0 ? <>Already have an account? <Link to="/signin" style={{ color: '#e2ab41' }}>Sign in</Link></> : step === 1 ? 'Your workspace URL uses this slug.' : 'Your admin user will be created after this step.'}
+            {step === 0 ? <>Already have an account? <Link to="/signin" style={{ color: '#e2ab41' }}>Sign in</Link></> : step === 1 ? 'Your organization workspace is automatically configured.' : 'Your admin user will be created after this step.'}
           </p>
         </div>
 
@@ -133,9 +133,8 @@ export function SignUpPage() {
           </>}
 
           {step === 1 && <>
-            <Field label="Organization name" value={organizationName} onChange={(value) => { setOrganizationName(value); if (!slugEdited) setOrganizationSlug(autoSlug(value)) }} placeholder="Almalath" />
-            <Field label="Workspace slug" value={organizationSlug} onChange={(value) => { setOrganizationSlug(autoSlug(value)); setSlugEdited(true) }} placeholder="almalath" prefix="taskee.app/" />
-            <div style={{ color: slugOk ? '#4ade80' : 'rgba(255,255,255,.45)', fontSize: 13 }}>{slugOk ? `✓ taskee.app/${organizationSlug}` : 'Use 3–50 lowercase letters, numbers, or hyphens.'}</div>
+            <Field label="Organization / Company Name" value={organizationName} onChange={(value) => { setOrganizationName(value); setOrganizationSlug(autoSlug(value)) }} placeholder="Almalath Technologies" />
+            {organizationSlug && <div style={{ color: 'rgba(255,255,255,.35)', fontSize: 12, marginTop: -4 }}>Your workspace: <span style={{ color: 'rgba(226,171,65,.8)', fontWeight: 700 }}>taskee.app/{organizationSlug}</span></div>}
           </>}
 
           {step === 2 && <div style={{ display: 'grid', gap: 10 }}>{PLANS.map((item) => <button key={item.value} type="button" onClick={() => setPlan(item.value)} style={{ textAlign: 'left', padding: 16, borderRadius: 14, border: plan === item.value ? '1px solid rgba(226,171,65,.7)' : '1px solid rgba(255,255,255,.1)', background: plan === item.value ? 'rgba(226,171,65,.10)' : 'rgba(255,255,255,.04)', color: '#fff', cursor: 'pointer' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><strong>{item.label}</strong><strong style={{ color: '#e2ab41' }}>{item.price}</strong></div><div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, marginTop: 4 }}>{item.desc}</div></button>)}</div>}

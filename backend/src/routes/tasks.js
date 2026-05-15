@@ -538,7 +538,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
         u_assigned.full_name AS assigned_to_name,
         u_by.full_name AS assigned_by_name,
         cat.name AS category_name,
-        cat.ai_threshold
+        COALESCE(cat.ai_threshold, 0.75) AS ai_threshold
       FROM tasks t
       LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to
       LEFT JOIN users u_by ON u_by.id = t.assigned_by

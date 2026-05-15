@@ -665,7 +665,7 @@ router.post('/signup', async (req, res, next) => {
     const pwError = validatePasswordStrength(password);
     if (pwError) return res.status(400).json({ error: pwError, code: 'WEAK_PASSWORD' });
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10); // 10 rounds = ~100ms vs 12=~400ms
     const signupResult = await withTransaction(async (client) => {
       const subscription = {
         status: 'active',
@@ -721,40 +721,27 @@ router.post('/signup', async (req, res, next) => {
       console.warn('activity log skipped:', actErr.message);
     }
 
-    // Generate + store email verification token and send welcome email (optional — never fail signup)
-    try {
-      const verificationToken = randomToken(32);
-      const verificationTokenHash = sha256Hex(verificationToken);
-      const origin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
-      const verificationLink = `${origin.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-
+    // Fire-and-forget: email verification — NEVER awaited so it can't cause timeout
+    setImmediate(async () => {
       try {
-        await query(
-          `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
-           VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
-          [signupResult.user.id, verificationTokenHash]
-        );
-      } catch (tokenErr) {
-        console.warn('Could not store verification token:', tokenErr.message);
+        const verificationToken = randomToken(32);
+        const verificationTokenHash = sha256Hex(verificationToken);
+        const origin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+        const verificationLink = `${origin.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+        try {
+          await query(
+            `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+             VALUES ($1, $2, NOW() + INTERVAL '24 hours')`,
+            [signupResult.user.id, verificationTokenHash]
+          );
+        } catch { /* table may not exist yet */ }
+        const html = emailService.getVerificationEmailTemplate(signupResult.user.full_name, verificationLink);
+        await emailService.sendEmail(signupResult.user.email, 'Welcome to TASKEE', html);
+        console.log('[signup] verification email sent to', signupResult.user.email);
+      } catch (e) {
+        console.warn('[signup] background email failed (non-fatal):', e.message);
       }
-
-      try {
-        const verificationEmailHtml = emailService.getVerificationEmailTemplate(
-          signupResult.user.full_name,
-          verificationLink
-        );
-        await emailService.sendEmail(
-          signupResult.user.email,
-          'Verify Your Email Address - TASKEE',
-          verificationEmailHtml
-        );
-        console.log('Verification email sent to:', signupResult.user.email);
-      } catch (emailError) {
-        console.warn('Failed to send verification email:', emailError.message);
-      }
-    } catch (outerErr) {
-      console.warn('Post-signup email flow failed (non-fatal):', outerErr.message);
-    }
+    });
 
     // Return tokens so the frontend can auto-login after signup
     const accessToken = signAccessToken(signupResult.user.id, signupResult.user.org_id, signupResult.user.role);

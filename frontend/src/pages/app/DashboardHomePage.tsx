@@ -380,7 +380,17 @@ export function DashboardHomePage() {
   const projects    = useMemo(() => data?.projects    || [], [data])
   const leaderboard = useMemo(() => data?.leaderboard || [], [data])
   const trendData    = useMemo(() => (data?.trend || []).slice(-14), [data])
-  const velocity    = useMemo(() => (data?.velocity || []).slice(-8).map(v => ({ ...v, label: v.week })), [data])
+  const velocity = useMemo(() => {
+    const raw = (data?.velocity || []).slice(-8)
+    if (raw.length > 0) return raw.map(v => ({ ...v, label: v.week }))
+    // Baseline: last 8 weeks with zeros so chart always renders
+    return Array.from({ length: 8 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (7 - i) * 7)
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return { week: label, week_start: d.toISOString().slice(0, 10), created: 0, completed: 0, label }
+    })
+  }, [data])
 
   const statusSegs = useMemo(() => {
     if (!tasks) return []
@@ -562,9 +572,7 @@ export function DashboardHomePage() {
           sub="Tasks created vs. completed per week"
           action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
         >
-          {isLoading ? <Skel h={180} /> : velocity.length < 2 ? (
-            <div style={{ height: 140, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>Need 2+ weeks of data to display velocity</div>
-          ) : (
+          {isLoading ? <Skel h={180} /> : (
             <div>
               {/* Summary row */}
               <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -615,7 +623,7 @@ export function DashboardHomePage() {
           {isLoading ? <Skel h={180} /> : (
             <div style={{ display: 'grid', gap: 14 }}>
               {(() => {
-                if (velocity.length < 2) return <div style={{ color: C.muted, fontSize: 13 }}>Collecting data…</div>
+                if (!velocity.length) return <div style={{ color: C.muted, fontSize: 13 }}>No velocity data yet</div>
                 const totalCreated = velocity.reduce((s, v) => s + v.created, 0)
                 const totalDone = velocity.reduce((s, v) => s + v.completed, 0)
                 const avgCreated = Math.round(totalCreated / velocity.length)
