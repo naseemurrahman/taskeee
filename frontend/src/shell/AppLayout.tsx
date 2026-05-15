@@ -8,7 +8,7 @@ import { getUser } from '../state/auth'
 import { useI18n, type Lang } from '../i18n'
 import type React from 'react'
 import {
-  BarChart3, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
+  AlertTriangle, BarChart3, Building2, Calendar, ClipboardList, CreditCard, FolderKanban,
   Gauge, LayoutDashboard, Link2, ListChecks, Network, ScrollText,
   Settings, Shield, UserRound, Users, ChevronLeft, ChevronRight, Globe,
   UserCheck, Briefcase, Clock, TrendingUp, FileText, Zap, Repeat, Moon, Sun,
@@ -17,6 +17,7 @@ import {
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Dashboard: LayoutDashboard,
   Tasks: ListChecks,
+  'Needs Reassignment': AlertTriangle,
   'My tasks': ClipboardList,
   'Recurring tasks': Repeat,
   Board: FolderKanban,
@@ -43,7 +44,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 
 function labelKey(label: string): string {
   const map: Record<string, string> = {
-    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
+    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'Needs Reassignment': 'Needs Reassignment', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
     Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
@@ -55,7 +56,7 @@ function labelKey(label: string): string {
 
 function canSeeItem(role: string, item: string) {
   const adminOnly = ['Billing', 'Audit', 'Logs']
-  const managerUp = ['Analytics', 'Reports', 'Recurring tasks']
+  const managerUp = ['Analytics', 'Reports', 'Recurring tasks', 'Needs Reassignment']
   if (adminOnly.includes(item)) return ['admin', 'director'].includes(role)
   if (managerUp.includes(item)) return ['admin', 'director', 'hr', 'manager', 'supervisor'].includes(role)
   return true
@@ -174,9 +175,19 @@ export function AppLayout() {
     refetchInterval: 60_000,
     retry: false,
   })
+  const canManageReassignment = canSeeItem(role, 'Needs Reassignment')
+  const reassignmentCountQ = useQuery({
+    queryKey: ['tasks', 'reassignment-needed', 'count'],
+    queryFn: () => apiFetch<{ count?: number }>('/api/v1/tasks/reassignment-needed/count'),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: false,
+    enabled: canManageReassignment,
+  })
   const dueToday = statsQ.data?.tasks?.due_today ?? 0
   const overdueCount = statsQ.data?.tasks?.overdue ?? 0
   const completionRate = statsQ.data?.tasks?.completion_rate ?? 0
+  const reassignmentCount = reassignmentCountQ.data?.count ?? 0
   const displayName = profileQ.data?.user?.full_name?.trim() || me?.fullName?.trim() || me?.email || ''
   const rawAvatarUrl = normalizeAvatarUrl(profileQ.data?.user?.avatar_url)
   const avatarSrc = rawAvatarUrl ? avatarDisplaySrc(rawAvatarUrl, 0) : ''
@@ -255,7 +266,7 @@ export function AppLayout() {
         <nav className="sidebarV4Nav">
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
           <NavItem to="/app/dashboard" label="Dashboard" display={t(labelKey('Dashboard'))} collapsed={collapsed} onNavigate={closeMobileNav} />
-          {canSee(role, 'supervisor') ? <><NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /></> : <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSee(role, 'supervisor') ? <><NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/tasks/reassignment" label="Needs Reassignment" display="Needs Reassignment" badge={reassignmentCount} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /></> : <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
@@ -330,7 +341,7 @@ export function AppLayout() {
               </div>
             )}
           </div>
-          <div className="topbarV4Meta" aria-label="workspace quick metrics"><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks')}><span className="topbarMetricDot" />Due today <strong>{dueToday}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks?status=overdue')}><span className="topbarMetricDot topbarMetricDotWarn" />Overdue <strong>{overdueCount}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/analytics')}><span className="topbarMetricDot topbarMetricDotSuccess" />Completion <strong>{completionRate}%</strong></button></div>
+          <div className="topbarV4Meta" aria-label="workspace quick metrics"><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks')}><span className="topbarMetricDot" />Due today <strong>{dueToday}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks?status=overdue')}><span className="topbarMetricDot topbarMetricDotWarn" />Overdue <strong>{overdueCount}</strong></button>{canManageReassignment && <button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks/reassignment')}><span className="topbarMetricDot topbarMetricDotWarn" />Reassign <strong>{reassignmentCount}</strong></button>}<button type="button" className="topbarMetricChip" onClick={() => navigate('/app/analytics')}><span className="topbarMetricDot topbarMetricDotSuccess" />Completion <strong>{completionRate}%</strong></button></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}><NotificationCenter /><button type="button" className="topbarThemeBtn" onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>{theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}</button><button type="button" className="topbarLangBtn" onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')} title={`${t('nav.language')}: ${activeLang.toUpperCase()}`} aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}><Globe size={13} /><span>{activeLang.toUpperCase()}</span></button><div className="topbarProfileWrap" ref={profileRef}><button type="button" className="topbarV4ProfileBtn" onClick={() => setProfileOpen(v => !v)} title={displayName}>{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} className="topbarV4AvatarImg" /> : <UserRound size={15} />}</button>{profileOpen && <div className="profileDropdown"><div className="profileDropdownHead"><div className="profileDropdownAvatar">{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} /> : (displayName.charAt(0) || '?').toUpperCase()}</div><div style={{ minWidth: 0 }}><div className="profileDropdownName">{displayName || 'My Account'}</div><div className="profileDropdownEmail">{me?.email || ''}</div><div className="profileDropdownRole">{me?.role || 'user'}</div></div></div><div className="profileDropdownList"><button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/profile') }}><UserRound size={14} />My Profile</button><div className="profileDropdownDivider" /><button className="profileDropdownItem profileDropdownItemDanger" onClick={() => { setProfileOpen(false); localStorage.clear(); window.location.href = '/signin' }}>Sign Out</button></div></div>}</div></div>
         </div>
         <div className="contentV4"><Outlet /></div>
