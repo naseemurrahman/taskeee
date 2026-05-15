@@ -123,8 +123,8 @@ app.use('/api/v1/ai', require('./routes/ai'));
 // which is not in MANAGEMENT_ROLES, blocking ALL users including admin from creating tasks.
 const { authenticate: _taskAuth, enforceTaskCollectionAccess } = require('./middleware/taskAccessPolicy');
 app.use('/api/v1/tasks', _taskAuth, enforceTaskCollectionAccess);
-app.use('/api/v1/tasks', statusGovernanceRoutes.tasks);
 app.use('/api/v1/tasks', reassignmentGovernanceRoutes);
+app.use('/api/v1/tasks', statusGovernanceRoutes.tasks);
 app.use('/api/v1/tasks', tasksListCompatRoutes);
 app.use('/api/v1/tasks/bulk', bulkActionRateLimiter);
 app.use('/api/v1/task-templates', taskTemplatesRoutes);
