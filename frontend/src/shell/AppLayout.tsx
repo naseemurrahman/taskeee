@@ -75,9 +75,9 @@ function NavItem({ to, label, display, badge, collapsed, onNavigate }: {
       data-label={display}
       onClick={onNavigate}
       className={({ isActive }) => `navItemV4 ${isActive ? 'navItemV4Active' : ''} ${collapsed ? 'navItemV4Collapsed' : ''}`}
+      aria-label={collapsed ? display : undefined}
     >
-      {Icon && <Icon size={collapsed ? 19 : 16} />}
-      {collapsed && <span className="navItemV4Tooltip">{display}</span>}
+      {Icon && <Icon size={collapsed ? 18 : 16} />}
       {!collapsed && <span className="navItemV4Label">{display}</span>}
       {!collapsed && badge && badge > 0 ? (
         <span className="navItemV4Badge">{badge > 99 ? '99+' : badge}</span>
