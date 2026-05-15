@@ -5,7 +5,7 @@
  */
 
 :root {
-  --app-sidebar-width: clamp(232px, 18vw, 272px);
+  --app-sidebar-width: 240px;
   --app-sidebar-collapsed-width: 72px;
   --app-topbar-height: 64px;
   --app-content-pad: clamp(14px, 1.8vw, 26px);
@@ -76,9 +76,10 @@ textarea:focus-visible,
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
-  backdrop-filter: blur(18px);
-  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.04), 12px 0 34px rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--bg) 60%, var(--surface)) !important;
+  border-right: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
   transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
   will-change: width;
   flex-shrink: 0;
@@ -297,44 +298,145 @@ textarea:focus-visible,
 }
 
 .sidebarCollapseBtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px !important;
-  flex: 0 0 auto;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+  flex: 0 0 auto !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--muted) !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  margin-left: auto;
+}
+.sidebarCollapseBtn:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: var(--text) !important;
 }
 
 .sidebarV4Nav {
-  padding: 8px 10px 12px !important;
+  padding: 6px 10px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebarV4SectionLabel {
-  margin: 10px 8px 6px !important;
-  font-size: 10.5px !important;
-  letter-spacing: 0.12em;
+  margin: 14px 6px 4px !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--muted);
+  opacity: 0.55;
+  padding-left: 4px;
 }
 
 .navItemV4 {
-  min-height: 42px;
-  padding: 10px 10px !important;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 10px !important;
   gap: 10px !important;
-  border-radius: 14px !important;
-  border: 1px solid transparent;
-  transition: background var(--app-ease), border-color var(--app-ease), color var(--app-ease), transform var(--app-ease);
+  border-radius: 10px !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.navItemV4Label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .navItemV4 svg {
-  flex: 0 0 auto;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  opacity: 0.65;
+  transition: opacity 0.13s;
 }
 
 .navItemV4:hover {
-  transform: translateX(1px);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  transform: none;
+}
+
+.navItemV4:hover svg {
+  opacity: 0.9;
 }
 
 .navItemV4Active {
-  border-color: rgba(226, 171, 65, 0.26) !important;
-  box-shadow: inset 0 0 0 1px rgba(226, 171, 65, 0.08), 0 8px 24px rgba(226, 171, 65, 0.08);
+  background: linear-gradient(135deg, rgba(226,171,65,0.18), rgba(226,171,65,0.08)) !important;
+  color: #e2ab41 !important;
+  font-weight: 700 !important;
+}
+
+.navItemV4Active svg {
+  opacity: 1 !important;
+  color: #e2ab41;
+}
+
+/* Sidebar logo area */
+.sidebarV4Logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px !important;
+  height: var(--app-topbar-height);
+  min-height: var(--app-topbar-height);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.sidebarV4LogoLink {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+  padding: 4px 6px;
+  transition: background 0.13s;
+}
+
+.sidebarV4LogoLink:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.sidebarV4BrandName {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.sidebarV4BrandSub {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  margin-top: 1px;
 }
 
 .mainV4 {
