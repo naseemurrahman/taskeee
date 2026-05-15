@@ -311,59 +311,56 @@ export function EmployeesPage() {
             const statusLabel = (e.status || 'active').replace(/_/g, ' ')
             const statusBg = e.status === 'active' ? 'rgba(34,197,94,0.1)' : e.status === 'terminated' ? 'rgba(239,68,68,0.1)' : e.status === 'on_leave' ? 'rgba(56,189,248,0.1)' : 'rgba(148,163,184,0.1)'
             return (
-              <div key={e.id} style={{ position: 'relative', borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', overflow: 'hidden', transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s' }}
-                onMouseEnter={ev => { ev.currentTarget.style.transform = 'translateY(-2px)'; ev.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)'; ev.currentTarget.style.borderColor = 'rgba(226,171,65,0.35)' }}
-                onMouseLeave={ev => { ev.currentTarget.style.transform = ''; ev.currentTarget.style.boxShadow = ''; ev.currentTarget.style.borderColor = 'var(--border)' }}>
-                {/* Top accent line */}
-                <div style={{ height: 3, background: hashColor(e.full_name), opacity: 0.7 }} />
-                {/* Card body */}
-                <a href={`/app/hr/employees/${e.id}`} style={{ display: 'block', padding: '16px 18px 14px', textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    {/* Avatar */}
-                    <div style={{ width: 48, height: 48, borderRadius: 14, background: hashColor(e.full_name), display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 900, color: '#fff', flexShrink: 0, boxShadow: `0 4px 12px ${hashColor(e.full_name)}66` }}>
-                      {initials}
+              <div key={e.id} style={{
+                  position: 'relative', borderRadius: 18,
+                  background: `linear-gradient(145deg, color-mix(in srgb, ${hashColor(e.full_name)} 8%, var(--surface)), var(--surface))`,
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+                  overflow: 'hidden', transition: 'transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s'
+                }}
+                onMouseEnter={ev => { ev.currentTarget.style.transform = 'translateY(-3px)'; ev.currentTarget.style.boxShadow = `0 12px 36px rgba(0,0,0,0.22), 0 0 0 1px ${hashColor(e.full_name)}30` }}
+                onMouseLeave={ev => { ev.currentTarget.style.transform = ''; ev.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)' }}>
+                {/* Subtle left accent */}
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: hashColor(e.full_name), borderRadius: '18px 0 0 18px' }} />
+                {/* Card body — clickable */}
+                <a href={`/app/hr/employees/${e.id}`} style={{ display: 'block', padding: '18px 18px 14px 22px', textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                    {/* Avatar with glow */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 15, background: `linear-gradient(135deg, ${hashColor(e.full_name)}, ${hashColor(e.full_name)}bb)`, display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                        {initials}
+                      </div>
+                      <div style={{ position: 'absolute', bottom: -2, right: -2, width: 13, height: 13, borderRadius: '50%', background: statusColor, border: '2px solid var(--surface)' }} />
                     </div>
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{e.full_name}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: statusBg, color: statusColor, border: `1px solid ${statusColor}44`, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />{statusLabel}
-                        </span>
-                      </div>
-                      {e.title && <div style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>}
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.work_email || '—'}</div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{e.full_name}</div>
+                      {e.title && <div style={{ fontSize: 11, color: hashColor(e.full_name), fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3, filter: 'brightness(1.3)' }}>{e.title}</div>}
+                      <div style={{ fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.work_email || '—'}</div>
                     </div>
                   </div>
-                  {/* Dept / Manager chips */}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-                    {e.department && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 7, background: 'var(--bg2)', color: 'var(--text2)', border: '1px solid var(--border)' }}>
-                        {e.department}
-                      </span>
-                    )}
-                    {e.manager_name && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 7, background: 'var(--bg2)', color: 'var(--muted)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {e.manager_name}
-                      </span>
-                    )}
+                  {/* Status + dept row */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: statusBg, color: statusColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: statusColor }} />{statusLabel}
+                    </span>
+                    {e.department && <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'var(--muted)' }}>{e.department}</span>}
+                    {e.manager_name && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>↑ {e.manager_name}</span>}
                   </div>
                 </a>
-                {/* Action bar */}
-                <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border)' }} onClick={ev => ev.stopPropagation()}>
+                {/* Slim action row — no hard border, just translucent bg */}
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(4px)' }} onClick={ev => ev.stopPropagation()}>
                   <button type="button" onClick={() => setStatusChangeTarget({ emp: e, newStatus: e.status || 'active' })}
-                    style={{ flex: 1, height: 36, border: 'none', borderRight: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'background 0.12s' }}
-                    onMouseEnter={ev => { ev.currentTarget.style.background = 'var(--bg2)' }}
-                    onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent' }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                    Change Status
+                    style={{ flex: 1, height: 34, border: 'none', borderRight: '1px solid rgba(255,255,255,0.05)', background: 'transparent', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'color 0.12s, background 0.12s' }}
+                    onMouseEnter={ev => { ev.currentTarget.style.background = 'rgba(255,255,255,0.06)'; ev.currentTarget.style.color = 'var(--text)' }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; ev.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    Set Status
                   </button>
                   <button type="button" onClick={() => handleDeleteClick(e)} title="Remove employee"
-                    style={{ width: 44, height: 36, border: 'none', background: 'transparent', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', display: 'grid', placeItems: 'center', transition: 'background 0.12s, color 0.12s', flexShrink: 0 }}
-                    onMouseEnter={ev => { ev.currentTarget.style.background = 'rgba(239,68,68,0.08)'; ev.currentTarget.style.color = '#ef4444' }}
-                    onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; ev.currentTarget.style.color = 'rgba(239,68,68,0.5)' }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    style={{ width: 42, height: 34, border: 'none', background: 'transparent', color: 'rgba(239,68,68,0.35)', cursor: 'pointer', display: 'grid', placeItems: 'center', transition: 'color 0.12s, background 0.12s', flexShrink: 0 }}
+                    onMouseEnter={ev => { ev.currentTarget.style.background = 'rgba(239,68,68,0.1)'; ev.currentTarget.style.color = '#ef4444' }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = 'transparent'; ev.currentTarget.style.color = 'rgba(239,68,68,0.35)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                   </button>
                 </div>
               </div>

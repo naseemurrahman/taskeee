@@ -764,3 +764,29 @@ td {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Search result items in dropdown */
+.topbarSearchResultItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s;
+}
+.topbarSearchResultItem:hover {
+  background: var(--bg2);
+}
+.topbarSearchResultIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}

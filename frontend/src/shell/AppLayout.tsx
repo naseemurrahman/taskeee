@@ -277,7 +277,58 @@ export function AppLayout() {
             <input ref={searchInputRef} className="topbarV4SearchInput" value={search} onChange={e => runSearch(e.target.value)} onFocus={() => { if (search.length >= 2) setSearchOpen(true) }} onBlur={() => setTimeout(() => setSearchOpen(false), 150)} placeholder="Search tasks, files, docs, people…" />
             {!search && <kbd style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--muted)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, padding: '1px 5px', fontFamily: 'inherit', pointerEvents: 'none', lineHeight: 1.6, zIndex: 1 }}>/</kbd>}
             {search && <button type="button" className="topbarV4SearchClear" onClick={() => { setSearch(''); setSearchResults(null); setSearchOpen(false) }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
-            {searchOpen && <div className="topbarV4SearchDropdown"><div className="topbarV4SearchEmpty">{searchBusy ? 'Searching…' : hasResults ? 'Open full search for more results.' : `No results for "${search}"`}</div></div>}
+            {searchOpen && (
+              <div className="topbarV4SearchDropdown" onMouseDown={e => e.preventDefault()}>
+                {searchBusy ? (
+                  <div className="topbarV4SearchEmpty">Searching…</div>
+                ) : !hasResults ? (
+                  <div className="topbarV4SearchEmpty">No results for &ldquo;{search}&rdquo;</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {(searchResults?.tasks || []).slice(0, 5).map((t: any) => (
+                      <button key={t.id} type="button" className="topbarSearchResultItem" onClick={() => { navigate('/app/tasks'); setSearch(''); setSearchResults(null); setSearchOpen(false) }}>
+                        <span className="topbarSearchResultIcon" style={{ background: 'rgba(226,171,65,0.15)', color: '#e2ab41' }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{t.project_name ? `${t.project_name} · ` : ''}{(t.status || '').replace(/_/g, ' ')}</div>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', flexShrink: 0, background: 'var(--bg2)', padding: '2px 6px', borderRadius: 5, border: '1px solid var(--border)' }}>Task</span>
+                      </button>
+                    ))}
+                    {(searchResults?.users || []).slice(0, 3).map((u: any) => (
+                      <button key={u.id} type="button" className="topbarSearchResultItem" onClick={() => { navigate('/app/hr/employees'); setSearch(''); setSearchResults(null); setSearchOpen(false) }}>
+                        <span className="topbarSearchResultIcon" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.full_name || u.email}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{u.email} · {u.role}</div>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', flexShrink: 0, background: 'var(--bg2)', padding: '2px 6px', borderRadius: 5, border: '1px solid var(--border)' }}>Person</span>
+                      </button>
+                    ))}
+                    {(searchResults?.projects || []).slice(0, 3).map((p: any) => (
+                      <button key={p.id} type="button" className="topbarSearchResultItem" onClick={() => { navigate('/app/projects'); setSearch(''); setSearchResults(null); setSearchOpen(false) }}>
+                        <span className="topbarSearchResultIcon" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name || p.title}</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{(p.status || '').replace(/_/g, ' ')}</div>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', flexShrink: 0, background: 'var(--bg2)', padding: '2px 6px', borderRadius: 5, border: '1px solid var(--border)' }}>Project</span>
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => { navigate(`/app/search?q=${encodeURIComponent(search)}`); setSearchOpen(false) }}
+                      style={{ margin: '4px 0 2px', padding: '8px 12px', borderRadius: 8, border: 'none', background: 'var(--brandDim)', color: 'var(--brand)', fontSize: 11, fontWeight: 800, cursor: 'pointer', textAlign: 'center' }}>
+                      View all results →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="topbarV4Meta" aria-label="workspace quick metrics"><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks')}><span className="topbarMetricDot" />Due today <strong>{dueToday}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks?status=overdue')}><span className="topbarMetricDot topbarMetricDotWarn" />Overdue <strong>{overdueCount}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/analytics')}><span className="topbarMetricDot topbarMetricDotSuccess" />Completion <strong>{completionRate}%</strong></button></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}><NotificationCenter /><button type="button" className="topbarThemeBtn" onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>{theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}</button><button type="button" className="topbarLangBtn" onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')} title={`${t('nav.language')}: ${activeLang.toUpperCase()}`} aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}><Globe size={13} /><span>{activeLang.toUpperCase()}</span></button><div className="topbarProfileWrap" ref={profileRef}><button type="button" className="topbarV4ProfileBtn" onClick={() => setProfileOpen(v => !v)} title={displayName}>{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} className="topbarV4AvatarImg" /> : <UserRound size={15} />}</button>{profileOpen && <div className="profileDropdown"><div className="profileDropdownHead"><div className="profileDropdownAvatar">{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} /> : (displayName.charAt(0) || '?').toUpperCase()}</div><div style={{ minWidth: 0 }}><div className="profileDropdownName">{displayName || 'My Account'}</div><div className="profileDropdownEmail">{me?.email || ''}</div><div className="profileDropdownRole">{me?.role || 'user'}</div></div></div><div className="profileDropdownList"><button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/profile') }}><UserRound size={14} />My Profile</button><div className="profileDropdownDivider" /><button className="profileDropdownItem profileDropdownItemDanger" onClick={() => { setProfileOpen(false); localStorage.clear(); window.location.href = '/signin' }}>Sign Out</button></div></div>}</div></div>
