@@ -147,6 +147,26 @@ async function canViewTaskDetail(user, orgId, task) {
   return scopedIds.includes(task.assigned_to) || scopedIds.includes(task.assigned_by);
 }
 
+function addProjectProjection({ joins, extras, groupBy, taskCols, projectCols, includeGroupBy }) {
+  if (!taskCols.has('project_id') || !projectCols || !projectCols.has('id')) {
+    extras.push('NULL::text AS project_name', 'NULL::text AS project_status');
+    return;
+  }
+  joins.push('LEFT JOIN projects p ON p.id = t.project_id AND p.org_id = t.org_id');
+  if (projectCols.has('name')) {
+    extras.push('p.name AS project_name');
+    if (includeGroupBy) groupBy.push('p.name');
+  } else {
+    extras.push('NULL::text AS project_name');
+  }
+  if (projectCols.has('status')) {
+    extras.push("COALESCE(p.status, 'active') AS project_status");
+    if (includeGroupBy) groupBy.push('p.status');
+  } else {
+    extras.push("'active'::text AS project_status");
+  }
+}
+
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await orgIdForSessionUser(req);
@@ -182,7 +202,9 @@ router.get('/', authenticate, async (req, res, next) => {
     const hasTaskMessages = await tableExists('task_messages');
     const hasTaskPhotos = await tableExists('task_photos');
     const hasTaskCategories = await tableExists('task_categories');
+    const hasProjects = await tableExists('projects');
     const hasCategoryId = taskCols.has('category_id');
+    const projectCols = hasProjects ? await getTableColumns('projects') : new Set();
 
     const joins = [];
     const selectExtras = [];
@@ -198,6 +220,8 @@ router.get('/', authenticate, async (req, res, next) => {
     } else {
       selectExtras.push('NULL::text AS assigned_to_name', 'NULL::text AS assigned_to_email', 'NULL::text AS assigned_by_name');
     }
+
+    addProjectProjection({ joins, extras: selectExtras, groupBy, taskCols, projectCols, includeGroupBy: true });
 
     if (hasTaskCategories && hasCategoryId) {
       joins.push('LEFT JOIN task_categories cat ON cat.id = t.category_id');
@@ -282,6 +306,8 @@ router.get('/:id([0-9a-fA-F-]{36})', authenticate, async (req, res, next) => {
     const extras = [];
     const hasUsers = await tableExists('users');
     const hasCategories = await tableExists('task_categories');
+    const hasProjects = await tableExists('projects');
+    const projectCols = hasProjects ? await getTableColumns('projects') : new Set();
     if (hasUsers) {
       if (taskCols.has('assigned_to')) joins.push('LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to');
       if (taskCols.has('assigned_by')) joins.push('LEFT JOIN users u_by ON u_by.id = t.assigned_by');
@@ -290,6 +316,7 @@ router.get('/:id([0-9a-fA-F-]{36})', authenticate, async (req, res, next) => {
     } else {
       extras.push('NULL::text AS assigned_to_name', 'NULL::text AS assigned_by_name');
     }
+    addProjectProjection({ joins, extras, groupBy: [], taskCols, projectCols, includeGroupBy: false });
     if (hasCategories && taskCols.has('category_id')) {
       const catCols = await getTableColumns('task_categories');
       joins.push('LEFT JOIN task_categories cat ON cat.id = t.category_id');
