@@ -89,7 +89,7 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
     push('title', title, true);
     push('status', 'pending', true);
     push('project_id', projectId);
-    if (categoryId && taskCols.has('category_id') && await categoryExists(orgId, categoryId)) push('category_id', categoryId);
+    if (categoryId && categoryId !== projectId && taskCols.has('category_id') && await categoryExists(orgId, categoryId)) push('category_id', categoryId);
     push('description', description);
     push('assigned_to', assignedTo);
     push('assigned_by', req.user.id);
