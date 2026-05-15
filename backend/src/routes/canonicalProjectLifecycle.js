@@ -10,6 +10,10 @@ const { emitNotification, notifyOrgLeaders } = require('../services/notification
 
 const router = express.Router();
 const columnsCache = new Map();
+const PROJECT_LIFECYCLE_NOTIFICATION_CONCURRENCY = Math.max(
+  1,
+  Number.parseInt(process.env.PROJECT_LIFECYCLE_NOTIFICATION_CONCURRENCY || '10', 10) || 10
+);
 
 async function getColumns(tableName) {
   if (columnsCache.has(tableName)) return columnsCache.get(tableName);
@@ -59,10 +63,22 @@ async function getProjectTaskAssignees(orgId, projectId) {
     `SELECT DISTINCT assigned_to AS user_id
        FROM tasks
       WHERE ${conditions.join(' AND ')}
-      LIMIT 500`,
+      ORDER BY assigned_to`,
     [orgId, projectId]
   );
   return rows.map(r => r.user_id).filter(Boolean);
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  const queue = [...items];
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) continue;
+      try { await worker(item); } catch { /* non-critical */ }
+    }
+  });
+  await Promise.all(workers);
 }
 
 function lifecycleNotificationPayload(project, status, activeTaskCount) {
@@ -113,8 +129,8 @@ async function notifyProjectLifecycle({ orgId, project, status, actorUserId, act
     });
 
     const assignees = await getProjectTaskAssignees(orgId, project.id);
-    for (const userId of assignees) {
-      if (actorUserId && String(userId) === String(actorUserId)) continue;
+    const recipients = assignees.filter(userId => !(actorUserId && String(userId) === String(actorUserId)));
+    await runWithConcurrency(recipients, PROJECT_LIFECYCLE_NOTIFICATION_CONCURRENCY, async (userId) => {
       await emitNotification(userId, {
         type: base.type,
         title: base.title,
@@ -122,10 +138,16 @@ async function notifyProjectLifecycle({ orgId, project, status, actorUserId, act
         data,
         dedupeKey: base.dedupeKey,
       });
-    }
+    });
   } catch {
     // Notifications are secondary; lifecycle mutation has already succeeded.
   }
+}
+
+function scheduleProjectLifecycleNotifications(payload) {
+  setImmediate(() => {
+    notifyProjectLifecycle(payload).catch(() => {});
+  });
 }
 
 async function mutateTasksForStatus(tx, { orgId, projectId, status, actorUserId }) {
@@ -211,8 +233,9 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true } });
       await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, override_reason: req.body.override_reason || req.body.reason || null }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
-      await notifyProjectLifecycle({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason: req.body.override_reason || req.body.reason || null });
     } catch { /* non-critical */ }
+
+    scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason: req.body.override_reason || req.body.reason || null });
 
     return res.json({ project, affectedActiveTasks: activeTaskCount });
   } catch (err) {
