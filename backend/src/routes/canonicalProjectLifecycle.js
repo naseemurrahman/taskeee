@@ -70,10 +70,11 @@ async function getProjectTaskAssignees(orgId, projectId) {
 }
 
 async function runWithConcurrency(items, limit, worker) {
-  const queue = [...items];
-  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
-    while (queue.length) {
-      const item = queue.shift();
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const item = items[nextIndex++];
       if (!item) continue;
       try { await worker(item); } catch { /* non-critical */ }
     }
