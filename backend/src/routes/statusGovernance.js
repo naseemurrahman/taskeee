@@ -11,17 +11,12 @@ const projects = express.Router();
 const tasks = express.Router();
 const hris = express.Router();
 
-const TERMINAL_TASK_STATUSES = new Set(['completed', 'manager_approved', 'cancelled']);
-const NON_ACTIVE_EMPLOYEE_STATUSES = new Set(['inactive', 'terminated', 'suspended', 'on_leave']);
-
 let tablesCache = null;
 const columnsCache = new Map();
 
 async function getTableNames() {
   if (tablesCache) return tablesCache;
-  const { rows } = await query(
-    `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`
-  );
+  const { rows } = await query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
   tablesCache = new Set(rows.map((r) => String(r.table_name)));
   return tablesCache;
 }
@@ -29,9 +24,7 @@ async function getTableNames() {
 async function getColumns(tableName) {
   if (columnsCache.has(tableName)) return columnsCache.get(tableName);
   const { rows } = await query(
-    `SELECT column_name
-       FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = $1`,
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
     [tableName]
   );
   const cols = new Set(rows.map((r) => String(r.column_name)));
@@ -86,14 +79,21 @@ function nonTerminalTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`;
 }
 
+function addTaskUpdateMetadata({ taskCols, setParts, params, metadata, alias = '' }) {
+  if (taskCols.has('updated_at')) setParts.push('updated_at = NOW()');
+  if (taskCols.has('metadata')) {
+    params.push(JSON.stringify(metadata));
+    const prefix = alias ? `${alias}.` : '';
+    setParts.push(`metadata = COALESCE(${prefix}metadata::jsonb, '{}'::jsonb) || $${params.length}::jsonb`);
+  }
+}
+
 async function projectTaskRelationParts(taskCols, projectParam = '$2', taskAlias = 't') {
   const tables = await getTableNames();
   const parts = [];
   if (taskCols.has('category_id')) parts.push(`${taskAlias}.category_id = ${projectParam}`);
   if (taskCols.has('project_id')) parts.push(`${taskAlias}.project_id = ${projectParam}`);
-  if (tables.has('project_tasks')) {
-    parts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = ${taskAlias}.id AND pt.project_id = ${projectParam})`);
-  }
+  if (tables.has('project_tasks')) parts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = ${taskAlias}.id AND pt.project_id = ${projectParam})`);
   return parts;
 }
 
@@ -142,18 +142,11 @@ async function mutateProjectTasksForStatus({ orgId, projectId, status, actorUser
   const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
 
-  const updatedAt = taskCols.has('updated_at') ? ', updated_at = NOW()' : '';
-  const metadataSet = taskCols.has('metadata')
-    ? `, metadata = COALESCE(t.metadata::jsonb, '{}'::jsonb) || $4::jsonb`
-    : '';
-
   if (status === 'paused') {
-    await query(
-      `UPDATE tasks t
-          SET status = $3${updatedAt}${metadataSet}
-        WHERE ${conditions.concat(activeTaskCondition('t')).join(' AND ')}`,
-      [orgId, projectId, 'on_hold', JSON.stringify({ hold_reason: 'project_paused', hold_project_id: projectId, held_by: actorUserId, held_at: new Date().toISOString() })]
-    );
+    const params = [orgId, projectId, 'on_hold'];
+    const setParts = ['status = $3'];
+    addTaskUpdateMetadata({ taskCols, setParts, params, alias: 't', metadata: { hold_reason: 'project_paused', hold_project_id: projectId, held_by: actorUserId, held_at: new Date().toISOString() } });
+    await query(`UPDATE tasks t SET ${setParts.join(', ')} WHERE ${conditions.concat(activeTaskCondition('t')).join(' AND ')}`, params);
     return;
   }
 
@@ -161,22 +154,18 @@ async function mutateProjectTasksForStatus({ orgId, projectId, status, actorUser
     const activeAssigneeGuard = taskCols.has('assigned_to')
       ? `(t.assigned_to IS NULL OR EXISTS (SELECT 1 FROM users au WHERE au.id = t.assigned_to AND au.org_id = $1 AND COALESCE(au.is_active, TRUE) = TRUE))`
       : 'TRUE';
-    await query(
-      `UPDATE tasks t
-          SET status = $3${updatedAt}${metadataSet}
-        WHERE ${conditions.concat(`COALESCE(t.status,'pending') = 'on_hold'`, activeAssigneeGuard).join(' AND ')}`,
-      [orgId, projectId, 'pending', JSON.stringify({ hold_reason: null, resumed_project_id: projectId, resumed_by: actorUserId, resumed_at: new Date().toISOString() })]
-    );
+    const params = [orgId, projectId, 'pending'];
+    const setParts = ['status = $3'];
+    addTaskUpdateMetadata({ taskCols, setParts, params, alias: 't', metadata: { hold_reason: null, resumed_project_id: projectId, resumed_by: actorUserId, resumed_at: new Date().toISOString() } });
+    await query(`UPDATE tasks t SET ${setParts.join(', ')} WHERE ${conditions.concat(`COALESCE(t.status,'pending') = 'on_hold'`, activeAssigneeGuard).join(' AND ')}`, params);
     return;
   }
 
   if (status === 'completed') {
-    await query(
-      `UPDATE tasks t
-          SET status = $3${updatedAt}${metadataSet}
-        WHERE ${conditions.concat(activeTaskCondition('t')).join(' AND ')}`,
-      [orgId, projectId, 'cancelled', JSON.stringify({ cancelled_reason: 'project_completed', cancelled_project_id: projectId, cancelled_by: actorUserId, cancelled_at: new Date().toISOString() })]
-    );
+    const params = [orgId, projectId, 'cancelled'];
+    const setParts = ['status = $3'];
+    addTaskUpdateMetadata({ taskCols, setParts, params, alias: 't', metadata: { cancelled_reason: 'project_completed', cancelled_project_id: projectId, cancelled_by: actorUserId, cancelled_at: new Date().toISOString() } });
+    await query(`UPDATE tasks t SET ${setParts.join(', ')} WHERE ${conditions.concat(activeTaskCondition('t')).join(' AND ')}`, params);
   }
 }
 
@@ -186,24 +175,12 @@ async function getProjectStatusById(orgId, projectId) {
   if (store === 'task_categories') {
     const cols = await getColumns('task_categories');
     const statusExpr = projectStatusExpression('tc', cols);
-    const { rows } = await query(
-      `SELECT tc.id, tc.name, ${statusExpr} AS status
-         FROM task_categories tc
-        WHERE tc.org_id = $1 AND tc.id = $2
-        LIMIT 1`,
-      [orgId, projectId]
-    );
+    const { rows } = await query(`SELECT tc.id, tc.name, ${statusExpr} AS status FROM task_categories tc WHERE tc.org_id = $1 AND tc.id = $2 LIMIT 1`, [orgId, projectId]);
     return rows[0] || null;
   }
   const cols = await getColumns('projects');
   const statusExpr = projectStatusExpression('p', cols);
-  const { rows } = await query(
-    `SELECT p.id, p.name, ${statusExpr} AS status
-       FROM projects p
-      WHERE p.org_id = $1 AND p.id = $2
-      LIMIT 1`,
-    [orgId, projectId]
-  );
+  const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, projectId]);
   return rows[0] || null;
 }
 
@@ -212,13 +189,7 @@ async function getTaskProjectStatus(task, orgId) {
     const cols = await getColumns('task_categories').catch(() => new Set());
     if (cols.size) {
       const statusExpr = projectStatusExpression('tc', cols);
-      const { rows } = await query(
-        `SELECT tc.id, tc.name, ${statusExpr} AS status
-           FROM task_categories tc
-          WHERE tc.org_id = $1 AND tc.id = $2
-          LIMIT 1`,
-        [orgId, task.category_id]
-      );
+      const { rows } = await query(`SELECT tc.id, tc.name, ${statusExpr} AS status FROM task_categories tc WHERE tc.org_id = $1 AND tc.id = $2 LIMIT 1`, [orgId, task.category_id]);
       if (rows.length) return rows[0];
     }
   }
@@ -227,13 +198,7 @@ async function getTaskProjectStatus(task, orgId) {
     const cols = await getColumns('projects').catch(() => new Set());
     if (cols.size) {
       const statusExpr = projectStatusExpression('p', cols);
-      const { rows } = await query(
-        `SELECT p.id, p.name, ${statusExpr} AS status
-           FROM projects p
-          WHERE p.org_id = $1 AND p.id = $2
-          LIMIT 1`,
-        [orgId, task.project_id]
-      );
+      const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, task.project_id]);
       if (rows.length) return rows[0];
     }
   }
@@ -254,7 +219,6 @@ async function getTaskProjectStatus(task, orgId) {
       if (rows.length) return rows[0];
     }
   }
-
   return null;
 }
 
@@ -264,8 +228,7 @@ async function assertAssignableUser({ orgId, userId }) {
     `SELECT u.id,
             COALESCE(u.is_active, TRUE) AS user_active,
             NOT EXISTS (
-              SELECT 1
-                FROM employees e
+              SELECT 1 FROM employees e
                WHERE e.user_id = u.id
                  AND e.org_id = $2
                  AND COALESCE(e.status, 'active') <> 'active'
@@ -275,9 +238,7 @@ async function assertAssignableUser({ orgId, userId }) {
       LIMIT 1`,
     [userId, orgId]
   );
-  if (!rows.length) {
-    return { ok: false, status: 400, error: 'Referenced resource not found: user not found.' };
-  }
+  if (!rows.length) return { ok: false, status: 400, error: 'Referenced resource not found: user not found.' };
   if (!rows[0].user_active || !rows[0].employee_active) {
     return { ok: false, status: 409, error: 'This employee is inactive or terminated and cannot receive new task assignments.' };
   }
@@ -288,13 +249,7 @@ async function assertProjectAcceptsNewTasks({ orgId, projectId }) {
   if (!projectId) return { ok: true };
   const project = await getProjectStatusById(orgId, projectId);
   if (!project) return { ok: true };
-  if (project.status !== 'active') {
-    return {
-      ok: false,
-      status: 409,
-      error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.`,
-    };
-  }
+  if (project.status !== 'active') return { ok: false, status: 409, error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.` };
   return { ok: true };
 }
 
@@ -303,7 +258,6 @@ function sendGuard(res, result) {
   return null;
 }
 
-// ───────────────────────── Projects overlay ─────────────────────────
 projects.get('/', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
@@ -324,18 +278,10 @@ projects.get('/', authenticate, async (req, res, next) => {
       if (personalOnly) {
         params.push(req.user.id);
         scopedJoin = `AND t.assigned_to = $${params.length}`;
-        where.push(`EXISTS (
-          SELECT 1 FROM tasks myt
-           WHERE myt.category_id = tc.id
-             AND myt.org_id = tc.org_id
-             AND myt.assigned_to = $${params.length}
-             AND myt.deleted_at IS NULL
-        )`);
+        where.push(`EXISTS (SELECT 1 FROM tasks myt WHERE myt.category_id = tc.id AND myt.org_id = tc.org_id AND myt.assigned_to = $${params.length} AND myt.deleted_at IS NULL)`);
       }
       const { rows } = await query(
-        `SELECT tc.id,
-                tc.name,
-                tc.description,
+        `SELECT tc.id, tc.name, tc.description,
                 ${cols.has('icon') ? 'tc.icon' : 'NULL::text AS icon'},
                 ${cols.has('color') ? 'tc.color' : 'NULL::text AS color'},
                 ${statusExpr} AS status,
@@ -362,20 +308,10 @@ projects.get('/', authenticate, async (req, res, next) => {
     if (personalOnly) {
       params.push(req.user.id);
       scopedJoin = `AND t.assigned_to = $${params.length}`;
-      where.push(`EXISTS (
-        SELECT 1 FROM tasks myt
-         WHERE myt.project_id = p.id
-           AND myt.org_id = p.org_id
-           AND myt.assigned_to = $${params.length}
-           AND myt.deleted_at IS NULL
-      )`);
+      where.push(`EXISTS (SELECT 1 FROM tasks myt WHERE myt.project_id = p.id AND myt.org_id = p.org_id AND myt.assigned_to = $${params.length} AND myt.deleted_at IS NULL)`);
     }
     const { rows } = await query(
-      `SELECT p.id,
-              p.name,
-              p.description,
-              NULL::text AS icon,
-              NULL::text AS color,
+      `SELECT p.id, p.name, p.description, NULL::text AS icon, NULL::text AS color,
               ${statusExpr} AS status,
               (${statusExpr} = 'active') AS is_active,
               p.created_at,
@@ -405,33 +341,23 @@ projects.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(404).json({ error: 'Project not found' });
-
     const requestedStatus = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : null;
     if (!requestedStatus) return next();
     if (!['active', 'paused', 'completed'].includes(requestedStatus)) return res.status(400).json({ error: 'Invalid status' });
 
     const projectId = String(req.params.projectId || '').trim();
     const activeCount = await countActiveProjectTasks(orgId, projectId);
-
     if (requestedStatus === 'completed' && activeCount > 0 && req.body.override_completion !== true) {
-      return res.status(409).json({
-        error: `Cannot complete project: ${activeCount} active task(s) still require resolution.`,
-        code: 'PROJECT_HAS_ACTIVE_TASKS',
-        activeTaskCount: activeCount,
-      });
+      return res.status(409).json({ error: `Cannot complete project: ${activeCount} active task(s) still require resolution.`, code: 'PROJECT_HAS_ACTIVE_TASKS', activeTaskCount: activeCount });
     }
-
     if (requestedStatus === 'completed' && activeCount > 0) {
-      if (!['admin', 'director'].includes(normalizedRole(req))) {
-        return res.status(403).json({ error: 'Only Admin or Director can override completion with active tasks.' });
-      }
+      if (!['admin', 'director'].includes(normalizedRole(req))) return res.status(403).json({ error: 'Only Admin or Director can override completion with active tasks.' });
       const reason = String(req.body.override_reason || req.body.reason || '').trim();
       if (reason.length < 8) return res.status(400).json({ error: 'override_reason is required and must be at least 8 characters.' });
     }
 
     const store = await resolveProjectStore();
     if (!store) return res.status(404).json({ error: 'Project not found' });
-
     let rows;
     if (store === 'task_categories') {
       const cols = await getColumns('task_categories');
@@ -448,43 +374,35 @@ projects.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 
       }
       params.push(orgId, projectId);
       ({ rows } = await query(
-        `UPDATE task_categories
-            SET ${sets.join(', ')}
-          WHERE org_id = $${params.length - 1} AND id = $${params.length}
-          RETURNING id, name, description,
-                    ${nextCols.has('icon') ? 'icon' : 'NULL::text AS icon'},
-                    ${nextCols.has('color') ? 'color' : 'NULL::text AS color'},
-                    ${projectStatusExpression('task_categories', nextCols)} AS status,
-                    ${projectIsActiveExpression('task_categories', nextCols)} AS is_active,
-                    created_at`,
+        `UPDATE task_categories SET ${sets.join(', ')} WHERE org_id = $${params.length - 1} AND id = $${params.length}
+         RETURNING id, name, description,
+                   ${nextCols.has('icon') ? 'icon' : 'NULL::text AS icon'},
+                   ${nextCols.has('color') ? 'color' : 'NULL::text AS color'},
+                   ${nextCols.has('status') ? 'status' : `'${requestedStatus}'`} AS status,
+                   ${nextCols.has('is_active') ? 'is_active' : `(status = 'active')`} AS is_active,
+                   created_at`,
         params
       ));
     } else {
       const cols = await getColumns('projects');
       if (!cols.has('status')) return res.status(500).json({ error: 'projects.status column is required for status changes.' });
       ({ rows } = await query(
-        `UPDATE projects
-            SET status = $1
-          WHERE org_id = $2 AND id = $3
-          RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at`,
+        `UPDATE projects SET status = $1 WHERE org_id = $2 AND id = $3
+         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at`,
         [requestedStatus, orgId, projectId]
       ));
     }
 
     if (!rows.length) return res.status(404).json({ error: 'Project not found' });
-
     await mutateProjectTasksForStatus({ orgId, projectId, status: requestedStatus, actorUserId: req.user.id });
-
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: rows[0]?.name, newStatus: requestedStatus, activeTaskCount: activeCount } });
       await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: rows[0]?.name, activeTaskCount: activeCount }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
-
     return res.json({ project: rows[0], affectedActiveTasks: activeCount });
   } catch (err) { next(err); }
 });
 
-// ───────────────────────── Tasks overlay ─────────────────────────
 tasks.get('/assignable-users', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
@@ -492,16 +410,7 @@ tasks.get('/assignable-users', authenticate, async (req, res, next) => {
     const { department } = req.query;
     const params = [orgId];
     let p = 2;
-    const conditions = [
-      'u.org_id = $1',
-      'COALESCE(u.is_active, TRUE) = TRUE',
-      `NOT EXISTS (
-        SELECT 1 FROM employees e
-         WHERE e.user_id = u.id
-           AND e.org_id = $1
-           AND COALESCE(e.status, 'active') <> 'active'
-      )`,
-    ];
+    const conditions = ['u.org_id = $1', 'COALESCE(u.is_active, TRUE) = TRUE', `NOT EXISTS (SELECT 1 FROM employees e WHERE e.user_id = u.id AND e.org_id = $1 AND COALESCE(e.status, 'active') <> 'active')`];
     if (department && department !== 'all') {
       conditions.push(`u.department = $${p++}`);
       params.push(department);
@@ -515,15 +424,10 @@ tasks.get('/assignable-users', authenticate, async (req, res, next) => {
       } catch { /* legacy DB: keep org scope */ }
     }
     const { rows } = await query(
-      `SELECT u.id, u.full_name, u.email, u.role, u.department, u.employee_code
-         FROM users u
-        WHERE ${conditions.join(' AND ')}
-        ORDER BY u.full_name ASC NULLS LAST, u.email ASC`,
+      `SELECT u.id, u.full_name, u.email, u.role, u.department, u.employee_code FROM users u WHERE ${conditions.join(' AND ')} ORDER BY u.full_name ASC NULLS LAST, u.email ASC`,
       params
     );
-    return res.json({
-      users: rows.map((u) => ({ id: u.id, name: u.full_name || u.email, email: u.email, role: u.role, department: u.department, employeeCode: u.employee_code })),
-    });
+    return res.json({ users: rows.map((u) => ({ id: u.id, name: u.full_name || u.email, email: u.email, role: u.role, department: u.department, employeeCode: u.employee_code })) });
   } catch (err) { next(err); }
 });
 
@@ -532,24 +436,14 @@ tasks.get('/reassignment-needed', authenticate, requireAnyRole('supervisor', 'ma
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const { rows } = await query(
-      `SELECT t.*, u.full_name AS assigned_to_name, u.email AS assigned_to_email,
-              cat.name AS category_name, cat.color AS category_color
+      `SELECT t.*, u.full_name AS assigned_to_name, u.email AS assigned_to_email, cat.name AS category_name, cat.color AS category_color
          FROM tasks t
          LEFT JOIN users u ON u.id = t.assigned_to
          LEFT JOIN task_categories cat ON cat.id = t.category_id
         WHERE t.org_id = $1
           AND t.deleted_at IS NULL
           AND ${nonTerminalTaskCondition('t')}
-          AND (
-            COALESCE(t.status, 'pending') = 'on_hold'
-            OR COALESCE(u.is_active, FALSE) = FALSE
-            OR EXISTS (
-              SELECT 1 FROM employees e
-               WHERE e.user_id = t.assigned_to
-                 AND e.org_id = $1
-                 AND COALESCE(e.status, 'active') <> 'active'
-            )
-          )
+          AND (COALESCE(t.status, 'pending') = 'on_hold' OR COALESCE(u.is_active, FALSE) = FALSE OR EXISTS (SELECT 1 FROM employees e WHERE e.user_id = t.assigned_to AND e.org_id = $1 AND COALESCE(e.status, 'active') <> 'active'))
         ORDER BY t.updated_at DESC NULLS LAST, t.created_at DESC
         LIMIT 200`,
       [orgId]
@@ -575,45 +469,41 @@ async function preflightTaskCreate(req, res, next) {
 tasks.post('/', authenticate, preflightTaskCreate);
 tasks.post('/create-simple', authenticate, preflightTaskCreate);
 
-tasks.patch('/:id/details', authenticate, async (req, res, next) => {
+async function preflightTaskAssignment(req, res, next) {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedTo')) {
-      const assignable = await assertAssignableUser({ orgId, userId: req.body.assignedTo || null });
+    const body = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(body, 'assignedTo') || Object.prototype.hasOwnProperty.call(body, 'assigned_to')) {
+      const assignable = await assertAssignableUser({ orgId, userId: body.assignedTo || body.assigned_to || null });
       if (sendGuard(res, assignable)) return;
+    }
+    const categoryId = body.categoryId || body.category_id || body.projectId || body.project_id || null;
+    if (categoryId) {
+      const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId: categoryId });
+      if (sendGuard(res, projectAllowed)) return;
     }
     return next();
   } catch (err) { next(err); }
-});
+}
+
+tasks.patch('/:id/details', authenticate, preflightTaskAssignment);
+tasks.patch('/:id', authenticate, preflightTaskAssignment);
 
 async function preflightTaskStatusChange(req, res, next) {
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const targetStatus = String(req.body?.status || '').trim().toLowerCase();
-    const { rows } = await query(
-      `SELECT id, org_id, status, assigned_to, category_id, project_id
-         FROM tasks
-        WHERE id = $1 AND org_id = $2
-        LIMIT 1`,
-      [req.params.id, orgId]
-    );
+    const { rows } = await query(`SELECT id, org_id, status, assigned_to, category_id, project_id FROM tasks WHERE id = $1 AND org_id = $2 LIMIT 1`, [req.params.id, orgId]);
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
     const task = rows[0];
-
     const project = await getTaskProjectStatus(task, orgId);
     if (project && project.status !== 'active') {
       const allowedPausedMoves = new Set(['on_hold', 'cancelled']);
       if (project.status === 'paused' && allowedPausedMoves.has(targetStatus)) return next();
-      return res.status(409).json({
-        error: `Task status cannot be changed while project "${project.name || project.id}" is ${project.status}. Reactivate the project first.`,
-        code: 'PROJECT_NOT_ACTIVE',
-        projectId: project.id,
-        projectStatus: project.status,
-      });
+      return res.status(409).json({ error: `Task status cannot be changed while project "${project.name || project.id}" is ${project.status}. Reactivate the project first.`, code: 'PROJECT_NOT_ACTIVE', projectId: project.id, projectStatus: project.status });
     }
-
     if (['pending', 'in_progress', 'submitted', 'completed', 'manager_approved'].includes(targetStatus)) {
       const assignable = await assertAssignableUser({ orgId, userId: task.assigned_to });
       if (sendGuard(res, assignable)) return;
@@ -626,39 +516,28 @@ tasks.patch('/:id/status', authenticate, preflightTaskStatusChange);
 tasks.patch('/:id/board-status', authenticate, preflightTaskStatusChange);
 tasks.post('/:id/set-status', authenticate, preflightTaskStatusChange);
 
-// ───────────────────────── HRIS overlay ─────────────────────────
 async function quarantineEmployeeTasks({ orgId, employeeUserId, actorUserId, reason }) {
   if (!employeeUserId) return;
   const taskCols = await getColumns('tasks');
   if (!taskCols.has('status') || !taskCols.has('assigned_to')) return;
-  const updatedAt = taskCols.has('updated_at') ? ', updated_at = NOW()' : '';
-  const metadataSet = taskCols.has('metadata') ? `, metadata = COALESCE(metadata::jsonb, '{}'::jsonb) || $4::jsonb` : '';
-  await query(
-    `UPDATE tasks
-        SET status = 'on_hold'${updatedAt}${metadataSet}
-      WHERE org_id = $1
-        AND assigned_to = $2
-        AND ${nonTerminalTaskCondition('tasks')}
-        AND deleted_at IS NULL`,
-    [orgId, employeeUserId, reason, JSON.stringify({ reassignment_required: true, reassignment_reason: reason, held_by: actorUserId, held_at: new Date().toISOString() })]
-  );
+  const params = [orgId, employeeUserId];
+  const setParts = [`status = 'on_hold'`];
+  addTaskUpdateMetadata({ taskCols, setParts, params, metadata: { reassignment_required: true, reassignment_reason: reason, held_by: actorUserId, held_at: new Date().toISOString() } });
+  const conditions = [`org_id = $1`, `assigned_to = $2`, nonTerminalTaskCondition('tasks')];
+  if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
+  await query(`UPDATE tasks SET ${setParts.join(', ')} WHERE ${conditions.join(' AND ')}`, params);
 }
 
 async function restoreEmployeeTasks({ orgId, employeeUserId, actorUserId }) {
   if (!employeeUserId) return;
   const taskCols = await getColumns('tasks');
   if (!taskCols.has('status') || !taskCols.has('assigned_to')) return;
-  const updatedAt = taskCols.has('updated_at') ? ', updated_at = NOW()' : '';
-  const metadataSet = taskCols.has('metadata') ? `, metadata = COALESCE(metadata::jsonb, '{}'::jsonb) || $4::jsonb` : '';
-  await query(
-    `UPDATE tasks
-        SET status = 'pending'${updatedAt}${metadataSet}
-      WHERE org_id = $1
-        AND assigned_to = $2
-        AND status = 'on_hold'
-        AND deleted_at IS NULL`,
-    [orgId, employeeUserId, 'employee_reactivated', JSON.stringify({ reassignment_required: false, restored_by: actorUserId, restored_at: new Date().toISOString() })]
-  );
+  const params = [orgId, employeeUserId];
+  const setParts = [`status = 'pending'`];
+  addTaskUpdateMetadata({ taskCols, setParts, params, metadata: { reassignment_required: false, restored_by: actorUserId, restored_at: new Date().toISOString() } });
+  const conditions = [`org_id = $1`, `assigned_to = $2`, `status = 'on_hold'`];
+  if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
+  await query(`UPDATE tasks SET ${setParts.join(', ')} WHERE ${conditions.join(' AND ')}`, params);
 }
 
 hris.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'admin'), async (req, res, next) => {
@@ -667,37 +546,19 @@ hris.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'adm
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const status = req.body.status.trim().toLowerCase();
-    if (!['active', 'inactive', 'terminated', 'suspended', 'on_leave'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid employee status' });
-    }
-
-    const { rows } = await query(
-      `UPDATE employees
-          SET status = $1, updated_at = NOW()
-        WHERE id = $2 AND org_id = $3
-        RETURNING *`,
-      [status, req.params.id, orgId]
-    );
+    if (!['active', 'inactive', 'terminated', 'suspended', 'on_leave'].includes(status)) return res.status(400).json({ error: 'Invalid employee status' });
+    const { rows } = await query(`UPDATE employees SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`, [status, req.params.id, orgId]);
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
     const employee = rows[0];
-
     if (employee.user_id) {
-      await query(
-        `UPDATE users SET is_active = $1 WHERE id = $2 AND org_id = $3`,
-        [status === 'active', employee.user_id, orgId]
-      );
-      if (status === 'active') {
-        await restoreEmployeeTasks({ orgId, employeeUserId: employee.user_id, actorUserId: req.user.id });
-      } else {
-        await quarantineEmployeeTasks({ orgId, employeeUserId: employee.user_id, actorUserId: req.user.id, reason: `employee_${status}` });
-      }
+      await query(`UPDATE users SET is_active = $1 WHERE id = $2 AND org_id = $3`, [status === 'active', employee.user_id, orgId]);
+      if (status === 'active') await restoreEmployeeTasks({ orgId, employeeUserId: employee.user_id, actorUserId: req.user.id });
+      else await quarantineEmployeeTasks({ orgId, employeeUserId: employee.user_id, actorUserId: req.user.id, reason: `employee_${status}` });
     }
-
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_status_changed', metadata: { employeeId: employee.id, employeeName: employee.full_name, newStatus: status } });
       await logAudit({ orgId, actorUserId: req.user.id, action: `hris.employee.status.${status}`, entityType: 'employee', entityId: employee.id, metadata: { employeeName: employee.full_name, newStatus: status }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
-
     return res.json({ employee });
   } catch (err) { next(err); }
 });
@@ -706,28 +567,19 @@ hris.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'ad
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    const { rows } = await query(
-      `SELECT e.*, u.role
-         FROM employees e
-         LEFT JOIN users u ON u.id = e.user_id
-        WHERE e.id = $1 AND e.org_id = $2`,
-      [req.params.id, orgId]
-    );
+    const { rows } = await query(`SELECT e.*, u.role FROM employees e LEFT JOIN users u ON u.id = e.user_id WHERE e.id = $1 AND e.org_id = $2`, [req.params.id, orgId]);
     if (!rows.length) return res.status(404).json({ error: 'Employee not found' });
     const employee = rows[0];
     if (employee.role === 'admin') return res.status(403).json({ error: 'Cannot delete an admin user.' });
-
     if (employee.user_id) {
       await quarantineEmployeeTasks({ orgId, employeeUserId: employee.user_id, actorUserId: req.user.id, reason: 'employee_deleted' });
       await query(`UPDATE users SET is_active = FALSE WHERE id = $1 AND org_id = $2`, [employee.user_id, orgId]);
     }
     await query(`DELETE FROM employees WHERE id = $1 AND org_id = $2`, [req.params.id, orgId]);
-
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_terminated', metadata: { employeeId: req.params.id, employeeName: employee.full_name } });
       await logAudit({ orgId, actorUserId: req.user.id, action: 'hris.employee.terminated', entityType: 'employee', entityId: req.params.id, metadata: { employeeName: employee.full_name }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
-
     return res.json({ success: true, message: 'Employee deleted, account deactivated, and active tasks moved to reassignment hold.' });
   } catch (err) { next(err); }
 });
