@@ -92,39 +92,126 @@ textarea:focus-visible,
   flex-shrink: 0;
 }
 
-/* Collapsed nav icons — large and crisp */
-.sidebarCollapsed .navItemV4 svg {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
+/* ═══════════════════════════════════════════════
+   COLLAPSED SIDEBAR — complete redesign
+   ═══════════════════════════════════════════════ */
+
+/* Collapsed icon size */
+.sidebarCollapsed .navItemV4 svg,
+.navItemV4Collapsed svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  min-height: 19px !important;
   flex-shrink: 0 !important;
+  opacity: 0.75;
+  transition: opacity 0.15s;
 }
 
-/* Collapsed nav items — full width, icons centered */
-.sidebarCollapsed .navItemV4 {
-  width: 100% !important;
+/* Active icon is fully opaque */
+.sidebarCollapsed .navItemV4Active svg {
+  opacity: 1 !important;
+}
+
+/* Nav items in collapsed state — square touch targets centered */
+.navItemV4Collapsed {
+  position: relative !important;
+  width: 48px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  margin: 0 auto !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  padding: 11px 0 !important;
-  border-radius: 12px;
+  padding: 0 !important;
+  border-radius: 13px !important;
   gap: 0 !important;
-  min-width: 0 !important;
 }
 
-/* Hide text labels in collapsed sidebar */
+.navItemV4Collapsed:hover svg {
+  opacity: 1;
+}
+
+/* Tooltip — slides in from the right of the icon */
+.navItemV4Tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: color-mix(in srgb, var(--surface) 95%, white);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 6px 11px;
+  border-radius: 9px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 9999;
+  letter-spacing: 0.01em;
+}
+
+/* Tooltip arrow */
+.navItemV4Tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: rgba(255,255,255,0.1);
+}
+.navItemV4Tooltip::after {
+  content: '';
+  position: absolute;
+  right: calc(100% - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: color-mix(in srgb, var(--surface) 95%, white);
+}
+
+.navItemV4Collapsed:hover .navItemV4Tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Hide text labels and section labels in collapsed state */
 .sidebarCollapsed .navItemV4Label {
   display: none !important;
   width: 0 !important;
   overflow: hidden !important;
 }
-
-/* Collapsed sidebar: hide logo text, keep icon */
 .sidebarCollapsed .sidebarV4BrandName,
 .sidebarCollapsed .sidebarV4BrandSub,
 .sidebarCollapsed .sidebarV4SectionLabel {
   display: none !important;
+}
+
+/* Logo mark centered in collapsed state */
+.sidebarCollapsed .sidebarV4Logo {
+  justify-content: center !important;
+  padding: 12px 0 !important;
+}
+.sidebarCollapsed .sidebarV4LogoLink {
+  justify-content: center !important;
+}
+
+/* Collapse button — in collapsed mode center it */
+.sidebarCollapsed .sidebarCollapseBtn {
+  margin: 0 auto !important;
+}
+
+/* Nav padding tightens in collapsed mode */
+.sidebarCollapsed .sidebarV4Nav {
+  padding: 6px 8px 12px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 /* Content area always fills remaining space — no gap ever */

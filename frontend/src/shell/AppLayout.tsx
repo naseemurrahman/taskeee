@@ -74,10 +74,10 @@ function NavItem({ to, label, display, badge, collapsed, onNavigate }: {
       to={to}
       data-label={display}
       onClick={onNavigate}
-      className={({ isActive }) => `navItemV4 ${isActive ? 'navItemV4Active' : ''}`}
-      title={collapsed ? display : undefined}
+      className={({ isActive }) => `navItemV4 ${isActive ? 'navItemV4Active' : ''} ${collapsed ? 'navItemV4Collapsed' : ''}`}
     >
-      {Icon && <Icon size={16} />}
+      {Icon && <Icon size={collapsed ? 19 : 16} />}
+      {collapsed && <span className="navItemV4Tooltip">{display}</span>}
       {!collapsed && <span className="navItemV4Label">{display}</span>}
       {!collapsed && badge && badge > 0 ? (
         <span className="navItemV4Badge">{badge > 99 ? '99+' : badge}</span>
