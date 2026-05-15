@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { IconKey, IconUsers } from '../../../components/ui/AppIcons'
+import { IconKey } from '../../../components/ui/AppIcons'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../../lib/api'
