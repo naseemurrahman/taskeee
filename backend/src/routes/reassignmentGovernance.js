@@ -10,7 +10,6 @@ const { logUserActivity } = require('../services/activityService');
 const router = express.Router();
 
 const MANAGEMENT_ROLES = ['supervisor', 'manager', 'hr', 'director', 'admin'];
-const DEFAULT_LIMIT = 200;
 const MAX_BULK_REASSIGN = 200;
 
 const columnsCache = new Map();
@@ -40,7 +39,14 @@ function nonTerminalTaskCondition(alias = 't') {
 function reassignmentNeededCondition(alias = 't') {
   return `(
     COALESCE(${alias}.status, 'pending') = 'on_hold'
-    OR COALESCE(u.is_active, FALSE) = FALSE
+    OR ${alias}.assigned_to IS NULL
+    OR NOT EXISTS (
+      SELECT 1
+        FROM users old_u
+       WHERE old_u.id = ${alias}.assigned_to
+         AND old_u.org_id = ${alias}.org_id
+         AND COALESCE(old_u.is_active, TRUE) = TRUE
+    )
     OR EXISTS (
       SELECT 1
         FROM employees e
@@ -87,7 +93,6 @@ async function countReassignmentTasks(orgId) {
   const { rows } = await query(
     `SELECT COUNT(DISTINCT t.id)::int AS count
        FROM tasks t
-       LEFT JOIN users u ON u.id = t.assigned_to
       WHERE t.org_id = $1
         AND ${deletedGuard(taskCols, 't')}
         AND ${nonTerminalTaskCondition('t')}
@@ -139,9 +144,7 @@ router.post('/reassign', authenticate, requireAnyRole(...MANAGEMENT_ROLES), asyn
       const { rows } = await tx.query(
         `UPDATE tasks t
             SET ${setParts.join(', ')}
-           FROM users u
-          WHERE u.id = t.assigned_to
-            AND t.org_id = $1
+          WHERE t.org_id = $1
             AND t.id = ANY($2::uuid[])
             AND ${deletedGuard(taskCols, 't')}
             AND ${nonTerminalTaskCondition('t')}
