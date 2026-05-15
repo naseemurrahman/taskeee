@@ -10,7 +10,7 @@ import { useToast } from '../ui/ToastSystem'
 type Project = { id: string; name: string; color?: string | null }
 type UserRow = { id: string; email: string; name?: string | null; full_name?: string | null; role: string; department?: string | null }
 type WorkloadRow = { employee_id: string; employee_name: string; open_tasks: number; total_tasks: number }
-type CreateTaskInput = { title: string; description?: string; assignedTo: string; categoryId: string; projectId: string; priority: string; dueDate: string; department?: string }
+type CreateTaskInput = { title: string; description?: string; assignedTo: string; categoryId?: string; projectId: string; priority: string; dueDate: string; department?: string }
 type FieldErrors = Partial<Record<'title' | 'project' | 'priority' | 'assignedTo' | 'dueDate', string>>
 
 async function fetchProjects(): Promise<Project[]> {
@@ -100,7 +100,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
     if (!dueDate) nextErrors.dueDate = 'Select a due date.'
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length) { setError('Please fix the highlighted fields.'); return }
-    m.mutate({ title, description: description || undefined, assignedTo, categoryId: projectId, projectId, priority, dueDate, department: dept || undefined })
+    m.mutate({ title, description: description || undefined, assignedTo, projectId, priority, dueDate, department: dept || undefined })
   }
 
   return (
