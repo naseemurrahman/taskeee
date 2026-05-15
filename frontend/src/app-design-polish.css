@@ -6,7 +6,7 @@
 
 :root {
   --app-sidebar-width: 240px;
-  --app-sidebar-collapsed-width: 72px;
+  --app-sidebar-collapsed-width: 56px;
   --app-topbar-height: 64px;
   --app-content-pad: clamp(14px, 1.8vw, 26px);
   --app-card-radius: clamp(14px, 1.3vw, 20px);
@@ -64,8 +64,7 @@ textarea:focus-visible,
   grid-template-columns: var(--app-sidebar-width) 1fr !important;
   grid-template-rows: 1fr !important;
   width: 100vw !important;
-  height: 100dvh !important;
-  overflow: hidden !important;
+  min-height: 100vh !important;
   transition: grid-template-columns 0.25s cubic-bezier(0.4,0,0.2,1) !important;
   background:
     radial-gradient(circle at top left, rgba(226,171,65,0.08), transparent 30vw),
@@ -103,10 +102,10 @@ textarea:focus-visible,
 /* Collapsed icon size */
 .sidebarCollapsed .navItemV4 svg,
 .navItemV4Collapsed svg {
-  width: 19px !important;
-  height: 19px !important;
-  min-width: 19px !important;
-  min-height: 19px !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
   flex-shrink: 0 !important;
   opacity: 0.75;
   transition: opacity 0.15s;

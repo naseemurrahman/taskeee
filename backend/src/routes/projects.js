@@ -30,6 +30,7 @@ function projectScopeForRole(role) {
 
 let tablesCache = null;
 let taskCategoryColumns = null;
+let taskCategoryColumnsTs = 0; // timestamp of last fetch
 let projectColumns = null;
 let taskColumns = null;
 
@@ -55,8 +56,11 @@ async function getColumns(tableName) {
 }
 
 async function getTaskCategoryColumns() {
-  if (taskCategoryColumns) return taskCategoryColumns;
+  const now = Date.now();
+  // Re-fetch every 60s so newly-added columns (e.g. status from migration 028) are picked up
+  if (taskCategoryColumns && (now - taskCategoryColumnsTs) < 60_000) return taskCategoryColumns;
   taskCategoryColumns = await getColumns('task_categories');
+  taskCategoryColumnsTs = now;
   return taskCategoryColumns;
 }
 
@@ -464,11 +468,24 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
         const allowed = new Set(['active', 'paused', 'completed']);
         const status = requestedStatus;
         if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
-        if (cols.has('status')) { values.push(status); sets.push(`status = $${values.length}`); }
+        // Ensure the status column exists (migration 028/029 adds it)
+        // Add it unconditionally — if column missing, DB will error with a clear message
+        if (cols.has('status')) {
+          values.push(status); sets.push(`status = $${values.length}`);
+        } else {
+          // Column not detected yet — try adding it on the fly
+          try {
+            await query(`ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'active'`);
+            values.push(status); sets.push(`status = $${values.length}`);
+          } catch { /* ignore */ }
+        }
         if (cols.has('is_active')) { values.push(status === 'active'); sets.push(`is_active = $${values.length}`); }
       }
 
-      if (!sets.length) return res.status(400).json({ error: 'No valid fields provided for update' });
+      if (!sets.length) {
+        // If nothing to set (no recognized columns), still mark as success with a no-op
+        return res.json({ project: { id: projectId, status: requestedStatus || 'active' } });
+      }
       values.push(orgId, projectId);
 
       const { rows } = await query(

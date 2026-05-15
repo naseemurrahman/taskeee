@@ -408,16 +408,19 @@ export function ProjectsPage() {
           )
         }
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-            {/* KPI cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            {/* KPI cards — compact professional style */}
             {[
-              { label: 'Avg Completion', value: `${avgProgress}%`, color: avgProgress > 70 ? '#22c55e' : avgProgress > 40 ? '#f59e0b' : '#ef4444' },
-              { label: 'Active Projects', value: activeCount, color: '#22c55e' },
-              { label: 'Total Tasks', value: totalTasks, color: '#e2ab41' },
+              { label: 'Avg Completion', value: `${avgProgress}%`, color: avgProgress > 70 ? '#22c55e' : avgProgress > 40 ? '#f59e0b' : '#ef4444', icon: '📊' },
+              { label: 'Active Projects', value: String(activeCount), color: '#22c55e', icon: '🗂' },
+              { label: 'Total Tasks', value: String(totalTasks), color: '#e2ab41', icon: '✅' },
             ].map(kpi => (
-              <div key={kpi.label} style={{ padding: '16px 18px', borderRadius: 14, background: `${kpi.color}10`, border: `1px solid ${kpi.color}25` }}>
-                <div style={{ fontSize: 10, fontWeight: 900, color: kpi.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{kpi.label}</div>
-                <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1px' }}>{kpi.value}</div>
+              <div key={kpi.label} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${kpi.color}18`, display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0 }}>{kpi.icon}</div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{kpi.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{kpi.value}</div>
+                </div>
               </div>
             ))}
             {/* Status donut */}
