@@ -121,9 +121,6 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/tasks/:taskId/messages', taskMessagesRoutes);
 app.use('/api/v1/debug', require('./routes/debug'));
 app.use('/api/v1/ai', require('./routes/ai'));
-// authenticate MUST run before enforceTaskCollectionAccess so req.user is populated.
-// Previously the policy ran unauthenticated: req.user was undefined, role normalized to '',
-// which is not in MANAGEMENT_ROLES, blocking ALL users including admin from creating tasks.
 const { authenticate: _taskAuth, enforceTaskCollectionAccess } = require('./middleware/taskAccessPolicy');
 app.use('/api/v1/tasks', _taskAuth, enforceTaskCollectionAccess);
 app.use('/api/v1/tasks', reassignmentGovernanceRoutes);
@@ -149,9 +146,7 @@ app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/backup', backupRoutes);
 app.use('/api/v1/payment', paymentRoutes);
 app.use('/api/v1/projects', canonicalProjectLifecycleRoutes);
-app.use('/api/v1/projects', lifecycleTransactionsRoutes.projects);
 app.use('/api/v1/projects', canonicalProjectsRoutes);
-app.use('/api/v1/projects', statusGovernanceRoutes.projects);
 app.use('/api/v1/projects', projectsRoutes);
 app.use('/api/v1/hris', lifecycleTransactionsRoutes.hris);
 app.use('/api/v1/hris', statusGovernanceRoutes.hris);
@@ -187,14 +182,11 @@ const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10
 async function start() {
   try { require('./utils/envCheck').runEnvCheck(); } catch {}
 
-  // Connect DB first (needed for all routes)
   try { await connectDB(); } catch (err) { logger.error('Database bootstrap failed, starting API in degraded mode: ' + err.message); }
   try { await connectRedis(); } catch (err) { logger.warn('Redis bootstrap failed, continuing with fallback cache: ' + err.message); }
 
-  // START LISTENING IMMEDIATELY so Railway healthcheck passes while migrations run
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
 
-  // Run remaining startup tasks in background — server is already accepting requests
   setImmediate(async () => {
     try { await runPendingMigrations({ verbose: true }); } catch (err) { logger.warn('Versioned migration warning: ' + err.message); }
     try { require('./services/schedulerService').start(); } catch (err) { logger.warn('Scheduler failed to start: ' + err.message); }
