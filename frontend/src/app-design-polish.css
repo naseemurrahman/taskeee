@@ -53,44 +53,47 @@ textarea:focus-visible,
   box-shadow: var(--app-focus-ring) !important;
 }
 
+/* ══════════════════════════════════════════════════════
+   CORE LAYOUT — single authoritative source of truth.
+   appShellV4 is a CSS Grid. The sidebar is grid column 1,
+   main is grid column 2. NO explicit widths on children —
+   the grid controls sizing entirely, preventing the gap.
+   ══════════════════════════════════════════════════════ */
 .appShellV4 {
-  grid-template-columns: var(--app-sidebar-width) minmax(0, 1fr) !important;
+  display: grid !important;
+  grid-template-columns: var(--app-sidebar-width) 1fr !important;
+  grid-template-rows: 1fr !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  transition: grid-template-columns 0.25s cubic-bezier(0.4,0,0.2,1) !important;
   background:
-    radial-gradient(circle at top left, rgba(226, 171, 65, 0.10), transparent 32vw),
-    radial-gradient(circle at bottom right, rgba(109, 94, 252, 0.10), transparent 34vw),
+    radial-gradient(circle at top left, rgba(226,171,65,0.08), transparent 30vw),
+    radial-gradient(circle at bottom right, rgba(109,94,252,0.08), transparent 32vw),
     var(--bg);
 }
 
+/* When collapsed: shrink column 1, column 2 grows automatically */
 .appShellV4.sidebarCollapsed {
-  grid-template-columns: var(--app-sidebar-collapsed-width) minmax(0, 1fr) !important;
+  grid-template-columns: var(--app-sidebar-collapsed-width) 1fr !important;
 }
 
-/* Smooth transition for collapse/expand */
-.appShellV4 {
-  transition: grid-template-columns 0.25s cubic-bezier(0.4,0,0.2,1) !important;
-}
-
+/* Sidebar: grid child — let the grid control its width */
 .sidebarV4 {
-  /* Sidebar fills its grid column exactly — no orphan gap */
-  width: 100%;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
-  max-width: 100%;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg) 60%, var(--surface)) !important;
+  background: color-mix(in srgb, var(--bg) 55%, var(--surface)) !important;
   border-right: 1px solid rgba(255,255,255,0.05);
   display: flex;
   flex-direction: column;
-  transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
-  will-change: width;
-  flex-shrink: 0;
+  /* NO explicit width — grid controls it */
 }
 
+/* Collapsed sidebar: still no explicit width, grid handles it */
 .sidebarCollapsed .sidebarV4 {
-  width: var(--app-sidebar-collapsed-width) !important;
-  min-width: var(--app-sidebar-collapsed-width) !important;
-  max-width: var(--app-sidebar-collapsed-width) !important;
   overflow: hidden;
-  flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════
@@ -217,51 +220,23 @@ textarea:focus-visible,
   gap: 2px;
 }
 
-/* Content area always fills remaining space — no gap ever */
+/* Main content — grid column 2, fills all remaining space automatically */
 .mainV4 {
-  grid-column: 2 / -1;
-  min-width: 0 !important;
-  width: 100% !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  transition: none;
-}
-
-/* Content area MUST fill ALL remaining space when sidebar collapses */
-.appShellV4 {
-  display: grid !important;
-  width: 100% !important;
-  overflow: hidden;
-}
-
-.mainV4 {
-  flex: 1 1 0% !important;
-  min-width: 0 !important;
-  width: 100% !important;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .contentV4 {
-  min-width: 0 !important;
-  width: 100% !important;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
   box-sizing: border-box;
   padding: 0;
-}
-
-/* Content area fills all remaining space — no orphan gap */
-.appShellV4 {
-  transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.mainV4 {
-  min-width: 0;
-  width: 100%;
-  overflow-x: hidden;
-}
-.contentV4 {
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .sidebarV4Logo {
@@ -441,11 +416,7 @@ textarea:focus-visible,
   margin-top: 1px;
 }
 
-.mainV4 {
-  min-width: 0;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg) 94%, transparent), var(--bg));
-}
+.mainV4 { background: var(--bg); }
 
 .topbarV4 {
   min-height: var(--app-topbar-height);
@@ -753,9 +724,18 @@ td {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  .sidebarV4,
-  .sidebarCollapsed .sidebarV4 {
+  .sidebarV4 {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100dvh !important;
     width: min(292px, 88vw) !important;
+    z-index: 200 !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sidebarMobileOpen .sidebarV4 {
+    transform: translateX(0);
   }
 
   .sidebarV4Logo {
