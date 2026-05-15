@@ -45,7 +45,6 @@ export function SignUpPage() {
   const [confirmPw, setConfirmPw] = useState('')
   const [organizationName, setOrganizationName] = useState('')
   const [organizationSlug, setOrganizationSlug] = useState('')
-  const [slugEdited, setSlugEdited] = useState(false)
   const [plan, setPlan] = useState('basic')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -58,7 +57,6 @@ export function SignUpPage() {
     { label: 'Special character', ok: /[^a-zA-Z0-9]/.test(password) },
   ], [password])
 
-  const slugOk = /^[a-z0-9-]{3,50}$/.test(organizationSlug.trim())
   const passwordOk = passwordChecks.every((check) => check.ok)
   const step0Ok = fullName.trim().length >= 2 && email.includes('@') && passwordOk && password === confirmPw
   const step1Ok = organizationName.trim().length >= 2 && organizationSlug.length >= 3
