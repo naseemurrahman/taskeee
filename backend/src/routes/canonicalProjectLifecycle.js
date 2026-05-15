@@ -6,6 +6,7 @@ const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { logAudit } = require('../services/auditService');
 const { logUserActivity } = require('../services/activityService');
+const { emitNotification, notifyOrgLeaders } = require('../services/notificationService');
 
 const router = express.Router();
 const columnsCache = new Map();
@@ -47,6 +48,84 @@ async function countActiveTasks(orgId, projectId) {
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
   const { rows } = await query(`SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`, [orgId, projectId]);
   return Number(rows[0]?.cnt || 0);
+}
+
+async function getProjectTaskAssignees(orgId, projectId) {
+  const taskCols = await getColumns('tasks');
+  if (!taskCols.has('project_id') || !taskCols.has('assigned_to')) return [];
+  const conditions = ['org_id = $1', 'project_id = $2', 'assigned_to IS NOT NULL'];
+  if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
+  const { rows } = await query(
+    `SELECT DISTINCT assigned_to AS user_id
+       FROM tasks
+      WHERE ${conditions.join(' AND ')}
+      LIMIT 500`,
+    [orgId, projectId]
+  );
+  return rows.map(r => r.user_id).filter(Boolean);
+}
+
+function lifecycleNotificationPayload(project, status, activeTaskCount) {
+  const projectName = project.name || project.id;
+  if (status === 'paused') {
+    return {
+      type: 'project_paused',
+      title: 'Project paused',
+      body: `${projectName} was paused. Active project tasks have been placed on hold.`,
+      dedupeKey: `project_paused:project:${project.id}`,
+    };
+  }
+  if (status === 'active') {
+    return {
+      type: 'project_reactivated',
+      title: 'Project reactivated',
+      body: `${projectName} was reactivated. Eligible held tasks can continue.`,
+      dedupeKey: `project_reactivated:project:${project.id}`,
+    };
+  }
+  return {
+    type: 'project_completed',
+    title: 'Project completed',
+    body: `${projectName} was completed. ${activeTaskCount || 0} active task(s) were resolved by the lifecycle change.`,
+    dedupeKey: `project_completed:project:${project.id}`,
+  };
+}
+
+async function notifyProjectLifecycle({ orgId, project, status, actorUserId, activeTaskCount, overrideReason }) {
+  try {
+    const base = lifecycleNotificationPayload(project, status, activeTaskCount);
+    const data = {
+      projectId: project.id,
+      projectName: project.name,
+      projectStatus: status,
+      activeTaskCount,
+      actorUserId,
+      overrideReason: overrideReason || null,
+      dedupeKey: base.dedupeKey,
+    };
+
+    await notifyOrgLeaders(orgId, {
+      type: base.type,
+      title: base.title,
+      body: base.body,
+      data,
+      excludeUserId: actorUserId,
+    });
+
+    const assignees = await getProjectTaskAssignees(orgId, project.id);
+    for (const userId of assignees) {
+      if (actorUserId && String(userId) === String(actorUserId)) continue;
+      await emitNotification(userId, {
+        type: base.type,
+        title: base.title,
+        body: base.body,
+        data,
+        dedupeKey: base.dedupeKey,
+      });
+    }
+  } catch {
+    // Notifications are secondary; lifecycle mutation has already succeeded.
+  }
 }
 
 async function mutateTasksForStatus(tx, { orgId, projectId, status, actorUserId }) {
@@ -132,6 +211,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true } });
       await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, override_reason: req.body.override_reason || req.body.reason || null }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await notifyProjectLifecycle({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason: req.body.override_reason || req.body.reason || null });
     } catch { /* non-critical */ }
 
     return res.json({ project, affectedActiveTasks: activeTaskCount });
