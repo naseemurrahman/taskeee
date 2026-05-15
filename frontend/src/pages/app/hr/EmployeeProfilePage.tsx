@@ -73,24 +73,16 @@ async function updateEmployee(input: { id: string; patch: EmployeePatch }) {
 
 async function fetchEmployeeTasks(employee?: Employee | null) {
   if (!employee) return [] as TaskRow[]
-  const candidateIds = [employee.user_id, employee.id].filter(Boolean) as string[]
-  const tasks: TaskRow[] = []
-  const seen = new Set<string>()
-
-  for (const targetId of candidateIds) {
-    try {
-      const data = await apiFetch<{ tasks?: TaskRow[] }>(`/api/v1/tasks?userId=${encodeURIComponent(targetId)}&limit=100`)
-      for (const task of data.tasks || []) {
-        if (!task?.id || seen.has(task.id)) continue
-        seen.add(task.id)
-        tasks.push(task)
-      }
-    } catch {
-      // Legacy data may be keyed by users.id or employees.id. Try every safe identifier.
-    }
+  // ONLY use user_id (users table UUID) — tasks.assigned_to stores users.id, not employees.id
+  // Using employee.id as a fallback would return wrong or all-org tasks
+  const userId = employee.user_id
+  if (!userId) return [] as TaskRow[]
+  try {
+    const data = await apiFetch<{ tasks?: TaskRow[] }>(`/api/v1/tasks?userId=${encodeURIComponent(userId)}&limit=200`)
+    return (data.tasks || []).filter(t => t?.id)
+  } catch {
+    return [] as TaskRow[]
   }
-
-  return tasks
 }
 
 async function fetchEmployeeTimeOff(employee?: Employee | null) {

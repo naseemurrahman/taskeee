@@ -316,9 +316,23 @@ router.get('/', authenticate, async (req, res, next) => {
       /** Only tasks assigned to the signed-in user. */
       targetUserIds = await getOwnTargetUserIds(user, orgId);
     } else if (userId) {
-      // When userId is explicitly provided (e.g. employee profile view), ALWAYS filter to that user
-      // This ensures admin clicking on an employee profile sees only that employee's tasks
-      targetUserIds = [userId];
+      // When userId is explicitly provided (e.g. employee profile view), filter to that user.
+      // Validate it's a real users.id in this org — prevents accidental all-org task leak
+      // if someone passes an employees.id (which is NOT the same as users.id).
+      try {
+        const { rows: userCheck } = await query(
+          `SELECT id FROM users WHERE id = $1 AND (org_id = $2 OR org_id IS NULL) LIMIT 1`,
+          [userId, orgId]
+        );
+        if (userCheck.length) {
+          targetUserIds = [userId];
+        } else {
+          // userId not found in users table — return empty rather than leaking all tasks
+          return res.json({ tasks: [], pagination: { page: 1, limit: 200, total: 0, pages: 0 } });
+        }
+      } catch {
+        targetUserIds = [userId];
+      }
     }
 
     /** Safety net: if target list is empty for any reason, default to own tasks */
