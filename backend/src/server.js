@@ -181,9 +181,12 @@ app.use(errorHandler);
 const PORT = parseInt(process.env.PORT || process.env.RAILWAY_PORT || '8080', 10);
 async function start() {
   try { require('./utils/envCheck').runEnvCheck(); } catch {}
+
   try { await connectDB(); } catch (err) { logger.error('Database bootstrap failed, starting API in degraded mode: ' + err.message); }
   try { await connectRedis(); } catch (err) { logger.warn('Redis bootstrap failed, continuing with fallback cache: ' + err.message); }
+
   if (process.env.NODE_ENV !== 'test' || require.main === module) server.listen(PORT);
+
   setImmediate(async () => {
     try { await runPendingMigrations({ verbose: true }); } catch (err) { logger.warn('Versioned migration warning: ' + err.message); }
     try { require('./services/schedulerService').start(); } catch (err) { logger.warn('Scheduler failed to start: ' + err.message); }
