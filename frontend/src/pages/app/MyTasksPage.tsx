@@ -20,6 +20,7 @@ import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
 import { useToast } from '../../components/ui/ToastSystem'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import '../../my-tasks-pro.css'
 
 type TaskRow = {
   id: string

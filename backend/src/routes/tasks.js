@@ -371,8 +371,27 @@ router.get('/', authenticate, async (req, res, next) => {
       WHERE ${conditions.join(' AND ')}
       GROUP BY t.id, u_assigned.full_name, u_assigned.email, u_by.full_name, cat.name, cat.color
       ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
-      LIMIT $${p++} OFFSET $${p++}
-    `, [...params, parseInt(limit, 10), offset]);
+      LIMIT $${p} OFFSET $${p + 1}
+    `, [...params, parseInt(String(limit), 10), parseInt(String(offset), 10)]).catch(async (listErr) => {
+      // If task_messages table doesn't exist yet, retry without that join
+      if (listErr.code === '42P01') {
+        return query(`
+          SELECT t.*, u_assigned.full_name AS assigned_to_name, u_assigned.email AS assigned_to_email,
+            u_by.full_name AS assigned_by_name, cat.name AS category_name, cat.color AS category_color,
+            COUNT(DISTINCT tp.id) AS photo_count, 0 AS message_count, COUNT(*) OVER() AS total_count
+          FROM tasks t
+          LEFT JOIN users u_assigned ON u_assigned.id = t.assigned_to
+          LEFT JOIN users u_by ON u_by.id = t.assigned_by
+          LEFT JOIN task_categories cat ON cat.id = t.category_id
+          LEFT JOIN task_photos tp ON tp.task_id = t.id
+          WHERE ${conditions.join(' AND ')}
+          GROUP BY t.id, u_assigned.full_name, u_assigned.email, u_by.full_name, cat.name, cat.color
+          ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
+          LIMIT $${p} OFFSET $${p + 1}
+        `, [...params, parseInt(String(limit), 10), parseInt(String(offset), 10)]);
+      }
+      throw listErr;
+    });
 
     const taskIds = tasks.map(t => t.id);
     let dependencyCounts = {};
