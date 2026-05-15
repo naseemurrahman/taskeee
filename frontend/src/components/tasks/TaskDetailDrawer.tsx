@@ -14,6 +14,7 @@ type Task = {
   assigned_to?: string | null; assigned_to_name?: string | null
   assigned_by?: string | null; assigned_by_name?: string | null
   category_name?: string | null; category_color?: string | null
+  project_id?: string | null; project_name?: string | null; project_status?: string | null
   created_at?: string; updated_at?: string
 }
 type Message = { id: string; body: string; created_at: string; sender_name?: string | null; sender_id: string }
@@ -30,6 +31,15 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
   completed:        { label: 'Completed',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
   overdue:          { label: 'Overdue',     color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
   cancelled:        { label: 'Cancelled',   color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+  on_hold:          { label: 'On Hold',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+}
+
+const PROJECT_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
+  active:    { label: 'Active Project',    color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  paused:    { label: 'Paused Project',    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+  completed: { label: 'Completed Project', color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+  archived:  { label: 'Archived Project',  color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+  cancelled: { label: 'Cancelled Project', color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
 }
 
 const PRIORITY_META: Record<string, { color: string; icon: ReactNode }> = {
@@ -37,6 +47,31 @@ const PRIORITY_META: Record<string, { color: string; icon: ReactNode }> = {
   medium:   { color: '#8B5CF6', icon: <ArrowRight size={12} /> },
   high:     { color: '#f97316', icon: <ArrowUp size={12} /> },
   critical: { color: '#ef4444', icon: <AlertTriangle size={12} /> },
+}
+
+function projectStatus(task?: Task | null) {
+  return String(task?.project_status || 'active').toLowerCase()
+}
+
+function isProjectLocked(task?: Task | null) {
+  return !!task?.project_id && projectStatus(task) !== 'active'
+}
+
+function projectLockMessage(task?: Task | null) {
+  if (!task) return 'Project workflow is locked.'
+  return `Project ${task.project_name || task.project_id || ''} is ${projectStatus(task)}; reactivate it before changing task workflow.`
+}
+
+function ProjectLifecycleBadge({ task }: { task?: Task | null }) {
+  if (!task?.project_id && !task?.project_name) return null
+  const status = projectStatus(task)
+  const meta = PROJECT_STATUS_META[status] || { label: `${status.replace(/_/g, ' ')} Project`, color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' }
+  return (
+    <span title={isProjectLocked(task) ? projectLockMessage(task) : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color }} />
+      {meta.label}
+    </span>
+  )
 }
 
 function timeAgo(iso: string) {
@@ -112,6 +147,7 @@ export function TaskDetailDrawer({
   const task = taskQ.data?.task
   const timeline = taskQ.data?.timeline || []
   const photos = taskQ.data?.photos || []
+  const projectLocked = isProjectLocked(task)
 
   const assigneesQ = useQuery({
     queryKey: ['tasks', 'assignable-users'],
@@ -174,16 +210,20 @@ export function TaskDetailDrawer({
   })
 
   const statusM = useMutation({
-    mutationFn: (status: string) => apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } }),
+    mutationFn: (status: string) => {
+      if (projectLocked) throw new Error(projectLockMessage(task))
+      return apiFetch(`/api/v1/tasks/${taskId}/status`, { method: 'PATCH', json: { status } })
+    },
     onSuccess: (_data, status) => {
       qc.invalidateQueries({ queryKey: ['task-detail', taskId] })
       qc.invalidateQueries({ queryKey: ['tasks', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'board'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       const label = STATUS_META[status]?.label || status
       toastSuccess('Status updated', `Task marked as ${label}`)
     },
     onError: (err: any) => {
-      toastError('Update failed', err instanceof ApiError ? err.message : 'Could not update status')
+      toastError('Update failed', err instanceof ApiError ? err.message : err?.message || 'Could not update status')
     }
   })
 
@@ -263,9 +303,9 @@ export function TaskDetailDrawer({
   const priorityMeta = PRIORITY_META[task?.priority || '']
 
   // Valid next statuses for current user/role
-  const transitions: string[] = canManage
-    ? { pending: ['in_progress','completed','cancelled'], in_progress: ['submitted','completed','cancelled','pending'], submitted: ['manager_approved','manager_rejected','completed'], manager_approved: ['completed'], manager_rejected: ['in_progress','pending'], overdue: ['in_progress','completed'], cancelled: ['pending'] }[task?.status || ''] || []
-    : { pending: ['in_progress'], in_progress: ['submitted','pending'], submitted: ['in_progress'], manager_rejected: ['in_progress'] }[task?.status || ''] || []
+  const transitions: string[] = projectLocked ? [] : (canManage
+    ? { pending: ['in_progress','completed','cancelled'], in_progress: ['submitted','completed','cancelled','pending'], submitted: ['manager_approved','manager_rejected','completed'], manager_approved: ['completed'], manager_rejected: ['in_progress','pending'], overdue: ['in_progress','completed'], cancelled: ['pending'], on_hold: ['pending'] }[task?.status || ''] || []
+    : { pending: ['in_progress'], in_progress: ['submitted','pending'], submitted: ['in_progress'], manager_rejected: ['in_progress'] }[task?.status || ''] || [])
 
   return (
     <>
@@ -299,6 +339,12 @@ export function TaskDetailDrawer({
                   {statusMeta.label}
                 </span>
               )}
+              <ProjectLifecycleBadge task={task} />
+              {task?.project_name && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: projectLocked ? 'rgba(245,158,11,0.10)' : 'rgba(34,197,94,0.08)', color: projectLocked ? '#f59e0b' : '#22c55e', border: `1px solid ${projectLocked ? 'rgba(245,158,11,0.28)' : 'rgba(34,197,94,0.22)'}` }}>
+                  {task.project_name}
+                </span>
+              )}
               {task?.priority && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, background: (priorityMeta?.color || '#9ca3af') + '18', color: priorityMeta?.color || '#9ca3af', border: `1px solid ${priorityMeta?.color || '#9ca3af'}33` }}>
                   {priorityMeta?.icon} {task.priority}
@@ -310,6 +356,11 @@ export function TaskDetailDrawer({
                 </span>
               )}
             </div>
+            {task && projectLocked && (
+              <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 10, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)', color: '#f59e0b', fontSize: 12, fontWeight: 800, lineHeight: 1.45 }}>
+                🔒 {projectLockMessage(task)}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {canManage && (
@@ -421,21 +472,25 @@ export function TaskDetailDrawer({
               </div>
 
               {/* Status Change */}
-              {transitions.length > 0 && (
+              {projectLocked ? (
+                <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)', color: '#f59e0b', fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>
+                  🔒 Status changes are disabled because this task belongs to a {projectStatus(task)} project.
+                </div>
+              ) : transitions.length > 0 && (
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Change Status</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {transitions.map(s => {
                       const meta = STATUS_META[s] || { label: s.replace(/_/g,' '), color: '#9ca3af', bg: '' }
                       return (
-                        <button key={s} onClick={() => statusM.mutate(s)} disabled={statusM.isPending}
-                          style={{ padding: '6px 14px', borderRadius: 999, border: `1.5px solid ${meta.color}44`, background: meta.bg, color: meta.color, fontSize: 12, fontWeight: 800, cursor: 'pointer', transition: 'all 0.12s', opacity: statusM.isPending ? 0.6 : 1 }}>
+                        <button key={s} onClick={() => statusM.mutate(s)} disabled={statusM.isPending || projectLocked}
+                          style={{ padding: '6px 14px', borderRadius: 999, border: `1.5px solid ${meta.color}44`, background: meta.bg, color: meta.color, fontSize: 12, fontWeight: 800, cursor: statusM.isPending || projectLocked ? 'not-allowed' : 'pointer', transition: 'all 0.12s', opacity: statusM.isPending || projectLocked ? 0.6 : 1 }}>
                           → {meta.label}
                         </button>
                       )
                     })}
                   </div>
-                  {statusM.isError && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{statusM.error instanceof ApiError ? statusM.error.message : 'Failed to update status'}</div>}
+                  {statusM.isError && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{statusM.error instanceof ApiError ? statusM.error.message : (statusM.error as any)?.message || 'Failed to update status'}</div>}
                 </div>
               )}
 
@@ -444,6 +499,8 @@ export function TaskDetailDrawer({
                 <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)', display: 'grid', gap: 6 }}>
                   <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Details</div>
                   {[
+                    { label: 'Project', value: task.project_name || '—' },
+                    { label: 'Project status', value: task.project_id ? projectStatus(task) : '—' },
                     { label: 'Assigned by', value: task.assigned_by_name || '—' },
                     { label: 'Created', value: task.created_at ? timeAgo(task.created_at) : '—' },
                     { label: 'Updated', value: task.updated_at ? timeAgo(task.updated_at) : '—' },
@@ -451,7 +508,7 @@ export function TaskDetailDrawer({
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, gap: 12 }}>
                       <span style={{ color: 'var(--muted)', fontWeight: 600 }}>{label}</span>
-                      <span style={{ color: 'var(--text2)', fontWeight: 700, textAlign: 'right' }}>{value}</span>
+                      <span style={{ color: 'var(--text2)', fontWeight: 700, textAlign: 'right', textTransform: label === 'Project status' && value !== '—' ? 'capitalize' : undefined }}>{value}</span>
                     </div>
                   ))}
                 </div>
