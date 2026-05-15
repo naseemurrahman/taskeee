@@ -32,6 +32,7 @@ const mfaRoutes   = require('./routes/mfa');
 const sessionRoutes = require('./routes/sessions').router;
 const userRoutes  = require('./routes/users');
 const taskRoutes  = require('./routes/tasks');
+const canonicalTaskProjectsRoutes = require('./routes/canonicalTaskProjects');
 const tasksListCompatRoutes = require('./routes/tasksListCompat');
 const taskTemplatesRoutes = require('./routes/taskTemplates');
 const recurringTasksRoutes = require('./routes/recurringTasks');
@@ -126,6 +127,7 @@ const { authenticate: _taskAuth, enforceTaskCollectionAccess } = require('./midd
 app.use('/api/v1/tasks', _taskAuth, enforceTaskCollectionAccess);
 app.use('/api/v1/tasks', reassignmentGovernanceRoutes);
 app.use('/api/v1/tasks', statusGovernanceRoutes.tasks);
+app.use('/api/v1/tasks', canonicalTaskProjectsRoutes);
 app.use('/api/v1/tasks', tasksListCompatRoutes);
 app.use('/api/v1/tasks/bulk', bulkActionRateLimiter);
 app.use('/api/v1/task-templates', taskTemplatesRoutes);
