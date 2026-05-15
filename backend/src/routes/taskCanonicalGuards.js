@@ -82,6 +82,25 @@ function canTransition({ role, fromStatus, toStatus, task, userId }) {
   return false;
 }
 
+async function writeStatusTimeline({ taskId, actorId, fromStatus, toStatus, note }) {
+  try {
+    const tlCols = await getColumns('task_timeline');
+    if (!tlCols.size || !tlCols.has('task_id')) return;
+    const fields = ['task_id'];
+    const values = [taskId];
+    if (tlCols.has('actor_type')) { fields.push('actor_type'); values.push('user'); }
+    if (tlCols.has('event_type')) { fields.push('event_type'); values.push('status_changed'); }
+    if (tlCols.has('actor_id')) { fields.push('actor_id'); values.push(actorId); }
+    if (tlCols.has('from_status')) { fields.push('from_status'); values.push(fromStatus); }
+    if (tlCols.has('to_status')) { fields.push('to_status'); values.push(toStatus); }
+    if (tlCols.has('note')) { fields.push('note'); values.push(note || null); }
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+    await query(`INSERT INTO task_timeline (${fields.join(', ')}) VALUES (${placeholders})`, values);
+  } catch {
+    // Timeline failures must not block the workflow status update.
+  }
+}
+
 router.get('/assignable-users', authenticate, async (req, res, next) => {
   try {
     const orgId = await resolveOrgId(req);
@@ -158,6 +177,7 @@ async function updateStatus(req, res, next) {
     if (nextStatus === 'completed' && taskCols.has('completed_at')) setParts.push('completed_at = NOW()');
     const result = await query(`UPDATE tasks SET ${setParts.join(', ')} WHERE id = $2 AND org_id = $3 RETURNING id, status`, params);
 
+    await writeStatusTimeline({ taskId: task.id, actorId: req.user.id, fromStatus, toStatus: nextStatus, note: req.body?.note || null });
     try {
       await logUserActivity({ orgId, userId: req.user.id, taskId: task.id, activityType: 'task_status_changed', metadata: { fromStatus, toStatus: nextStatus, canonicalProjectOnly: true } });
     } catch { /* non-critical */ }
