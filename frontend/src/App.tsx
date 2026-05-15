@@ -11,6 +11,7 @@ import { isEmployeeRole } from './lib/rbac'
 
 const DashboardHomePage        = lazy(() => import('./pages/app/DashboardHomePage').then(m => ({ default: m.DashboardHomePage })))
 const TasksPage                = lazy(() => import('./pages/app/TasksPage').then(m => ({ default: m.TasksPage })))
+const ReassignmentTasksPage    = lazy(() => import('./pages/app/ReassignmentTasksPage').then(m => ({ default: m.ReassignmentTasksPage })))
 const MyTasksPage              = lazy(() => import('./pages/app/MyTasksPage').then(m => ({ default: m.MyTasksPage })))
 const ProjectsPage             = lazy(() => import('./pages/app/ProjectsPage').then(m => ({ default: m.ProjectsPage })))
 const BoardPage                = lazy(() => import('./pages/app/BoardPage').then(m => ({ default: m.BoardPage })))
@@ -62,6 +63,12 @@ function TasksEntry() {
   return <TasksPage />
 }
 
+function ReassignmentEntry() {
+  const me = getUser()
+  if (isEmployeeRole(me?.role)) return <Navigate to="/app/my-tasks" replace />
+  return <ReassignmentTasksPage />
+}
+
 function OrgAnalyticsEntry() {
   const me = getUser()
   if (isEmployeeRole(me?.role)) return <Navigate to="/app/my-tasks" replace />
@@ -90,6 +97,7 @@ export default function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard"        element={<DashboardHomePage />} />
           <Route path="tasks"            element={<TasksEntry />} />
+          <Route path="tasks/reassignment" element={<ReassignmentEntry />} />
           <Route path="my-tasks"         element={<MyTasksPage />} />
           <Route path="recurring-tasks"  element={<RecurringTasksPage />} />
           <Route path="projects"         element={<ProjectsPage />} />
