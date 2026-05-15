@@ -87,8 +87,11 @@ export function ReassignmentTasksPage() {
       if (!assigneeId) throw new Error('Select an active employee first')
       const ids = selectedTasks.map(t => t.id)
       if (!ids.length) throw new Error('Select at least one task')
-      await Promise.all(ids.map(id => apiFetch(`/api/v1/tasks/${id}`, { method: 'PATCH', json: { assigned_to: assigneeId, status: 'pending' } })))
-      return ids.length
+      const res = await apiFetch<{ updatedCount: number; tasks: Task[] }>('/api/v1/tasks/reassign', {
+        method: 'POST',
+        json: { taskIds: ids, assigned_to: assigneeId, status: 'pending' },
+      })
+      return res.updatedCount || ids.length
     },
     onSuccess: (count) => {
       toastSuccess('Tasks reassigned', `${count} task${count === 1 ? '' : 's'} moved back to Pending.`)
