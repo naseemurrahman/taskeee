@@ -102,7 +102,15 @@ describe('scoped reassignment governance', () => {
     expect(res.status).toBe(200);
     expect(res.body.updatedCount).toBe(1);
     expect(withTransaction).toHaveBeenCalledTimes(1);
-    expect(emitNotification).toHaveBeenCalledWith('user-1', expect.objectContaining({ type: 'task.reassigned' }));
+    expect(emitNotification).toHaveBeenCalledWith('user-1', expect.objectContaining({
+      type: 'task.reassigned',
+      data: expect.objectContaining({
+        eventType: 'reassignment.completed',
+        eventFamily: 'reassignment',
+        eventAction: 'completed',
+        legacyType: 'task.reassigned',
+      }),
+    }));
   });
 
   test('manager cannot reassign to an employee outside reporting scope', async () => {
@@ -137,7 +145,7 @@ describe('scoped reassignment governance', () => {
     expect(listCall?.[1]).toEqual(['org-1', ['supervisor-1']]);
   });
 
-  test('admin bulk reassignment notifies the new assignee', async () => {
+  test('admin bulk reassignment notifies the new assignee with completed taxonomy', async () => {
     const { app, emitNotification } = loadApp({
       rows: [{ id: 'task-1', title: 'Notify task', status: 'pending', assigned_to: 'user-1' }],
     });
@@ -147,6 +155,15 @@ describe('scoped reassignment governance', () => {
       .send({ taskIds: ['task-1'], assigned_to: 'user-1', status: 'pending' });
 
     expect(res.status).toBe(200);
-    expect(emitNotification).toHaveBeenCalledWith('user-1', expect.objectContaining({ type: 'task.reassigned' }));
+    expect(emitNotification).toHaveBeenCalledWith('user-1', expect.objectContaining({
+      type: 'task.reassigned',
+      data: expect.objectContaining({
+        eventType: 'reassignment.completed',
+        eventFamily: 'reassignment',
+        eventAction: 'completed',
+        legacyType: 'task.reassigned',
+        taskIds: ['task-1'],
+      }),
+    }));
   });
 });
