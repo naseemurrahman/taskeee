@@ -35,17 +35,104 @@ function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
 }
 
-async function lockProjectForLifecycle(tx, orgId, projectId) {
+async function lockCanonicalProjectById(tx, orgId, projectId) {
+  const { rows } = await tx.query(
+    `SELECT id, name
+       FROM projects
+      WHERE id = $1 AND org_id = $2
+      LIMIT 1
+      FOR UPDATE`,
+    [projectId, orgId]
+  );
+  return rows[0] || null;
+}
+
+async function getLegacyCategoryForProjectId(tx, orgId, projectId) {
   try {
+    const cols = await getColumns('task_categories');
+    if (!cols.size) return null;
+    const selectParts = [
+      'tc.id',
+      'tc.org_id',
+      'tc.name',
+      cols.has('description') ? 'tc.description' : 'NULL::text AS description',
+      cols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at',
+      cols.has('status') ? "COALESCE(tc.status, 'active') AS status" : "'active' AS status",
+      cols.has('is_active') ? 'COALESCE(tc.is_active, TRUE) AS is_active' : 'TRUE AS is_active',
+    ];
     const { rows } = await tx.query(
-      `SELECT id, name
-         FROM projects
-        WHERE id = $1 AND org_id = $2
-        LIMIT 1
-        FOR UPDATE`,
+      `SELECT ${selectParts.join(', ')}
+         FROM task_categories tc
+        WHERE tc.id = $1 AND tc.org_id = $2
+        LIMIT 1`,
       [projectId, orgId]
     );
     return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;
+    throw err;
+  }
+}
+
+async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, actorUserId) {
+  const legacy = await getLegacyCategoryForProjectId(tx, orgId, projectId);
+  if (!legacy) return null;
+
+  const projectCols = await getColumns('projects');
+  if (!projectCols.has('id') || !projectCols.has('org_id') || !projectCols.has('name')) return null;
+
+  const status = legacy.status || (legacy.is_active ? 'active' : 'completed');
+  const fields = ['id', 'org_id', 'name'];
+  const values = [legacy.id, orgId, legacy.name];
+  if (projectCols.has('description')) { fields.push('description'); values.push(legacy.description || null); }
+  if (projectCols.has('status')) { fields.push('status'); values.push(status); }
+  if (projectCols.has('created_by')) { fields.push('created_by'); values.push(actorUserId || null); }
+  if (projectCols.has('updated_by')) { fields.push('updated_by'); values.push(actorUserId || null); }
+  if (projectCols.has('created_at')) { fields.push('created_at'); values.push(legacy.created_at || new Date()); }
+  if (projectCols.has('updated_at')) { fields.push('updated_at'); values.push(new Date()); }
+  if (projectCols.has('metadata')) {
+    fields.push('metadata');
+    values.push(JSON.stringify({ legacy_task_category_id: legacy.id, backfilled_from: 'task_categories', backfilled_by_route: 'canonicalProjectLifecycle' }));
+  }
+
+  const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+  const updates = [];
+  if (projectCols.has('name')) updates.push('name = EXCLUDED.name');
+  if (projectCols.has('description')) updates.push('description = COALESCE(projects.description, EXCLUDED.description)');
+  if (projectCols.has('status')) updates.push('status = COALESCE(projects.status, EXCLUDED.status)');
+  if (projectCols.has('updated_at')) updates.push('updated_at = NOW()');
+  if (projectCols.has('updated_by')) updates.push('updated_by = EXCLUDED.updated_by');
+  if (projectCols.has('metadata')) updates.push(`metadata = COALESCE(projects.metadata::jsonb, '{}'::jsonb) || EXCLUDED.metadata::jsonb`);
+
+  await tx.query(
+    `INSERT INTO projects (${fields.join(', ')})
+     VALUES (${placeholders})
+     ON CONFLICT (id) DO UPDATE SET ${updates.length ? updates.join(', ') : 'id = EXCLUDED.id'}`,
+    values
+  );
+
+  const taskCols = await getColumns('tasks');
+  if (taskCols.has('project_id') && taskCols.has('category_id')) {
+    const conditions = ['org_id = $1', 'category_id = $2', '(project_id IS NULL OR project_id = $2)'];
+    if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
+    await tx.query(
+      `UPDATE tasks
+          SET project_id = $2${taskCols.has('updated_at') ? ', updated_at = NOW()' : ''}
+        WHERE ${conditions.join(' AND ')}`,
+      [orgId, legacy.id]
+    );
+  }
+
+  return lockCanonicalProjectById(tx, orgId, legacy.id);
+}
+
+async function lockProjectForLifecycle(tx, orgId, projectId, actorUserId) {
+  try {
+    const existing = await lockCanonicalProjectById(tx, orgId, projectId);
+    if (existing) return { project: existing, requestedProjectId: projectId, canonicalProjectId: existing.id, resolvedFrom: 'projects' };
+    const backfilled = await backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, actorUserId);
+    if (backfilled) return { project: backfilled, requestedProjectId: projectId, canonicalProjectId: backfilled.id, resolvedFrom: 'task_categories_backfill' };
+    return null;
   } catch (err) {
     if (err.code === '42P01') return null;
     throw err;
@@ -205,12 +292,14 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
 
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    const projectId = String(req.params.projectId || '').trim();
+    const requestedProjectId = String(req.params.projectId || '').trim();
     const overrideReason = req.body.override_reason || req.body.reason || null;
 
     const result = await withTransaction(async (tx) => {
-      const existing = await lockProjectForLifecycle(tx, orgId, projectId);
-      if (!existing) throw Object.assign(new Error('Project not found in canonical projects table.'), { statusCode: 404 });
+      const locked = await lockProjectForLifecycle(tx, orgId, requestedProjectId, req.user.id);
+      if (!locked) throw Object.assign(new Error('Project was not found in canonical projects or legacy project categories. Run the project backfill SQL and retry.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED' });
+      const projectId = locked.canonicalProjectId;
+      const existing = locked.project;
 
       const activeTaskCount = await countActiveTasksWithClient(tx, orgId, projectId);
       if (requestedStatus === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) {
@@ -241,18 +330,18 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       );
       if (!rows.length) throw Object.assign(new Error('Project not found'), { statusCode: 404 });
       await mutateTasksForStatus(tx, { orgId, projectId, status: requestedStatus, actorUserId: req.user.id });
-      return { project: rows[0], activeTaskCount };
+      return { project: rows[0] || existing, activeTaskCount, requestedProjectId, canonicalProjectId: projectId, resolvedFrom: locked.resolvedFrom };
     });
 
-    const { project, activeTaskCount } = result;
+    const { project, activeTaskCount, requestedProjectId, canonicalProjectId, resolvedFrom } = result;
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: canonicalProjectId, requestedProjectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true, resolvedFrom } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: canonicalProjectId, metadata: { requestedProjectId, newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, resolvedFrom, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
 
     scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason });
 
-    return res.json({ project, affectedActiveTasks: activeTaskCount });
+    return res.json({ project, affectedActiveTasks: activeTaskCount, requestedProjectId, canonicalProjectId, resolvedFrom });
   } catch (err) {
     if (err.statusCode) {
       const body = { error: err.message };
