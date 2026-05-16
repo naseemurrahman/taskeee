@@ -126,8 +126,8 @@ const { authenticate: _taskAuth, enforceTaskCollectionAccess } = require('./midd
 app.use('/api/v1/tasks', _taskAuth, enforceTaskCollectionAccess);
 app.use('/api/v1/tasks', taskCanonicalGuardsRoutes);
 app.use('/api/v1/tasks', reassignmentGovernanceRoutes);
-app.use('/api/v1/tasks', canonicalTaskProjectsRoutes);
 app.use('/api/v1/tasks', statusGovernanceRoutes.tasks);
+app.use('/api/v1/tasks', canonicalTaskProjectsRoutes);
 app.use('/api/v1/tasks', tasksListCompatRoutes);
 app.use('/api/v1/tasks/bulk', bulkActionRateLimiter);
 app.use('/api/v1/task-templates', taskTemplatesRoutes);
