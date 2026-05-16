@@ -73,7 +73,7 @@ function projectStatusExpression(alias, cols) {
 async function getTaskForStatus(orgId, taskId) {
   const taskCols = await getColumns('tasks');
   const fields = ['id', 'org_id'];
-  for (const field of ['title', 'status', 'assigned_to', 'category_id', 'project_id']) {
+  for (const field of ['title', 'status', 'assigned_to', 'project_id']) {
     if (taskCols.has(field)) fields.push(field);
   }
   const { rows } = await query(`SELECT ${fields.join(', ')} FROM tasks WHERE id = $1 AND org_id = $2 LIMIT 1`, [taskId, orgId]);
@@ -86,14 +86,6 @@ async function getTaskProjectStatus(task, taskCols, orgId) {
     if (projectCols.size) {
       const statusExpr = projectStatusExpression('p', projectCols);
       const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, task.project_id]);
-      if (rows.length) return rows[0];
-    }
-  }
-  if (taskCols.has('category_id') && task.category_id) {
-    const categoryCols = await getColumns('task_categories').catch(() => new Set());
-    if (categoryCols.size) {
-      const statusExpr = projectStatusExpression('tc', categoryCols);
-      const { rows } = await query(`SELECT tc.id, tc.name, ${statusExpr} AS status FROM task_categories tc WHERE tc.org_id = $1 AND tc.id = $2 LIMIT 1`, [orgId, task.category_id]);
       if (rows.length) return rows[0];
     }
   }
