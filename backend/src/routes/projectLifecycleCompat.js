@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { randomUUID } = require('crypto');
 const { query, withTransaction } = require('../utils/db');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
@@ -38,8 +39,20 @@ function normalizeIdentifiers(values) {
   return out;
 }
 
+function isLikelyUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
 function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
+}
+
+function quotedIdExpr(taskCols) {
+  const parts = [];
+  if (taskCols.has('category_id')) parts.push('t.category_id::text');
+  if (taskCols.has('project_id')) parts.push('t.project_id::text');
+  if (!parts.length) return null;
+  return parts.length === 1 ? parts[0] : `COALESCE(${parts.join(', ')})`;
 }
 
 async function findCanonicalProject(tx, orgId, ids) {
@@ -72,10 +85,11 @@ async function findLegacyCategory(tx, orgId, ids) {
     const cols = await getColumns('task_categories');
     if (!cols.size) return null;
     const { rows } = await tx.query(
-      `SELECT tc.id, tc.org_id, tc.name,
+      `SELECT tc.id::text AS id, tc.org_id, tc.name,
               ${cols.has('description') ? 'tc.description' : 'NULL::text AS description'},
               ${cols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at'},
-              ${cols.has('status') ? "COALESCE(tc.status, 'active')" : "'active'"} AS status
+              ${cols.has('status') ? "COALESCE(tc.status, 'active')" : "'active'"} AS status,
+              tc.id::text AS legacy_relation_id
          FROM task_categories tc
         WHERE tc.org_id = $1
           AND (tc.id::text = ANY($2::text[]) OR LOWER(tc.name) = ANY($3::text[]))
@@ -94,18 +108,12 @@ async function inferProjectSeedFromTasks(tx, orgId, ids, fallbackName) {
   const exact = normalizeIdentifiers(ids);
   if (!exact.length) return null;
   const taskCols = await getColumns('tasks');
-  const idParts = [];
+  const idExpr = quotedIdExpr(taskCols);
+  if (!idExpr) return null;
   const relationParts = [];
-  if (taskCols.has('category_id')) {
-    idParts.push('t.category_id');
-    relationParts.push('t.category_id::text = ANY($2::text[])');
-  }
-  if (taskCols.has('project_id')) {
-    idParts.push('t.project_id');
-    relationParts.push('t.project_id::text = ANY($2::text[])');
-  }
-  if (!idParts.length || !relationParts.length) return null;
-  const idExpr = idParts.length === 1 ? idParts[0] : `COALESCE(${idParts.join(', ')})`;
+  if (taskCols.has('category_id')) relationParts.push('t.category_id::text = ANY($2::text[])');
+  if (taskCols.has('project_id')) relationParts.push('t.project_id::text = ANY($2::text[])');
+  if (!relationParts.length) return null;
   const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`, `${idExpr} IS NOT NULL`];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
   const { rows } = await tx.query(
@@ -114,7 +122,8 @@ async function inferProjectSeedFromTasks(tx, orgId, ids, fallbackName) {
             COALESCE(NULLIF($3::text, ''), NULLIF($4::text, ''), 'Recovered Project') AS name,
             NULL::text AS description,
             NOW() AS created_at,
-            'active'::text AS status
+            'active'::text AS status,
+            ${idExpr} AS legacy_relation_id
        FROM tasks t
       WHERE ${conditions.join(' AND ')}
       GROUP BY ${idExpr}, t.org_id
@@ -129,30 +138,44 @@ async function ensureCanonicalProject(tx, orgId, seed, actorUserId) {
   if (!seed) return null;
   const existing = await findCanonicalProject(tx, orgId, [seed.id, seed.name]);
   if (existing) return existing;
+
   const cols = await getColumns('projects');
   if (!cols.has('id') || !cols.has('org_id') || !cols.has('name')) return null;
+
+  const canonicalId = isLikelyUuid(seed.id) ? seed.id : randomUUID();
   const fields = ['id', 'org_id', 'name'];
-  const values = [seed.id, orgId, seed.name];
+  const values = [canonicalId, orgId, seed.name];
   if (cols.has('description')) { fields.push('description'); values.push(seed.description || null); }
   if (cols.has('status')) { fields.push('status'); values.push(seed.status || 'active'); }
   if (cols.has('created_by')) { fields.push('created_by'); values.push(actorUserId || null); }
   if (cols.has('updated_by')) { fields.push('updated_by'); values.push(actorUserId || null); }
   if (cols.has('created_at')) { fields.push('created_at'); values.push(seed.created_at || new Date()); }
   if (cols.has('updated_at')) { fields.push('updated_at'); values.push(new Date()); }
-  if (cols.has('metadata')) { fields.push('metadata'); values.push(JSON.stringify({ recovered_from: 'legacy_project_lifecycle_compat', legacy_id: seed.id, legacy_name: seed.name })); }
+  if (cols.has('metadata')) {
+    fields.push('metadata');
+    values.push(JSON.stringify({
+      recovered_from: 'legacy_project_lifecycle_compat',
+      legacy_id: seed.id,
+      legacy_name: seed.name,
+      legacy_relation_id: seed.legacy_relation_id || seed.id,
+    }));
+  }
+
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
   await tx.query(`INSERT INTO projects (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT (id) DO NOTHING`, values);
-  return findCanonicalProject(tx, orgId, [seed.id, seed.name]);
+  return findCanonicalProject(tx, orgId, [canonicalId, seed.name]);
 }
 
 async function backfillTaskProjectIds(tx, orgId, canonicalId, ids) {
-  const exact = normalizeIdentifiers([canonicalId, ...(ids || [])]);
+  const exact = normalizeIdentifiers(ids);
   const taskCols = await getColumns('tasks');
-  if (!taskCols.has('project_id')) return;
+  if (!taskCols.has('project_id') || !exact.length) return;
+
   const relationParts = ['project_id::text = ANY($2::text[])'];
   if (taskCols.has('category_id')) relationParts.push('category_id::text = ANY($2::text[])');
-  const conditions = ['org_id = $1', `(${relationParts.join(' OR ')} OR project_id IS NULL)`];
+  const conditions = ['org_id = $1', `(${relationParts.join(' OR ')})`];
   if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
+
   await tx.query(
     `UPDATE tasks
         SET project_id = $3${taskCols.has('updated_at') ? ', updated_at = NOW()' : ''}
@@ -177,8 +200,12 @@ async function mutateTasksForStatus(tx, orgId, projectId, status, actorUserId) {
   if (taskCols.has('deleted_at')) base.push('t.deleted_at IS NULL');
   const metadata = (obj, params, setParts) => {
     if (taskCols.has('updated_at')) setParts.push('updated_at = NOW()');
-    if (taskCols.has('metadata')) { params.push(JSON.stringify(obj)); setParts.push(`metadata = COALESCE(t.metadata::jsonb, '{}'::jsonb) || $${params.length}::jsonb`); }
+    if (taskCols.has('metadata')) {
+      params.push(JSON.stringify(obj));
+      setParts.push(`metadata = COALESCE(t.metadata::jsonb, '{}'::jsonb) || $${params.length}::jsonb`);
+    }
   };
+
   if (status === 'paused') {
     const params = [orgId, projectId, 'on_hold'];
     const setParts = ['status = $3'];
@@ -201,6 +228,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
   const status = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : null;
   if (!status) return next();
   if (!['active', 'paused', 'completed'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
   try {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
@@ -211,16 +239,20 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const result = await withTransaction(async (tx) => {
       let project = await findCanonicalProject(tx, orgId, identifiers);
       let resolvedFrom = 'projects';
+      let seed = null;
       if (!project) {
-        const seed = await findLegacyCategory(tx, orgId, identifiers) || await inferProjectSeedFromTasks(tx, orgId, identifiers, requestedProjectName);
+        seed = await findLegacyCategory(tx, orgId, identifiers) || await inferProjectSeedFromTasks(tx, orgId, identifiers, requestedProjectName);
         project = await ensureCanonicalProject(tx, orgId, seed, req.user.id);
         resolvedFrom = seed ? 'legacy_or_task_relation_backfill' : 'unresolved';
       }
       if (!project) {
         throw Object.assign(new Error('Project was not found in canonical projects, legacy categories, or task relations.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
       }
-      await backfillTaskProjectIds(tx, orgId, project.id, identifiers);
+
+      const relationIdentifiers = normalizeIdentifiers([project.id, project.name, ...(identifiers || []), seed?.id, seed?.legacy_relation_id, seed?.name]);
+      await backfillTaskProjectIds(tx, orgId, project.id, relationIdentifiers);
       const activeTaskCount = await countActiveTasks(tx, orgId, project.id);
+
       if (status === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) {
         throw Object.assign(new Error(`Cannot complete project: ${activeTaskCount} active task(s) still require resolution.`), { statusCode: 409, code: 'PROJECT_HAS_ACTIVE_TASKS', activeTaskCount });
       }
@@ -230,6 +262,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
         const reason = String(req.body.override_reason || req.body.reason || '').trim();
         if (reason.length < 8) throw Object.assign(new Error('override_reason is required and must be at least 8 characters.'), { statusCode: 400 });
       }
+
       const cols = await getColumns('projects');
       const setParts = ['status = $1'];
       const params = [status];
