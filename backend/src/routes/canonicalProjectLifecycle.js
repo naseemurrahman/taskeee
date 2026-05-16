@@ -96,18 +96,11 @@ async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, 
   }
 
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-  const updates = [];
-  if (projectCols.has('name')) updates.push('name = EXCLUDED.name');
-  if (projectCols.has('description')) updates.push('description = COALESCE(projects.description, EXCLUDED.description)');
-  if (projectCols.has('status')) updates.push('status = COALESCE(projects.status, EXCLUDED.status)');
-  if (projectCols.has('updated_at')) updates.push('updated_at = NOW()');
-  if (projectCols.has('updated_by')) updates.push('updated_by = EXCLUDED.updated_by');
-  if (projectCols.has('metadata')) updates.push(`metadata = COALESCE(projects.metadata::jsonb, '{}'::jsonb) || EXCLUDED.metadata::jsonb`);
 
   await tx.query(
     `INSERT INTO projects (${fields.join(', ')})
      VALUES (${placeholders})
-     ON CONFLICT (id) DO UPDATE SET ${updates.length ? updates.join(', ') : 'id = EXCLUDED.id'}`,
+     ON CONFLICT (id) DO NOTHING`,
     values
   );
 
@@ -330,18 +323,18 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       );
       if (!rows.length) throw Object.assign(new Error('Project not found'), { statusCode: 404 });
       await mutateTasksForStatus(tx, { orgId, projectId, status: requestedStatus, actorUserId: req.user.id });
-      return { project: rows[0] || existing, activeTaskCount, requestedProjectId, canonicalProjectId: projectId, resolvedFrom: locked.resolvedFrom };
+      return { project: rows[0] || existing, activeTaskCount, requestedProjectId: locked.requestedProjectId, canonicalProjectId: projectId, resolvedFrom: locked.resolvedFrom };
     });
 
-    const { project, activeTaskCount, requestedProjectId, canonicalProjectId, resolvedFrom } = result;
+    const { project, activeTaskCount, requestedProjectId: resolvedRequestedProjectId, canonicalProjectId, resolvedFrom } = result;
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: canonicalProjectId, requestedProjectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true, resolvedFrom } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: canonicalProjectId, metadata: { requestedProjectId, newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, resolvedFrom, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: canonicalProjectId, requestedProjectId: resolvedRequestedProjectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true, resolvedFrom } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: canonicalProjectId, metadata: { requestedProjectId: resolvedRequestedProjectId, newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, resolvedFrom, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
 
     scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason });
 
-    return res.json({ project, affectedActiveTasks: activeTaskCount, requestedProjectId, canonicalProjectId, resolvedFrom });
+    return res.json({ project, affectedActiveTasks: activeTaskCount, requestedProjectId: resolvedRequestedProjectId, canonicalProjectId, resolvedFrom });
   } catch (err) {
     if (err.statusCode) {
       const body = { error: err.message };
