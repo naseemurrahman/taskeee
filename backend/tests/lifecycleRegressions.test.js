@@ -8,10 +8,14 @@ function makeCanonicalProjectApp(overrides = {}) {
 
   const state = {
     activeTaskCount: overrides.activeTaskCount ?? 2,
-    project: overrides.project || { id: 'project-1', name: 'Locked Project' },
+    project: overrides.project === undefined ? { id: 'project-1', name: 'Locked Project' } : overrides.project,
+    legacyCategory: overrides.legacyCategory === undefined ? null : overrides.legacyCategory,
+    insertedProject: null,
+    backfilledTasks: false,
     columns: {
-      tasks: ['id', 'org_id', 'status', 'project_id', 'metadata', 'updated_at', 'deleted_at', 'assigned_to'],
-      projects: ['id', 'org_id', 'name', 'status', 'updated_at', 'updated_by'],
+      tasks: ['id', 'org_id', 'status', 'project_id', 'metadata', 'updated_at', 'deleted_at', 'assigned_to', 'category_id'],
+      projects: ['id', 'org_id', 'name', 'description', 'status', 'metadata', 'created_at', 'updated_at', 'updated_by', 'created_by'],
+      task_categories: ['id', 'org_id', 'name', 'description', 'status', 'is_active', 'created_at'],
       ...(overrides.columns || {}),
     },
   };
@@ -28,13 +32,26 @@ function makeCanonicalProjectApp(overrides = {}) {
   const txQuery = jest.fn(async (sql, params = []) => {
     const text = String(sql).replace(/\s+/g, ' ').trim();
     if (text.includes('FROM projects') && text.includes('FOR UPDATE')) {
-      return { rows: state.project ? [state.project] : [] };
+      if (state.project) return { rows: [state.project] };
+      if (state.insertedProject) return { rows: [{ id: state.insertedProject.id, name: state.insertedProject.name }] };
+      return { rows: [] };
+    }
+    if (text.includes('FROM task_categories tc')) {
+      return { rows: state.legacyCategory ? [state.legacyCategory] : [] };
+    }
+    if (text.startsWith('INSERT INTO projects')) {
+      state.insertedProject = { id: params[0], org_id: params[1], name: params[2], status: params.includes('paused') ? 'paused' : 'active' };
+      return { rows: [], rowCount: 1 };
+    }
+    if (text.startsWith('UPDATE tasks') && text.includes('SET project_id = $2')) {
+      state.backfilledTasks = true;
+      return { rows: [], rowCount: 2 };
     }
     if (text.includes('COUNT(DISTINCT t.id)::int AS cnt')) {
       return { rows: [{ cnt: state.activeTaskCount }] };
     }
     if (text.startsWith('UPDATE projects SET')) {
-      return { rows: [{ id: params[params.length - 1], name: state.project.name, status: params[0], is_active: params[0] === 'active', source_store: 'projects' }], rowCount: 1 };
+      return { rows: [{ id: params[params.length - 1], name: (state.project || state.insertedProject || {}).name, status: params[0], is_active: params[0] === 'active', source_store: 'projects' }], rowCount: 1 };
     }
     if (text.startsWith('UPDATE tasks t SET')) {
       return { rows: [], rowCount: state.activeTaskCount };
@@ -62,7 +79,7 @@ function makeCanonicalProjectApp(overrides = {}) {
   const app = express();
   app.use(express.json());
   app.use('/projects', router);
-  return { app, query, txQuery, withTransaction, logAudit, logUserActivity };
+  return { app, query, txQuery, withTransaction, logAudit, logUserActivity, state };
 }
 
 function makeEmployeeLifecycleApp(overrides = {}) {
@@ -167,6 +184,26 @@ describe('canonical project lifecycle transaction regressions', () => {
     const txSql = txQuery.mock.calls.map(([sql]) => String(sql));
     expect(txSql.some((sql) => /FOR UPDATE/i.test(sql))).toBe(true);
     expect(txSql.some((sql) => /^UPDATE projects SET/i.test(sql))).toBe(true);
+    expect(txSql.some((sql) => /^UPDATE tasks t SET/i.test(sql))).toBe(true);
+  });
+
+  test('legacy category project id is backfilled and then paused instead of failing canonical lookup', async () => {
+    const { app, txQuery, state } = makeCanonicalProjectApp({
+      project: null,
+      legacyCategory: { id: 'legacy-project-1', org_id: 'org-1', name: 'NAJM', description: null, status: 'active', is_active: true, created_at: new Date('2026-01-01T00:00:00Z') },
+      activeTaskCount: 2,
+    });
+
+    const res = await request(app).patch('/projects/legacy-project-1').send({ status: 'paused' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.project.status).toBe('paused');
+    expect(res.body.resolvedFrom).toBe('task_categories_backfill');
+    expect(res.body.canonicalProjectId).toBe('legacy-project-1');
+    expect(state.backfilledTasks).toBe(true);
+    const txSql = txQuery.mock.calls.map(([sql]) => String(sql));
+    expect(txSql.some((sql) => /^INSERT INTO projects/i.test(sql))).toBe(true);
+    expect(txSql.some((sql) => /^UPDATE tasks\s+SET project_id = \$2/i.test(sql))).toBe(true);
     expect(txSql.some((sql) => /^UPDATE tasks t SET/i.test(sql))).toBe(true);
   });
 });
