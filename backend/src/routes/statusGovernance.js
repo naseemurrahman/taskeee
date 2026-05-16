@@ -444,11 +444,20 @@ async function preflightTaskAssignment(req, res, next) {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const body = req.body || {};
-    if (Object.prototype.hasOwnProperty.call(body, 'assignedTo') || Object.prototype.hasOwnProperty.call(body, 'assigned_to')) {
+    const changesAssignee = Object.prototype.hasOwnProperty.call(body, 'assignedTo') || Object.prototype.hasOwnProperty.call(body, 'assigned_to');
+    const projectId = body.projectId || body.project_id || null;
+
+    if (changesAssignee) {
+      const { rows } = await query(`SELECT id, org_id, status, assigned_to, project_id FROM tasks WHERE id = $1 AND org_id = $2 LIMIT 1`, [req.params.id, orgId]);
+      if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+      const existingProject = await getTaskProjectStatus(rows[0], orgId);
+      if (existingProject && existingProject.status !== 'active') {
+        return res.status(409).json({ error: `Cannot reassign task while project "${existingProject.name || existingProject.id}" is ${existingProject.status}. Reactivate the project first.`, code: 'PROJECT_NOT_ACTIVE', projectId: existingProject.id, projectStatus: existingProject.status });
+      }
       const assignable = await assertAssignableUser({ orgId, userId: body.assignedTo || body.assigned_to || null });
       if (sendGuard(res, assignable)) return;
     }
-    const projectId = body.projectId || body.project_id || null;
+
     if (projectId) {
       const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId });
       if (sendGuard(res, projectAllowed)) return;
