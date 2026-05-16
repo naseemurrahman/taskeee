@@ -12,6 +12,7 @@ function loadApp(context = {}) {
       ...(context.columns || {}),
     },
     subordinateIds: context.subordinateIds || [],
+    subordinateThrows: context.subordinateThrows || false,
     assignableUser: context.assignableUser || { id: 'user-1', user_active: true, employee_active: true },
     rows: context.rows || [{ id: 'task-1', title: 'Held task', status: 'pending', assigned_to: 'user-1' }],
     count: context.count ?? 1,
@@ -25,6 +26,7 @@ function loadApp(context = {}) {
     }
 
     if (text.includes('SELECT user_id FROM get_subordinate_ids')) {
+      if (state.subordinateThrows) throw new Error('function get_subordinate_ids does not exist');
       return { rows: state.subordinateIds.map((user_id) => ({ user_id })) };
     }
 
@@ -85,6 +87,24 @@ describe('scoped reassignment governance', () => {
     expect(query.mock.calls.some(([sql]) => String(sql).includes('assigned_to = ANY'))).toBe(true);
   });
 
+  test('manager can reassign an in-scope subordinate task', async () => {
+    const { app, withTransaction, emitNotification } = loadApp({
+      user: { id: 'manager-1', org_id: 'org-1', role: 'manager' },
+      subordinateIds: ['user-1'],
+      assignableUser: { id: 'user-1', user_active: true, employee_active: true },
+      rows: [{ id: 'task-1', title: 'In-scope task', status: 'pending', assigned_to: 'user-1' }],
+    });
+
+    const res = await request(app)
+      .post('/tasks/reassign')
+      .send({ taskIds: ['task-1'], assigned_to: 'user-1', status: 'pending' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updatedCount).toBe(1);
+    expect(withTransaction).toHaveBeenCalledTimes(1);
+    expect(emitNotification).toHaveBeenCalledWith('user-1', expect.objectContaining({ type: 'task.reassigned' }));
+  });
+
   test('manager cannot reassign to an employee outside reporting scope', async () => {
     const { app, withTransaction } = loadApp({
       user: { id: 'manager-1', org_id: 'org-1', role: 'manager' },
@@ -99,6 +119,22 @@ describe('scoped reassignment governance', () => {
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/outside your reporting scope/i);
     expect(withTransaction).not.toHaveBeenCalled();
+  });
+
+  test('supervisor falls back to self-only reassignment scope when subordinate lookup is unavailable', async () => {
+    const { app, query } = loadApp({
+      user: { id: 'supervisor-1', org_id: 'org-1', role: 'supervisor' },
+      subordinateThrows: true,
+      rows: [{ id: 'task-1', title: 'Self scoped task', status: 'on_hold', assigned_to: 'supervisor-1' }],
+    });
+
+    const res = await request(app).get('/tasks/reassignment-needed');
+
+    expect(res.status).toBe(200);
+    expect(res.body.scoped).toBe(true);
+    const listCall = query.mock.calls.find(([sql]) => String(sql).includes('SELECT t.*, u.full_name AS assigned_to_name'));
+    expect(listCall).toBeTruthy();
+    expect(listCall?.[1]).toEqual(['org-1', ['supervisor-1']]);
   });
 
   test('admin bulk reassignment notifies the new assignee', async () => {
