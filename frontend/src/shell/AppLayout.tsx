@@ -22,6 +22,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   'Recurring tasks': Repeat,
   Board: FolderKanban,
   Projects: Network,
+  'Override Review': Shield,
   Calendar: Calendar,
   Analytics: BarChart3,
   Billing: CreditCard,
@@ -49,13 +50,13 @@ function labelKey(label: string): string {
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',
     'Time off': 'nav.timeOff', Pipeline: 'nav.pipeline', Leads: 'nav.leads',
-    Connections: 'nav.connections', Insights: 'nav.insights', 'Org Settings': 'nav.settings', Logs: 'nav.logs',
+    Connections: 'nav.connections', Insights: 'nav.insights', 'Org Settings': 'nav.settings', Logs: 'nav.logs', 'Override Review': 'Override Review',
   }
   return map[label] || label
 }
 
 function canSeeItem(role: string, item: string) {
-  const adminOnly = ['Billing', 'Audit', 'Logs']
+  const adminOnly = ['Billing', 'Audit', 'Logs', 'Override Review']
   const managerUp = ['Analytics', 'Reports', 'Recurring tasks', 'Needs Reassignment']
   if (adminOnly.includes(item)) return ['admin', 'director'].includes(role)
   if (managerUp.includes(item)) return ['admin', 'director', 'hr', 'manager', 'supervisor'].includes(role)
@@ -269,6 +270,7 @@ export function AppLayout() {
           {canSee(role, 'supervisor') ? <><NavItem to="/app/tasks" label="Tasks" display={t(labelKey('Tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/tasks/reassignment" label="Needs Reassignment" display="Needs Reassignment" badge={reassignmentCount} collapsed={collapsed} onNavigate={closeMobileNav} /><NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} /></> : <NavItem to="/app/my-tasks" label="My tasks" display={t(labelKey('My tasks'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Board') && <NavItem to="/app/board" label="Board" display={t(labelKey('Board'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Projects') && <NavItem to="/app/projects" label="Projects" display={t(labelKey('Projects'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
+          {canSeeItem(role, 'Override Review') && <NavItem to="/app/projects/overrides" label="Override Review" display="Override Review" collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSeeItem(role, 'Calendar') && <NavItem to="/app/calendar" label="Calendar" display={t(labelKey('Calendar'))} collapsed={collapsed} onNavigate={closeMobileNav} />}
           {canSee(role, 'manager') && <>{!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Management</div>}{canSeeItem(role, 'Analytics') && <NavItem to="/app/analytics" label="Analytics" display={t(labelKey('Analytics'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Reports') && <NavItem to="/app/reports" label="Reports" display={t(labelKey('Reports'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/employees" label="Employees" display={t(labelKey('Employees'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSee(role, 'hr') && <NavItem to="/app/hr/time-off" label="Time off" display={t(labelKey('Time off'))} collapsed={collapsed} onNavigate={closeMobileNav} />}{canSeeItem(role, 'Billing') && <NavItem to="/app/billing" label="Billing" display={t(labelKey('Billing'))} collapsed={collapsed} onNavigate={closeMobileNav} />}</>}
           {!collapsed && <div className="sidebarV4SectionLabel" style={{ marginTop: 10 }}>Other</div>}
