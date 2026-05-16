@@ -26,18 +26,22 @@ async function resolveOrgId(req) {
   return orgId ? String(orgId) : null;
 }
 
-async function canonicalProjectExists(orgId, projectId) {
-  if (!projectId) return false;
+async function canonicalProjectStatus(orgId, projectId) {
+  if (!projectId) return null;
   try {
     const { rows } = await query(
-      `SELECT id FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`,
+      `SELECT id, name, COALESCE(status, 'active') AS status FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`,
       [projectId, orgId]
     );
-    return rows.length > 0;
+    return rows[0] || null;
   } catch (err) {
-    if (err.code === '42P01') return false;
+    if (err.code === '42P01' || err.code === '42703') return null;
     throw err;
   }
+}
+
+async function canonicalProjectExists(orgId, projectId) {
+  return !!(await canonicalProjectStatus(orgId, projectId));
 }
 
 async function categoryExists(orgId, categoryId) {
@@ -98,7 +102,11 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
 
     const taskCols = await getColumns('tasks');
     if (!taskCols.has('project_id')) return next();
-    if (!(await canonicalProjectExists(orgId, projectId))) return next();
+    const project = await canonicalProjectStatus(orgId, projectId);
+    if (!project) return next();
+    if (project.status !== 'active') {
+      return res.status(409).json({ error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.`, code: 'PROJECT_NOT_ACTIVE', projectId: project.id, projectStatus: project.status });
+    }
 
     const title = String(req.body?.title || '').trim();
     const assignedTo = String(req.body?.assignedTo || req.body?.assigned_to || '').trim();
