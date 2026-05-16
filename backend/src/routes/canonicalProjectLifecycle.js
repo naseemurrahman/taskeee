@@ -35,20 +35,44 @@ function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
 }
 
-async function lockCanonicalProjectById(tx, orgId, projectId) {
+function normalizeIdentifiers(values) {
+  const out = [];
+  const seen = new Set();
+  for (const value of values || []) {
+    const text = String(value || '').trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out;
+}
+
+function lowerIdentifiers(values) {
+  return normalizeIdentifiers(values).map((value) => value.toLowerCase());
+}
+
+async function lockCanonicalProjectByIdentifier(tx, orgId, identifiers) {
+  const exact = normalizeIdentifiers(identifiers);
+  if (!exact.length) return null;
+  const lower = lowerIdentifiers(exact);
   const { rows } = await tx.query(
     `SELECT id, name
        FROM projects
-      WHERE id = $1 AND org_id = $2
+      WHERE org_id = $1
+        AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($3::text[]))
+      ORDER BY CASE WHEN id::text = ANY($2::text[]) THEN 0 ELSE 1 END
       LIMIT 1
       FOR UPDATE`,
-    [projectId, orgId]
+    [orgId, exact, lower]
   );
   return rows[0] || null;
 }
 
-async function getLegacyCategoryForProjectId(tx, orgId, projectId) {
+async function getLegacyCategoryForProjectIdentifier(tx, orgId, identifiers) {
   try {
+    const exact = normalizeIdentifiers(identifiers);
+    if (!exact.length) return null;
+    const lower = lowerIdentifiers(exact);
     const cols = await getColumns('task_categories');
     if (!cols.size) return null;
     const selectParts = [
@@ -63,9 +87,11 @@ async function getLegacyCategoryForProjectId(tx, orgId, projectId) {
     const { rows } = await tx.query(
       `SELECT ${selectParts.join(', ')}
          FROM task_categories tc
-        WHERE tc.id = $1 AND tc.org_id = $2
+        WHERE tc.org_id = $1
+          AND (tc.id::text = ANY($2::text[]) OR LOWER(tc.name) = ANY($3::text[]))
+        ORDER BY CASE WHEN tc.id::text = ANY($2::text[]) THEN 0 ELSE 1 END
         LIMIT 1`,
-      [projectId, orgId]
+      [orgId, exact, lower]
     );
     return rows[0] || null;
   } catch (err) {
@@ -74,8 +100,8 @@ async function getLegacyCategoryForProjectId(tx, orgId, projectId) {
   }
 }
 
-async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, actorUserId) {
-  const legacy = await getLegacyCategoryForProjectId(tx, orgId, projectId);
+async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, identifiers, actorUserId) {
+  const legacy = await getLegacyCategoryForProjectIdentifier(tx, orgId, identifiers);
   if (!legacy) return null;
 
   const projectCols = await getColumns('projects');
@@ -92,11 +118,10 @@ async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, 
   if (projectCols.has('updated_at')) { fields.push('updated_at'); values.push(new Date()); }
   if (projectCols.has('metadata')) {
     fields.push('metadata');
-    values.push(JSON.stringify({ legacy_task_category_id: legacy.id, backfilled_from: 'task_categories', backfilled_by_route: 'canonicalProjectLifecycle' }));
+    values.push(JSON.stringify({ legacy_task_category_id: legacy.id, legacy_task_category_name: legacy.name, backfilled_from: 'task_categories', backfilled_by_route: 'canonicalProjectLifecycle' }));
   }
 
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-
   await tx.query(
     `INSERT INTO projects (${fields.join(', ')})
      VALUES (${placeholders})
@@ -104,27 +129,31 @@ async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, 
     values
   );
 
+  const locked = await lockCanonicalProjectByIdentifier(tx, orgId, [legacy.id, legacy.name]);
+  if (!locked) return null;
+
   const taskCols = await getColumns('tasks');
   if (taskCols.has('project_id') && taskCols.has('category_id')) {
-    const conditions = ['org_id = $1', 'category_id = $2', '(project_id IS NULL OR project_id = $2)'];
+    const conditions = ['org_id = $1', 'category_id = $2', '(project_id IS NULL OR project_id = $3)'];
     if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
     await tx.query(
       `UPDATE tasks
-          SET project_id = $2${taskCols.has('updated_at') ? ', updated_at = NOW()' : ''}
+          SET project_id = $3${taskCols.has('updated_at') ? ', updated_at = NOW()' : ''}
         WHERE ${conditions.join(' AND ')}`,
-      [orgId, legacy.id]
+      [orgId, legacy.id, locked.id]
     );
   }
 
-  return lockCanonicalProjectById(tx, orgId, legacy.id);
+  return locked;
 }
 
-async function lockProjectForLifecycle(tx, orgId, projectId, actorUserId) {
+async function lockProjectForLifecycle(tx, orgId, identifiers, actorUserId) {
   try {
-    const existing = await lockCanonicalProjectById(tx, orgId, projectId);
-    if (existing) return { project: existing, requestedProjectId: projectId, canonicalProjectId: existing.id, resolvedFrom: 'projects' };
-    const backfilled = await backfillCanonicalProjectFromLegacyCategory(tx, orgId, projectId, actorUserId);
-    if (backfilled) return { project: backfilled, requestedProjectId: projectId, canonicalProjectId: backfilled.id, resolvedFrom: 'task_categories_backfill' };
+    const candidateIdentifiers = normalizeIdentifiers(identifiers);
+    const existing = await lockCanonicalProjectByIdentifier(tx, orgId, candidateIdentifiers);
+    if (existing) return { project: existing, requestedProjectId: candidateIdentifiers[0], canonicalProjectId: existing.id, resolvedFrom: 'projects' };
+    const backfilled = await backfillCanonicalProjectFromLegacyCategory(tx, orgId, candidateIdentifiers, actorUserId);
+    if (backfilled) return { project: backfilled, requestedProjectId: candidateIdentifiers[0], canonicalProjectId: backfilled.id, resolvedFrom: 'task_categories_backfill' };
     return null;
   } catch (err) {
     if (err.code === '42P01') return null;
@@ -286,11 +315,12 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const requestedProjectId = String(req.params.projectId || '').trim();
+    const requestedProjectName = String(req.body?.project_name || req.body?.projectName || req.body?.name || '').trim();
     const overrideReason = req.body.override_reason || req.body.reason || null;
 
     const result = await withTransaction(async (tx) => {
-      const locked = await lockProjectForLifecycle(tx, orgId, requestedProjectId, req.user.id);
-      if (!locked) throw Object.assign(new Error('Project was not found in canonical projects or legacy project categories. Run the project backfill SQL and retry.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED' });
+      const locked = await lockProjectForLifecycle(tx, orgId, [requestedProjectId, requestedProjectName], req.user.id);
+      if (!locked) throw Object.assign(new Error('Project was not found by id or name in canonical projects or legacy project categories. Run the project backfill SQL and retry.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED' });
       const projectId = locked.canonicalProjectId;
       const existing = locked.project;
 
@@ -328,13 +358,13 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
 
     const { project, activeTaskCount, requestedProjectId: resolvedRequestedProjectId, canonicalProjectId, resolvedFrom } = result;
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: canonicalProjectId, requestedProjectId: resolvedRequestedProjectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true, resolvedFrom } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: canonicalProjectId, metadata: { requestedProjectId: resolvedRequestedProjectId, newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, resolvedFrom, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: canonicalProjectId, requestedProjectId: resolvedRequestedProjectId, requestedProjectName, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true, resolvedFrom } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: canonicalProjectId, metadata: { requestedProjectId: resolvedRequestedProjectId, requestedProjectName, newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, resolvedFrom, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
 
     scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason });
 
-    return res.json({ project, affectedActiveTasks: activeTaskCount, requestedProjectId: resolvedRequestedProjectId, canonicalProjectId, resolvedFrom });
+    return res.json({ project, affectedActiveTasks: activeTaskCount, requestedProjectId: resolvedRequestedProjectId, requestedProjectName, canonicalProjectId, resolvedFrom });
   } catch (err) {
     if (err.statusCode) {
       const body = { error: err.message };
