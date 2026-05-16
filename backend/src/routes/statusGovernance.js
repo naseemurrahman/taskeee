@@ -457,10 +457,10 @@ async function preflightTaskCreate(req, res, next) {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const assignedTo = req.body?.assignedTo || req.body?.assigned_to || null;
-    const categoryId = req.body?.categoryId || req.body?.category_id || req.body?.projectId || req.body?.project_id || null;
+    const projectId = req.body?.projectId || req.body?.project_id || null;
     const assignable = await assertAssignableUser({ orgId, userId: assignedTo });
     if (sendGuard(res, assignable)) return;
-    const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId: categoryId });
+    const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId });
     if (sendGuard(res, projectAllowed)) return;
     return next();
   } catch (err) { next(err); }
@@ -478,9 +478,9 @@ async function preflightTaskAssignment(req, res, next) {
       const assignable = await assertAssignableUser({ orgId, userId: body.assignedTo || body.assigned_to || null });
       if (sendGuard(res, assignable)) return;
     }
-    const categoryId = body.categoryId || body.category_id || body.projectId || body.project_id || null;
-    if (categoryId) {
-      const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId: categoryId });
+    const projectId = body.projectId || body.project_id || null;
+    if (projectId) {
+      const projectAllowed = await assertProjectAcceptsNewTasks({ orgId, projectId });
       if (sendGuard(res, projectAllowed)) return;
     }
     return next();
