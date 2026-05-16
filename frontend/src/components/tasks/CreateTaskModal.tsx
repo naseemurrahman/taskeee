@@ -7,7 +7,7 @@ import { Input } from '../ui/Input'
 import { getUser } from '../../state/auth'
 import { useToast } from '../ui/ToastSystem'
 
-type Project = { id: string; name: string; color?: string | null }
+type Project = { id: string; name: string; color?: string | null; status?: string | null }
 type UserRow = { id: string; email: string; name?: string | null; full_name?: string | null; role: string; department?: string | null }
 type WorkloadRow = { employee_id: string; employee_name: string; open_tasks: number; total_tasks: number }
 type CreateTaskInput = { title: string; description?: string; assignedTo: string; categoryId?: string; projectId: string; priority: string; dueDate: string; department?: string }
@@ -35,6 +35,8 @@ async function fetchAllUsers(): Promise<UserRow[]> {
 }
 
 function roleRank(r?: string) { const ranks: Record<string, number> = { admin: 100, director: 90, hr: 80, manager: 70, supervisor: 60 }; return ranks[r || ''] ?? 0 }
+function normalizedProjectStatus(project?: Project | null) { return String(project?.status || 'active').trim().toLowerCase() || 'active' }
+function projectStatusText(status: string) { return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }
 const PRIORITIES = [
   { value: 'low', label: 'Low', color: '#38bdf8', description: 'Nice to have' },
   { value: 'medium', label: 'Medium', color: '#8B5CF6', description: 'Normal priority' },
@@ -55,6 +57,9 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
   const usersQ = useQuery({ queryKey: ['modal-users'], queryFn: fetchAllUsers, enabled: props.open && canAssign, staleTime: 60_000 })
   const workloadQ = useQuery({ queryKey: ['modal-workload'], queryFn: fetchWorkload, enabled: props.open && canAssign, staleTime: 45_000 })
   const allUsers = usersQ.data || []; const projects = projectsQ.data || []; const workloadRows = workloadQ.data || []
+  const selectedProject = projects.find(p => p.id === projectId) || null
+  const selectedProjectStatus = normalizedProjectStatus(selectedProject)
+  const projectLocked = !!selectedProject && selectedProjectStatus !== 'active'
   const workloadById = useMemo(() => new Map(workloadRows.map(w => [w.employee_id, w])), [workloadRows])
   const averageOpenTasks = workloadRows.length ? workloadRows.reduce((sum, w) => sum + Number(w.open_tasks || 0), 0) / workloadRows.length : 0
   const departments = [...new Set(allUsers.filter(u => u.department?.trim()).map(u => u.department as string))].sort(); const hasDepts = departments.length > 0; const filteredAssignees = dept ? allUsers.filter(u => u.department?.trim() === dept) : allUsers
@@ -95,6 +100,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
     const nextErrors: FieldErrors = {}
     if (!title || title.length < 2) nextErrors.title = 'Enter a task title with at least 2 characters.'
     if (!projectId) nextErrors.project = 'Choose the project this task belongs to.'
+    if (projectLocked) nextErrors.project = `This project is ${projectStatusText(selectedProjectStatus)}. Reactivate it before assigning new tasks.`
     if (!priority) nextErrors.priority = 'Choose a priority.'
     if (!assignedTo) nextErrors.assignedTo = 'Select the employee responsible for this task.'
     if (!dueDate) nextErrors.dueDate = 'Select a due date.'
@@ -114,7 +120,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
           <div className="createTaskSectionTitle">Task details</div>
           <div className={fieldErrors.title ? 'createTaskFieldInvalid' : ''}><Input label="Task Title" required name="title" autoFocus placeholder="e.g. Prepare onboarding plan for new joiner" onChange={() => clearField('title')} icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />{fieldErrors.title && <div className="createTaskFieldError">{fieldErrors.title}</div>}</div>
           <div className="createTaskGrid2">
-            <div className={fieldErrors.project ? 'createTaskFieldInvalid' : ''}><Select label="Project" required value={projectId} onChange={v => { setProjectId(v); clearField('project') }} options={[{ value: '', label: projectsQ.isLoading ? 'Loading projects…' : 'Select project…', disabled: true }, ...projects.map(p => ({ value: p.id, label: p.name, color: p.color || undefined }))]} />{fieldErrors.project && <div className="createTaskFieldError">{fieldErrors.project}</div>}</div>
+            <div className={fieldErrors.project ? 'createTaskFieldInvalid' : ''}><Select label="Project" required value={projectId} onChange={v => { setProjectId(v); clearField('project') }} options={[{ value: '', label: projectsQ.isLoading ? 'Loading projects…' : 'Select active project…', disabled: true }, ...projects.map(p => { const status = normalizedProjectStatus(p); const inactive = status !== 'active'; return { value: p.id, label: inactive ? `${p.name} (${projectStatusText(status)})` : p.name, description: inactive ? 'Project is not active; reactivate before assigning tasks.' : 'Active project', color: p.color || undefined, disabled: inactive } })]} />{fieldErrors.project && <div className="createTaskFieldError">{fieldErrors.project}</div>}{projectLocked && <div className="createTaskFieldError">This project is {projectStatusText(selectedProjectStatus)} and cannot receive new tasks.</div>}</div>
             <div className={fieldErrors.priority ? 'createTaskFieldInvalid' : ''}><Select label="Priority" required value={priority} onChange={v => { setPriority(v); clearField('priority') }} options={PRIORITIES.map(p => ({ value: p.value, label: p.label, description: p.description, color: p.color }))} />{fieldErrors.priority && <div className="createTaskFieldError">{fieldErrors.priority}</div>}</div>
           </div>
         </div>
@@ -131,7 +137,7 @@ export function CreateTaskModal(props: { open: boolean; onClose: () => void; def
           <div className={fieldErrors.dueDate ? 'createTaskFieldInvalid' : ''}><Input label="Due Date" required name="dueDate" type="date" defaultValue={props.initialDueDate || ''} onChange={() => clearField('dueDate')} icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} />{fieldErrors.dueDate && <div className="createTaskFieldError">{fieldErrors.dueDate}</div>}</div>
           <div><label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Description <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 11, color: 'var(--muted)' }}>(optional)</span></label><div className="textareaWrap"><textarea name="description" className="textareaInner" style={{ minHeight: 82 }} placeholder="Context, acceptance criteria, links…" /></div></div>
         </div>
-        <div className="createTaskActions"><button type="button" className="btn btnGhost" onClick={handleClose} disabled={m.isPending}>Cancel</button><button type="submit" className="btn btnPrimary" disabled={m.isPending || !canAssign}>{m.isPending ? 'Creating…' : 'Create Task'}</button></div>
+        <div className="createTaskActions"><button type="button" className="btn btnGhost" onClick={handleClose} disabled={m.isPending}>Cancel</button><button type="submit" className="btn btnPrimary" disabled={m.isPending || !canAssign || projectLocked}>{m.isPending ? 'Creating…' : 'Create Task'}</button></div>
       </form>
     </Modal>
   )
