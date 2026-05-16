@@ -13,6 +13,11 @@ const router = express.Router();
 const MANAGEMENT_ROLES = ['supervisor', 'manager', 'hr', 'director', 'admin'];
 const MAX_BULK_REASSIGN = 200;
 const VALID_TASK_STATUSES = new Set(['pending','in_progress','submitted','manager_approved','manager_rejected','completed','overdue','cancelled','on_hold']);
+const REASSIGNMENT_NOTIFICATION_TYPES = Object.freeze({
+  CREATED: 'reassignment.created',
+  COMPLETED: 'reassignment.completed',
+  LEGACY_TASK_REASSIGNED: 'task.reassigned',
+});
 
 const columnsCache = new Map();
 
@@ -306,18 +311,23 @@ async function notifyReassignment({ orgId, actorUserId, assignedTo, tasks }) {
   if (!assignedTo || !Array.isArray(tasks) || !tasks.length) return;
   try {
     const sample = tasks.slice(0, 3).map((t) => t.title || t.id).join(', ');
+    const dedupeKey = `reassignment:${assignedTo}:completed:${tasks.map((t) => t.id).join(',')}`;
     await emitNotification(assignedTo, {
-      type: 'task.reassigned',
+      type: REASSIGNMENT_NOTIFICATION_TYPES.LEGACY_TASK_REASSIGNED,
       title: tasks.length === 1 ? 'Task reassigned to you' : `${tasks.length} tasks reassigned to you`,
       body: tasks.length === 1 ? `${tasks[0].title || 'A task'} is now assigned to you.` : `Tasks reassigned to you: ${sample}${tasks.length > 3 ? ', …' : ''}`,
       data: {
+        eventType: REASSIGNMENT_NOTIFICATION_TYPES.COMPLETED,
+        eventFamily: 'reassignment',
+        eventAction: 'completed',
+        legacyType: REASSIGNMENT_NOTIFICATION_TYPES.LEGACY_TASK_REASSIGNED,
         orgId,
         taskIds: tasks.map((t) => t.id),
         reassignedBy: actorUserId,
         deliveryChannels: ['in_app', 'push'],
-        dedupeKey: `reassign:${assignedTo}:${Date.now()}`,
+        dedupeKey,
       },
-      dedupeKey: `reassign:${assignedTo}:${Date.now()}`,
+      dedupeKey,
     });
   } catch { /* notification failure must not block reassignment */ }
 }
@@ -352,7 +362,7 @@ router.post('/reassign', authenticate, requireAnyRole(...MANAGEMENT_ROLES), asyn
       const setParts = ['assigned_to = $3', 'status = $4'];
       if (taskCols.has('updated_at')) setParts.push('updated_at = NOW()');
       if (taskCols.has('metadata')) {
-        params.push(JSON.stringify({ reassignment_required: false, reassigned_by: req.user.id, reassigned_at: new Date().toISOString(), reassignment_target: assignedTo }));
+        params.push(JSON.stringify({ reassignment_required: false, reassigned_by: req.user.id, reassigned_at: new Date().toISOString(), reassignment_target: assignedTo, reassignment_event: REASSIGNMENT_NOTIFICATION_TYPES.COMPLETED }));
         setParts.push(`metadata = COALESCE(metadata::jsonb, '{}'::jsonb) || $${params.length}::jsonb`);
       }
 
@@ -376,8 +386,8 @@ router.post('/reassign', authenticate, requireAnyRole(...MANAGEMENT_ROLES), asyn
     }
 
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'tasks_reassigned', metadata: { taskIds: updated.map((t) => t.id), assignedTo, count: updated.length, scoped: !isOrgWideRole(req.user.role) } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'tasks.bulk_reassigned', entityType: 'task', entityId: updated[0]?.id || null, metadata: { taskIds: updated.map((t) => t.id), assignedTo, status: nextStatus, count: updated.length, scoped: !isOrgWideRole(req.user.role) }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'tasks_reassigned', metadata: { eventType: REASSIGNMENT_NOTIFICATION_TYPES.COMPLETED, taskIds: updated.map((t) => t.id), assignedTo, count: updated.length, scoped: !isOrgWideRole(req.user.role) } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'tasks.bulk_reassigned', entityType: 'task', entityId: updated[0]?.id || null, metadata: { eventType: REASSIGNMENT_NOTIFICATION_TYPES.COMPLETED, taskIds: updated.map((t) => t.id), assignedTo, status: nextStatus, count: updated.length, scoped: !isOrgWideRole(req.user.role) }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
       await notifyReassignment({ orgId, actorUserId: req.user.id, assignedTo, tasks: updated });
     } catch { /* non-critical */ }
 
