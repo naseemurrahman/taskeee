@@ -14,6 +14,11 @@ jest.mock('../../middleware/auth', () => ({
     req.user = mockState.user;
     next();
   },
+  requireAnyRole: (...roles) => (req, res, next) => {
+    const role = String(req.user?.role || '').toLowerCase();
+    if (roles.includes(role)) return next();
+    return res.status(403).json({ error: 'Forbidden' });
+  },
   isOrgWideRole: (role) => ['admin', 'director', 'hr'].includes(String(role || '').toLowerCase()),
 }));
 
@@ -40,6 +45,7 @@ function makeApp() {
   const app = express();
   app.use(express.json());
   app.use('/api/v1/tasks', router);
+  app.use((req, res) => res.status(204).json({ reachedNextHandler: true, body: req.body }));
   app.use((err, _req, res, _next) => res.status(500).json({ error: err.message }));
   return app;
 }
@@ -58,7 +64,7 @@ function resetState(overrides = {}) {
       assigned_to: 'employee-1',
       project_id: 'project-1',
     },
-    project: { id: 'project-1', name: 'Paused Project', status: 'active' },
+    project: { id: 'project-1', name: 'Active Project', status: 'active' },
     assigneeActive: true,
     timelineColumns: ['task_id', 'actor_type', 'event_type', 'actor_id', 'from_status', 'to_status', 'note'],
     ...overrides,
@@ -128,6 +134,53 @@ describe('taskCanonicalGuards', () => {
 
     expect(res.body.users).toEqual([{ id: 'manager-1', name: 'Manager One', email: 'manager@example.com', role: 'manager', department: 'Ops', employeeCode: 'M1' }]);
     expect(mockState.lastAssignableParams).toEqual(['org-1', 'manager-1']);
+  });
+
+  test('task creation under active canonical project reaches downstream creator', async () => {
+    resetState({ project: { id: 'project-1', name: 'Active Project', status: 'active' } });
+
+    await request(makeApp())
+      .post('/api/v1/tasks')
+      .send({ title: 'Allowed', assignedTo: 'employee-1', projectId: 'project-1', categoryId: 'category-1' })
+      .expect(204);
+
+    const sqlText = query.mock.calls.map(([sql]) => String(sql)).join('\n');
+    expect(sqlText).toMatch(/FROM projects/i);
+  });
+
+  test('task creation under paused canonical project is blocked before downstream creator', async () => {
+    resetState({ project: { id: 'project-1', name: 'Paused Project', status: 'paused' } });
+
+    const res = await request(makeApp())
+      .post('/api/v1/tasks')
+      .send({ title: 'Blocked', assignedTo: 'employee-1', projectId: 'project-1', categoryId: 'category-1' })
+      .expect(409);
+
+    expect(res.body.code).toBe('PROJECT_NOT_ACTIVE');
+    expect(res.body.projectStatus).toBe('paused');
+  });
+
+  test('task creation uses projectId, not categoryId, for lifecycle checks', async () => {
+    resetState({ project: null });
+
+    await request(makeApp())
+      .post('/api/v1/tasks')
+      .send({ title: 'Category only', assignedTo: 'employee-1', categoryId: 'category-1' })
+      .expect(204);
+
+    const sqlText = query.mock.calls.map(([sql]) => String(sql)).join('\n');
+    expect(sqlText).not.toMatch(/task_categories/i);
+  });
+
+  test('task creation blocks inactive or terminated assignee', async () => {
+    resetState({ assigneeActive: false });
+
+    const res = await request(makeApp())
+      .post('/api/v1/tasks')
+      .send({ title: 'Blocked assignee', assignedTo: 'employee-1', projectId: 'project-1' })
+      .expect(409);
+
+    expect(res.body.error).toMatch(/inactive or terminated/i);
   });
 
   test('paused canonical project blocks active task workflow status changes', async () => {
