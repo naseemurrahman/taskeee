@@ -91,7 +91,6 @@ function addTaskUpdateMetadata({ taskCols, setParts, params, metadata, alias = '
 async function projectTaskRelationParts(taskCols, projectParam = '$2', taskAlias = 't') {
   const tables = await getTableNames();
   const parts = [];
-  if (taskCols.has('category_id')) parts.push(`${taskAlias}.category_id = ${projectParam}`);
   if (taskCols.has('project_id')) parts.push(`${taskAlias}.project_id = ${projectParam}`);
   if (tables.has('project_tasks')) parts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = ${taskAlias}.id AND pt.project_id = ${projectParam})`);
   return parts;
