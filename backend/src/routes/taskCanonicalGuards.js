@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { query } = require('../utils/db');
-const { authenticate, isOrgWideRole } = require('../middleware/auth');
+const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { logUserActivity } = require('../services/activityService');
 
@@ -27,7 +27,7 @@ async function resolveOrgId(req) {
   return orgId != null && orgId !== '' ? String(orgId) : null;
 }
 
-async function assertAssigneeAvailable(orgId, userId) {
+async function assertAssigneeAvailable(orgId, userId, verb = 'continue active task workflow') {
   if (!userId) return { ok: true };
   const { rows } = await query(
     `SELECT u.id
@@ -44,7 +44,7 @@ async function assertAssigneeAvailable(orgId, userId) {
       LIMIT 1`,
     [userId, orgId]
   );
-  if (!rows.length) return { ok: false, status: 409, error: 'This employee is inactive or terminated and cannot continue active task workflow.' };
+  if (!rows.length) return { ok: false, status: 409, error: `This employee is inactive or terminated and cannot ${verb}.` };
   return { ok: true };
 }
 
@@ -63,6 +63,23 @@ async function getProject(orgId, projectId) {
     if (err.code === '42P01' || err.code === '42703') return null;
     throw err;
   }
+}
+
+async function assertProjectAcceptsTaskCreation(orgId, projectId) {
+  if (!projectId) return { ok: true };
+  const project = await getProject(orgId, projectId);
+  if (!project) return { ok: true };
+  if (project.status !== 'active') {
+    return {
+      ok: false,
+      status: 409,
+      error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.`,
+      code: 'PROJECT_NOT_ACTIVE',
+      projectId: project.id,
+      projectStatus: project.status,
+    };
+  }
+  return { ok: true };
 }
 
 function canTransition({ role, fromStatus, toStatus, task, userId }) {
@@ -100,6 +117,39 @@ async function writeStatusTimeline({ taskId, actorId, fromStatus, toStatus, note
     // Timeline failures must not block the workflow status update.
   }
 }
+
+function sendGuard(res, result) {
+  if (result?.ok === false) {
+    const payload = { error: result.error };
+    if (result.code) payload.code = result.code;
+    if (result.projectId) payload.projectId = result.projectId;
+    if (result.projectStatus) payload.projectStatus = result.projectStatus;
+    res.status(result.status || 400).json(payload);
+    return true;
+  }
+  return false;
+}
+
+async function preflightTaskCreate(req, res, next) {
+  try {
+    const orgId = await resolveOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
+
+    const assignedTo = req.body?.assignedTo || req.body?.assigned_to || null;
+    const projectId = req.body?.projectId || req.body?.project_id || null;
+
+    const assignee = await assertAssigneeAvailable(orgId, assignedTo, 'receive new task assignments');
+    if (sendGuard(res, assignee)) return;
+
+    const projectAllowed = await assertProjectAcceptsTaskCreation(orgId, projectId);
+    if (sendGuard(res, projectAllowed)) return;
+
+    return next();
+  } catch (err) { next(err); }
+}
+
+router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), preflightTaskCreate);
+router.post('/create-simple', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), preflightTaskCreate);
 
 router.get('/assignable-users', authenticate, async (req, res, next) => {
   try {
