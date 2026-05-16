@@ -47,8 +47,8 @@ function isPersonalRole(role) {
 
 async function resolveProjectStore() {
   const tables = await getTableNames();
-  if (tables.has('task_categories')) return 'task_categories';
   if (tables.has('projects')) return 'projects';
+  if (tables.has('task_categories')) return 'task_categories';
   return null;
 }
 
