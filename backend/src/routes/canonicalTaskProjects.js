@@ -40,10 +40,6 @@ async function canonicalProjectStatus(orgId, projectId) {
   }
 }
 
-async function canonicalProjectExists(orgId, projectId) {
-  return !!(await canonicalProjectStatus(orgId, projectId));
-}
-
 async function categoryExists(orgId, categoryId) {
   if (!categoryId) return false;
   try {
@@ -118,8 +114,22 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
     if (!title || title.length < 2) return res.status(400).json({ error: 'Title must be at least 2 characters' });
     if (!assignedTo) return res.status(400).json({ error: 'Please select an employee to assign this task to.' });
 
-    const { rows: userCheck } = await query(`SELECT id FROM users WHERE id = $1 AND org_id = $2 AND COALESCE(is_active, TRUE) = TRUE`, [assignedTo, orgId]);
-    if (!userCheck.length) return res.status(400).json({ error: 'Referenced resource not found: User not found or inactive' });
+    const { rows: userCheck } = await query(
+      `SELECT u.id
+         FROM users u
+        WHERE u.id = $1
+          AND u.org_id = $2
+          AND COALESCE(u.is_active, TRUE) = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM employees e
+             WHERE e.user_id = u.id
+               AND e.org_id = $2
+               AND COALESCE(e.status, 'active') <> 'active'
+          )
+        LIMIT 1`,
+      [assignedTo, orgId]
+    );
+    if (!userCheck.length) return res.status(409).json({ error: 'This employee is inactive or terminated and cannot receive new task assignments.' });
 
     const insertCols = [];
     const insertVals = [];
