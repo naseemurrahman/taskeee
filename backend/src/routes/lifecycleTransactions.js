@@ -6,12 +6,14 @@ const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
 const { logAudit } = require('../services/auditService');
 const { logUserActivity } = require('../services/activityService');
+const { emitNotification } = require('../services/notificationService');
 
 const projects = express.Router();
 const hris = express.Router();
 
 let tablesCache = null;
 const columnsCache = new Map();
+const REASSIGNMENT_CREATED_EVENT = 'reassignment.created';
 
 async function getTableNames() {
   if (tablesCache) return tablesCache;
@@ -72,15 +74,14 @@ function addTaskMetadataSet({ taskCols, setParts, params, metadata, alias = '' }
 
 async function resolveProjectStore() {
   const tables = await getTableNames();
-  if (tables.has('task_categories')) return 'task_categories';
   if (tables.has('projects')) return 'projects';
+  if (tables.has('task_categories')) return 'task_categories';
   return null;
 }
 
 async function projectTaskRelationParts(taskCols, projectParam = '$2', taskAlias = 't') {
   const tables = await getTableNames();
   const parts = [];
-  if (taskCols.has('category_id')) parts.push(`${taskAlias}.category_id = ${projectParam}`);
   if (taskCols.has('project_id')) parts.push(`${taskAlias}.project_id = ${projectParam}`);
   if (tables.has('project_tasks')) parts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = ${taskAlias}.id AND pt.project_id = ${projectParam})`);
   return parts;
@@ -204,19 +205,57 @@ projects.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 
   }
 });
 
+async function notifyReassignmentCreated({ orgId, actorUserId, employee, reason, affectedTaskCount }) {
+  if (!orgId || !affectedTaskCount) return;
+  try {
+    const { rows } = await query(
+      `SELECT id FROM users
+        WHERE org_id = $1
+          AND role IN ('admin','director','hr')
+          AND COALESCE(is_active, TRUE) = TRUE
+        LIMIT 50`,
+      [orgId]
+    );
+    const employeeName = employee?.full_name || employee?.name || employee?.id || 'employee';
+    const dedupeKey = `${REASSIGNMENT_CREATED_EVENT}:${orgId}:${employee?.id || employee?.user_id || 'unknown'}:${reason}`;
+    await Promise.all(rows
+      .filter((row) => !(actorUserId && String(row.id) === String(actorUserId)))
+      .map((row) => emitNotification(row.id, {
+        type: REASSIGNMENT_CREATED_EVENT,
+        title: 'Tasks need reassignment',
+        body: `${affectedTaskCount} task(s) from ${employeeName} were moved to reassignment hold.`,
+        data: {
+          eventType: REASSIGNMENT_CREATED_EVENT,
+          eventFamily: 'reassignment',
+          eventAction: 'created',
+          orgId,
+          employeeId: employee?.id || null,
+          employeeUserId: employee?.user_id || null,
+          reason,
+          affectedTaskCount,
+          createdBy: actorUserId,
+          deliveryChannels: ['in_app', 'push'],
+          dedupeKey,
+        },
+        dedupeKey,
+      })));
+  } catch { /* notification failure must not block lifecycle mutation */ }
+}
+
 async function mutateEmployeeTasksTx({ tx, orgId, employeeUserId, actorUserId, action, reason }) {
-  if (!employeeUserId) return;
+  if (!employeeUserId) return 0;
   const taskCols = await getColumns('tasks');
-  if (!taskCols.has('status') || !taskCols.has('assigned_to')) return;
+  if (!taskCols.has('status') || !taskCols.has('assigned_to')) return 0;
   const params = [orgId, employeeUserId];
   const setParts = [action === 'restore' ? `status = 'pending'` : `status = 'on_hold'`];
   const metadata = action === 'restore'
     ? { reassignment_required: false, restored_by: actorUserId, restored_at: new Date().toISOString() }
-    : { reassignment_required: true, reassignment_reason: reason, held_by: actorUserId, held_at: new Date().toISOString() };
+    : { reassignment_required: true, reassignment_reason: reason, reassignment_event: REASSIGNMENT_CREATED_EVENT, held_by: actorUserId, held_at: new Date().toISOString() };
   addTaskMetadataSet({ taskCols, setParts, params, metadata });
   const conditions = [`org_id = $1`, `assigned_to = $2`, action === 'restore' ? `status = 'on_hold'` : nonTerminalTaskCondition('tasks')];
   if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
-  await tx.query(`UPDATE tasks SET ${setParts.join(', ')} WHERE ${conditions.join(' AND ')}`, params);
+  const result = await tx.query(`UPDATE tasks SET ${setParts.join(', ')} WHERE ${conditions.join(' AND ')}`, params);
+  return Number(result.rowCount || 0);
 }
 
 hris.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'admin'), async (req, res, next) => {
@@ -227,23 +266,28 @@ hris.patch('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'adm
     const status = req.body.status.trim().toLowerCase();
     if (!['active', 'inactive', 'terminated', 'suspended', 'on_leave'].includes(status)) return res.status(400).json({ error: 'Invalid employee status' });
 
-    const employee = await withTransaction(async (tx) => {
+    const result = await withTransaction(async (tx) => {
       const { rows } = await tx.query(`UPDATE employees SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`, [status, req.params.id, orgId]);
       if (!rows.length) throw Object.assign(new Error('Employee not found'), { statusCode: 404 });
       const row = rows[0];
+      let affectedTaskCount = 0;
       if (row.user_id) {
         await tx.query(`UPDATE users SET is_active = $1 WHERE id = $2 AND org_id = $3`, [status === 'active', row.user_id, orgId]);
-        await mutateEmployeeTasksTx({ tx, orgId, employeeUserId: row.user_id, actorUserId: req.user.id, action: status === 'active' ? 'restore' : 'quarantine', reason: `employee_${status}` });
+        affectedTaskCount = await mutateEmployeeTasksTx({ tx, orgId, employeeUserId: row.user_id, actorUserId: req.user.id, action: status === 'active' ? 'restore' : 'quarantine', reason: `employee_${status}` });
       }
-      return row;
+      return { employee: row, affectedTaskCount };
     });
 
+    const { employee, affectedTaskCount } = result;
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_status_changed', metadata: { employeeId: employee.id, employeeName: employee.full_name, newStatus: status, transactional: true } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: `hris.employee.status.${status}`, entityType: 'employee', entityId: employee.id, metadata: { employeeName: employee.full_name, newStatus: status, transactional: true }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_status_changed', metadata: { employeeId: employee.id, employeeName: employee.full_name, newStatus: status, transactional: true, affectedTaskCount } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: `hris.employee.status.${status}`, entityType: 'employee', entityId: employee.id, metadata: { employeeName: employee.full_name, newStatus: status, transactional: true, affectedTaskCount }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      if (status !== 'active' && affectedTaskCount > 0) {
+        setImmediate(() => notifyReassignmentCreated({ orgId, actorUserId: req.user.id, employee, reason: `employee_${status}`, affectedTaskCount }).catch(() => {}));
+      }
     } catch { /* non-critical */ }
 
-    return res.json({ employee });
+    return res.json({ employee, affectedTaskCount });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     next(err);
@@ -255,25 +299,30 @@ hris.delete('/employees/:id', authenticate, requireAnyRole('hr', 'director', 'ad
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
 
-    const employee = await withTransaction(async (tx) => {
-      const { rows } = await tx.query(`SELECT e.*, u.role FROM employees e LEFT JOIN users u ON u.id = e.user_id WHERE e.id = $1 AND e.org_id = $2`, [req.params.id, orgId]);
+    const result = await withTransaction(async (tx) => {
+      const { rows } = await tx.query(`SELECT e.*, u.role FROM employees e LEFT JOIN users u ON u.id = e.user_id WHERE e.id = $1 AND e.org_id = $2 FOR UPDATE`, [req.params.id, orgId]);
       if (!rows.length) throw Object.assign(new Error('Employee not found'), { statusCode: 404 });
       const row = rows[0];
       if (row.role === 'admin') throw Object.assign(new Error('Cannot delete an admin user.'), { statusCode: 403 });
+      let affectedTaskCount = 0;
       if (row.user_id) {
-        await mutateEmployeeTasksTx({ tx, orgId, employeeUserId: row.user_id, actorUserId: req.user.id, action: 'quarantine', reason: 'employee_deleted' });
+        affectedTaskCount = await mutateEmployeeTasksTx({ tx, orgId, employeeUserId: row.user_id, actorUserId: req.user.id, action: 'quarantine', reason: 'employee_deleted' });
         await tx.query(`UPDATE users SET is_active = FALSE WHERE id = $1 AND org_id = $2`, [row.user_id, orgId]);
       }
       await tx.query(`DELETE FROM employees WHERE id = $1 AND org_id = $2`, [req.params.id, orgId]);
-      return row;
+      return { employee: row, affectedTaskCount };
     });
 
+    const { employee, affectedTaskCount } = result;
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_terminated', metadata: { employeeId: req.params.id, employeeName: employee.full_name, transactional: true } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'hris.employee.terminated', entityType: 'employee', entityId: req.params.id, metadata: { employeeName: employee.full_name, transactional: true }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'employee_terminated', metadata: { employeeId: req.params.id, employeeName: employee.full_name, transactional: true, affectedTaskCount } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'hris.employee.terminated', entityType: 'employee', entityId: req.params.id, metadata: { employeeName: employee.full_name, transactional: true, affectedTaskCount }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      if (affectedTaskCount > 0) {
+        setImmediate(() => notifyReassignmentCreated({ orgId, actorUserId: req.user.id, employee, reason: 'employee_deleted', affectedTaskCount }).catch(() => {}));
+      }
     } catch { /* non-critical */ }
 
-    return res.json({ success: true, message: 'Employee deleted, account deactivated, and active tasks moved to reassignment hold.' });
+    return res.json({ success: true, message: 'Employee deleted, account deactivated, and active tasks moved to reassignment hold.', affectedTaskCount });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     next(err);
