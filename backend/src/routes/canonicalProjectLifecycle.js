@@ -100,10 +100,47 @@ async function getLegacyCategoryForProjectIdentifier(tx, orgId, identifiers) {
   }
 }
 
-async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, identifiers, actorUserId) {
-  const legacy = await getLegacyCategoryForProjectIdentifier(tx, orgId, identifiers);
-  if (!legacy) return null;
+async function inferLegacyCategoryFromTasks(tx, orgId, identifiers) {
+  const exact = normalizeIdentifiers(identifiers);
+  if (!exact.length) return null;
+  const taskCols = await getColumns('tasks');
+  if (!taskCols.has('category_id')) return null;
+  const relations = ['t.category_id::text = ANY($2::text[])'];
+  if (taskCols.has('project_id')) relations.push('t.project_id::text = ANY($2::text[])');
+  const conditions = ['t.org_id = $1', `(${relations.join(' OR ')})`, 't.category_id IS NOT NULL'];
+  if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  try {
+    const cols = await getColumns('task_categories');
+    if (cols.size) {
+      const selectParts = [
+        'tc.id',
+        'tc.org_id',
+        'tc.name',
+        cols.has('description') ? 'tc.description' : 'NULL::text AS description',
+        cols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at',
+        cols.has('status') ? "COALESCE(tc.status, 'active') AS status" : "'active' AS status",
+        cols.has('is_active') ? 'COALESCE(tc.is_active, TRUE) AS is_active' : 'TRUE AS is_active',
+      ];
+      const { rows } = await tx.query(
+        `SELECT ${selectParts.join(', ')}
+           FROM tasks t
+           JOIN task_categories tc ON tc.id = t.category_id AND tc.org_id = t.org_id
+          WHERE ${conditions.join(' AND ')}
+          GROUP BY tc.id
+          ORDER BY COUNT(t.id) DESC, MAX(t.updated_at) DESC NULLS LAST, MAX(t.created_at) DESC NULLS LAST
+          LIMIT 1`,
+        [orgId, exact]
+      );
+      if (rows.length) return rows[0];
+    }
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
+  }
+  return null;
+}
 
+async function backfillCanonicalProjectFromLegacyRow(tx, orgId, legacy, actorUserId) {
+  if (!legacy) return null;
   const projectCols = await getColumns('projects');
   if (!projectCols.has('id') || !projectCols.has('org_id') || !projectCols.has('name')) return null;
 
@@ -134,17 +171,22 @@ async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, identifiers
 
   const taskCols = await getColumns('tasks');
   if (taskCols.has('project_id') && taskCols.has('category_id')) {
-    const conditions = ['org_id = $1', 'category_id = $2', '(project_id IS NULL OR project_id = $3)'];
+    const conditions = ['org_id = $1', 'category_id = $2', '(project_id IS NULL OR project_id = $3 OR project_id::text = ANY($4::text[]))'];
     if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
     await tx.query(
       `UPDATE tasks
           SET project_id = $3${taskCols.has('updated_at') ? ', updated_at = NOW()' : ''}
         WHERE ${conditions.join(' AND ')}`,
-      [orgId, legacy.id, locked.id]
+      [orgId, legacy.id, locked.id, normalizeIdentifiers([legacy.id, legacy.name])]
     );
   }
 
   return locked;
+}
+
+async function backfillCanonicalProjectFromLegacyCategory(tx, orgId, identifiers, actorUserId) {
+  const legacy = await getLegacyCategoryForProjectIdentifier(tx, orgId, identifiers) || await inferLegacyCategoryFromTasks(tx, orgId, identifiers);
+  return backfillCanonicalProjectFromLegacyRow(tx, orgId, legacy, actorUserId);
 }
 
 async function lockProjectForLifecycle(tx, orgId, identifiers, actorUserId) {
@@ -153,7 +195,7 @@ async function lockProjectForLifecycle(tx, orgId, identifiers, actorUserId) {
     const existing = await lockCanonicalProjectByIdentifier(tx, orgId, candidateIdentifiers);
     if (existing) return { project: existing, requestedProjectId: candidateIdentifiers[0], canonicalProjectId: existing.id, resolvedFrom: 'projects' };
     const backfilled = await backfillCanonicalProjectFromLegacyCategory(tx, orgId, candidateIdentifiers, actorUserId);
-    if (backfilled) return { project: backfilled, requestedProjectId: candidateIdentifiers[0], canonicalProjectId: backfilled.id, resolvedFrom: 'task_categories_backfill' };
+    if (backfilled) return { project: backfilled, requestedProjectId: candidateIdentifiers[0], canonicalProjectId: backfilled.id, resolvedFrom: 'task_relation_backfill' };
     return null;
   } catch (err) {
     if (err.code === '42P01') return null;
@@ -320,7 +362,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
 
     const result = await withTransaction(async (tx) => {
       const locked = await lockProjectForLifecycle(tx, orgId, [requestedProjectId, requestedProjectName], req.user.id);
-      if (!locked) throw Object.assign(new Error('Project was not found by id or name in canonical projects or legacy project categories. Run the project backfill SQL and retry.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED' });
+      if (!locked) throw Object.assign(new Error('Project was not found by canonical id/name, legacy category id/name, or task relations. Run the project backfill SQL and retry.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED' });
       const projectId = locked.canonicalProjectId;
       const existing = locked.project;
 
