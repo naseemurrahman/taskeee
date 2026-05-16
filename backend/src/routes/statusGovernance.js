@@ -185,41 +185,12 @@ async function getProjectStatusById(orgId, projectId) {
 }
 
 async function getTaskProjectStatus(task, orgId) {
-  if (task.category_id) {
-    const cols = await getColumns('task_categories').catch(() => new Set());
-    if (cols.size) {
-      const statusExpr = projectStatusExpression('tc', cols);
-      const { rows } = await query(`SELECT tc.id, tc.name, ${statusExpr} AS status FROM task_categories tc WHERE tc.org_id = $1 AND tc.id = $2 LIMIT 1`, [orgId, task.category_id]);
-      if (rows.length) return rows[0];
-    }
-  }
-
-  if (task.project_id) {
-    const cols = await getColumns('projects').catch(() => new Set());
-    if (cols.size) {
-      const statusExpr = projectStatusExpression('p', cols);
-      const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, task.project_id]);
-      if (rows.length) return rows[0];
-    }
-  }
-
-  const tables = await getTableNames();
-  if (tables.has('project_tasks')) {
-    const categoryCols = await getColumns('task_categories').catch(() => new Set());
-    if (categoryCols.size) {
-      const statusExpr = projectStatusExpression('tc', categoryCols);
-      const { rows } = await query(
-        `SELECT tc.id, tc.name, ${statusExpr} AS status
-           FROM project_tasks pt
-           JOIN task_categories tc ON tc.id = pt.project_id AND tc.org_id = $2
-          WHERE pt.task_id = $1
-          LIMIT 1`,
-        [task.id, orgId]
-      );
-      if (rows.length) return rows[0];
-    }
-  }
-  return null;
+  if (!task.project_id) return null;
+  const cols = await getColumns('projects').catch(() => new Set());
+  if (!cols.size) return null;
+  const statusExpr = projectStatusExpression('p', cols);
+  const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, task.project_id]);
+  return rows[0] || null;
 }
 
 async function assertAssignableUser({ orgId, userId }) {
@@ -495,7 +466,7 @@ async function preflightTaskStatusChange(req, res, next) {
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const targetStatus = String(req.body?.status || '').trim().toLowerCase();
-    const { rows } = await query(`SELECT id, org_id, status, assigned_to, category_id, project_id FROM tasks WHERE id = $1 AND org_id = $2 LIMIT 1`, [req.params.id, orgId]);
+    const { rows } = await query(`SELECT id, org_id, status, assigned_to, project_id FROM tasks WHERE id = $1 AND org_id = $2 LIMIT 1`, [req.params.id, orgId]);
     if (!rows.length) return res.status(404).json({ error: 'Task not found' });
     const task = rows[0];
     const project = await getTaskProjectStatus(task, orgId);
