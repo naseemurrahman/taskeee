@@ -26,16 +26,16 @@ async function resolveOrgId(req) {
   return orgId ? String(orgId) : null;
 }
 
-async function canonicalProjectExists(orgId, projectId) {
-  if (!projectId) return false;
+async function canonicalProjectStatus(orgId, projectId) {
+  if (!projectId) return null;
   try {
     const { rows } = await query(
-      `SELECT id FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`,
+      `SELECT id, name, COALESCE(status, 'active') AS status FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`,
       [projectId, orgId]
     );
-    return rows.length > 0;
+    return rows[0] || null;
   } catch (err) {
-    if (err.code === '42P01') return false;
+    if (err.code === '42P01' || err.code === '42703') return null;
     throw err;
   }
 }
@@ -98,7 +98,11 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
 
     const taskCols = await getColumns('tasks');
     if (!taskCols.has('project_id')) return next();
-    if (!(await canonicalProjectExists(orgId, projectId))) return next();
+    const project = await canonicalProjectStatus(orgId, projectId);
+    if (!project) return next();
+    if (project.status !== 'active') {
+      return res.status(409).json({ error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.`, code: 'PROJECT_NOT_ACTIVE', projectId: project.id, projectStatus: project.status });
+    }
 
     const title = String(req.body?.title || '').trim();
     const assignedTo = String(req.body?.assignedTo || req.body?.assigned_to || '').trim();
@@ -110,8 +114,22 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
     if (!title || title.length < 2) return res.status(400).json({ error: 'Title must be at least 2 characters' });
     if (!assignedTo) return res.status(400).json({ error: 'Please select an employee to assign this task to.' });
 
-    const { rows: userCheck } = await query(`SELECT id FROM users WHERE id = $1 AND org_id = $2 AND COALESCE(is_active, TRUE) = TRUE`, [assignedTo, orgId]);
-    if (!userCheck.length) return res.status(400).json({ error: 'Referenced resource not found: User not found or inactive' });
+    const { rows: userCheck } = await query(
+      `SELECT u.id
+         FROM users u
+        WHERE u.id = $1
+          AND u.org_id = $2
+          AND COALESCE(u.is_active, TRUE) = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM employees e
+             WHERE e.user_id = u.id
+               AND e.org_id = $2
+               AND COALESCE(e.status, 'active') <> 'active'
+          )
+        LIMIT 1`,
+      [assignedTo, orgId]
+    );
+    if (!userCheck.length) return res.status(409).json({ error: 'This employee is inactive or terminated and cannot receive new task assignments.' });
 
     const insertCols = [];
     const insertVals = [];
