@@ -35,9 +35,16 @@ function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
 }
 
-async function projectExists(orgId, projectId) {
+async function lockProjectForLifecycle(tx, orgId, projectId) {
   try {
-    const { rows } = await query(`SELECT id, name FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`, [projectId, orgId]);
+    const { rows } = await tx.query(
+      `SELECT id, name
+         FROM projects
+        WHERE id = $1 AND org_id = $2
+        LIMIT 1
+        FOR UPDATE`,
+      [projectId, orgId]
+    );
     return rows[0] || null;
   } catch (err) {
     if (err.code === '42P01') return null;
@@ -45,12 +52,12 @@ async function projectExists(orgId, projectId) {
   }
 }
 
-async function countActiveTasks(orgId, projectId) {
+async function countActiveTasksWithClient(client, orgId, projectId) {
   const taskCols = await getColumns('tasks');
   if (!taskCols.has('status') || !taskCols.has('project_id')) return 0;
   const conditions = ['t.org_id = $1', 't.project_id = $2', activeTaskCondition('t')];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
-  const { rows } = await query(`SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`, [orgId, projectId]);
+  const { rows } = await client.query(`SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`, [orgId, projectId]);
   return Number(rows[0]?.cnt || 0);
 }
 
@@ -199,21 +206,27 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
     const projectId = String(req.params.projectId || '').trim();
-    const existing = await projectExists(orgId, projectId);
-    if (!existing) return res.status(404).json({ error: 'Project not found in canonical projects table.' });
+    const overrideReason = req.body.override_reason || req.body.reason || null;
 
-    const activeTaskCount = await countActiveTasks(orgId, projectId);
-    if (requestedStatus === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) {
-      return res.status(409).json({ error: `Cannot complete project: ${activeTaskCount} active task(s) still require resolution.`, code: 'PROJECT_HAS_ACTIVE_TASKS', activeTaskCount });
-    }
-    if (requestedStatus === 'completed' && activeTaskCount > 0) {
-      const role = String(req.user?.role || '').toLowerCase();
-      if (!['admin', 'director'].includes(role)) return res.status(403).json({ error: 'Only Admin or Director can override completion with active tasks.' });
-      const reason = String(req.body.override_reason || req.body.reason || '').trim();
-      if (reason.length < 8) return res.status(400).json({ error: 'override_reason is required and must be at least 8 characters.' });
-    }
+    const result = await withTransaction(async (tx) => {
+      const existing = await lockProjectForLifecycle(tx, orgId, projectId);
+      if (!existing) throw Object.assign(new Error('Project not found in canonical projects table.'), { statusCode: 404 });
 
-    const project = await withTransaction(async (tx) => {
+      const activeTaskCount = await countActiveTasksWithClient(tx, orgId, projectId);
+      if (requestedStatus === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) {
+        throw Object.assign(new Error(`Cannot complete project: ${activeTaskCount} active task(s) still require resolution.`), {
+          statusCode: 409,
+          code: 'PROJECT_HAS_ACTIVE_TASKS',
+          activeTaskCount,
+        });
+      }
+      if (requestedStatus === 'completed' && activeTaskCount > 0) {
+        const role = String(req.user?.role || '').toLowerCase();
+        if (!['admin', 'director'].includes(role)) throw Object.assign(new Error('Only Admin or Director can override completion with active tasks.'), { statusCode: 403 });
+        const reason = String(overrideReason || '').trim();
+        if (reason.length < 8) throw Object.assign(new Error('override_reason is required and must be at least 8 characters.'), { statusCode: 400 });
+      }
+
       const cols = await getColumns('projects');
       if (!cols.has('status')) throw Object.assign(new Error('projects.status column is required for status changes.'), { statusCode: 500 });
       const setParts = ['status = $1'];
@@ -228,19 +241,25 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       );
       if (!rows.length) throw Object.assign(new Error('Project not found'), { statusCode: 404 });
       await mutateTasksForStatus(tx, { orgId, projectId, status: requestedStatus, actorUserId: req.user.id });
-      return rows[0];
+      return { project: rows[0], activeTaskCount };
     });
 
+    const { project, activeTaskCount } = result;
     try {
       await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId, projectName: project.name, newStatus: requestedStatus, activeTaskCount, canonical: true } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, override_reason: req.body.override_reason || req.body.reason || null }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: projectId, metadata: { newStatus: requestedStatus, projectName: project.name, activeTaskCount, canonical: true, override_reason: overrideReason }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
 
-    scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason: req.body.override_reason || req.body.reason || null });
+    scheduleProjectLifecycleNotifications({ orgId, project, status: requestedStatus, actorUserId: req.user.id, activeTaskCount, overrideReason });
 
     return res.json({ project, affectedActiveTasks: activeTaskCount });
   } catch (err) {
-    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+    if (err.statusCode) {
+      const body = { error: err.message };
+      if (err.code) body.code = err.code;
+      if (typeof err.activeTaskCount === 'number') body.activeTaskCount = err.activeTaskCount;
+      return res.status(err.statusCode).json(body);
+    }
     next(err);
   }
 });
