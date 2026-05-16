@@ -1,0 +1,754 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME OVERHAUL — comprehensive design system
+   
+   This file is loaded LAST and wins all cascade battles.
+   - Light theme primary: #022b59 (deep navy)
+   - Dark theme primary:  #ccd5de (cool light gray)
+   - Vice-versa surfaces: dark uses light primary, light uses navy primary
+   - All buttons: capsule (pill) shape, uniform height per size class
+   - All cards: rectangular with consistent radius (12px), no oval/pill
+   - Typography: single Inter family, scale 8-22pt, tabular figures for data
+   - Bold reserved for primary KPIs and call-outs only
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── DARK THEME (default) ──────────────────────────────────────────── */
+:root,
+.appShellV4Dark {
+  /* Brand: light cool gray on dark backgrounds */
+  --primary: #ccd5de;
+  --primary-hover: #dde4eb;
+  --primary-active: #b8c4cf;
+  --primary-glow: rgba(204, 213, 222, 0.30);
+  --primary-text-on: #022b59;  /* text color when sitting on primary bg */
+
+  /* Aliases for legacy class names */
+  --brand: #ccd5de;
+  --brand-light: rgba(204, 213, 222, 0.12);
+  --brand-dim: rgba(204, 213, 222, 0.10);
+  --brandDim: rgba(204, 213, 222, 0.10);
+  --brand-border: rgba(204, 213, 222, 0.30);
+  --brandBorder: rgba(204, 213, 222, 0.30);
+  --brand-dark: #9aa6b2;
+
+  /* Background and surfaces */
+  --bg: #0b0f17;
+  --bg0: #0b0f17;
+  --bg1: #131923;
+  --bg2: #1a2231;
+  --surface: #131923;
+  --surface-up: #1a2231;
+  --surfaceUp: #1a2231;
+  --card: #131923;
+
+  /* Borders and dividers — high contrast for visibility */
+  --border: rgba(204, 213, 222, 0.16);
+  --border-strong: rgba(204, 213, 222, 0.28);
+  --borderUp: rgba(204, 213, 222, 0.22);
+  --divider: rgba(204, 213, 222, 0.10);
+
+  /* Text — high contrast for readability */
+  --text: #eef1f5;
+  --text2: #c3cad3;
+  --muted: #8a94a0;
+
+  /* Brand gradient (used in primary buttons / hero accents) */
+  --brand-gradient: linear-gradient(135deg, #ccd5de 0%, #dde4eb 100%);
+  --gradient-primary: linear-gradient(135deg, #ccd5de 0%, #dde4eb 100%);
+
+  --shadowLg: 0 18px 46px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.25);
+
+  color-scheme: dark;
+}
+
+/* ─── LIGHT THEME ───────────────────────────────────────────────────── */
+.appShellV4Light,
+.appShellLight {
+  /* Brand: deep navy on light backgrounds */
+  --primary: #022b59;
+  --primary-hover: #023a78;
+  --primary-active: #011d3d;
+  --primary-glow: rgba(2, 43, 89, 0.18);
+  --primary-text-on: #ffffff;
+
+  /* Aliases */
+  --brand: #022b59;
+  --brand-light: rgba(2, 43, 89, 0.08);
+  --brand-dim: rgba(2, 43, 89, 0.06);
+  --brandDim: rgba(2, 43, 89, 0.06);
+  --brand-border: rgba(2, 43, 89, 0.28);
+  --brandBorder: rgba(2, 43, 89, 0.28);
+  --brand-dark: #011d3d;
+
+  /* Backgrounds and surfaces */
+  --bg: #f5f7fa;
+  --bg0: #f5f7fa;
+  --bg1: #ffffff;
+  --bg2: #eef2f7;
+  --surface: #ffffff;
+  --surface-up: #eef2f7;
+  --surfaceUp: #eef2f7;
+  --card: #ffffff;
+
+  /* Borders — visible but soft */
+  --border: rgba(2, 43, 89, 0.14);
+  --border-strong: rgba(2, 43, 89, 0.24);
+  --borderUp: rgba(2, 43, 89, 0.20);
+  --divider: rgba(2, 43, 89, 0.08);
+
+  /* Text — high contrast on light bg */
+  --text: #0a1a2f;
+  --text2: #324153;
+  --muted: #62718a;
+
+  --brand-gradient: linear-gradient(135deg, #022b59 0%, #023a78 100%);
+  --gradient-primary: linear-gradient(135deg, #022b59 0%, #023a78 100%);
+
+  --shadowLg: 0 18px 46px rgba(2, 43, 89, 0.10), 0 2px 10px rgba(2, 43, 89, 0.06);
+
+  color-scheme: light;
+}
+
+/* Background gradient overrides — subtle, not dominating */
+.appShellV4Dark,
+.appShellV4 {
+  background:
+    radial-gradient(circle at top left, rgba(204, 213, 222, 0.04), transparent 32vw),
+    radial-gradient(circle at bottom right, rgba(204, 213, 222, 0.03), transparent 34vw),
+    var(--bg) !important;
+}
+
+.appShellV4Light {
+  background:
+    radial-gradient(circle at top left, rgba(2, 43, 89, 0.04), transparent 32vw),
+    radial-gradient(circle at bottom right, rgba(2, 43, 89, 0.03), transparent 34vw),
+    var(--bg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY — single Inter family, scale 8-22pt, tabular figures
+   ═══════════════════════════════════════════════════════════════════════ */
+
+* {
+  font-feature-settings: 'cv11', 'ss01', 'ss03', 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+html, body, #root {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03', 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings: 18-22pt, regular weight (bold reserved for KPIs) */
+h1 { font-size: 22px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: var(--text); }
+h2 { font-size: 20px; font-weight: 700; line-height: 1.30; letter-spacing: -0.015em; color: var(--text); }
+h3 { font-size: 18px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--text); }
+h4 { font-size: 15px; font-weight: 600; line-height: 1.40; color: var(--text); }
+h5, h6 { font-size: 13px; font-weight: 600; line-height: 1.40; color: var(--text); }
+
+/* Body text: 13-14pt */
+body, p { font-size: 14px; line-height: 1.55; color: var(--text2); }
+
+/* Labels, captions: 10-12pt */
+label, .label, small, caption { font-size: 11px; line-height: 1.45; color: var(--muted); }
+
+/* Footnotes / chips: 8-9pt */
+.footnote, .chip, .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.04em; }
+
+/* Numbers everywhere use tabular figures */
+.number, .tabular, [data-number], .kpiValue, .statValue, .metricValue, td, th {
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: 'tnum' 1, 'cv11' 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BUTTONS — capsule (pill) shape, uniform heights per size class
+   - Default:   40px height
+   - Small:     32px height
+   - Large:     48px height
+   - Icon-only: same height as size, square aspect minus the capsule curve
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.btn,
+button.btn,
+a.btn,
+label.btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 20px !important;
+  border-radius: 999px !important;  /* CAPSULE */
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-family: inherit !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+  position: relative !important;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-up) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+.btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Primary button — solid brand color */
+.btnPrimary {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px var(--primary-glow) !important;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 6px 16px var(--primary-glow) !important;
+}
+
+.btnPrimary:active:not(:disabled) {
+  background: var(--primary-active) !important;
+  border-color: var(--primary-active) !important;
+}
+
+/* Ghost button — transparent with border */
+.btnGhost {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text2) !important;
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--surface-up) !important;
+  color: var(--text) !important;
+  border-color: var(--border-strong) !important;
+}
+
+/* Small button — 32px */
+.btnSm {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 14px !important;
+  font-size: 12.5px !important;
+}
+
+/* Large button — 48px (used in CTAs, marketing) */
+.btnLg, .btnXl {
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 24px !important;
+  font-size: 14px !important;
+}
+
+/* Icon button — square aspect, still capsule (circle when square) */
+.btnIcon {
+  width: 40px !important;
+  min-width: 40px !important;
+  padding: 0 !important;
+}
+
+.btnIcon.btnSm {
+  width: 32px !important;
+  min-width: 32px !important;
+}
+
+/* ::before overlay was creating visual conflicts with new flat style */
+.btn::before {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CARDS — rectangular, consistent 12px radius, no oval/pill shapes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.card,
+.formCardV3,
+.chartV3,
+.chartCardV2,
+.miniCard,
+.kpiCard,
+.statCard,
+.pageHeaderCard,
+.statsCard,
+.dashKpiCard,
+.miniMetric,
+.chartCardWrap,
+.insightsCard,
+.dashboardCard {
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.appShellV4Light .card,
+.appShellV4Light .formCardV3,
+.appShellV4Light .chartV3,
+.appShellV4Light .chartCardV2,
+.appShellV4Light .miniCard,
+.appShellV4Light .kpiCard,
+.appShellV4Light .statCard,
+.appShellV4Light .pageHeaderCard,
+.appShellV4Light .statsCard {
+  box-shadow: 0 1px 2px rgba(2, 43, 89, 0.04), 0 4px 16px rgba(2, 43, 89, 0.06) !important;
+}
+
+/* OVAL/PILL CARD KILLERS — find anything with border-radius >= 20px on cards */
+[class*="Card"][style*="border-radius: 24"],
+[class*="Card"][style*="border-radius: 28"],
+[class*="Card"][style*="border-radius: 32"],
+[class*="Card"][style*="borderRadius: 24"],
+[class*="Card"][style*="borderRadius: 28"],
+[class*="Card"][style*="borderRadius: 32"] {
+  border-radius: 12px !important;
+}
+
+/* Chips and badges keep their pill shape — those are meant to be pill */
+.chip, .tag, .badge, .statusBadge, .pageHeaderCardTag,
+.navItemV4Badge, .statusChip {
+  border-radius: 999px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INPUTS — match capsule height, sharper corners (10px, not full pill)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+input.input, .input, .selectV3Trigger, .inputV3, textarea.input {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-family: inherit !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  font-variant-numeric: tabular-nums !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+  box-sizing: border-box !important;
+  width: 100%;
+}
+
+textarea.input {
+  height: auto !important;
+  min-height: 88px !important;
+  padding: 12px 14px !important;
+  line-height: 1.5;
+}
+
+input.input:focus, .input:focus, .selectV3Trigger:focus-within {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+  outline: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LINKS & SECONDARY UI ELEMENTS — visibility in both themes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-hover); text-decoration: underline; }
+
+hr { border: none; border-top: 1px solid var(--divider); margin: 16px 0; }
+
+::placeholder { color: var(--muted) !important; opacity: 1 !important; }
+
+/* Tables — tabular numbers, visible borders in both themes */
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--divider); }
+td { font-size: 13px; color: var(--text); padding: 12px; border-bottom: 1px solid var(--divider); }
+tr:hover td { background: var(--surface-up); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDEBAR — adapt to new theme colors
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.sidebarV4 {
+  background: var(--surface) !important;
+  border-right: 1px solid var(--divider) !important;
+}
+
+.sidebarV4LogoLink:hover {
+  background: var(--surface-up) !important;
+}
+
+.navItemV4 {
+  color: var(--text2) !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  border: none !important;
+}
+
+.navItemV4:hover {
+  background: var(--surface-up) !important;
+  color: var(--text) !important;
+  border: none !important;
+}
+
+.navItemV4Active {
+  background: var(--brand-dim) !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+  border: none !important;
+}
+
+.navItemV4Active svg {
+  color: var(--primary) !important;
+  opacity: 1 !important;
+}
+
+/* Sidebar section labels */
+.sidebarV4SectionLabel {
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TOPBAR — visibility and contrast
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.topbarV4 {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--divider) !important;
+}
+
+.topbarV4SearchInput,
+.topbarV4SearchWrap {
+  background: var(--bg2) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+.topbarV4SearchInput {
+  font-variant-numeric: tabular-nums;
+}
+
+.topbarV4SearchInput::placeholder {
+  color: var(--muted) !important;
+}
+
+/* Theme toggle, lang, profile, notifications — uniform pills */
+.topbarThemeBtn,
+.topbarLangBtn,
+.topbarV4ProfileBtn,
+.topbarMetricChip {
+  border-radius: 999px !important;
+  background: var(--bg2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text2) !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+}
+
+.topbarThemeBtn:hover,
+.topbarLangBtn:hover,
+.topbarV4ProfileBtn:hover {
+  background: var(--surface-up) !important;
+  color: var(--text) !important;
+  border-color: var(--border-strong) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STATUS BADGES — uniform pill, semantic colors
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.statusBadge, .statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.statusCompleted, .badgeSuccess, .statusActive {
+  background: rgba(34,197,94,0.12) !important;
+  color: #22c55e !important;
+  border: 1px solid rgba(34,197,94,0.25) !important;
+}
+.statusOverdue, .badgeDanger, .statusTerminated {
+  background: rgba(239,68,68,0.12) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239,68,68,0.25) !important;
+}
+.statusSubmitted, .badgeInfo, .statusOnLeave {
+  background: rgba(56,189,248,0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56,189,248,0.25) !important;
+}
+.statusPending, .badgeMuted, .statusInactive {
+  background: rgba(148,163,184,0.12) !important;
+  color: #94a3b8 !important;
+  border: 1px solid rgba(148,163,184,0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MARKETING / AUTH PAGES — bring under the same system
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.mktBrandSub, .mktLead, .mktMockKpiLab, .mktMockItem, .mktText, .mktCtaText,
+.mktPlanTag, .mktFooterSub {
+  color: var(--text2) !important;
+}
+
+.mktNavItem {
+  color: var(--text2) !important;
+  border-radius: 999px !important;
+}
+.mktNavItem:hover {
+  background: var(--surface-up) !important;
+  color: var(--text) !important;
+}
+
+.mktChipSoft, .mktTag {
+  background: var(--brand-dim) !important;
+  border: 1px solid var(--brand-border) !important;
+  color: var(--primary) !important;
+  border-radius: 999px !important;
+}
+
+.mktFooterLink {
+  color: var(--text2) !important;
+}
+.mktFooterLink:hover {
+  color: var(--primary) !important;
+}
+
+/* Marketing buttons inherit .btn .btnPrimary .btnGhost */
+.mktCtaBtn, .mktPrimary, .mktBtnPrimary {
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  border-color: var(--primary) !important;
+  border-radius: 999px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMS — labels, helpers, error states
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.formLabel, .fieldLabel, label.label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--text2) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-bottom: 6px !important;
+  display: block;
+}
+
+.formHelp, .fieldHelp, .helperText {
+  font-size: 11px !important;
+  color: var(--muted) !important;
+  margin-top: 4px;
+}
+
+.fieldError, .formError {
+  font-size: 11px !important;
+  color: #ef4444 !important;
+  margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KPI EMPHASIS — bold only for the primary number, not labels
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.kpiValue, .statValue, .metricValue, .kpiTileNumber, .dashKpiNumber {
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  font-size: 24px !important;
+  line-height: 1.1 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.kpiLabel, .statLabel, .metricLabel, .kpiTileLabel {
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  color: var(--muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+.kpiSub, .statSub, .metricSub {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--muted) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAGE HEADER CARD — use new design system
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pageHeaderCard {
+  border-radius: 12px !important;
+  padding: 18px 20px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.pageHeaderCard::before {
+  display: none !important;  /* remove the gold gradient top bar from old design */
+}
+
+.pageHeaderCardTitle {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.015em !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pageHeaderCardSub {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--text2) !important;
+  margin-top: 4px;
+}
+
+.pageHeaderCardTag {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  background: var(--brand-dim) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--brand-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MODALS — clean rectangular, no oval
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.modalV2, .modalContent, [role="dialog"] > div {
+  border-radius: 14px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHARTS — adapt grid/axis colors per theme
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.appShellV4Dark, :root {
+  --chart-grid: rgba(204, 213, 222, 0.08);
+  --chart-axis: rgba(204, 213, 222, 0.18);
+  --chart-tick: rgba(204, 213, 222, 0.65);
+  --chart-tick2: rgba(204, 213, 222, 0.50);
+  --chart-tooltip-bg: #1a2231;
+  --chart-tooltip-border: rgba(204, 213, 222, 0.20);
+}
+
+.appShellV4Light {
+  --chart-grid: rgba(2, 43, 89, 0.10);
+  --chart-axis: rgba(2, 43, 89, 0.22);
+  --chart-tick: rgba(2, 43, 89, 0.65);
+  --chart-tick2: rgba(2, 43, 89, 0.50);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: rgba(2, 43, 89, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — keep button heights consistent at all sizes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 560px) {
+  .btn { padding: 0 16px !important; }
+  .btnPrimary, .btnGhost { font-size: 13px !important; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 16px; }
+}
+
+@media (max-width: 420px) {
+  .btn:not(.btnIcon) { width: 100%; }  /* full-width buttons on tiny screens */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCROLLBARS — themed
+   ═══════════════════════════════════════════════════════════════════════ */
+
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOCUS — accessible visible focus ring on all interactive elements
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INLINE STYLE OVERRIDES — components that hardcode the old gold gradient
+   are overridden where possible using attribute selectors
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Common gold gradient backgrounds in inline styles — neutralize them */
+[style*="linear-gradient(315deg,rgba(249,230,162"],
+[style*="linear-gradient(315deg, rgba(249,230,162"],
+[style*="linear-gradient(135deg,rgba(249,230,162"],
+[style*="linear-gradient(135deg, rgba(249,230,162"] {
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  border-color: var(--primary) !important;
+}
+
+/* Hardcoded gold solid backgrounds in inline styles */
+[style*="background: #e2ab41"],
+[style*="background:#e2ab41"],
+[style*="background: rgba(226,171,65"],
+[style*="background:rgba(226,171,65"] {
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+}
+
+/* Hardcoded gold text colors */
+[style*="color: #e2ab41"],
+[style*="color:#e2ab41"] {
+  color: var(--primary) !important;
+}
