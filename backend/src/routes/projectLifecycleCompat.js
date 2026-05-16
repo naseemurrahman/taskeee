@@ -22,6 +22,36 @@ async function getColumns(tableName) {
   return cols;
 }
 
+async function ensureLifecycleSchema(tx) {
+  await tx.query(`CREATE TABLE IF NOT EXISTS projects (
+    id uuid PRIMARY KEY,
+    org_id uuid NULL,
+    name text NULL,
+    description text NULL,
+    status varchar(20) NOT NULL DEFAULT 'active',
+    created_by uuid NULL,
+    updated_by uuid NULL,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT NOW(),
+    updated_at timestamptz NOT NULL DEFAULT NOW()
+  )`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS org_id uuid NULL`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS name text NULL`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS description text NULL`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS status varchar(20) NOT NULL DEFAULT 'active'`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_by uuid NULL`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by uuid NULL`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT NOW()`);
+  await tx.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT NOW()`);
+  await tx.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id uuid NULL`);
+  await tx.query(`CREATE INDEX IF NOT EXISTS idx_projects_org_status ON projects(org_id, status)`);
+  await tx.query(`CREATE INDEX IF NOT EXISTS idx_projects_org_name ON projects(org_id, lower(name))`);
+  await tx.query(`CREATE INDEX IF NOT EXISTS idx_tasks_org_project ON tasks(org_id, project_id)`);
+  columnsCache.delete('projects');
+  columnsCache.delete('tasks');
+}
+
 async function resolveOrgId(req) {
   const orgId = await orgIdForSessionUser(req);
   return orgId ? String(orgId) : null;
@@ -72,7 +102,7 @@ async function findCanonicalProject(tx, orgId, ids) {
     );
     return rows[0] || null;
   } catch (err) {
-    if (err.code === '42P01') return null;
+    if (err.code === '42P01' || err.code === '42703') return null;
     throw err;
   }
 }
@@ -99,7 +129,7 @@ async function findLegacyCategory(tx, orgId, ids) {
     );
     return rows[0] || null;
   } catch (err) {
-    if (err.code === '42P01') return null;
+    if (err.code === '42P01' || err.code === '42703') return null;
     throw err;
   }
 }
@@ -116,6 +146,9 @@ async function inferProjectSeedFromTasks(tx, orgId, ids, fallbackName) {
   if (!relationParts.length) return null;
   const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`, `${idExpr} IS NOT NULL`];
   if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  const orderParts = ['COUNT(t.id) DESC'];
+  if (taskCols.has('updated_at')) orderParts.push('MAX(t.updated_at) DESC NULLS LAST');
+  if (taskCols.has('created_at')) orderParts.push('MAX(t.created_at) DESC NULLS LAST');
   const { rows } = await tx.query(
     `SELECT ${idExpr} AS id,
             t.org_id,
@@ -127,7 +160,7 @@ async function inferProjectSeedFromTasks(tx, orgId, ids, fallbackName) {
        FROM tasks t
       WHERE ${conditions.join(' AND ')}
       GROUP BY ${idExpr}, t.org_id
-      ORDER BY COUNT(t.id) DESC, MAX(t.updated_at) DESC NULLS LAST, MAX(t.created_at) DESC NULLS LAST
+      ORDER BY ${orderParts.join(', ')}
       LIMIT 1`,
     [orgId, exact, fallbackName || '', exact[0] || '']
   );
@@ -237,6 +270,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const identifiers = normalizeIdentifiers([requestedProjectId, requestedProjectName]);
 
     const result = await withTransaction(async (tx) => {
+      await ensureLifecycleSchema(tx);
       let project = await findCanonicalProject(tx, orgId, identifiers);
       let resolvedFrom = 'projects';
       let seed = null;
