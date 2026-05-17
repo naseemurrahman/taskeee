@@ -4,6 +4,8 @@ const express = require('express');
 const { query, withTransaction } = require('../utils/db');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 const { orgIdForSessionUser } = require('../utils/orgContext');
+const { logAudit } = require('../services/auditService');
+const { logUserActivity } = require('../services/activityService');
 
 const router = express.Router();
 
@@ -207,12 +209,14 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const requestedProjectId = String(req.params.projectId || '').trim();
     const requestedProjectName = String(req.body?.project_name || req.body?.projectName || req.body?.name || '').trim();
     const identifiers = normalize([requestedProjectId, requestedProjectName]);
+    let openTaskCount = 0;
 
     const result = await withTransaction(async (tx) => {
       const project = await findProjectForCompletion(tx, orgId, identifiers);
       if (!project) throw Object.assign(new Error('Project was not found by canonical id/name or task relation.'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
 
       const openTasks = await countOpenProjectTasks(tx, orgId, project.id);
+      openTaskCount = openTasks;
       if (openTasks > 0) {
         throw Object.assign(new Error(`Complete or cancel ${openTasks} task(s) before completing this project.`), { statusCode: 409, code: 'PROJECT_HAS_UNRESOLVED_TASKS', activeTaskCount: openTasks });
       }
@@ -239,6 +243,47 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     });
 
     const legacyMirror = await mirrorLegacyInactiveBestEffort(orgId, result, identifiers);
+
+    try {
+      await logUserActivity({
+        orgId,
+        userId: req.user.id,
+        activityType: 'project_status_changed',
+        metadata: {
+          projectId: result.id,
+          requestedProjectId,
+          requestedProjectName,
+          projectName: result.name,
+          previousStatus: 'active_or_paused',
+          newStatus: 'completed',
+          activeTaskCount: openTaskCount,
+          canonical: true,
+          route: 'projectReadStatusFix',
+          legacyMirror,
+        },
+      });
+      await logAudit({
+        orgId,
+        actorUserId: req.user.id,
+        action: 'project.status.changed',
+        entityType: 'project',
+        entityId: result.id,
+        metadata: {
+          requestedProjectId,
+          requestedProjectName,
+          projectName: result.name,
+          previousStatus: 'active_or_paused',
+          newStatus: 'completed',
+          activeTaskCount: openTaskCount,
+          canonical: true,
+          route: 'projectReadStatusFix',
+          legacyMirror,
+        },
+        ip: req.ip,
+        userAgent: req.headers['user-agent'] || null,
+      });
+    } catch { /* non-critical */ }
+
     return res.json({ project: result, affectedActiveTasks: 0, canonicalProjectId: result.id, requestedProjectId, requestedProjectName, legacyMirror });
   } catch (err) {
     if (err.statusCode) {
