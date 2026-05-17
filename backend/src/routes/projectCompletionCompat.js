@@ -203,21 +203,27 @@ async function safeMirrorLegacyStatus(tx, orgId, identifiers, status) {
     const exact = normalizeIdentifiers(identifiers);
     if (!exact.length) return { rows: 0, skipped: false };
     const cols = await getColumns('task_categories');
-    if (!cols.has('status')) return { rows: 0, skipped: true, reason: 'missing_status_column' };
-    const col = cols.get('status');
-    const type = String(col?.data_type || '').toLowerCase();
-    if (!['character varying', 'text', 'character', 'user-defined'].includes(type)) {
-      return { rows: 0, skipped: true, reason: `unsupported_status_type:${type || 'unknown'}` };
-    }
     const lower = exact.map((value) => value.toLowerCase());
-    const updateCols = ['status = $3'];
-    if (cols.has('updated_at')) updateCols.push('updated_at = NOW()');
+    const setParts = [];
+    const params = [orgId, exact];
+    if (cols.has('status')) {
+      params.push(status);
+      setParts.push(`status = $${params.length}`);
+    }
+    if (cols.has('is_active')) {
+      params.push(status === 'active');
+      setParts.push(`is_active = $${params.length}`);
+    }
+    if (cols.has('updated_at')) setParts.push('updated_at = NOW()');
+    if (!setParts.length) return { rows: 0, skipped: true, reason: 'missing_lifecycle_columns' };
+    params.push(lower);
+    const lowerParam = params.length;
     const { rowCount } = await tx.query(
       `UPDATE task_categories
-          SET ${updateCols.join(', ')}
+          SET ${setParts.join(', ')}
         WHERE org_id = $1
-          AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($4::text[]))`,
-      [orgId, exact, status, lower]
+          AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($${lowerParam}::text[]))`,
+      params
     );
     return { rows: rowCount || 0, skipped: false };
   } catch (err) {
@@ -238,6 +244,97 @@ async function resolveProject(tx, { orgId, identifiers, actorUserId }) {
   await backfillTaskProjectIds(tx, orgId, project.id, relationIdentifiers);
   return { project, relationIdentifiers, resolvedFrom: seed ? 'legacy_category_backfill' : 'projects' };
 }
+
+function canonicalProjectSelect(taskCols, idFilter = false) {
+  const deletedGuard = taskCols.has('deleted_at') ? 'AND t.deleted_at IS NULL' : '';
+  return `
+    SELECT p.id,
+           p.name,
+           p.description,
+           NULL::text AS icon,
+           NULL::text AS color,
+           COALESCE(p.status, 'active') AS status,
+           (COALESCE(p.status, 'active') = 'active') AS is_active,
+           p.created_at,
+           COUNT(t.id)::int AS task_count,
+           'projects'::text AS source_store
+      FROM projects p
+      LEFT JOIN tasks t ON t.project_id = p.id ${deletedGuard}
+     WHERE p.org_id = $1
+       ${idFilter ? 'AND p.id::text = $2::text' : ''}
+       AND COALESCE(p.status, 'active') <> 'archived'
+  `;
+}
+
+function legacyProjectSelect(categoryCols, taskCols) {
+  const deletedGuard = taskCols.has('deleted_at') ? 'AND t.deleted_at IS NULL' : '';
+  const description = categoryCols.has('description') ? 'tc.description' : 'NULL::text AS description';
+  const icon = categoryCols.has('icon') ? 'tc.icon' : 'NULL::text AS icon';
+  const color = categoryCols.has('color') ? 'tc.color' : 'NULL::text AS color';
+  const status = categoryCols.has('status') ? "COALESCE(tc.status, 'active') AS status" : categoryCols.has('is_active') ? "CASE WHEN tc.is_active THEN 'active' ELSE 'completed' END AS status" : "'active' AS status";
+  const isActive = categoryCols.has('is_active') ? 'tc.is_active' : "(COALESCE(tc.status, 'active') = 'active') AS is_active";
+  const createdAt = categoryCols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at';
+  const taskMapExclusion = taskCols.has('category_id') && taskCols.has('project_id')
+    ? `OR EXISTS (SELECT 1 FROM tasks mt WHERE mt.org_id = tc.org_id AND mt.category_id = tc.id AND mt.project_id = p.id ${taskCols.has('deleted_at') ? 'AND mt.deleted_at IS NULL' : ''})`
+    : '';
+  return `
+    SELECT tc.id,
+           tc.name,
+           ${description},
+           ${icon},
+           ${color},
+           ${status},
+           ${isActive},
+           ${createdAt},
+           COUNT(t.id)::int AS task_count,
+           'task_categories'::text AS source_store
+      FROM task_categories tc
+      LEFT JOIN tasks t ON t.category_id = tc.id ${deletedGuard}
+     WHERE tc.org_id = $1
+       AND NOT EXISTS (
+         SELECT 1 FROM projects p
+          WHERE p.org_id = tc.org_id
+            AND COALESCE(p.status, 'active') <> 'archived'
+            AND (p.id::text = tc.id::text OR LOWER(TRIM(p.name)) = LOWER(TRIM(tc.name)) ${taskMapExclusion})
+       )
+  `;
+}
+
+router.get('/', authenticate, async (req, res, next) => {
+  try {
+    const orgId = await resolveOrgId(req);
+    if (!orgId || !(await tableExists('projects'))) return next();
+    const projectCols = await getColumns('projects');
+    if (!projectCols.has('id') || !projectCols.has('org_id') || !projectCols.has('name')) return next();
+    const { rows: countRows } = await query('SELECT COUNT(*)::int AS cnt FROM projects WHERE org_id = $1', [orgId]);
+    if (Number(countRows[0]?.cnt || 0) <= 0) return next();
+
+    const taskCols = await getColumns('tasks');
+    const { rows: canonicalRows } = await query(`${canonicalProjectSelect(taskCols)} GROUP BY p.id ORDER BY p.created_at DESC`, [orgId]);
+    let legacyRows = [];
+    if (await tableExists('task_categories')) {
+      const categoryCols = await getColumns('task_categories');
+      const { rows } = await query(`${legacyProjectSelect(categoryCols, taskCols)} GROUP BY tc.id ORDER BY ${categoryCols.has('created_at') ? 'tc.created_at' : 'tc.id'} DESC`, [orgId]);
+      legacyRows = rows;
+    }
+    return res.json({ projects: [...canonicalRows, ...legacyRows], meta: { store: 'project_completion_compat_reads', canonical: true, includesLegacy: legacyRows.length > 0 } });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/:projectId', authenticate, async (req, res, next) => {
+  try {
+    const orgId = await resolveOrgId(req);
+    if (!orgId || !(await tableExists('projects'))) return next();
+    const taskCols = await getColumns('tasks');
+    const { rows } = await query(`${canonicalProjectSelect(taskCols, true)} GROUP BY p.id`, [orgId, String(req.params.projectId || '')]);
+    if (!rows.length) return next();
+    return res.json({ project: rows[0], taskCounts: { byStatus: {}, total: rows[0].task_count || 0 }, workers: [], leaders: [], recentThreads: [], deadlineSummary: { overdueCount: 0, dueWithin7Days: 0, nextDueAt: null, latestDueAt: null }, assigneeMetrics: [] });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'hr', 'manager'), async (req, res, next) => {
   const status = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : null;
