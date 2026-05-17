@@ -128,7 +128,7 @@ export function CrmPipelinePage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
       {/* KPI Cards */}
-      <div className="grid4">
+      <div className="grid4 kpiStripStandard">
         <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div className="miniLabel">Total Deals</div>
           <div className="miniValue">{deals.length}</div>

@@ -1,0 +1,176 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   UNIFIED KPI CARDS — matches Dashboard KpiTile design app-wide
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.kpiStripStandard,
+.kpiStripStandard.dashKpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.kpiStripStandard.dashKpiStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.kpiStripStandard.dashKpiStrip > .kpiCard {
+  flex: 1 1 130px;
+  min-width: 130px;
+}
+
+/* Primary KPI card (Dashboard standard) */
+.kpiCard {
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  padding: 16px 18px !important;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  text-align: left;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.kpiCard {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+
+button.kpiCard:hover {
+  border-color: color-mix(in srgb, var(--kpi-color, var(--primary)) 45%, var(--border)) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+button.kpiCard:active {
+  transform: translateY(0);
+}
+
+.kpiCardAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 18px 18px 0 0;
+  pointer-events: none;
+}
+
+.kpiCardWatermark {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  opacity: 0.08;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  display: flex;
+}
+
+.kpiCardLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.kpiCardValue {
+  font-size: 32px;
+  font-weight: 950;
+  color: var(--text);
+  letter-spacing: -1.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-fill-color: var(--text);
+  background: none;
+}
+
+.kpiCardSub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Legacy miniCard rows upgraded to dashboard KPI look */
+.grid4.kpiStripStandard > .miniCard,
+.grid4.kpiStripStandard > button.miniCard,
+.analyticsSignalStrip.kpiStripStandard > .miniCard {
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  padding: 16px 18px !important;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.grid4.kpiStripStandard > .miniCard::before,
+.grid4.kpiStripStandard > button.miniCard::before,
+.analyticsSignalStrip.kpiStripStandard > .miniCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--kpi-color, var(--primary)), color-mix(in srgb, var(--kpi-color, var(--primary)) 55%, transparent));
+  border-radius: 18px 18px 0 0;
+  opacity: 1;
+  inset: auto;
+}
+
+.grid4.kpiStripStandard .miniLabel,
+.analyticsSignalStrip.kpiStripStandard .miniLabel {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  margin-bottom: 8px;
+}
+
+.grid4.kpiStripStandard .miniValue,
+.analyticsSignalStrip.kpiStripStandard .miniValue {
+  margin-top: 0 !important;
+  font-size: 32px !important;
+  font-weight: 950 !important;
+  letter-spacing: -1.5px !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+  background: none !important;
+}
+
+.grid4.kpiStripStandard > button.miniCard:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-color, var(--primary)) 45%, var(--border)) !important;
+}
+
+@media (max-width: 640px) {
+  .kpiStripStandard.dashKpiStrip {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kpiStripStandard.dashKpiStrip > .kpiCard {
+    flex: 0 0 140px;
+    min-width: 140px;
+  }
+
+  .kpiCardValue,
+  .grid4.kpiStripStandard .miniValue {
+    font-size: 28px !important;
+  }
+}

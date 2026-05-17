@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState } from 'react'
 import { IconAward } from '../../components/ui/AppIcons'
 import type React from 'react'
 import { Link } from 'react-router-dom'
@@ -11,6 +11,7 @@ import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiCard } from '../../components/ui/KpiCard'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
   LayoutDashboard, TrendingUp, TrendingDown, Minus
@@ -235,29 +236,6 @@ const C = {
   teal: '#14b8a6', muted: 'var(--muted)',
 }
 
-// ─── Animated counter ─────────────────────────────────────────────
-function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [display, setDisplay] = useState(0)
-  const prev = useRef(0)
-  useEffect(() => {
-    const target = value
-    const start = prev.current
-    const diff = target - start
-    if (diff === 0) return
-    const steps = 30
-    let step = 0
-    const t = setInterval(() => {
-      step++
-      setDisplay(Math.round(start + (diff * step) / steps))
-      if (step >= steps) { clearInterval(t); prev.current = target }
-    }, 16)
-    return () => clearInterval(t)
-  }, [value])
-  return <>{display}{suffix}</>
-}
-
-// ─── Smooth area sparkline ────────────────────────────────────────
-
 // ─── Donut ring ────────────────────────────────────────────────────
 function DonutRing({ segments, size = 120, strokeW = 12 }: {
   segments: { value: number; color: string; label: string }[]
@@ -342,20 +320,7 @@ function Card({ title, sub, children, action }: {
 function KpiTile({ label, value, sub, color, icon }: {
   label: string; value: number; sub?: string; color: string; icon: React.ReactNode
 }) {
-  return (
-    <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 18, padding: '16px 18px', position: 'relative', overflow: 'hidden', flex: '1 1 130px', minWidth: 130 }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '18px 18px 0 0' }} />
-      {/* Lucide icon — watermark in corner */}
-      <div style={{ position: 'absolute', bottom: 12, right: 14, opacity: 0.08, color, lineHeight: 1, userSelect: 'none', pointerEvents: 'none' }}>
-        <span style={{ display: 'flex' }}>{icon}</span>
-      </div>
-      <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--text)', letterSpacing: '-1.5px', lineHeight: 1 }}>
-        <AnimatedNumber value={value} />
-      </div>
-      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  )
+  return <KpiCard label={label} value={value} sub={sub} color={color} icon={icon} animate />
 }
 
 // ─── Main ─────────────────────────────────────────────────────────
@@ -432,7 +397,7 @@ export function DashboardHomePage() {
       <OnboardingBanner />
 
       {/* ── KPI Row ── */}
-      <div className="dashKpiStrip">
+      <div className="dashKpiStrip kpiStripStandard">
         {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, flex: '1 1 130px', minWidth: 130 }} />) : <>
           <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon={<ClipboardList size={36} />} sub={`${tasks?.due_today||0} due today`} />
           <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon={<Zap size={36} />}           sub="active work" />

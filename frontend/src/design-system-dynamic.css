@@ -23,6 +23,8 @@
   --filter-height: 40px;
   --tab-height: 40px;
   --search-height: 40px;
+  --topbar-height: 56px;
+  --topbar-control-height: 40px;
   
   /* Interactive Element Heights - Small */
   --input-height-sm: 32px;

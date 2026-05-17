@@ -217,7 +217,7 @@ export function TasksPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       {/* KPI Cards */}
-      <div className="grid4">
+      <div className="grid4 kpiStripStandard">
         <button type="button" className="miniCard" style={{ '--kpi-color': '#6366f1' } as any} onClick={() => { setStatus('all'); setPage(1) }}>
           <div className="miniLabel">All Tasks</div>
           <div className="miniValue">{counts.all}</div>
