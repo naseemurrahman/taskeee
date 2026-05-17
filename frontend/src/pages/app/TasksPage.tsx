@@ -14,7 +14,9 @@ import { useToast } from '../../components/ui/ToastSystem'
 import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
 import { SkeletonRows, ErrorRetry, EmptyState } from '../../components/ui/PageStates'
+import { ClipboardList, Clock, Zap, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 type Task = {
   id: string; title?: string; status: string; priority?: string | null
@@ -216,29 +218,15 @@ export function TasksPage() {
   ]
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      {/* KPI Cards */}
-      <div className="grid4 kpiStripStandard">
-        <button type="button" className="miniCard" style={{ '--kpi-color': '#6366f1' } as any} onClick={() => { setStatus('all'); setPage(1) }}>
-          <div className="miniLabel">All Tasks</div>
-          <div className="miniValue">{counts.all}</div>
-        </button>
-        <button type="button" className="miniCard" style={{ '--kpi-color': '#eab308' } as any} onClick={() => { setStatus('pending'); setPage(1) }}>
-          <div className="miniLabel">Pending</div>
-          <div className="miniValue">{counts.pending}</div>
-        </button>
-        <button type="button" className="miniCard" style={{ '--kpi-color': '#a855f7' } as any} onClick={() => { setStatus('in_progress'); setPage(1) }}>
-          <div className="miniLabel">In Progress</div>
-          <div className="miniValue">{counts.in_progress}</div>
-        </button>
-        <button type="button" className="miniCard" style={{ '--kpi-color': '#22c55e' } as any} onClick={() => { setStatus('completed'); setPage(1) }}>
-          <div className="miniLabel">Completed</div>
-          <div className="miniValue">{counts.completed}</div>
-        </button>
-        <button type="button" className="miniCard" style={{ '--kpi-color': '#ef4444' } as any} onClick={() => { setStatus('overdue'); setPage(1) }}>
-          <div className="miniLabel">Overdue</div>
-          <div className="miniValue">{counts.overdue}</div>
-        </button>
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'All Tasks', value: counts.all, color: '#6366f1', icon: <ClipboardList size={36} />, onClick: () => { setStatus('all'); setPage(1) } },
+          { label: 'Pending', value: counts.pending, color: '#eab308', icon: <Clock size={36} />, onClick: () => { setStatus('pending'); setPage(1) } },
+          { label: 'In Progress', value: counts.in_progress, color: '#a855f7', icon: <Zap size={36} />, onClick: () => { setStatus('in_progress'); setPage(1) } },
+          { label: 'Completed', value: counts.completed, color: '#22c55e', icon: <CheckCircle2 size={36} />, onClick: () => { setStatus('completed'); setPage(1) } },
+          { label: 'Overdue', value: counts.overdue, color: '#ef4444', icon: <AlertTriangle size={36} />, onClick: () => { setStatus('overdue'); setPage(1) } },
+        ]}
+      />
 
       <div className="pageHeaderCard"><div className="pageHeaderCardInner"><div className="pageHeaderCardLeft"><div className="pageHeaderCardTitle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>Tasks{isEmployee && <span className="roleBadge roleBadgeEmployee" style={{ marginLeft: 8 }}>My Tasks</span>}</div><div className="pageHeaderCardSub">{isEmployee ? 'Tasks assigned to you. Project-paused tasks are read-only until the project is reactivated.' : 'Create, assign, and track tasks. Project-paused tasks show a lifecycle badge and locked status controls.'}</div><div className="pageHeaderCardMeta"><span className="pageHeaderCardTag">{tasks.length} total</span>{counts.locked > 0 && <span className="pageHeaderCardTag" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.24)' }}>🔒 {counts.locked} project locked</span>}{counts.overdue > 0 && <span className="pageHeaderCardTag" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {counts.overdue} overdue</span>}</div></div>{canCreate && <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} type="button">+ Create Task</button>}</div><div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}><div style={{ flex: '1 1 160px', minWidth: 120 }}><Input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search tasks…" /></div><div style={{ width: 'min(150px, 100%)', flexShrink: 0 }}><Select value={priority} onChange={v => { setPriority(v); setPage(1) }} options={PRIORITY_OPTS} /></div></div></div>
       {selected.size > 0 && canManage && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 12, background: selectedHasLockedProject ? 'rgba(245,158,11,0.10)' : 'rgba(226,171,65,0.10)', border: selectedHasLockedProject ? '1.5px solid rgba(245,158,11,0.30)' : '1.5px solid rgba(226,171,65,0.3)', flexWrap: 'wrap' }}><span style={{ fontWeight: 800, fontSize: 13, color: selectedHasLockedProject ? '#f59e0b' : 'var(--brand)' }}>{selected.size} selected</span>{selectedHasLockedProject && <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>Status changes disabled for paused/completed project tasks.</span>}{(['in_progress','submitted','completed'] as const).map(s => <button key={s} className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 12 }} onClick={() => bulkStatusM.mutate(s)} disabled={bulkStatusM.isPending || selectedHasLockedProject}>→ {s.replace(/_/g,' ')}</button>)}<button onClick={clearSelected} style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Clear</button></div>}

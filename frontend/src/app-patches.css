@@ -199,9 +199,14 @@
 }
 
 /* KPI card sizing must be comparable across Dashboard, JecZone, Analytics, Logs, Billing, and My Tasks. */
-.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter) > :not(.pageHeaderCard) {
+.contentV4 :is(.grid4,.dashKpiStrip,.analyticsSignalStrip,.myTasksCommandCenter) > :not(.pageHeaderCard):not(.kpiCard) {
   min-height: 102px !important;
   padding: var(--std-card-pad) !important;
+}
+
+.contentV4 .kpiStripStandard > .kpiCard {
+  min-height: 108px !important;
+  padding: 16px 18px !important;
 }
 
 .contentV4 :is(.miniLabel,.myTasksStatCard span) {

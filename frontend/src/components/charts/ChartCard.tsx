@@ -38,7 +38,7 @@ export function ChartCard(props: {
       <div className={props.noPad ? '' : 'chartCardV2Body'}>
         {props.loading ? (
           <div style={{ padding: '4px 0' }}>
-            <div className="skeleton" style={{ width: '100%', height: 300, borderRadius: 12 }} />
+            <div className="skeleton chartPlotSkeleton" style={{ width: '100%', borderRadius: 12 }} />
           </div>
         ) : props.children}
       </div>

@@ -772,6 +772,17 @@ button.jecKpiCard {
   min-width: 0 !important;
 }
 
+/* Dashboard-standard KPI strips — left-aligned like DashboardHomePage */
+.kpiStripStandard > .kpiCard,
+.kpiStripStandard > button.miniCard,
+.kpiStripStandard > .miniCard,
+.grid4.kpiStripStandard > *,
+.analyticsSignalStrip.kpiStripStandard > * {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
 /* Mobile adjustments */
 @media (max-width: 900px) {
   .miniValue {
