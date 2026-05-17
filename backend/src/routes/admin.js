@@ -37,6 +37,25 @@ function sendCsv(res, filename, rows) {
 }
 function orgId(req) { return req.user.org_id || req.user.orgId; }
 
+async function adminTableExists(tableName) {
+  const { rows } = await query(
+    `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1 LIMIT 1`,
+    [tableName]
+  );
+  return rows.length > 0;
+}
+async function adminColumns(tableName) {
+  const { rows } = await query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
+    [tableName]
+  );
+  return new Set(rows.map((row) => String(row.column_name)));
+}
+async function countSql(sql, params = []) {
+  const { rows } = await query(sql, params);
+  return Number(rows[0]?.count || rows[0]?.cnt || 0);
+}
+
 router.get('/env-status', (_req, res) => {
   const services = serviceStatus();
   const required = ['email', 'whatsapp', 'database', 'redis', 'security'];
@@ -93,6 +112,178 @@ router.get('/readiness-checklist', (_req, res) => {
     { area: 'Billing', item: 'Stripe configured', ok: services.stripe.configured, required: false },
   ];
   res.json({ ok: items.filter((i) => i.required).every((i) => i.ok), items, timestamp: new Date().toISOString() });
+});
+
+router.get('/project-migration-health', async (req, res, next) => {
+  try {
+    const oid = orgId(req);
+    const hasTasks = await adminTableExists('tasks');
+    const hasProjects = await adminTableExists('projects');
+    const hasCategories = await adminTableExists('task_categories');
+    const taskCols = hasTasks ? await adminColumns('tasks') : new Set();
+    const projectCols = hasProjects ? await adminColumns('projects') : new Set();
+    const categoryCols = hasCategories ? await adminColumns('task_categories') : new Set();
+    const checks = [];
+    const samples = {};
+
+    const addCheck = (key, label, count, severity, okWhenZero = true) => {
+      const ok = okWhenZero ? Number(count || 0) === 0 : Boolean(count);
+      checks.push({ key, label, count: Number(count || 0), severity, ok });
+    };
+
+    addCheck('projects_table_present', 'Canonical projects table exists', hasProjects ? 1 : 0, 'critical', false);
+    addCheck('tasks_project_id_column_present', 'tasks.project_id column exists', taskCols.has('project_id') ? 1 : 0, 'critical', false);
+
+    if (hasTasks && hasProjects && taskCols.has('project_id') && taskCols.has('org_id') && projectCols.has('id') && projectCols.has('org_id')) {
+      const deleted = taskCols.has('deleted_at') ? 'AND t.deleted_at IS NULL' : '';
+      const orphanedProjectTasks = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM tasks t
+           LEFT JOIN projects p ON p.id = t.project_id AND p.org_id = t.org_id
+          WHERE t.org_id = $1
+            AND t.project_id IS NOT NULL
+            AND p.id IS NULL
+            ${deleted}`,
+        [oid]
+      );
+      addCheck('tasks_with_invalid_project_id', 'Tasks reference missing canonical project', orphanedProjectTasks, 'critical');
+      if (orphanedProjectTasks > 0) {
+        const { rows } = await query(
+          `SELECT t.id, ${taskCols.has('title') ? 't.title' : 't.id::text AS title'}, t.project_id
+             FROM tasks t
+             LEFT JOIN projects p ON p.id = t.project_id AND p.org_id = t.org_id
+            WHERE t.org_id = $1
+              AND t.project_id IS NOT NULL
+              AND p.id IS NULL
+              ${deleted}
+            ORDER BY ${taskCols.has('updated_at') ? 't.updated_at DESC NULLS LAST' : 't.id DESC'}
+            LIMIT 20`,
+          [oid]
+        );
+        samples.tasks_with_invalid_project_id = rows;
+      }
+    }
+
+    if (hasTasks && taskCols.has('category_id') && taskCols.has('project_id') && taskCols.has('org_id')) {
+      const deleted = taskCols.has('deleted_at') ? 'AND deleted_at IS NULL' : '';
+      const missingProjectId = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM tasks
+          WHERE org_id = $1
+            AND category_id IS NOT NULL
+            AND project_id IS NULL
+            ${deleted}`,
+        [oid]
+      );
+      addCheck('categorized_tasks_missing_project_id', 'Categorized tasks missing canonical project_id', missingProjectId, 'high');
+      if (missingProjectId > 0) {
+        const { rows } = await query(
+          `SELECT id, ${taskCols.has('title') ? 'title' : 'id::text AS title'}, category_id
+             FROM tasks
+            WHERE org_id = $1
+              AND category_id IS NOT NULL
+              AND project_id IS NULL
+              ${deleted}
+            ORDER BY ${taskCols.has('updated_at') ? 'updated_at DESC NULLS LAST' : 'id DESC'}
+            LIMIT 20`,
+          [oid]
+        );
+        samples.categorized_tasks_missing_project_id = rows;
+      }
+    }
+
+    if (hasProjects && projectCols.has('status') && projectCols.has('org_id')) {
+      const invalidProjectStatuses = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM projects
+          WHERE org_id = $1
+            AND COALESCE(NULLIF(status, ''), 'active') NOT IN ('active','paused','completed','archived')`,
+        [oid]
+      );
+      addCheck('invalid_project_statuses', 'Projects with invalid canonical status', invalidProjectStatuses, 'critical');
+    }
+
+    if (hasCategories && categoryCols.has('status') && categoryCols.has('is_active') && categoryCols.has('org_id')) {
+      const staleLegacyActive = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM task_categories
+          WHERE org_id = $1
+            AND is_active = FALSE
+            AND COALESCE(NULLIF(status, ''), 'active') = 'active'`,
+        [oid]
+      );
+      addCheck('stale_legacy_status_active', 'Legacy categories inactive but status still active', staleLegacyActive, 'medium');
+      if (staleLegacyActive > 0) {
+        const { rows } = await query(
+          `SELECT id, name, status, is_active
+             FROM task_categories
+            WHERE org_id = $1
+              AND is_active = FALSE
+              AND COALESCE(NULLIF(status, ''), 'active') = 'active'
+            ORDER BY ${categoryCols.has('updated_at') ? 'updated_at DESC NULLS LAST' : 'id DESC'}
+            LIMIT 20`,
+          [oid]
+        );
+        samples.stale_legacy_status_active = rows;
+      }
+    }
+
+    if (hasCategories && hasProjects && categoryCols.has('org_id') && categoryCols.has('id') && categoryCols.has('name') && projectCols.has('org_id') && projectCols.has('id') && projectCols.has('name')) {
+      const legacyOnly = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM task_categories tc
+          WHERE tc.org_id = $1
+            AND NOT EXISTS (
+              SELECT 1 FROM projects p
+               WHERE p.org_id = tc.org_id
+                 AND (p.id::text = tc.id::text OR LOWER(TRIM(p.name)) = LOWER(TRIM(tc.name)))
+            )`,
+        [oid]
+      );
+      addCheck('legacy_categories_without_canonical_match', 'Legacy categories without canonical project match', legacyOnly, 'medium');
+
+      const duplicateMatches = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM (
+             SELECT tc.id
+               FROM task_categories tc
+               JOIN projects p ON p.org_id = tc.org_id
+                AND (p.id::text = tc.id::text OR LOWER(TRIM(p.name)) = LOWER(TRIM(tc.name)))
+              WHERE tc.org_id = $1
+              GROUP BY tc.id
+             HAVING COUNT(DISTINCT p.id) > 1
+           ) dup`,
+        [oid]
+      );
+      addCheck('legacy_categories_with_multiple_canonical_matches', 'Legacy categories matching multiple canonical projects', duplicateMatches, 'high');
+    }
+
+    if (hasTasks && hasProjects && taskCols.has('project_id') && taskCols.has('category_id') && taskCols.has('org_id') && projectCols.has('id') && projectCols.has('org_id')) {
+      const duplicateTaskMappings = await countSql(
+        `SELECT COUNT(*)::int AS count
+           FROM (
+             SELECT t.category_id, COUNT(DISTINCT t.project_id) AS project_count
+               FROM tasks t
+              WHERE t.org_id = $1
+                AND t.category_id IS NOT NULL
+                AND t.project_id IS NOT NULL
+                ${taskCols.has('deleted_at') ? 'AND t.deleted_at IS NULL' : ''}
+              GROUP BY t.category_id
+             HAVING COUNT(DISTINCT t.project_id) > 1
+           ) mixed`,
+        [oid]
+      );
+      addCheck('category_tasks_split_across_projects', 'One legacy category maps to multiple canonical projects through tasks', duplicateTaskMappings, 'high');
+    }
+
+    const blockingSeverities = new Set(['critical', 'high']);
+    const ok = checks.every((check) => check.ok || !blockingSeverities.has(check.severity));
+    const result = { ok, orgId: oid, checks, samples, timestamp: new Date().toISOString() };
+    await logAuditEvent({ req, action: 'project_migration_health_checked', entityType: 'admin_ops', metadata: { ok, checks: checks.map(({ key, count, severity, ok }) => ({ key, count, severity, ok })) } });
+    return res.json(result);
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.get('/backup-validation', async (req, res) => {
