@@ -10,6 +10,7 @@ import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 
 type Project = {
   id: string
@@ -340,34 +341,32 @@ export function ProjectsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-              Projects
-            </div>
-            <div className="pageHeaderCardSub">Organize tasks by project. Track progress across your team.</div>
-            <div className="pageHeaderCardMeta" style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="pageHeaderCardTag">{projects.length} total</span>
-              <span className="pageHeaderCardTag" style={{ color: '#22c55e' }}>{activeCount} active</span>
-              {completedCount > 0 && <span className="pageHeaderCardTag" style={{ color: '#6366f1' }}>{completedCount} completed</span>}
-              <span className="pageHeaderCardTag">{totalTasks} tasks</span>
-            </div>
-          </div>
-          {canCreate && (
+      <PageHeaderCard
+        icon={
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        }
+        title="Projects"
+        subtitle="Organize tasks by project. Track progress across your team."
+        badges={[
+          { label: `${projects.length} total` },
+          { label: `${activeCount} active`, color: '#22c55e' },
+          ...(completedCount > 0 ? [{ label: `${completedCount} completed`, color: '#6366f1' }] : []),
+          { label: `${totalTasks} tasks` },
+        ]}
+        actions={
+          canCreate ? (
             <button type="button" className="btn btnPrimary" onClick={() => setCreateOpen(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               New Project
             </button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {q.isError && <div className="alertV4 alertV4Error">Failed to load projects. Please refresh the page.</div>}
 

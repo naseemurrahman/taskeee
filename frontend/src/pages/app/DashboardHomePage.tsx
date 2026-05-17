@@ -10,6 +10,7 @@ import { OnboardingBanner } from '../../components/OnboardingBanner'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
   LayoutDashboard, TrendingUp, TrendingDown, Minus
@@ -417,24 +418,16 @@ export function DashboardHomePage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Header */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <LayoutDashboard size={20} strokeWidth={2} />
-              Dashboard
-            </div>
-            <div className="pageHeaderCardSub">
-              AI-powered real-time analytics • {tasks?.total || 0} tasks across {projects.length} projects • Auto-refreshes every 30s
-            </div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag" style={{ color: '#22c55e', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>● Live data</span>
-              {!!tasks?.overdue && <span className="pageHeaderCardTag" style={{ color: C.red, background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.22)' }}>⚠ {tasks.overdue} overdue</span>}
-              {tasks?.completion_rate !== undefined && <span className="pageHeaderCardTag" style={{ color: C.green, background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.22)' }}>✓ {tasks.completion_rate}% complete</span>}
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeaderCard
+        icon={<LayoutDashboard size={20} strokeWidth={2} />}
+        title="Dashboard"
+        subtitle={`AI-powered real-time analytics • ${tasks?.total || 0} tasks across ${projects.length} projects • Auto-refreshes every 30s`}
+        badges={[
+          { label: 'Live data', color: '#22c55e', icon: '●' },
+          ...(tasks?.overdue ? [{ label: `${tasks.overdue} overdue`, color: '#ef4444', icon: '⚠' }] : []),
+          ...(tasks?.completion_rate !== undefined ? [{ label: `${tasks.completion_rate}% complete`, color: '#22c55e', icon: '✓' }] : []),
+        ]}
+      />
 
       <OnboardingBanner />
 
