@@ -69,8 +69,8 @@ function deletedGuard(taskCols, alias = 't') {
 }
 
 function projectStatusExpression(alias, cols) {
-  if (cols.has('status') && cols.has('is_active')) return `COALESCE(${alias}.status, CASE WHEN ${alias}.is_active THEN 'active' ELSE 'completed' END, 'active')`;
-  if (cols.has('status')) return `COALESCE(${alias}.status, 'active')`;
+  if (cols.has('status') && cols.has('is_active')) return `CASE WHEN ${alias}.is_active = FALSE THEN 'completed' ELSE COALESCE(NULLIF(${alias}.status, ''), 'active') END`;
+  if (cols.has('status')) return `COALESCE(NULLIF(${alias}.status, ''), 'active')`;
   if (cols.has('is_active')) return `CASE WHEN ${alias}.is_active THEN 'active' ELSE 'completed' END`;
   return `'active'`;
 }
