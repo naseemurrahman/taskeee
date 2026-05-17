@@ -26,12 +26,50 @@ async function resolveOrgId(req) {
   return orgId ? String(orgId) : null;
 }
 
+function projectStatusExpression(alias, cols) {
+  if (cols.has('status') && cols.has('is_active')) return `CASE WHEN ${alias}.is_active = FALSE THEN 'completed' ELSE COALESCE(NULLIF(${alias}.status, ''), 'active') END`;
+  if (cols.has('status')) return `COALESCE(NULLIF(${alias}.status, ''), 'active')`;
+  if (cols.has('is_active')) return `CASE WHEN ${alias}.is_active THEN 'active' ELSE 'completed' END`;
+  return `'active'`;
+}
+
 async function canonicalProjectStatus(orgId, projectId) {
   if (!projectId) return null;
   try {
+    const projectCols = await getColumns('projects');
+    const statusExpr = projectStatusExpression('p', projectCols);
     const { rows } = await query(
-      `SELECT id, name, COALESCE(status, 'active') AS status FROM projects WHERE id = $1 AND org_id = $2 LIMIT 1`,
+      `SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.id = $1 AND p.org_id = $2 LIMIT 1`,
       [projectId, orgId]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01' || err.code === '42703') return null;
+    throw err;
+  }
+}
+
+async function canonicalProjectForCategory(orgId, categoryId) {
+  if (!categoryId) return null;
+  try {
+    const projectCols = await getColumns('projects');
+    const statusExpr = projectStatusExpression('p', projectCols);
+    const { rows } = await query(
+      `SELECT p.id, p.name, ${statusExpr} AS status
+         FROM projects p
+        WHERE p.org_id = $1
+          AND (
+            p.id::text = $2::text
+            OR EXISTS (
+              SELECT 1 FROM task_categories tc
+               WHERE tc.org_id = p.org_id
+                 AND tc.id::text = $2::text
+                 AND LOWER(TRIM(tc.name)) = LOWER(TRIM(p.name))
+            )
+          )
+        ORDER BY CASE WHEN p.id::text = $2::text THEN 0 ELSE 1 END
+        LIMIT 1`,
+      [orgId, categoryId]
     );
     return rows[0] || null;
   } catch (err) {
@@ -88,17 +126,22 @@ router.get('/assignable-users', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
+async function createCanonicalProjectTask(req, res, next, { allowCategoryResolution = false } = {}) {
   try {
-    const projectId = String(req.body?.projectId || req.body?.project_id || '').trim();
-    if (!projectId) return next();
+    const requestedProjectId = String(req.body?.projectId || req.body?.project_id || '').trim();
+    const categoryId = String(req.body?.categoryId || req.body?.category_id || '').trim();
+    if (!requestedProjectId && !(allowCategoryResolution && categoryId)) return next();
 
     const orgId = await resolveOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
 
     const taskCols = await getColumns('tasks');
-    if (!taskCols.has('project_id')) return next();
-    const project = await canonicalProjectStatus(orgId, projectId);
+    if (!taskCols.has('project_id')) return res.status(409).json({ error: 'Canonical project task creation requires tasks.project_id.', code: 'PROJECT_SCHEMA_INCOMPATIBLE' });
+
+    const project = requestedProjectId
+      ? await canonicalProjectStatus(orgId, requestedProjectId)
+      : await canonicalProjectForCategory(orgId, categoryId);
+    if (!project && requestedProjectId) return res.status(404).json({ error: 'Project not found. Select a valid active project before creating the task.', code: 'PROJECT_NOT_FOUND', projectId: requestedProjectId });
     if (!project) return next();
     if (project.status !== 'active') {
       return res.status(409).json({ error: `Cannot assign tasks to ${project.status} project "${project.name || project.id}". Reactivate the project first.`, code: 'PROJECT_NOT_ACTIVE', projectId: project.id, projectStatus: project.status });
@@ -109,7 +152,6 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
     const description = String(req.body?.description || '').trim() || null;
     const priority = String(req.body?.priority || 'medium').trim().toLowerCase();
     const dueDate = req.body?.dueDate || req.body?.due_date || null;
-    const categoryId = String(req.body?.categoryId || req.body?.category_id || '').trim();
 
     if (!title || title.length < 2) return res.status(400).json({ error: 'Title must be at least 2 characters' });
     if (!assignedTo) return res.status(400).json({ error: 'Please select an employee to assign this task to.' });
@@ -140,8 +182,8 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
     push('org_id', orgId, true);
     push('title', title, true);
     push('status', 'pending', true);
-    push('project_id', projectId);
-    if (categoryId && categoryId !== projectId && taskCols.has('category_id') && await categoryExists(orgId, categoryId)) push('category_id', categoryId);
+    push('project_id', project.id, true);
+    if (categoryId && categoryId !== project.id && taskCols.has('category_id') && await categoryExists(orgId, categoryId)) push('category_id', categoryId);
     push('description', description);
     push('assigned_to', assignedTo);
     push('assigned_by', req.user.id);
@@ -160,11 +202,14 @@ router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'di
 
     (async () => {
       try {
-        await emitNotification(assignedTo, { type: 'task_assigned', title: 'New task assigned', body: title, data: { taskId: task.id, projectId } });
-        await logUserActivity({ orgId, userId: req.user.id, taskId: task.id, activityType: 'task_created', metadata: { assignedTo, projectId, canonicalProject: true } });
+        await emitNotification(assignedTo, { type: 'task_assigned', title: 'New task assigned', body: title, data: { taskId: task.id, projectId: project.id } });
+        await logUserActivity({ orgId, userId: req.user.id, taskId: task.id, activityType: 'task_created', metadata: { assignedTo, projectId: project.id, canonicalProject: true } });
       } catch { /* non-critical */ }
     })();
   } catch (err) { next(err); }
-});
+}
+
+router.post('/create-simple', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), (req, res, next) => createCanonicalProjectTask(req, res, next, { allowCategoryResolution: true }));
+router.post('/', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), (req, res, next) => createCanonicalProjectTask(req, res, next, { allowCategoryResolution: false }));
 
 module.exports = router;
