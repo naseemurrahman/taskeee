@@ -49,6 +49,10 @@ function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
 }
 
+function unresolvedTaskCondition(alias = 't') {
+  return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`;
+}
+
 function preflightTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`;
 }
@@ -267,6 +271,15 @@ async function countActiveTasks(tx, orgId, projectId) {
   return Number(rows[0]?.cnt || 0);
 }
 
+async function countUnresolvedTasksForCompletion(tx, orgId, projectId) {
+  const taskCols = await getColumns('tasks');
+  if (!taskCols.has('project_id')) return 0;
+  const conditions = ['t.org_id = $1', 't.project_id = $2', unresolvedTaskCondition('t')];
+  if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  const { rows } = await tx.query(`SELECT COUNT(DISTINCT t.id)::int AS cnt FROM tasks t WHERE ${conditions.join(' AND ')}`, [orgId, projectId]);
+  return Number(rows[0]?.cnt || 0);
+}
+
 async function mutateTasksForStatus(tx, orgId, projectId, status, actorUserId) {
   const taskCols = await getColumns('tasks');
   if (!taskCols.has('project_id') || !taskCols.has('status')) return;
@@ -342,12 +355,15 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       const resolved = await resolveOrRepairProject(tx, { orgId, identifiers, projectName, actorUserId: req.user.id });
       if (!resolved?.project) throw Object.assign(new Error('Project was not found by lifecycle/preflight resolver.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
       const activeTaskCount = await countActiveTasks(tx, orgId, resolved.project.id);
-      if (status === 'completed' && activeTaskCount > 0 && req.body.override_completion !== true) throw Object.assign(new Error(`Cannot complete project: ${activeTaskCount} active task(s) still require resolution.`), { statusCode: 409, code: 'PROJECT_HAS_ACTIVE_TASKS', activeTaskCount });
-      if (status === 'completed' && activeTaskCount > 0) {
-        const role = String(req.user?.role || '').toLowerCase();
-        if (!['admin', 'director'].includes(role)) throw Object.assign(new Error('Only Admin or Director can override completion with active tasks.'), { statusCode: 403 });
-        const reason = String(req.body.override_reason || req.body.reason || '').trim();
-        if (reason.length < 8) throw Object.assign(new Error('override_reason is required and must be at least 8 characters.'), { statusCode: 400 });
+      if (status === 'completed') {
+        const unresolvedTaskCount = await countUnresolvedTasksForCompletion(tx, orgId, resolved.project.id);
+        if (unresolvedTaskCount > 0) {
+          throw Object.assign(new Error(`Complete or cancel ${unresolvedTaskCount} task(s) before completing this project.`), {
+            statusCode: 409,
+            code: 'PROJECT_HAS_UNRESOLVED_TASKS',
+            activeTaskCount: unresolvedTaskCount,
+          });
+        }
       }
       const cols = await getColumns('projects');
       const setParts = ['status = $1'];
