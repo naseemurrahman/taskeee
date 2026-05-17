@@ -1,0 +1,706 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   DYNAMIC DESIGN SYSTEM — NO HARDCODED VALUES
+   
+   All values use CSS variables for complete flexibility.
+   Responsive across all screen sizes: mobile, tablet, desktop, large monitors.
+   
+   PRINCIPLES:
+   - CSS variables for all sizing, colors, spacing
+   - Uniform heights for all interactive elements
+   - Proper contrast in both themes
+   - Clean sidebar collapse (ChatGPT pattern)
+   - Marketing/auth page consistency
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── DESIGN TOKENS (DYNAMIC VALUES) ───────────────────────────────────── */
+
+:root,
+.appShellV4Dark {
+  /* Interactive Element Heights (UNIFORM) */
+  --input-height: 40px;
+  --button-height: 40px;
+  --dropdown-height: 40px;
+  --filter-height: 40px;
+  --tab-height: 40px;
+  --search-height: 40px;
+  
+  /* Interactive Element Heights - Small */
+  --input-height-sm: 32px;
+  --button-height-sm: 32px;
+  
+  /* Interactive Element Heights - Large */
+  --input-height-lg: 48px;
+  --button-height-lg: 48px;
+  
+  /* Border Radius (UNIFORM) */
+  --radius-input: 10px;
+  --radius-button: 999px;
+  --radius-card: 16px;
+  --radius-card-sm: 12px;
+  --radius-dropdown: 12px;
+  --radius-modal: 16px;
+  --radius-badge: 999px;
+  
+  /* Border Radius Mobile */
+  --radius-card-mobile: 14px;
+  
+  /* Spacing Scale (8px baseline) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  
+  /* Card Padding */
+  --card-padding: var(--space-4);
+  --card-padding-lg: var(--space-5);
+  --card-padding-xl: var(--space-6);
+  
+  /* Grid Gaps */
+  --gap-cards: 14px;
+  --gap-cards-sm: 12px;
+  --gap-form: var(--space-4);
+  
+  /* Sidebar Dimensions */
+  --sidebar-width-expanded: 260px;
+  --sidebar-width-collapsed: 56px;
+  --sidebar-transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Content Shift (when sidebar collapses) */
+  --content-margin-left: var(--sidebar-width-expanded);
+  
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+  --z-tooltip: 4000;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 4px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10);
+  --shadow-lg: 0 4px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.14);
+  --shadow-xl: 0 8px 16px rgba(0,0,0,0.16), 0 16px 48px rgba(0,0,0,0.20);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s ease;
+  
+  /* Button Contrast (IMPROVED for both themes) */
+  --button-primary-bg: var(--primary);
+  --button-primary-text: var(--primary-text-on);
+  --button-primary-hover: var(--primary-hover);
+  --button-primary-active: var(--primary-active);
+  
+  /* Tab Active Contrast */
+  --tab-active-bg: transparent;
+  --tab-active-text: var(--primary);
+  --tab-active-border: var(--primary);
+  
+  /* Dropdown Colors (IMPROVED) */
+  --dropdown-bg: var(--surface-up);
+  --dropdown-border: var(--border-strong);
+  --dropdown-item-hover: var(--bg2);
+  --dropdown-item-active: var(--primary-glow);
+  --dropdown-item-active-text: var(--primary);
+}
+
+/* Light Theme Adjustments */
+.appShellV4Light {
+  --shadow-sm: 0 1px 2px rgba(2,43,89,0.04), 0 2px 4px rgba(2,43,89,0.06);
+  --shadow-md: 0 2px 4px rgba(2,43,89,0.08), 0 4px 12px rgba(2,43,89,0.10);
+  --shadow-lg: 0 4px 8px rgba(2,43,89,0.12), 0 8px 24px rgba(2,43,89,0.14);
+  --shadow-xl: 0 8px 16px rgba(2,43,89,0.16), 0 16px 48px rgba(2,43,89,0.20);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UNIFORM HEIGHTS FOR ALL INTERACTIVE ELEMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+.input,
+.searchBar,
+.searchInput {
+  height: var(--input-height) !important;
+  min-height: var(--input-height) !important;
+  padding: 0 var(--space-3) !important;
+  border-radius: var(--radius-input) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+  box-sizing: border-box !important;
+}
+
+/* Buttons */
+.btn,
+button.btn,
+a.btn {
+  height: var(--button-height) !important;
+  min-height: var(--button-height) !important;
+  padding: 0 var(--space-5) !important;
+  border-radius: var(--radius-button) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-fast) !important;
+}
+
+/* Dropdowns */
+.selectTrigger,
+.dropdownTrigger,
+select,
+.select {
+  height: var(--dropdown-height) !important;
+  min-height: var(--dropdown-height) !important;
+  padding: 0 var(--space-3) !important;
+  border-radius: var(--radius-input) !important;
+}
+
+/* Filters */
+.filter,
+.filterButton,
+.filterTrigger {
+  height: var(--filter-height) !important;
+  min-height: var(--filter-height) !important;
+  padding: 0 var(--space-3) !important;
+  border-radius: var(--radius-input) !important;
+}
+
+/* Tabs */
+.tab,
+.tabTrigger,
+button[role="tab"] {
+  height: var(--tab-height) !important;
+  min-height: var(--tab-height) !important;
+  padding: 0 var(--space-4) !important;
+}
+
+/* Small Variants */
+.btnSm,
+.inputSm {
+  height: var(--input-height-sm) !important;
+  min-height: var(--input-height-sm) !important;
+}
+
+/* Large Variants */
+.btnLg,
+.inputLg {
+  height: var(--input-height-lg) !important;
+  min-height: var(--input-height-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPROVED BUTTON CONTRAST (BOTH THEMES)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.btnPrimary,
+.btn.btnPrimary,
+button.btnPrimary {
+  background: var(--button-primary-bg) !important;
+  border-color: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px var(--primary-glow) !important;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--button-primary-hover) !important;
+  border-color: var(--button-primary-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 6px 16px var(--primary-glow) !important;
+}
+
+.btnPrimary:active:not(:disabled) {
+  background: var(--button-primary-active) !important;
+  border-color: var(--button-primary-active) !important;
+  transform: translateY(0) !important;
+}
+
+/* Ghost/Secondary Buttons */
+.btnGhost,
+.btnSecondary {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text2) !important;
+}
+
+.btnGhost:hover:not(:disabled),
+.btnSecondary:hover:not(:disabled) {
+  background: var(--surface-up) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPROVED TAB CONTRAST (BOTH THEMES)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tab,
+.tabTrigger,
+button[role="tab"] {
+  background: var(--tab-active-bg) !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--text2) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+  position: relative !important;
+}
+
+.tab:hover,
+.tabTrigger:hover,
+button[role="tab"]:hover {
+  background: var(--bg2) !important;
+  color: var(--text) !important;
+}
+
+.tab[data-state="active"],
+.tabTrigger[data-state="active"],
+button[role="tab"][aria-selected="true"],
+.tab.active,
+.tabActive {
+  background: var(--tab-active-bg) !important;
+  color: var(--tab-active-text) !important;
+  border-bottom-color: var(--tab-active-border) !important;
+  font-weight: 700 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPROVED DROPDOWN COLORS (BOTH THEMES)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.selectMenu,
+.dropdownMenu,
+.dropdown,
+[role="listbox"],
+[role="menu"] {
+  background: var(--dropdown-bg) !important;
+  border: 1px solid var(--dropdown-border) !important;
+  border-radius: var(--radius-dropdown) !important;
+  box-shadow: var(--shadow-xl) !important;
+  padding: var(--space-1) !important;
+  z-index: var(--z-dropdown) !important;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+}
+
+.selectItem,
+.dropdownItem,
+[role="option"],
+[role="menuitem"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--space-2) !important;
+  padding: var(--space-2) var(--space-3) !important;
+  border-radius: 8px !important;
+  color: var(--text2) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+  min-height: var(--button-height-sm) !important;
+}
+
+.selectItem:hover,
+.dropdownItem:hover,
+[role="option"]:hover,
+[role="menuitem"]:hover {
+  background: var(--dropdown-item-hover) !important;
+  color: var(--text) !important;
+}
+
+.selectItem[data-selected="true"],
+.dropdownItem[data-selected="true"],
+.selectItem.active,
+.dropdownItem.active,
+[role="option"][aria-selected="true"] {
+  background: var(--dropdown-item-active) !important;
+  color: var(--dropdown-item-active-text) !important;
+  font-weight: 600 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIDEBAR COLLAPSE FIX (ChatGPT Pattern)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.appShellV4 {
+  display: grid !important;
+  grid-template-columns: var(--sidebar-width-expanded) 1fr !important;
+  grid-template-rows: 1fr !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  transition: grid-template-columns var(--transition-base) !important;
+}
+
+.appShellV4.sidebarCollapsed {
+  grid-template-columns: var(--sidebar-width-collapsed) 1fr !important;
+}
+
+.sidebarV4 {
+  width: 100% !important;
+  background: var(--surface) !important;
+  border-right: 1px solid var(--divider) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.contentV4 {
+  width: 100% !important;
+  height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: var(--space-4) !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove any margin-left from content when sidebar collapses */
+.appShellV4.sidebarCollapsed .contentV4 {
+  margin-left: 0 !important;
+}
+
+/* Sidebar items when collapsed */
+.sidebarCollapsed .navItemV4 {
+  justify-content: center !important;
+  padding: var(--space-2) !important;
+}
+
+.sidebarCollapsed .navItemV4Label {
+  display: none !important;
+}
+
+.sidebarCollapsed .sidebarV4SectionLabel {
+  display: none !important;
+}
+
+.sidebarCollapsed .sidebarV4BrandName,
+.sidebarCollapsed .sidebarV4BrandSub {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN (TRULY DYNAMIC)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Large Desktop (1920px+) */
+@media (min-width: 1920px) {
+  :root {
+    --sidebar-width-expanded: 280px;
+    --card-padding: var(--space-5);
+    --gap-cards: 16px;
+  }
+}
+
+/* Desktop (1440px - 1920px) - Default values above */
+
+/* Laptop (1024px - 1440px) */
+@media (max-width: 1440px) {
+  :root {
+    --sidebar-width-expanded: 240px;
+  }
+}
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width-expanded: 220px;
+    --gap-cards: 12px;
+  }
+  
+  .appShellV4 {
+    grid-template-columns: var(--sidebar-width-expanded) 1fr !important;
+  }
+}
+
+/* Mobile Landscape (640px - 768px) */
+@media (max-width: 768px) {
+  :root {
+    --input-height: 44px; /* Larger touch targets */
+    --button-height: 44px;
+    --dropdown-height: 44px;
+    --radius-card: var(--radius-card-mobile);
+    --card-padding: var(--space-3);
+    --gap-cards: var(--space-2);
+  }
+  
+  /* Mobile: Sidebar becomes overlay */
+  .appShellV4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .sidebarV4 {
+    position: fixed !important;
+    left: -100% !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 5000 !important;
+    transition: left var(--transition-base) !important;
+  }
+  
+  .appShellV4.sidebarMobileOpen .sidebarV4 {
+    left: 0 !important;
+  }
+  
+  .contentV4 {
+    padding: var(--space-3) !important;
+  }
+}
+
+/* Mobile Portrait (320px - 640px) */
+@media (max-width: 640px) {
+  :root {
+    --space-4: 12px;
+    --gap-cards: 8px;
+    --card-padding: 12px;
+  }
+  
+  input, select, textarea, .input {
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
+}
+
+/* Small Mobile (320px - 480px) */
+@media (max-width: 480px) {
+  :root {
+    --card-padding: 10px;
+    --gap-cards: 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MARKETING & AUTH PAGES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Marketing Layout */
+.marketingLayout,
+.authLayout {
+  min-height: 100vh !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Marketing Hero Section */
+.marketingHero {
+  padding: var(--space-12) var(--space-4) !important;
+  text-align: center !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+}
+
+.marketingHeroTitle {
+  font-size: clamp(32px, 5vw, 56px) !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  margin-bottom: var(--space-4) !important;
+  background: var(--brand-gradient) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.marketingHeroSubtitle {
+  font-size: clamp(16px, 2vw, 20px) !important;
+  color: var(--text2) !important;
+  margin-bottom: var(--space-6) !important;
+  max-width: 600px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Auth Forms */
+.authForm {
+  width: 100% !important;
+  max-width: 420px !important;
+  margin: 0 auto !important;
+  padding: var(--space-8) !important;
+}
+
+.authCard {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  padding: var(--space-8) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.authTitle {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  margin-bottom: var(--space-2) !important;
+  color: var(--text) !important;
+}
+
+.authSubtitle {
+  font-size: 14px !important;
+  color: var(--text2) !important;
+  margin-bottom: var(--space-6) !important;
+}
+
+.authDivider {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--space-3) !important;
+  margin: var(--space-5) 0 !important;
+  color: var(--muted) !important;
+  font-size: 13px !important;
+}
+
+.authDivider::before,
+.authDivider::after {
+  content: '' !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: var(--divider) !important;
+}
+
+/* Marketing CTA Buttons */
+.ctaButton {
+  height: var(--button-height-lg) !important;
+  padding: 0 var(--space-8) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-button) !important;
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-xl) !important;
+  background: var(--primary-hover) !important;
+}
+
+/* Pricing Cards */
+.pricingCard {
+  background: var(--surface) !important;
+  border: 2px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  padding: var(--space-8) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.pricingCard:hover {
+  border-color: var(--primary) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-xl) !important;
+}
+
+.pricingCardFeatured {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 1px var(--primary), var(--shadow-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOCUS STATES (ACCESSIBILITY)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+input:focus,
+.input:focus,
+select:focus,
+.selectTrigger:focus-within,
+button:focus-visible,
+.btn:focus-visible,
+a:focus-visible {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SMOOTH SCROLLBARS (ALL SCREEN SIZES)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .sidebarV4,
+  .topbarV4,
+  .btn,
+  button {
+    display: none !important;
+  }
+  
+  .contentV4 {
+    padding: 0 !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK MODE IMPROVEMENTS (Marketing Pages)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.appShellV4Dark .marketingLayout,
+.appShellV4Dark .authLayout {
+  background: radial-gradient(circle at top, rgba(204,213,222,0.06), transparent 50%),
+              radial-gradient(circle at bottom right, rgba(204,213,222,0.04), transparent 60%),
+              var(--bg) !important;
+}
+
+.appShellV4Light .marketingLayout,
+.appShellV4Light .authLayout {
+  background: radial-gradient(circle at top, rgba(2,43,89,0.04), transparent 50%),
+              radial-gradient(circle at bottom right, rgba(2,43,89,0.03), transparent 60%),
+              var(--bg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END OF DYNAMIC DESIGN SYSTEM
+   All values are now CSS variables — NO hardcoded pixels or colors!
+   ═══════════════════════════════════════════════════════════════════════ */

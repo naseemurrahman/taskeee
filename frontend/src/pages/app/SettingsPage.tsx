@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { IconLock, IconMessage } from '../../components/ui/AppIcons'
+import { Building2, Palette, Bell, Shield, CreditCard } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, ApiError } from '../../lib/api'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
@@ -673,11 +674,11 @@ export function SettingsPage() {
   )
 
   const TABS = [
-    { key: 'org', label: '🏢 Organization' },
-    { key: 'appearance', label: '🎨 Appearance' },
-    { key: 'notifications', label: '🔔 Notifications' },
-    { key: 'security', label: '🔐 Security' },
-    { key: 'plan', label: '💳 Plan & Billing' },
+    { key: 'org', label: 'Organization', icon: Building2 },
+    { key: 'appearance', label: 'Appearance', icon: Palette },
+    { key: 'notifications', label: 'Notifications', icon: Bell },
+    { key: 'security', label: 'Security', icon: Shield },
+    { key: 'plan', label: 'Plan & Billing', icon: CreditCard },
   ]
 
   return (
@@ -694,15 +695,22 @@ export function SettingsPage() {
           </div>
           {/* Tab bar on right side of header */}
           <div style={{ display: 'flex', gap: 4, padding: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: 12, border: '1px solid var(--border)', flexShrink: 0 }}>
-            {TABS.map(t => (
-              <button key={t.key} type="button" onClick={() => setTab(t.key as any)} style={{
-                padding: '7px 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
-                background: tab === t.key ? 'var(--brand)' : 'transparent',
-                color: tab === t.key ? '#1a1d2e' : 'var(--text2)',
-                boxShadow: tab === t.key ? '0 1px 6px rgba(226,171,65,0.3)' : 'none',
-                transition: 'all 0.15s', whiteSpace: 'nowrap',
-              }}>{t.label}</button>
-            ))}
+            {TABS.map(t => {
+              const Icon = t.icon
+              return (
+                <button key={t.key} type="button" onClick={() => setTab(t.key as any)} style={{
+                  padding: '7px 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
+                  background: tab === t.key ? 'var(--primary)' : 'transparent',
+                  color: tab === t.key ? 'var(--primary-text-on)' : 'var(--text2)',
+                  boxShadow: tab === t.key ? '0 1px 6px var(--primary-glow)' : 'none',
+                  transition: 'all 0.15s', whiteSpace: 'nowrap',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <Icon size={14} />
+                  {t.label}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
