@@ -78,8 +78,10 @@ async function getTaskColumns() {
 
 async function resolveProjectStore() {
   const tables = await getTableNames();
-  if (tables.has('task_categories')) return 'task_categories';
+  // Canonical projects are the source of truth. Keep task_categories only as
+  // a legacy fallback when the canonical projects table is absent.
   if (tables.has('projects')) return 'projects';
+  if (tables.has('task_categories')) return 'task_categories';
   return null;
 }
 
@@ -158,7 +160,7 @@ function legacyProjectSelectSql(personalOnly = false, userIdParam = null) {
            NULL::text AS icon,
            NULL::text AS color,
            COALESCE(p.status, 'active') AS status,
-           TRUE AS is_active,
+           (COALESCE(p.status, 'active') = 'active') AS is_active,
            p.created_at,
            COUNT(t.id)::int AS task_count
       FROM projects p
@@ -317,7 +319,7 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
       const { rows } = await query(
         `INSERT INTO projects (${insertColumns.join(', ')})
          VALUES (${placeholders})
-         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, TRUE AS is_active, created_at`,
+         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at`,
         values
       );
       created = rows[0];
@@ -560,7 +562,7 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
     const { rows } = await query(
       `UPDATE projects SET ${sets.join(', ')}
         WHERE org_id = $${values.length - 1} AND id = $${values.length}
-        RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, TRUE AS is_active, created_at`,
+        RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at`,
       values
     );
 
