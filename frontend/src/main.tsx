@@ -11,6 +11,8 @@ import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visua
 import './theme-overhaul.css' // FINAL: brand colors, capsule buttons, typography, no oval cards
 import './grid-system.css' // Grid system: alignment, spacing, hierarchy, consistency
 import './design-system-dynamic.css' // DYNAMIC: All CSS variables, responsive, no hardcoded values, uniform heights
+import './ui-kpi-unified.css' // Unified KPI cards matching dashboard standard
+import './ui-control-heights.css' // Topbar, search, and button height consistency
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'

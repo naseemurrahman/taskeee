@@ -108,7 +108,7 @@ export function BillingPage() {
       {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
       {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load billing summary.</div> : null}
 
-      <div className="grid4">
+      <div className="grid4 kpiStripStandard">
         <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div className="miniLabel">Plan</div>
           <div className="miniValue">{sub?.plan || '—'}</div>

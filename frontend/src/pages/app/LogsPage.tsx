@@ -199,7 +199,7 @@ export function LogsPage() {
       />
 
       {/* Stats row */}
-      <div className="grid4">
+      <div className="grid4 kpiStripStandard">
         {[
           { label: 'Total events', value: q.isLoading ? '—' : String(stats.total), icon: <IconBarChart size={14} />, color: '#818cf8' },
           { label: 'Today',        value: q.isLoading ? '—' : String(stats.today), icon: <IconCalendar size={14} />, color: '#22c55e' },

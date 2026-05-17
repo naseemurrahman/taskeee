@@ -223,10 +223,10 @@ export function EmployeesPage() {
     <div style={{ display: 'grid', gap: 18 }}>
 
       {/* KPI Cards */}
-      <div className="grid4">
+      <div className="grid4 kpiStripStandard">
         <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div className="miniLabel">Total Employees</div>
-          <div className="miniValue">{pagination?.total || employees.length}</div>
+          <div className="miniValue">{q.data?.total || employees.length}</div>
         </div>
         <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
           <div className="miniLabel">Active</div>

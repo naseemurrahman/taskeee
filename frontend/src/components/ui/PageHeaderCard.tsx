@@ -127,6 +127,7 @@ export interface StatCard {
 export function StatsCardGrid({ stats, columns = 4 }: { stats: StatCard[]; columns?: number }) {
   return (
     <div
+      className="kpiStripStandard"
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${columns === 6 ? '160px' : columns === 4 ? '200px' : '240px'}), 1fr))`,
@@ -136,15 +137,13 @@ export function StatsCardGrid({ stats, columns = 4 }: { stats: StatCard[]; colum
       {stats.map((stat, i) => (
         <div
           key={i}
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: '16px 18px',
-            display: 'grid',
-            gap: 8,
-          }}
+          className="kpiCard"
+          style={{ '--kpi-color': stat.color || 'var(--primary)' } as React.CSSProperties}
         >
+          <div
+            className="kpiCardAccent"
+            style={{ background: `linear-gradient(90deg, ${stat.color || 'var(--primary)'}, ${stat.color || 'var(--primary)'}88)` }}
+          />
           {/* Label row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {stat.icon && (
@@ -187,12 +186,7 @@ export function StatsCardGrid({ stats, columns = 4 }: { stats: StatCard[]; colum
             )}
           </div>
 
-          {/* Subtitle */}
-          {stat.subtitle && (
-            <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
-              {stat.subtitle}
-            </div>
-          )}
+          {stat.subtitle && <div className="kpiCardSub">{stat.subtitle}</div>}
         </div>
       ))}
     </div>

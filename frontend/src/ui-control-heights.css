@@ -1,0 +1,114 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   UNIFIED CONTROL HEIGHTS — topbar, search, buttons, filters
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root,
+.appShellV4Dark,
+.appShellV4Light {
+  --topbar-height: 56px;
+  --topbar-control-height: var(--button-height, 40px);
+}
+
+/* Topbar shell */
+.topbarV4 {
+  height: var(--topbar-height) !important;
+  min-height: var(--topbar-height) !important;
+  max-height: var(--topbar-height) !important;
+  box-sizing: border-box;
+}
+
+.topbarV4MenuBtn {
+  width: var(--topbar-control-height) !important;
+  height: var(--topbar-control-height) !important;
+  min-height: var(--topbar-control-height) !important;
+  border-radius: 10px !important;
+}
+
+/* Global search in topbar */
+.topbarV4SearchWrap {
+  height: var(--search-height, 40px) !important;
+  min-height: var(--search-height, 40px) !important;
+  max-height: var(--search-height, 40px) !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: var(--radius-input, 10px) !important;
+  box-sizing: border-box !important;
+}
+
+.topbarV4SearchInput {
+  height: 100% !important;
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.topbarV4SearchIcon {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Topbar icon buttons — match primary button height */
+.topbarThemeBtn,
+.topbarLangBtn,
+.topbarV4ProfileBtn,
+.topbarMetricChip,
+.topbarV4ProfileBtn {
+  height: var(--topbar-control-height) !important;
+  min-height: var(--topbar-control-height) !important;
+  max-height: var(--topbar-control-height) !important;
+  box-sizing: border-box !important;
+}
+
+/* Page-level search bars align with design tokens */
+.pageHeaderCard .input,
+.pageHeaderCard input,
+.pageHeaderCard .selectV3Trigger,
+.pageHeaderCardInner .input,
+.tasksTableWrap ~ .input,
+.contentV4 .searchBar,
+.contentV4 .searchInput {
+  height: var(--search-height, 40px) !important;
+  min-height: var(--search-height, 40px) !important;
+}
+
+/* Standardize inline height overrides on secondary actions */
+.btn:not(.btnSm):not(.btnLg):not(.btnXl),
+button.btnPrimary,
+button.btnGhost {
+  height: var(--button-height, 40px) !important;
+  min-height: var(--button-height, 40px) !important;
+}
+
+.btnSm {
+  height: var(--button-height-sm, 32px) !important;
+  min-height: var(--button-height-sm, 32px) !important;
+}
+
+.btnLg,
+.btnXl {
+  height: var(--button-height-lg, 48px) !important;
+  min-height: var(--button-height-lg, 48px) !important;
+}
+
+/* Pagination controls */
+.paginationBtn {
+  height: var(--button-height-sm, 32px) !important;
+  min-height: var(--button-height-sm, 32px) !important;
+}
+
+@media (max-width: 640px) {
+  :root,
+  .appShellV4Dark,
+  .appShellV4Light {
+    --topbar-height: 52px;
+  }
+
+  .topbarV4SearchWrap,
+  .topbarV4SearchInput {
+    height: var(--search-height, 40px) !important;
+    min-height: var(--search-height, 40px) !important;
+  }
+}

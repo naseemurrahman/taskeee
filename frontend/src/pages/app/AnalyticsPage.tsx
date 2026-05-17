@@ -242,7 +242,7 @@ export function AnalyticsPage() {
       />
 
       {/* KPI strip */}
-      <div className="analyticsSignalStrip">
+      <div className="analyticsSignalStrip kpiStripStandard">
         {summaryQ.isLoading
           ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="miniCard skeleton" style={{ height: 68 }} />)
           : kpis.map((item) => (
