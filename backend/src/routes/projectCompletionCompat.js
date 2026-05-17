@@ -197,6 +197,43 @@ async function countUnresolvedTasks(tx, orgId, projectId) {
   return Number(rows[0]?.cnt || 0);
 }
 
+async function updateLegacyStatusColumn(tx, orgId, exact, lower, status, cols) {
+  if (!cols.has('status')) return { rows: 0, skipped: true, reason: 'missing_status_column' };
+  try {
+    const setParts = ['status = $3'];
+    if (cols.has('updated_at')) setParts.push('updated_at = NOW()');
+    const { rowCount } = await tx.query(
+      `UPDATE task_categories
+          SET ${setParts.join(', ')}
+        WHERE org_id = $1
+          AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($4::text[]))`,
+      [orgId, exact, status, lower]
+    );
+    return { rows: rowCount || 0, skipped: false };
+  } catch (err) {
+    return { rows: 0, skipped: true, reason: err.code || err.message || 'legacy_status_failed' };
+  }
+}
+
+async function updateLegacyActiveFlag(tx, orgId, exact, lower, status, cols) {
+  if (!cols.has('is_active')) return { rows: 0, skipped: true, reason: 'missing_is_active_column' };
+  try {
+    const active = status === 'active';
+    const setParts = ['is_active = $3'];
+    if (cols.has('updated_at')) setParts.push('updated_at = NOW()');
+    const { rowCount } = await tx.query(
+      `UPDATE task_categories
+          SET ${setParts.join(', ')}
+        WHERE org_id = $1
+          AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($4::text[]))`,
+      [orgId, exact, active, lower]
+    );
+    return { rows: rowCount || 0, skipped: false };
+  } catch (err) {
+    return { rows: 0, skipped: true, reason: err.code || err.message || 'legacy_is_active_failed' };
+  }
+}
+
 async function safeMirrorLegacyStatus(tx, orgId, identifiers, status) {
   try {
     if (!(await tableExists('task_categories'))) return { rows: 0, skipped: false };
@@ -204,28 +241,14 @@ async function safeMirrorLegacyStatus(tx, orgId, identifiers, status) {
     if (!exact.length) return { rows: 0, skipped: false };
     const cols = await getColumns('task_categories');
     const lower = exact.map((value) => value.toLowerCase());
-    const setParts = [];
-    const params = [orgId, exact];
-    if (cols.has('status')) {
-      params.push(status);
-      setParts.push(`status = $${params.length}`);
-    }
-    if (cols.has('is_active')) {
-      params.push(status === 'active');
-      setParts.push(`is_active = $${params.length}`);
-    }
-    if (cols.has('updated_at')) setParts.push('updated_at = NOW()');
-    if (!setParts.length) return { rows: 0, skipped: true, reason: 'missing_lifecycle_columns' };
-    params.push(lower);
-    const lowerParam = params.length;
-    const { rowCount } = await tx.query(
-      `UPDATE task_categories
-          SET ${setParts.join(', ')}
-        WHERE org_id = $1
-          AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($${lowerParam}::text[]))`,
-      params
-    );
-    return { rows: rowCount || 0, skipped: false };
+    const statusMirror = await updateLegacyStatusColumn(tx, orgId, exact, lower, status, cols);
+    const activeMirror = await updateLegacyActiveFlag(tx, orgId, exact, lower, status, cols);
+    return {
+      rows: Number(statusMirror.rows || 0) + Number(activeMirror.rows || 0),
+      skipped: Boolean(statusMirror.skipped && activeMirror.skipped),
+      statusMirror,
+      activeMirror,
+    };
   } catch (err) {
     return { rows: 0, skipped: true, reason: err.code || err.message || 'legacy_mirror_failed' };
   }
