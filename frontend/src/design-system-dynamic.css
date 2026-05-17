@@ -667,6 +667,175 @@ a:focus-visible {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   COLORED KPI CARD BORDERS (3PX GRADIENT TOP BORDER)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.miniCard::before,
+[class*="KpiCard"]::before,
+[class*="StatCard"]::before,
+.dashKpiStrip > *:not(.pageHeaderCard)::before,
+.analyticsSignalStrip > *:not(.pageHeaderCard)::before,
+.myTasksCommandCenter > *:not(.pageHeaderCard)::before,
+.grid4 > *:not(.pageHeaderCard):not(.btn)::before,
+.billingKpiCard::before,
+.insightsKpiCard::before,
+.logsKpiCard::before,
+.jecKpiCard::before,
+button.miniCard::before,
+button.jecKpiCard::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, var(--kpi-color, var(--primary)), transparent) !important;
+  border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Mobile border radius adjustment */
+@media (max-width: 900px) {
+  .miniCard::before,
+  button.miniCard::before,
+  .jecKpiCard::before,
+  button.jecKpiCard::before {
+    border-radius: var(--radius-card-mobile) var(--radius-card-mobile) 0 0 !important;
+  }
+}
+
+/* Ensure cards are positioned for ::before pseudo-element */
+.miniCard,
+.jecKpiCard,
+[class*="KpiCard"],
+[class*="StatCard"],
+button.miniCard,
+button.jecKpiCard {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Fix text layout in KPI cards - prevent vertical text breaking */
+.miniCard,
+.jecKpiCard,
+.miniLabel,
+.miniValue,
+button.miniCard,
+button.jecKpiCard {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
+  hyphens: none !important;
+}
+
+/* Ensure KPI card text displays properly */
+.miniLabel {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.065em !important;
+  font-weight: 900 !important;
+  color: var(--muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+}
+
+.miniValue {
+  font-size: 32px !important;
+  font-weight: 950 !important;
+  line-height: 1.05 !important;
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+  display: block !important;
+}
+
+/* KPI card container layout */
+.miniCard,
+button.miniCard,
+.jecKpiCard,
+button.jecKpiCard {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: var(--card-padding) !important;
+  text-align: center !important;
+  min-height: 102px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 900px) {
+  .miniValue {
+    font-size: 24px !important;
+  }
+  
+  .miniLabel {
+    font-size: 10px !important;
+  }
+}
+
+/* Ensure grid layouts work properly on mobile */
+.grid4,
+.grid3,
+.grid2 {
+  display: grid !important;
+  gap: var(--gap-cards) !important;
+  align-items: stretch !important;
+}
+
+.grid4 {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.grid3 {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+.grid2 {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+/* Tablet adjustments */
+@media (max-width: 1100px) {
+  .grid4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .grid3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile - all grids become 2 columns or 1 column for very small screens */
+@media (max-width: 640px) {
+  .grid4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .grid3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .grid2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Very small mobile - single column if needed */
+@media (max-width: 400px) {
+  .grid4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    SMOOTH SCROLLBARS (ALL SCREEN SIZES)
    ═══════════════════════════════════════════════════════════════════════ */
 
