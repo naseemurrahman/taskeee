@@ -64,8 +64,8 @@ function projectSelectSql({ personalOnly = false, userParam = null, idFilter = f
            p.description,
            NULL::text AS icon,
            NULL::text AS color,
-           COALESCE(p.status, 'active') AS status,
-           (COALESCE(p.status, 'active') = 'active') AS is_active,
+           COALESCE(NULLIF(p.status, ''), 'active') AS status,
+           (COALESCE(NULLIF(p.status, ''), 'active') = 'active') AS is_active,
            p.created_at,
            COUNT(t.id)::int AS task_count,
            'projects'::text AS source_store
@@ -73,8 +73,26 @@ function projectSelectSql({ personalOnly = false, userParam = null, idFilter = f
       LEFT JOIN tasks t ON t.project_id = p.id AND t.deleted_at IS NULL ${scopedTaskJoin}
      WHERE p.org_id = $1
        ${idWhere}
-       AND COALESCE(p.status, 'active') <> 'archived'
+       AND COALESCE(NULLIF(p.status, ''), 'active') <> 'archived'
   `;
+}
+
+function legacyStatusSelect(categoryCols) {
+  if (categoryCols.has('is_active') && categoryCols.has('status')) {
+    return `CASE WHEN tc.is_active = FALSE THEN 'completed' ELSE COALESCE(NULLIF(tc.status, ''), 'active') END AS status`;
+  }
+  if (categoryCols.has('is_active')) return `CASE WHEN tc.is_active THEN 'active' ELSE 'completed' END AS status`;
+  if (categoryCols.has('status')) return `COALESCE(NULLIF(tc.status, ''), 'active') AS status`;
+  return `'active' AS status`;
+}
+
+function legacyActiveSelect(categoryCols) {
+  if (categoryCols.has('is_active') && categoryCols.has('status')) {
+    return `(tc.is_active = TRUE AND COALESCE(NULLIF(tc.status, ''), 'active') = 'active') AS is_active`;
+  }
+  if (categoryCols.has('is_active')) return `tc.is_active AS is_active`;
+  if (categoryCols.has('status')) return `(COALESCE(NULLIF(tc.status, ''), 'active') = 'active') AS is_active`;
+  return `TRUE AS is_active`;
 }
 
 function legacyCanonicalExclusionSql(taskCols) {
@@ -92,7 +110,7 @@ function legacyCanonicalExclusionSql(taskCols) {
        AND NOT EXISTS (
          SELECT 1 FROM projects p
           WHERE p.org_id = tc.org_id
-            AND COALESCE(p.status, 'active') <> 'archived'
+            AND COALESCE(NULLIF(p.status, ''), 'active') <> 'archived'
             AND (
               p.id::text = tc.id::text
               OR LOWER(TRIM(p.name)) = LOWER(TRIM(tc.name))
@@ -107,10 +125,6 @@ function legacyProjectSelectSql({ categoryCols, taskCols, personalOnly = false, 
   const descriptionSelect = categoryCols.has('description') ? 'tc.description' : 'NULL::text AS description';
   const iconSelect = categoryCols.has('icon') ? 'tc.icon' : 'NULL::text AS icon';
   const colorSelect = categoryCols.has('color') ? 'tc.color' : 'NULL::text AS color';
-  const statusSelect = categoryCols.has('status')
-    ? "COALESCE(tc.status, 'active') AS status"
-    : (categoryCols.has('is_active') ? "CASE WHEN tc.is_active THEN 'active' ELSE 'completed' END AS status" : "'active' AS status");
-  const activeSelect = categoryCols.has('is_active') ? 'tc.is_active' : "(COALESCE(tc.status, 'active') = 'active') AS is_active";
   const createdAtSelect = categoryCols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at';
 
   return `
@@ -119,8 +133,8 @@ function legacyProjectSelectSql({ categoryCols, taskCols, personalOnly = false, 
            ${descriptionSelect},
            ${iconSelect},
            ${colorSelect},
-           ${statusSelect},
-           ${activeSelect},
+           ${legacyStatusSelect(categoryCols)},
+           ${legacyActiveSelect(categoryCols)},
            ${createdAtSelect},
            COUNT(t.id)::int AS task_count,
            'task_categories'::text AS source_store
@@ -247,7 +261,7 @@ router.post('/', authenticate, requireAnyRole('admin', 'director', 'hr', 'manage
     const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
     const { rows } = await query(
       `INSERT INTO projects (${insertColumns.join(', ')}) VALUES (${placeholders})
-       RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at, 'projects'::text AS source_store`,
+       RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(NULLIF(status, ''), 'active') AS status, (COALESCE(NULLIF(status, ''), 'active') = 'active') AS is_active, created_at, 'projects'::text AS source_store`,
       values
     );
     const created = rows[0];
