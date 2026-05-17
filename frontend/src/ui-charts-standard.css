@@ -1,0 +1,108 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   UNIFIED CHART CARDS — heights & typography aligned with Dashboard
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --chart-card-min-height: 320px;
+  --chart-plot-height: 220px;
+  --chart-plot-height-sm: 200px;
+  --chart-card-title-size: 14px;
+  --chart-card-subtitle-size: 11px;
+}
+
+.chartCardV2,
+.chartV3 {
+  min-height: var(--chart-card-min-height);
+  display: flex;
+  flex-direction: column;
+}
+
+.chartCardV2Head,
+.chartV3Head {
+  flex-shrink: 0;
+}
+
+.chartCardV2Title,
+.chartV3Title {
+  font-size: var(--chart-card-title-size) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.2px !important;
+  line-height: 1.3 !important;
+  color: var(--text) !important;
+}
+
+.chartCardV2Sub,
+.chartV3Sub {
+  font-size: var(--chart-card-subtitle-size) !important;
+  color: var(--muted) !important;
+  line-height: 1.45 !important;
+  margin-top: 2px;
+}
+
+.chartCardV2Body,
+.chartV3Body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Recharts / plot area — dashboard uses ~200px activity chart */
+.chartCardV2Body .recharts-responsive-container,
+.chartV3 .recharts-responsive-container,
+.analyticsChartGrid .recharts-responsive-container {
+  min-height: var(--chart-plot-height) !important;
+  height: var(--chart-plot-height) !important;
+}
+
+.chartCardV2Body svg.recharts-surface,
+.chartV3 svg.recharts-surface {
+  overflow: visible;
+}
+
+/* Axis & legend text — match dashboard chart labels */
+.recharts-cartesian-axis-tick text,
+.recharts-legend-item-text {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  fill: var(--muted) !important;
+}
+
+.recharts-tooltip-wrapper {
+  z-index: var(--z-dropdown, 1000);
+}
+
+.chartPlotSkeleton {
+  height: var(--chart-plot-height);
+  min-height: var(--chart-plot-height);
+}
+
+/* Analytics grid stacks on narrow screens */
+.analyticsChartGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+@media (max-width: 900px) {
+  :root {
+    --chart-card-min-height: 280px;
+    --chart-plot-height: 190px;
+  }
+
+  .analyticsChartGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --chart-card-min-height: 260px;
+    --chart-plot-height: 170px;
+  }
+
+  .chartCardV2Title,
+  .chartV3Title {
+    font-size: 13px !important;
+  }
+}

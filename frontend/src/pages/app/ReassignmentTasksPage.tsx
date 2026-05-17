@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { AlertTriangle, ArrowLeftRight, ClipboardList, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects } from '../../lib/rbac'
@@ -8,7 +9,9 @@ import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { EmptyState, ErrorRetry, SkeletonRows } from '../../components/ui/PageStates'
-import { IconClipboard } from '../../components/ui/AppIcons'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
+import { useRealtimeInvalidation } from '../../lib/socket'
 
 type Task = {
   id: string
@@ -53,17 +56,21 @@ export function ReassignmentTasksPage() {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
   const [assigneeId, setAssigneeId] = useState('')
 
+  useRealtimeInvalidation({ tasks: true, employees: true })
+
   const tasksQ = useQuery({
     queryKey: ['tasks', 'reassignment-needed'],
     queryFn: fetchReassignmentTasks,
     staleTime: 20_000,
     refetchInterval: 30_000,
+    enabled: canManage,
   })
 
   const usersQ = useQuery({
     queryKey: ['tasks-assignable-users', 'reassignment'],
     queryFn: fetchAssignableUsers,
     staleTime: 60_000,
+    enabled: canManage,
   })
 
   const tasks = tasksQ.data || []
@@ -76,6 +83,7 @@ export function ReassignmentTasksPage() {
 
   const selectedTasks = useMemo(() => filtered.filter(t => selectedTaskIds.has(t.id)), [filtered, selectedTaskIds])
   const allVisibleSelected = filtered.length > 0 && filtered.every(t => selectedTaskIds.has(t.id))
+  const onHoldCount = useMemo(() => tasks.filter(t => t.status === 'on_hold').length, [tasks])
 
   const assigneeOptions = [
     { value: '', label: usersQ.isLoading ? 'Loading employees…' : 'Select active employee' },
@@ -98,9 +106,10 @@ export function ReassignmentTasksPage() {
       setSelectedTaskIds(new Set())
       setAssigneeId('')
       qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'reassignment-needed'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
-    onError: (err: any) => toastError('Reassignment failed', err?.message || 'Could not reassign selected tasks'),
+    onError: (err: { message?: string }) => toastError('Reassignment failed', err?.message || 'Could not reassign selected tasks'),
   })
 
   function toggleTask(id: string) {
@@ -123,7 +132,7 @@ export function ReassignmentTasksPage() {
   if (!canManage) {
     return (
       <EmptyState
-        icon={<IconClipboard size={14} />}
+        icon={<ClipboardList size={14} />}
         title="Reassignment is restricted"
         sub="Only supervisors, managers, HR, directors, and admins can manage reassignment tasks."
       />
@@ -132,22 +141,26 @@ export function ReassignmentTasksPage() {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div>
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/><path d="M21 16v5h-5"/><path d="M21 21l-7-7"/><path d="M3 8V3h5"/><path d="M3 3l7 7"/></svg>
-              Needs Reassignment
-            </div>
-            <div className="pageHeaderCardSub">Tasks on hold because the assignee or project state requires management review.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag">{tasks.length} total</span>
-              {selectedTasks.length > 0 && <span className="pageHeaderCardTag" style={{ color: '#e2ab41' }}>{selectedTasks.length} selected</span>}
-            </div>
-          </div>
-          <Link to="/app/tasks" className="btn btnGhost" style={{ textDecoration: 'none' }}>Back to Tasks</Link>
-        </div>
-      </div>
+      <PageHeaderCard
+        icon={<ArrowLeftRight size={20} strokeWidth={2} />}
+        title="Needs Reassignment"
+        subtitle="Tasks on hold because the assignee or project state requires management review."
+        badges={[
+          { label: `${tasks.length} held`, color: '#f59e0b' },
+          ...(selectedTasks.length > 0 ? [{ label: `${selectedTasks.length} selected`, color: '#e2ab41' }] : []),
+        ]}
+        actions={<Link to="/app/tasks" className="btn btnGhost" style={{ textDecoration: 'none' }}>Back to Tasks</Link>}
+      />
+
+      <KpiStrip
+        loading={tasksQ.isLoading}
+        items={[
+          { label: 'Needs Reassignment', value: tasks.length, color: '#f59e0b', icon: <AlertTriangle size={36} />, sub: 'held tasks' },
+          { label: 'On Hold', value: onHoldCount, color: '#a855f7', icon: <ClipboardList size={36} />, sub: 'status on_hold' },
+          { label: 'Selected', value: selectedTasks.length, color: '#6366f1', icon: <Users size={36} />, sub: 'ready to reassign' },
+          { label: 'Assignable Staff', value: usersQ.data?.length || 0, color: '#22c55e', icon: <Users size={36} />, sub: 'active employees' },
+        ]}
+      />
 
       <div className="chartV3" style={{ padding: 14, display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -157,24 +170,33 @@ export function ReassignmentTasksPage() {
           <div style={{ flex: '1 1 240px', minWidth: 200 }}>
             <Select value={assigneeId} onChange={setAssigneeId} options={assigneeOptions} />
           </div>
-          <button type="button" className="btn btnPrimary" disabled={!assigneeId || selectedTasks.length === 0 || reassignM.isPending}
-            onClick={() => reassignM.mutate()}>
+          <button
+            type="button"
+            className="btn btnPrimary"
+            disabled={!assigneeId || selectedTasks.length === 0 || reassignM.isPending}
+            onClick={() => reassignM.mutate()}
+          >
             {reassignM.isPending ? 'Reassigning…' : `Reassign ${selectedTasks.length || ''}`.trim()}
           </button>
         </div>
         <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
           Select tasks, choose an active employee, then reassign. Reassigned tasks are returned to Pending for normal workflow.
         </div>
+        {usersQ.isError && (
+          <div style={{ fontSize: 12, color: '#ef4444', fontWeight: 700 }}>
+            Could not load assignable users. Refresh the page or check your permissions.
+          </div>
+        )}
       </div>
 
       <div className="chartV3" style={{ padding: 0, overflow: 'hidden' }}>
         {tasksQ.isLoading ? (
           <div style={{ padding: 16 }}><SkeletonRows count={6} /></div>
         ) : tasksQ.isError ? (
-          <ErrorRetry queryKey={['tasks', 'reassignment-needed']} message="Could not load reassignment tasks." />
+          <ErrorRetry queryKey={['tasks', 'reassignment-needed']} message="Could not load reassignment tasks. Check your connection and try again." />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<IconClipboard size={14} />}
+            icon={<ClipboardList size={14} />}
             title={search ? 'No reassignment tasks match your search' : 'No tasks need reassignment'}
             sub={search ? 'Clear the search to view all held tasks.' : 'Inactive employee and paused-project tasks will appear here when action is needed.'}
           />

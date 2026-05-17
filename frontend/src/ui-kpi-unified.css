@@ -155,6 +155,49 @@ button.kpiCard:active {
   border-color: color-mix(in srgb, var(--kpi-color, var(--primary)) 45%, var(--border)) !important;
 }
 
+/* Override design-system-dynamic center KPI layout — match dashboard left-aligned stack */
+.grid4.kpiStripStandard,
+.analyticsSignalStrip.kpiStripStandard {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.grid4.kpiStripStandard > .miniCard,
+.grid4.kpiStripStandard > button.miniCard,
+.analyticsSignalStrip.kpiStripStandard > .miniCard,
+.kpiStripStandard > .kpiCard,
+.kpiStripStandard.dashKpiStrip > .kpiCard {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  min-height: 108px !important;
+}
+
+.grid4.kpiStripStandard .miniLabel,
+.analyticsSignalStrip.kpiStripStandard .miniLabel {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  line-height: 1.25 !important;
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
+}
+
+.grid4.kpiStripStandard .miniValue,
+.analyticsSignalStrip.kpiStripStandard .miniValue {
+  width: 100% !important;
+  text-align: left !important;
+}
+
 @media (max-width: 640px) {
   .kpiStripStandard.dashKpiStrip {
     display: flex;
