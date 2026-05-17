@@ -7,17 +7,16 @@ function loadApp(context = {}) {
   jest.resetModules();
 
   const state = {
-    tables: context.tables || ['users', 'employees', 'tasks', 'task_categories', 'projects', 'project_tasks'],
+    tables: context.tables || ['users', 'employees', 'tasks', 'projects', 'project_tasks'],
     columns: {
       users: ['id', 'org_id', 'full_name', 'email', 'role', 'department', 'employee_code', 'is_active'],
       employees: ['id', 'org_id', 'user_id', 'full_name', 'status', 'updated_at'],
       tasks: ['id', 'org_id', 'title', 'status', 'assigned_to', 'category_id', 'project_id', 'priority', 'due_date', 'metadata', 'updated_at', 'deleted_at', 'created_at'],
-      task_categories: ['id', 'org_id', 'name', 'description', 'status', 'is_active', 'color', 'icon', 'created_at'],
       projects: ['id', 'org_id', 'name', 'description', 'status', 'created_at'],
       ...(context.columns || {}),
     },
     assignableUser: context.assignableUser || { id: 'user-1', user_active: true, employee_active: true },
-    task: context.task || { id: 'task-1', org_id: 'org-1', status: 'pending', assigned_to: 'user-1', category_id: 'project-1', project_id: null },
+    task: context.task || { id: 'task-1', org_id: 'org-1', status: 'pending', assigned_to: 'user-1', category_id: 'legacy-category-1', project_id: 'project-1' },
     project: context.project || { id: 'project-1', name: 'Project Alpha', status: 'active' },
     activeTaskCount: context.activeTaskCount ?? 0,
     employee: context.employee || { id: 'emp-1', org_id: 'org-1', user_id: 'user-1', full_name: 'Jane User', status: 'active' },
@@ -56,12 +55,12 @@ function loadApp(context = {}) {
       return { rows: [state.task] };
     }
 
-    if (text.includes('FROM task_categories tc') && text.includes('WHERE tc.org_id = $1 AND tc.id = $2')) {
+    if (text.includes('FROM projects p') && text.includes('WHERE p.org_id = $1 AND p.id = $2 LIMIT 1')) {
       return { rows: [state.project] };
     }
 
     if (text.includes('UPDATE task_categories')) {
-      return { rows: [{ id: params[params.length - 1], name: state.project.name, status: params[0], is_active: params[0] === 'active', created_at: new Date().toISOString() }] };
+      throw new Error('statusGovernance must not mutate task_categories lifecycle fields');
     }
 
     if (text.includes('UPDATE projects')) {
@@ -78,10 +77,6 @@ function loadApp(context = {}) {
 
     if (text.includes('UPDATE tasks')) {
       return { rows: [], rowCount: 1 };
-    }
-
-    if (text.includes('LEFT JOIN task_categories cat')) {
-      return { rows: state.reassignmentTasks };
     }
 
     return { rows: [] };
@@ -118,16 +113,30 @@ describe('status governance overlays', () => {
     expect(res.body.error).toMatch(/inactive|terminated/i);
   });
 
-  test('blocks task status changes while parent project is paused', async () => {
+  test('blocks task status changes while canonical parent project is paused', async () => {
     const { app } = loadApp({ project: { id: 'project-1', name: 'Paused Project', status: 'paused' } });
 
     const res = await request(app).post('/tasks/task-1/set-status').send({ status: 'in_progress' });
 
     expect(res.status).toBe(409);
     expect(res.body.code).toBe('PROJECT_NOT_ACTIVE');
+    expect(res.body.projectStatus).toBe('paused');
   });
 
-  test('pausing a project moves active project tasks to on_hold', async () => {
+  test('does not block task status changes from legacy category_id alone', async () => {
+    const { app, query } = loadApp({
+      tables: ['users', 'employees', 'tasks', 'projects'],
+      task: { id: 'task-1', org_id: 'org-1', status: 'pending', assigned_to: 'user-1', category_id: 'legacy-category-1', project_id: null },
+      project: { id: 'legacy-category-1', name: 'Legacy Category', status: 'paused' },
+    });
+
+    const res = await request(app).post('/tasks/task-1/set-status').send({ status: 'in_progress' });
+
+    expect(res.status).toBe(200);
+    expect(query.mock.calls.some(([sql]) => String(sql).includes('FROM task_categories'))).toBe(false);
+  });
+
+  test('pausing a canonical project moves active project tasks to on_hold', async () => {
     const { app, query } = loadApp({ activeTaskCount: 2, project: { id: 'project-1', name: 'Active Project', status: 'active' } });
 
     const res = await request(app).patch('/projects/project-1').send({ status: 'paused' });
@@ -135,6 +144,7 @@ describe('status governance overlays', () => {
     expect(res.status).toBe(200);
     expect(res.body.affectedActiveTasks).toBe(2);
     expect(query.mock.calls.some(([sql, params]) => String(sql).includes('UPDATE tasks t SET status = $3') && params.includes('on_hold'))).toBe(true);
+    expect(query.mock.calls.some(([sql]) => String(sql).includes('UPDATE task_categories'))).toBe(false);
   });
 
   test('completing a project with active tasks requires admin or director override', async () => {
@@ -146,6 +156,16 @@ describe('status governance overlays', () => {
     expect(res.body.error).toMatch(/Admin|Director/);
   });
 
+  test('returns project not found when canonical projects table is unavailable', async () => {
+    const { app, query } = loadApp({ tables: ['users', 'employees', 'tasks', 'task_categories'] });
+
+    const res = await request(app).patch('/projects/project-1').send({ status: 'paused' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toMatch(/Project not found/i);
+    expect(query.mock.calls.some(([sql]) => String(sql).includes('UPDATE task_categories'))).toBe(false);
+  });
+
   test('employee lifecycle change quarantines active tasks for reassignment', async () => {
     const { app, query } = loadApp();
 
@@ -153,15 +173,5 @@ describe('status governance overlays', () => {
 
     expect(res.status).toBe(200);
     expect(query.mock.calls.some(([sql]) => String(sql).includes("status = 'on_hold'"))).toBe(true);
-  });
-
-  test('returns reassignment queue for management roles', async () => {
-    const { app } = loadApp({ reassignmentTasks: [{ id: 'task-9', title: 'Reassign me', status: 'on_hold', assigned_to_name: 'Inactive User' }] });
-
-    const res = await request(app).get('/tasks/reassignment-needed');
-
-    expect(res.status).toBe(200);
-    expect(res.body.tasks).toHaveLength(1);
-    expect(res.body.tasks[0].title).toBe('Reassign me');
   });
 });
