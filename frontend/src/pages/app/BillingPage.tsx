@@ -109,19 +109,19 @@ export function BillingPage() {
       {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load billing summary.</div> : null}
 
       <div className="grid4">
-        <div className="miniCard">
+        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div className="miniLabel">Plan</div>
           <div className="miniValue">{sub?.plan || '—'}</div>
         </div>
-        <div className="miniCard">
+        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
           <div className="miniLabel">Status</div>
           <div className="miniValue">{sub?.status || '—'}</div>
         </div>
-        <div className="miniCard">
+        <div className="miniCard" style={{ '--kpi-color': '#06b6d4' } as any}>
           <div className="miniLabel">Seats</div>
           <div className="miniValue">{sub?.seats ?? '—'}</div>
         </div>
-        <div className="miniCard">
+        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
           <div className="miniLabel">Active users</div>
           <div className="miniValue">{usersUsed}</div>
         </div>

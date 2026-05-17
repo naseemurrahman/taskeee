@@ -206,14 +206,14 @@ export function AnalyticsPage() {
   const aiTimestamp     = backendAi?.ai_generated_at || backendAi?.generated_at
 
   const kpis = [
-    { label: 'Total tasks',      value: summaryQ.isLoading ? '—' : total,              tone: undefined },
-    { label: 'Completion rate',  value: `${completionRate}%`,                           tone: '#22c55e' },
-    { label: 'Pending',          value: pending,                                         tone: undefined },
-    { label: 'Overdue',          value: overdue,                                         tone: overdue > 0 ? 'rgba(239,68,68,.92)' : undefined },
-    { label: 'Active employees', value: summary?.active_employees ?? 0,                 tone: undefined },
-    { label: 'Avg completion',   value: avgHours ? `${avgHours.toFixed(1)}h` : '—',     tone: undefined },
-    { label: 'AI confidence',    value: avgConfidenceAvailable ? `${Math.round(avgConfidence * 100)}%` : '—', tone: undefined },
-    { label: 'Avg workload',     value: workload.averageOpenTasks.toFixed(1),            tone: undefined },
+    { label: 'Total tasks',      value: summaryQ.isLoading ? '—' : total,              tone: undefined,                            color: '#6366f1' },
+    { label: 'Completion rate',  value: `${completionRate}%`,                           tone: '#22c55e',                            color: '#22c55e' },
+    { label: 'Pending',          value: pending,                                         tone: undefined,                            color: '#eab308' },
+    { label: 'Overdue',          value: overdue,                                         tone: overdue > 0 ? 'rgba(239,68,68,.92)' : undefined, color: '#ef4444' },
+    { label: 'Active employees', value: summary?.active_employees ?? 0,                 tone: undefined,                            color: '#06b6d4' },
+    { label: 'Avg completion',   value: avgHours ? `${avgHours.toFixed(1)}h` : '—',     tone: undefined,                            color: '#a855f7' },
+    { label: 'AI confidence',    value: avgConfidenceAvailable ? `${Math.round(avgConfidence * 100)}%` : '—', tone: undefined, color: '#06b6d4' },
+    { label: 'Avg workload',     value: workload.averageOpenTasks.toFixed(1),            tone: undefined,                            color: '#f97316' },
   ]
 
   return (
@@ -246,7 +246,7 @@ export function AnalyticsPage() {
         {summaryQ.isLoading
           ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="miniCard skeleton" style={{ height: 68 }} />)
           : kpis.map((item) => (
-              <div key={item.label} className="miniCard">
+              <div key={item.label} className="miniCard" style={{ '--kpi-color': item.color } as any}>
                 <div className="miniLabel">{item.label}</div>
                 <div className="miniValue" style={item.tone ? { color: item.tone } : undefined}>{item.value}</div>
               </div>

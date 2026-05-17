@@ -10,6 +10,7 @@ import './overlay-upgrade-fixes.css' // final z-index, dropdown, and mobile noti
 import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visualization styles
 import './theme-overhaul.css' // FINAL: brand colors, capsule buttons, typography, no oval cards
 import './grid-system.css' // Grid system: alignment, spacing, hierarchy, consistency
+import './design-system-complete.css' // ULTIMATE: KPI cards with colored borders, unified inputs/dropdowns, standardized UI
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'

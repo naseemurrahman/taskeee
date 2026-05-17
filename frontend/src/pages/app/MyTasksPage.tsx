@@ -369,7 +369,7 @@ export function MyTasksPage() {
       </div>
 
       <section className="myTasksCommandCenter">
-        <div className="myTasksProgressCard">
+        <div className="myTasksProgressCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div>
             <div className="miniLabel">Personal Progress</div>
             <div className="myTasksProgressValue">{completionRate}%</div>
@@ -377,10 +377,10 @@ export function MyTasksPage() {
           </div>
           <div className="myTasksProgressRing" style={{ ['--pct' as any]: `${completionRate}%` }}><span>{completionRate}%</span></div>
         </div>
-        <div className="myTasksStatCard"><Clock3 size={17} /><div><span>To do</span><strong>{taskStats.pending}</strong></div></div>
-        <div className="myTasksStatCard"><Activity size={17} /><div><span>In progress</span><strong>{taskStats.in_progress}</strong></div></div>
-        <div className="myTasksStatCard"><Sparkles size={17} /><div><span>Review</span><strong>{taskStats.submitted}</strong></div></div>
-        <div className="myTasksStatCard"><CheckCircle2 size={17} /><div><span>Done</span><strong>{taskStats.done}</strong></div></div>
+        <div className="myTasksStatCard" style={{ '--kpi-color': '#06b6d4' } as any}><Clock3 size={17} /><div><span>To do</span><strong>{taskStats.pending}</strong></div></div>
+        <div className="myTasksStatCard" style={{ '--kpi-color': '#a855f7' } as any}><Activity size={17} /><div><span>In progress</span><strong>{taskStats.in_progress}</strong></div></div>
+        <div className="myTasksStatCard" style={{ '--kpi-color': '#06b6d4' } as any}><Sparkles size={17} /><div><span>Review</span><strong>{taskStats.submitted}</strong></div></div>
+        <div className="myTasksStatCard" style={{ '--kpi-color': '#22c55e' } as any}><CheckCircle2 size={17} /><div><span>Done</span><strong>{taskStats.done}</strong></div></div>
       </section>
 
       <section className="myTasksToolbar card">
