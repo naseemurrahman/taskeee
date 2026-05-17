@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend lint and build
+    name: Frontend lint, typecheck, and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,8 +27,10 @@ jobs:
       - name: Lint report
         continue-on-error: true
         run: |
-          echo "Running ESLint as an advisory report. Existing repository lint debt is tracked separately; build remains blocking."
+          echo "Running ESLint as an advisory report. Existing repository lint debt is tracked separately; build and typecheck remain blocking."
           npm run lint -- --max-warnings=0
+      - name: Typecheck
+        run: npm run typecheck
       - name: Build
         run: npm run build
 
