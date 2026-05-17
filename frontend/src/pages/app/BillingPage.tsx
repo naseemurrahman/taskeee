@@ -4,6 +4,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Select } from '../../components/ui/Select'
 import { apiFetch, ApiError } from '../../lib/api'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
+import { CreditCard, CheckCircle, Users } from 'lucide-react'
 
 type BillingSummary = {
   subscription: null | {
@@ -108,24 +110,14 @@ export function BillingPage() {
       {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
       {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load billing summary.</div> : null}
 
-      <div className="grid4 kpiStripStandard">
-        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
-          <div className="miniLabel">Plan</div>
-          <div className="miniValue">{sub?.plan || '—'}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
-          <div className="miniLabel">Status</div>
-          <div className="miniValue">{sub?.status || '—'}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#06b6d4' } as any}>
-          <div className="miniLabel">Seats</div>
-          <div className="miniValue">{sub?.seats ?? '—'}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
-          <div className="miniLabel">Active users</div>
-          <div className="miniValue">{usersUsed}</div>
-        </div>
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Plan', value: sub?.plan || '—', color: '#6366f1', icon: <CreditCard size={36} />, animate: false },
+          { label: 'Status', value: sub?.status || '—', color: '#22c55e', icon: <CheckCircle size={36} />, animate: false },
+          { label: 'Seats', value: sub?.seats ?? '—', color: '#06b6d4', icon: <Users size={36} />, animate: false },
+          { label: 'Active users', value: usersUsed, color: '#a855f7', icon: <Users size={36} /> },
+        ]}
+      />
 
       <div className="card">
         <h3 style={{ margin: 0, marginBottom: 12 }}>Upgrade / change plan</h3>

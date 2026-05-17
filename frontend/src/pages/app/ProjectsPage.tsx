@@ -11,6 +11,8 @@ import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
+import { FolderOpen, CircleDot, ListTodo } from 'lucide-react'
 
 type Project = {
   id: string
@@ -370,21 +372,14 @@ export function ProjectsPage() {
 
       {q.isError && <div className="alertV4 alertV4Error">Failed to load projects. Please refresh the page.</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-        {[
-          { label: 'Total Projects', value: String(projects.length), color: '#e2ab41', icon: <IconFolder size={18} /> },
-          { label: 'Active Projects', value: String(activeCount), color: '#22c55e', icon: '●' },
-          { label: 'Total Tasks', value: String(totalTasks), color: '#e2ab41', icon: '✓' },
-        ].map(kpi => (
-          <div key={kpi.label} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${kpi.color}18`, display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0, color: kpi.color }}>{kpi.icon}</div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{kpi.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{kpi.value}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Total Projects', value: projects.length, color: '#e2ab41', icon: <FolderOpen size={36} /> },
+          { label: 'Active Projects', value: activeCount, color: '#22c55e', icon: <CircleDot size={36} /> },
+          { label: 'Total Tasks', value: totalTasks, color: '#e2ab41', icon: <ListTodo size={36} /> },
+        ]}
+      />
+
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: '1 1 200px', position: 'relative', minWidth: 140 }}>
@@ -393,7 +388,7 @@ export function ProjectsPage() {
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects…"
-            style={{ width: '100%', height: 36, paddingLeft: 32, paddingRight: 12, border: '1px solid var(--border)',
+            style={{ width: '100%', height: 'var(--control-height, 40px)', paddingLeft: 32, paddingRight: 12, border: '1px solid var(--border)',
               borderRadius: 9, background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, outline: 'none',
               fontFamily: 'inherit', boxSizing: 'border-box' }} />
         </div>

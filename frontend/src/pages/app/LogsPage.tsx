@@ -7,6 +7,7 @@ import { getUser } from '../../state/auth'
 import { Modal } from '../../components/Modal'
 import { Select } from '../../components/ui/Select'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
 
 type ActivityLog = {
   id: string
@@ -198,23 +199,15 @@ export function LogsPage() {
         }
       />
 
-      {/* Stats row */}
-      <div className="grid4 kpiStripStandard">
-        {[
-          { label: 'Total events', value: q.isLoading ? '—' : String(stats.total), icon: <IconBarChart size={14} />, color: '#818cf8' },
-          { label: 'Today',        value: q.isLoading ? '—' : String(stats.today), icon: <IconCalendar size={14} />, color: '#22c55e' },
-          { label: 'Logins',       value: q.isLoading ? '—' : String(stats.logins), icon: '🔐', color: '#38bdf8' },
-          { label: 'Active users', value: q.isLoading ? '—' : String(stats.uniqueUsers), icon: <IconUsers size={14} />, color: '#e2ab41' },
-        ].map(s => (
-          <div key={s.label} className="miniCard">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div className="miniLabel">{s.label}</div>
-              <span style={{ fontSize: 18 }}>{s.icon}</span>
-            </div>
-            <div className="miniValue" style={{ color: s.color, fontSize: 28 }}>{s.value}</div>
-          </div>
-        ))}
-      </div>
+      <KpiStrip
+        loading={q.isLoading}
+        items={[
+          { label: 'Total events', value: stats.total, color: '#818cf8', icon: <IconBarChart size={36} /> },
+          { label: 'Today', value: stats.today, color: '#22c55e', icon: <IconCalendar size={36} /> },
+          { label: 'Logins', value: stats.logins, color: '#38bdf8', icon: <IconBarChart size={36} />, animate: false },
+          { label: 'Active users', value: stats.uniqueUsers, color: '#e2ab41', icon: <IconUsers size={36} /> },
+        ]}
+      />
 
       {/* Log table */}
       <div className="formCardV3">

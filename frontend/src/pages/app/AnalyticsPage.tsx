@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
 import { ChartCard } from '../../components/charts/ChartCard'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 
@@ -241,18 +242,17 @@ export function AnalyticsPage() {
         }
       />
 
-      {/* KPI strip */}
-      <div className="analyticsSignalStrip kpiStripStandard">
-        {summaryQ.isLoading
-          ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="miniCard skeleton" style={{ height: 68 }} />)
-          : kpis.map((item) => (
-              <div key={item.label} className="miniCard" style={{ '--kpi-color': item.color } as any}>
-                <div className="miniLabel">{item.label}</div>
-                <div className="miniValue" style={item.tone ? { color: item.tone } : undefined}>{item.value}</div>
-              </div>
-            ))
-        }
-      </div>
+      <KpiStrip
+        loading={summaryQ.isLoading}
+        skeletonCount={8}
+        items={kpis.map((item) => ({
+          label: item.label,
+          value: item.value,
+          color: item.tone || item.color,
+          animate: false,
+        }))}
+      />
+
 
       {/* Charts grid */}
       <div style={{ display: 'grid', gap: 16 }}>

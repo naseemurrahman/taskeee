@@ -10,6 +10,7 @@ import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { KpiStrip } from '../../components/ui/KpiCard'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -106,18 +107,6 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function StatCard({ label, value, sub, color = 'var(--brand)', icon }: {
-  label: string; value: string | number; sub?: string; color?: string; icon?: ReactNode
-}) {
-  return (
-    <div className="insightsKpiCard" style={{ '--kpi-color': color } as React.CSSProperties}>
-      {icon && <div className="insightsKpiIcon">{icon}</div>}
-      <div className="insightsKpiLabel">{label}</div>
-      <div className="insightsKpiValue">{value}</div>
-      {sub && <div className="insightsKpiSub">{sub}</div>}
-    </div>
-  )
-}
 
 function ChartCard({ title, icon, children }: { title: ReactNode; icon?: ReactNode; children: ReactNode }) {
   return (
@@ -295,25 +284,22 @@ export function InsightsPage() {
       />
 
       {/* ── Loading skeletons ── */}
-      {loading && (
-        <div className="insightsKpiStrip" style={{ '--kpi-cols': String(L.kpiCols) } as React.CSSProperties}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton insightsKpiSkeleton" />
-          ))}
-        </div>
-      )}
+      <KpiStrip
+        loading={loading}
+        skeletonCount={5}
+        className="insightsKpiStrip"
+        style={{ '--kpi-cols': String(L.kpiCols) } as React.CSSProperties}
+        items={stats ? [
+          { label: 'Total Tasks', value: stats.total, sub: 'in your org', color: '#e2ab41', icon: <IconClipboard size={28} /> },
+          { label: 'Completed', value: stats.completed, sub: `${stats.completionRate}% rate`, color: '#22c55e', icon: <IconCheckCircle size={28} /> },
+          { label: 'In Progress', value: stats.inProgress, sub: 'active right now', color: '#8b5cf6', icon: <IconLightning size={28} /> },
+          { label: 'Overdue', value: stats.overdue, sub: `${stats.overdueRate}% of total`, color: stats.overdue > 0 ? '#ef4444' : '#22c55e', icon: <IconOverdue size={28} /> },
+          { label: 'Avg Open / Person', value: avgOpenTasks, sub: 'workload balance', color: '#f59e0b', icon: <IconUsers size={28} />, animate: false },
+        ] : []}
+      />
 
-      {/* ── Main content ── */}
       {!loading && stats && (
         <>
-          {/* KPI strip */}
-          <div className="insightsKpiStrip" style={{ '--kpi-cols': String(L.kpiCols) } as React.CSSProperties}>
-            <StatCard label="Total Tasks"       value={stats.total}       sub="in your org"              color="#e2ab41" icon={<IconClipboard  size={14} />} />
-            <StatCard label="Completed"         value={stats.completed}   sub={`${stats.completionRate}% rate`}  color="#22c55e" icon={<IconCheckCircle size={14} />} />
-            <StatCard label="In Progress"       value={stats.inProgress}  sub="active right now"         color="#8b5cf6" icon={<IconLightning  size={14} />} />
-            <StatCard label="Overdue"           value={stats.overdue}     sub={`${stats.overdueRate}% of total`} color={stats.overdue > 0 ? '#ef4444' : '#22c55e'} icon={<IconOverdue size={14} />} />
-            <StatCard label="Avg Open / Person" value={avgOpenTasks}      sub="workload balance"         color="#f59e0b" icon={<IconUsers      size={14} />} />
-          </div>
 
           {/* ── Row 1: Trend area chart + Status donut ── */}
           <div className="insightsRow1" style={{ '--row1-cols': L.row1Cols } as React.CSSProperties}>

@@ -1,0 +1,58 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE SHELL — fluid layouts for all screen sizes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.contentV4 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Dashboard chart grid stacks on tablet */
+.dashboardChartGrid,
+.contentV4 [style*="gridTemplateColumns: '2fr 1fr 1fr'"],
+.contentV4 [style*='gridTemplateColumns: "2fr 1fr 1fr"'] {
+  display: grid;
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .dashboardChartGrid,
+  .contentV4 > div[style*="2fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* KPI strips: horizontal scroll on small screens */
+@media (max-width: 720px) {
+  .kpiStripStandard:not(.dashKpiStrip),
+  .analyticsSignalStrip.kpiStripStandard,
+  .insightsKpiStrip.kpiStripStandard,
+  .myTasksCommandCenter.kpiStripStandard {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .kpiStripStandard:not(.dashKpiStrip) > .kpiCard,
+  .analyticsSignalStrip.kpiStripStandard > *,
+  .insightsKpiStrip.kpiStripStandard > *,
+  .myTasksCommandCenter.kpiStripStandard > * {
+    flex: 0 0 min(72vw, 200px) !important;
+    min-width: min(72vw, 200px) !important;
+    scroll-snap-align: start;
+  }
+}
+
+/* Compact chart detail actions */
+.btn.btnGhost.btnCompact {
+  height: var(--button-height-sm, 32px) !important;
+  min-height: var(--button-height-sm, 32px) !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+}

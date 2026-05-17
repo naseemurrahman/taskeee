@@ -1,5 +1,7 @@
 import { useMemo, useState, useRef } from 'react'
 import { IconZap } from '../../../components/ui/AppIcons'
+import { KpiStrip } from '../../../components/ui/KpiCard'
+import { Briefcase, DollarSign, Layers, TrendingUp } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../../lib/api'
 
@@ -127,25 +129,14 @@ export function CrmPipelinePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
-      {/* KPI Cards */}
-      <div className="grid4 kpiStripStandard">
-        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
-          <div className="miniLabel">Total Deals</div>
-          <div className="miniValue">{deals.length}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
-          <div className="miniLabel">Pipeline Value</div>
-          <div className="miniValue" style={{ fontSize: 24 }}>{fmt(totalValue, 'USD')}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
-          <div className="miniLabel">Stages</div>
-          <div className="miniValue">{stages.length}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#eab308' } as any}>
-          <div className="miniLabel">Avg Deal Size</div>
-          <div className="miniValue" style={{ fontSize: 24 }}>{deals.length > 0 ? fmt(totalValue / deals.length, 'USD') : '$0'}</div>
-        </div>
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Total Deals', value: deals.length, color: '#6366f1', icon: <Briefcase size={36} /> },
+          { label: 'Pipeline Value', value: fmt(totalValue, 'USD') ?? '$0', color: '#22c55e', icon: <DollarSign size={36} />, animate: false },
+          { label: 'Stages', value: stages.length, color: '#a855f7', icon: <Layers size={36} /> },
+          { label: 'Avg Deal Size', value: deals.length > 0 ? (fmt(totalValue / deals.length, 'USD') ?? '$0') : '$0', color: '#eab308', icon: <TrendingUp size={36} />, animate: false },
+        ]}
+      />
 
       {/* Header */}
       <div className="pageHeaderCard">

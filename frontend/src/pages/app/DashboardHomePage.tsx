@@ -11,7 +11,7 @@ import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
 import { Modal } from '../../components/Modal'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
-import { KpiCard } from '../../components/ui/KpiCard'
+import { KpiCard, KpiStrip } from '../../components/ui/KpiCard'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle, Send, FolderOpen,
   LayoutDashboard, TrendingUp, TrendingDown, Minus
@@ -316,13 +316,6 @@ function Card({ title, sub, children, action }: {
   )
 }
 
-// ─── KPI Tile ─────────────────────────────────────────────────────
-function KpiTile({ label, value, sub, color, icon }: {
-  label: string; value: number; sub?: string; color: string; icon: React.ReactNode
-}) {
-  return <KpiCard label={label} value={value} sub={sub} color={color} icon={icon} animate />
-}
-
 // ─── Main ─────────────────────────────────────────────────────────
 export function DashboardHomePage() {
   const me = getUser()
@@ -396,24 +389,26 @@ export function DashboardHomePage() {
 
       <OnboardingBanner />
 
-      {/* ── KPI Row ── */}
-      <div className="dashKpiStrip kpiStripStandard">
-        {isLoading ? [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 18, flex: '1 1 130px', minWidth: 130 }} />) : <>
-          <KpiTile label="Total Tasks"    value={tasks?.total || 0}       color={C.brand}  icon={<ClipboardList size={36} />} sub={`${tasks?.due_today||0} due today`} />
-          <KpiTile label="In Progress"    value={tasks?.in_progress || 0} color={C.purple} icon={<Zap size={36} />}           sub="active work" />
-          <KpiTile label="Completed"      value={tasks?.completed || 0}   color={C.green}  icon={<CheckCircle2 size={36} />}  sub={`${tasks?.completion_rate||0}% rate`} />
-          <KpiTile label="Overdue"        value={tasks?.overdue || 0}     color={C.red}    icon={<AlertTriangle size={36} />} sub={`${tasks?.due_week||0} due this week`} />
-          <KpiTile label="Pending Review" value={tasks?.submitted || 0}   color={C.blue}   icon={<Send size={36} />}          sub="awaiting approval" />
-          <KpiTile label="Projects"       value={projects.length}         color={C.teal}   icon={<FolderOpen size={36} />}    sub={`${projects.filter(p=>p.progress===100).length} complete`} />
-        </>}
-      </div>
+      <KpiStrip
+        loading={isLoading}
+        skeletonCount={6}
+        items={[
+          { label: 'Total Tasks', value: tasks?.total || 0, color: C.brand, icon: <ClipboardList size={36} />, sub: `${tasks?.due_today || 0} due today` },
+          { label: 'In Progress', value: tasks?.in_progress || 0, color: C.purple, icon: <Zap size={36} />, sub: 'active work' },
+          { label: 'Completed', value: tasks?.completed || 0, color: C.green, icon: <CheckCircle2 size={36} />, sub: `${tasks?.completion_rate || 0}% rate` },
+          { label: 'Overdue', value: tasks?.overdue || 0, color: C.red, icon: <AlertTriangle size={36} />, sub: `${tasks?.due_week || 0} due this week` },
+          { label: 'Pending Review', value: tasks?.submitted || 0, color: C.blue, icon: <Send size={36} />, sub: 'awaiting approval' },
+          { label: 'Projects', value: projects.length, color: C.teal, icon: <FolderOpen size={36} />, sub: `${projects.filter(p => p.progress === 100).length} complete` },
+        ]}
+      />
+
 
       {/* ── Row 1: Activity (wide) + Status Donut + Priority side-by-side ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 14 }}>
         <Card
           title="Task Activity — Last 14 Days"
           sub="Created · Completed · Overdue by day"
-          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('activity')}>Details</button> : undefined}
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('activity')}>Details</button> : undefined}
         >
           {isLoading ? <Skel h={280} /> : (
             <TaskActivityChart data={trendData} />
@@ -423,7 +418,7 @@ export function DashboardHomePage() {
         <Card
           title="Task Status"
           sub="Current distribution"
-          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('status')}>Details</button> : undefined}
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('status')}>Details</button> : undefined}
         >
           {isLoading ? <Skel h={180} /> : (
             <div
@@ -456,7 +451,7 @@ export function DashboardHomePage() {
         <Card
           title="Priority Breakdown"
           sub="Tasks by urgency level"
-          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('priority')}>Details</button> : undefined}
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('priority')}>Details</button> : undefined}
         >
           {isLoading ? <Skel h={120} /> : (() => {
             const entries = priorityRows
@@ -482,7 +477,7 @@ export function DashboardHomePage() {
       {/* ── Row 2: Project Progress full-width ── */}
       <Card title="Project Progress" sub="Completion % per active project"
         action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('projects')}>Details</button> : null}
+          {canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('projects')}>Details</button> : null}
           <Link to="/app/projects" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>All →</Link>
         </div>}>
         {isLoading ? <Skel h={200} /> : !projects.length ? (
@@ -528,7 +523,7 @@ export function DashboardHomePage() {
         <Card
           title="Weekly Velocity"
           sub="Tasks created vs. completed per week"
-          action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
+          action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('velocity')}>Details</button> : undefined}
         >
           {isLoading ? <Skel h={180} /> : (
             <div>
@@ -618,7 +613,7 @@ export function DashboardHomePage() {
       <div className="dashGrid2">
         <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
           action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('team')}>Details</button> : null}
+            {canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('team')}>Details</button> : null}
             <Link to="/app/analytics" style={{ fontSize: 11, color: C.brand, fontWeight: 800, textDecoration: 'none' }}>Analytics →</Link>
           </div>}>
           {isLoading ? <Skel h={200} /> : !leaderboard.length ? (
@@ -667,7 +662,7 @@ export function DashboardHomePage() {
       <Card
         title="Team Workload"
         sub="Active · Overdue · Done per person"
-        action={canOpenChartDetails ? <button type="button" className="btn btnGhost" style={{ height: 30, padding: '0 10px', fontSize: 11 }} onClick={() => setChartDetail('workload')}>Details</button> : undefined}
+        action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('workload')}>Details</button> : undefined}
       >
           {leaderboard.length === 0 ? (
             <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>

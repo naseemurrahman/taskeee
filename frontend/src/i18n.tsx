@@ -116,6 +116,7 @@ const DICT: Dict = {
   // nav items
   'nav.dashboard': { en: 'Dashboard', ar: 'لوحة التحكم' },
   'nav.tasks': { en: 'Tasks', ar: 'المهام' },
+  'nav.reassignment': { en: 'Needs Reassignment', ar: 'بحاجة لإعادة التعيين' },
   'nav.myTasks': { en: 'My tasks', ar: 'مهامي' },
   'nav.board': { en: 'Board', ar: 'لوحة كانبان' },
   'nav.projects': { en: 'Projects', ar: 'المشاريع' },

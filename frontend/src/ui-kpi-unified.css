@@ -198,6 +198,159 @@ button.kpiCard:active {
   text-align: left !important;
 }
 
+/* Insights & legacy class aliases → dashboard KPI */
+.insightsKpiStrip.kpiStripStandard,
+.insightsKpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.insightsKpiStrip .insightsKpiCard,
+.insightsKpiStrip .kpiCard {
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  padding: 16px 18px !important;
+  position: relative;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+  min-height: 108px !important;
+}
+
+.insightsKpiStrip .insightsKpiCard::before,
+.insightsKpiStrip .kpiCard .kpiCardAccent {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(90deg, var(--kpi-color, var(--primary)), color-mix(in srgb, var(--kpi-color, var(--primary)) 55%, transparent));
+  pointer-events: none;
+}
+
+.insightsKpiLabel,
+.insightsKpiStrip .kpiCardLabel {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: var(--muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-bottom: 8px !important;
+}
+
+.insightsKpiValue,
+.insightsKpiStrip .kpiCardValue {
+  font-size: 32px !important;
+  font-weight: 950 !important;
+  color: var(--text) !important;
+  line-height: 1 !important;
+}
+
+.insightsKpiSub,
+.insightsKpiStrip .kpiCardSub {
+  font-size: 11px !important;
+  color: var(--muted) !important;
+  margin-top: 5px !important;
+  font-weight: 600 !important;
+}
+
+.insightsKpiIcon {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  opacity: 0.12;
+  color: var(--kpi-color, var(--primary));
+}
+
+/* My Tasks command center KPI row */
+.myTasksCommandCenter.kpiStripStandard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 12px;
+}
+
+.myTasksCommandCenter .myTasksStatCard,
+.myTasksCommandCenter.kpiStripStandard .kpiCard {
+  min-height: 108px !important;
+  padding: 16px 18px !important;
+  border-radius: 18px !important;
+  background: var(--bg1) !important;
+  border: 1px solid var(--border) !important;
+  position: relative;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  text-align: left !important;
+}
+
+.myTasksCommandCenter .myTasksStatCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--kpi-color, var(--primary)), transparent);
+  border-radius: 18px 18px 0 0;
+}
+
+.myTasksCommandCenter .myTasksStatCard > svg {
+  opacity: 0.15;
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  width: 36px !important;
+  height: 36px !important;
+  color: var(--kpi-color, var(--primary));
+}
+
+.myTasksCommandCenter .myTasksStatCard span {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--muted) !important;
+}
+
+.myTasksCommandCenter .myTasksStatCard strong {
+  font-size: 32px !important;
+  font-weight: 950 !important;
+  color: var(--text) !important;
+  line-height: 1 !important;
+}
+
+/* Board intelligence panel — keep labels visible on miniCards */
+.boardIntelligencePanel .grid3 > .miniCard {
+  min-height: 120px !important;
+  text-align: left !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+
+.boardIntelligencePanel .grid3 > .miniCard > .miniLabel {
+  overflow: visible !important;
+  white-space: normal !important;
+  text-overflow: unset !important;
+  width: 100% !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.reportStatGrid.kpiStripStandard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px;
+}
+
 @media (max-width: 640px) {
   .kpiStripStandard.dashKpiStrip {
     display: flex;

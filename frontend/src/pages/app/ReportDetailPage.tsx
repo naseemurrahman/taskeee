@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
+import { KpiStrip } from '../../components/ui/KpiCard'
 
 type Report = {
   id: string
@@ -164,24 +165,15 @@ export function ReportDetailPage() {
             {payload.summary ? (
               <div className="reportSection">
                 <div className="reportSectionTitle">Summary</div>
-                <div className="reportStatGrid">
-                  <div className="reportStatCard">
-                    <div className="reportStatN">{payload.summary.total ?? 0}</div>
-                    <div className="reportStatL">Tasks in period</div>
-                  </div>
-                  <div className="reportStatCard">
-                    <div className="reportStatN">{payload.summary.completed ?? 0}</div>
-                    <div className="reportStatL">Completed</div>
-                  </div>
-                  <div className="reportStatCard">
-                    <div className="reportStatN">{payload.summary.overdueTasks ?? 0}</div>
-                    <div className="reportStatL">Open overdue</div>
-                  </div>
-                  <div className="reportStatCard reportStatCardAccent">
-                    <div className="reportStatN">{payload.summary.completionRate ?? 0}%</div>
-                    <div className="reportStatL">Completion rate</div>
-                  </div>
-                </div>
+                <KpiStrip
+                  className="reportStatGrid"
+                  items={[
+                    { label: 'Tasks in period', value: payload.summary.total ?? 0, color: '#6366f1' },
+                    { label: 'Completed', value: payload.summary.completed ?? 0, color: '#22c55e' },
+                    { label: 'Open overdue', value: payload.summary.overdueTasks ?? 0, color: '#ef4444' },
+                    { label: 'Completion rate', value: `${payload.summary.completionRate ?? 0}%`, color: 'var(--primary)', animate: false },
+                  ]}
+                />
               </div>
             ) : null}
 
