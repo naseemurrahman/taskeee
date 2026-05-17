@@ -47,21 +47,20 @@ function isPersonalRole(role) {
 
 async function resolveProjectStore() {
   const tables = await getTableNames();
-  if (tables.has('projects')) return 'projects';
-  if (tables.has('task_categories')) return 'task_categories';
-  return null;
+  return tables.has('projects') ? 'projects' : null;
 }
 
 function projectStatusExpression(alias, cols) {
   if (cols.has('status') && cols.has('is_active')) {
-    return `COALESCE(${alias}.status, CASE WHEN ${alias}.is_active THEN 'active' ELSE 'completed' END, 'active')`;
+    return `CASE WHEN ${alias}.is_active = FALSE THEN 'completed' ELSE COALESCE(NULLIF(${alias}.status, ''), 'active') END`;
   }
-  if (cols.has('status')) return `COALESCE(${alias}.status, 'active')`;
+  if (cols.has('status')) return `COALESCE(NULLIF(${alias}.status, ''), 'active')`;
   if (cols.has('is_active')) return `CASE WHEN ${alias}.is_active THEN 'active' ELSE 'completed' END`;
   return `'active'`;
 }
 
 function projectIsActiveExpression(alias, cols) {
+  if (cols.has('status') && cols.has('is_active')) return `(${alias}.is_active = TRUE AND COALESCE(NULLIF(${alias}.status, ''), 'active') = 'active')`;
   if (cols.has('status')) return `${projectStatusExpression(alias, cols)} = 'active'`;
   if (cols.has('is_active')) return `${alias}.is_active = TRUE`;
   return 'TRUE';
@@ -170,13 +169,7 @@ async function mutateProjectTasksForStatus({ orgId, projectId, status, actorUser
 
 async function getProjectStatusById(orgId, projectId) {
   const store = await resolveProjectStore();
-  if (!store) return null;
-  if (store === 'task_categories') {
-    const cols = await getColumns('task_categories');
-    const statusExpr = projectStatusExpression('tc', cols);
-    const { rows } = await query(`SELECT tc.id, tc.name, ${statusExpr} AS status FROM task_categories tc WHERE tc.org_id = $1 AND tc.id = $2 LIMIT 1`, [orgId, projectId]);
-    return rows[0] || null;
-  }
+  if (store !== 'projects') return null;
   const cols = await getColumns('projects');
   const statusExpr = projectStatusExpression('p', cols);
   const { rows } = await query(`SELECT p.id, p.name, ${statusExpr} AS status FROM projects p WHERE p.org_id = $1 AND p.id = $2 LIMIT 1`, [orgId, projectId]);
@@ -238,42 +231,11 @@ projects.get('/', authenticate, async (req, res, next) => {
     const store = await resolveProjectStore();
     if (!store) return res.json({ projects: [], meta: { role, store: null } });
 
-    if (store === 'task_categories') {
-      const cols = await getColumns('task_categories');
-      const statusExpr = projectStatusExpression('tc', cols);
-      const isActiveExpr = projectIsActiveExpression('tc', cols);
-      const params = [orgId];
-      const where = ['tc.org_id = $1'];
-      let scopedJoin = '';
-      if (personalOnly) {
-        params.push(req.user.id);
-        scopedJoin = `AND t.assigned_to = $${params.length}`;
-        where.push(`EXISTS (SELECT 1 FROM tasks myt WHERE myt.category_id = tc.id AND myt.org_id = tc.org_id AND myt.assigned_to = $${params.length} AND myt.deleted_at IS NULL)`);
-      }
-      const { rows } = await query(
-        `SELECT tc.id, tc.name, tc.description,
-                ${cols.has('icon') ? 'tc.icon' : 'NULL::text AS icon'},
-                ${cols.has('color') ? 'tc.color' : 'NULL::text AS color'},
-                ${statusExpr} AS status,
-                ${isActiveExpr} AS is_active,
-                tc.created_at,
-                COUNT(DISTINCT t.id)::int AS task_count,
-                ${taskCompletionProgressSql()}
-           FROM task_categories tc
-           LEFT JOIN tasks t ON t.category_id = tc.id AND t.deleted_at IS NULL ${scopedJoin}
-          WHERE ${where.join(' AND ')}
-          GROUP BY tc.id
-          ORDER BY tc.created_at DESC`,
-        params
-      );
-      return res.json({ projects: rows, meta: { role, store, personalOnly } });
-    }
-
     const cols = await getColumns('projects');
     const statusExpr = projectStatusExpression('p', cols);
     const params = [orgId];
     const where = ['p.org_id = $1'];
-    if (cols.has('status')) where.push(`COALESCE(p.status, 'active') <> 'archived'`);
+    if (cols.has('status')) where.push(`COALESCE(NULLIF(p.status, ''), 'active') <> 'archived'`);
     let scopedJoin = '';
     if (personalOnly) {
       params.push(req.user.id);
@@ -294,7 +256,7 @@ projects.get('/', authenticate, async (req, res, next) => {
         ORDER BY p.created_at DESC`,
       params
     );
-    return res.json({ projects: rows, meta: { role, store, personalOnly } });
+    return res.json({ projects: rows, meta: { role, store, personalOnly, canonicalOnly: true } });
   } catch (err) { next(err); }
 });
 
@@ -327,41 +289,14 @@ projects.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 
     }
 
     const store = await resolveProjectStore();
-    if (!store) return res.status(404).json({ error: 'Project not found' });
-    let rows;
-    if (store === 'task_categories') {
-      const cols = await getColumns('task_categories');
-      if (!cols.has('status')) {
-        await query(`ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'active'`);
-        columnsCache.delete('task_categories');
-      }
-      const nextCols = await getColumns('task_categories');
-      const sets = ['status = $1'];
-      const params = [requestedStatus];
-      if (nextCols.has('is_active')) {
-        params.push(requestedStatus === 'active');
-        sets.push(`is_active = $${params.length}`);
-      }
-      params.push(orgId, projectId);
-      ({ rows } = await query(
-        `UPDATE task_categories SET ${sets.join(', ')} WHERE org_id = $${params.length - 1} AND id = $${params.length}
-         RETURNING id, name, description,
-                   ${nextCols.has('icon') ? 'icon' : 'NULL::text AS icon'},
-                   ${nextCols.has('color') ? 'color' : 'NULL::text AS color'},
-                   ${nextCols.has('status') ? 'status' : `'${requestedStatus}'`} AS status,
-                   ${nextCols.has('is_active') ? 'is_active' : `(status = 'active')`} AS is_active,
-                   created_at`,
-        params
-      ));
-    } else {
-      const cols = await getColumns('projects');
-      if (!cols.has('status')) return res.status(500).json({ error: 'projects.status column is required for status changes.' });
-      ({ rows } = await query(
-        `UPDATE projects SET status = $1 WHERE org_id = $2 AND id = $3
-         RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at`,
-        [requestedStatus, orgId, projectId]
-      ));
-    }
+    if (store !== 'projects') return res.status(404).json({ error: 'Project not found' });
+    const cols = await getColumns('projects');
+    if (!cols.has('status')) return res.status(500).json({ error: 'projects.status column is required for status changes.' });
+    const { rows } = await query(
+      `UPDATE projects SET status = $1 WHERE org_id = $2 AND id = $3
+       RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(NULLIF(status, ''), 'active') AS status, (COALESCE(NULLIF(status, ''), 'active') = 'active') AS is_active, created_at`,
+      [requestedStatus, orgId, projectId]
+    );
 
     if (!rows.length) return res.status(404).json({ error: 'Project not found' });
     await mutateProjectTasksForStatus({ orgId, projectId, status: requestedStatus, actorUserId: req.user.id });
