@@ -10,32 +10,48 @@ import { ProjectDetailModal } from '../../components/projects/ProjectDetailModal
 import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
 type Project = {
-  id: string; name: string; description?: string | null
-  color?: string | null; status?: 'active' | 'paused' | 'completed'; task_count?: number; progress?: number
+  id: string
+  name: string
+  description?: string | null
+  color?: string | null
+  status?: 'active' | 'paused' | 'completed'
+  task_count?: number
+  progress?: number
 }
-type ActiveTask = { id: string; title: string; status: string; priority?: string | null; due_date?: string | null; assignee_name?: string | null }
+
+type ActiveTask = {
+  id: string
+  title: string
+  status: string
+  priority?: string | null
+  due_date?: string | null
+  assignee_name?: string | null
+}
+
 type StatusChangeTarget = { project: Project; targetStatus: 'active' | 'paused' | 'completed' }
 
 async function fetchProjects() {
   const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
   return d.projects || []
 }
+
 async function fetchActiveTasks(projectId: string): Promise<ActiveTask[]> {
   const d = await apiFetch<{ tasks: ActiveTask[] }>(`/api/v1/projects/${projectId}/active-tasks`)
   return d.tasks || []
 }
+
 async function createProject(input: { name: string; description?: string; color?: string }) {
-  return await apiFetch<{ project: Project }>('/api/v1/projects', { method: 'POST', json: input })
+  return apiFetch<{ project: Project }>('/api/v1/projects', { method: 'POST', json: input })
 }
+
 async function renameProject(id: string, name: string) {
   return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { name } })
 }
-async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed', opts?: { override?: boolean; reason?: string; force?: boolean }) {
+
+async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed', opts?: { force?: boolean }) {
   const body: Record<string, unknown> = { status }
-  if (opts?.override) { body.override_completion = true; body.override_reason = opts.reason }
   if (opts?.force) body.force_pause = true
   return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: body })
 }
@@ -160,12 +176,8 @@ function ProjectCard({ p, canCreate, onClick, onChangeRequest }: { p: Project; c
   return (
     <div className="projCard" onClick={onClick}
       style={{ '--proj-accent': accent } as React.CSSProperties}>
-      {/* Top accent bar */}
       <div style={{ height: 3, background: accent, margin: '-16px -16px 16px', borderRadius: '10px 10px 0 0', opacity: 0.85 }} />
-
-      {/* Header: icon + name + rename */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-        {/* Project icon */}
         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0,
           background: accent + '18', border: `1.5px solid ${accent}30`,
           display: 'grid', placeItems: 'center' }}>
@@ -183,8 +195,6 @@ function ProjectCard({ p, canCreate, onClick, onChangeRequest }: { p: Project; c
           )}
         </div>
       </div>
-
-      {/* Footer: task count + status */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, color: 'var(--text2)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -205,15 +215,12 @@ function ProjectRow({ p, canCreate, onClick, onChangeRequest }: { p: Project; ca
   return (
     <div className="projRow" onClick={onClick}
       style={{ '--proj-accent': accent } as React.CSSProperties}>
-      {/* Left accent stripe */}
       <div style={{ width: 3, background: accent, borderRadius: '10px 0 0 10px', alignSelf: 'stretch', flexShrink: 0 }} />
-      {/* Icon */}
       <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0,
         background: accent + '18', border: `1.5px solid ${accent}30`,
         display: 'grid', placeItems: 'center' }}>
         <div style={{ width: 13, height: 13, borderRadius: 3, background: accent }} />
       </div>
-      {/* Name + description */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <InlineProjectName project={p} canEdit={canCreate} />
         {p.description && (
@@ -222,14 +229,12 @@ function ProjectRow({ p, canCreate, onClick, onChangeRequest }: { p: Project; ca
           </div>
         )}
       </div>
-      {/* Task count */}
       <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
         </svg>
         {taskCount}
       </div>
-      {/* Status */}
       <div onClick={e => e.stopPropagation()}>
         <StatusBadge project={p} canEdit={canCreate} onChangeRequest={onChangeRequest} />
       </div>
@@ -241,7 +246,6 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const me = getUser()
   const canCreate = canCreateTasksAndProjects(me?.role)
-  const isAdmin = me?.role === 'admin' || me?.role === 'director'
   const qc = useQueryClient()
   const q = useQuery({ queryKey: ['projects'], queryFn: fetchProjects, retry: 2, staleTime: 30_000, refetchInterval: 60_000 })
   const { success: toastSuccess, error: toastError } = useToast()
@@ -259,11 +263,9 @@ export function ProjectsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all')
 
-  // ── Status change with active-tasks popup ──────────────────────────────────
   const [statusChangeTarget, setStatusChangeTarget] = useState<StatusChangeTarget | null>(null)
   const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([])
   const [loadingActiveTasks, setLoadingActiveTasks] = useState(false)
-  const [overrideReason, setOverrideReason] = useState('')
 
   const statusChangeMutation = useMutation({
     mutationFn: ({ id, status, opts }: { id: string; status: 'active'|'paused'|'completed'; opts?: Parameters<typeof changeProjectStatus>[2] }) =>
@@ -271,19 +273,17 @@ export function ProjectsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['projects'] })
       toastSuccess('Status updated', `Project is now ${statusChangeTarget?.targetStatus}`)
-      setStatusChangeTarget(null); setActiveTasks([]); setOverrideReason('')
+      setStatusChangeTarget(null); setActiveTasks([])
     },
     onError: (err) => toastError('Update failed', err instanceof ApiError ? err.message : 'Could not update status'),
   })
 
   const handleStatusChangeRequest = useCallback(async (project: Project, targetStatus: 'active'|'paused'|'completed') => {
     if (targetStatus === 'active') {
-      // Direct change to active — no popup needed
       statusChangeMutation.mutate({ id: project.id, status: 'active' })
       return
     }
     setStatusChangeTarget({ project, targetStatus })
-    setOverrideReason('')
     setLoadingActiveTasks(true)
     try {
       const tasks = await fetchActiveTasks(project.id)
@@ -299,7 +299,6 @@ export function ProjectsPage() {
     if (!statusChangeTarget) return
     const { project, targetStatus } = statusChangeTarget
     const opts: Parameters<typeof changeProjectStatus>[2] = {}
-    if (targetStatus === 'completed' && force) { opts.override = true; opts.reason = overrideReason }
     if (targetStatus === 'paused' && force) opts.force = true
     statusChangeMutation.mutate({ id: project.id, status: targetStatus, opts })
   }
@@ -341,7 +340,6 @@ export function ProjectsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      {/* Page header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
@@ -371,102 +369,25 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      {q.isError && (
-        <div className="alertV4 alertV4Error">Failed to load projects. Please refresh the page.</div>
-      )}
+      {q.isError && <div className="alertV4 alertV4Error">Failed to load projects. Please refresh the page.</div>}
 
-      {/* Project health charts */}
-      {!q.isLoading && projects.length > 0 && (() => {
-        const avgProgress = projects.length ? Math.round(projects.reduce((s, p) => s + Number(p.progress || 0), 0) / projects.length) : 0
-        const statusData = [
-          { name: 'Active', value: activeCount, fill: '#22c55e' },
-          { name: 'Paused', value: projects.filter(p => p.status === 'paused').length, fill: '#f59e0b' },
-          { name: 'Completed', value: completedCount, fill: '#8b5cf6' },
-        ].filter(d => d.value > 0)
-        const progressBars = projects.filter(p => Number(p.task_count || 0) > 0).slice(0, 6).map(p => ({
-          name: p.name.length > 14 ? p.name.slice(0,14)+'…' : p.name,
-          progress: Number(p.progress || 0),
-          tasks: Number(p.task_count || 0),
-          fill: p.color || '#e2ab41',
-        }))
-        const ProgressTip = ({ active, payload }: any) => {
-          if (!active || !payload?.length) return null
-          return (
-            <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
-              <div style={{ fontWeight: 900, color: 'var(--text)', marginBottom: 4 }}>{payload[0]?.payload?.name}</div>
-              <div style={{ color: '#e2ab41', fontWeight: 700 }}>Progress: <span style={{ color: '#fff' }}>{payload[0]?.value}%</span></div>
-              <div style={{ color: 'var(--muted)', fontWeight: 700 }}>Tasks: <span style={{ color: 'var(--text2)' }}>{payload[0]?.payload?.tasks}</span></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        {[
+          { label: 'Total Projects', value: String(projects.length), color: '#e2ab41', icon: <IconFolder size={18} /> },
+          { label: 'Active Projects', value: String(activeCount), color: '#22c55e', icon: '●' },
+          { label: 'Total Tasks', value: String(totalTasks), color: '#e2ab41', icon: '✓' },
+        ].map(kpi => (
+          <div key={kpi.label} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${kpi.color}18`, display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0, color: kpi.color }}>{kpi.icon}</div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{kpi.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{kpi.value}</div>
             </div>
-          )
-        }
-        const StatusTip = ({ active, payload }: any) => {
-          if (!active || !payload?.length) return null
-          return (
-            <div style={{ background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
-              <div style={{ color: payload[0]?.payload?.fill, fontWeight: 800 }}>{payload[0]?.payload?.name}: <span style={{ color: '#fff' }}>{payload[0]?.value}</span></div>
-            </div>
-          )
-        }
-        return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-            {/* KPI cards — compact professional style */}
-            {[
-              { label: 'Avg Completion', value: `${avgProgress}%`, color: avgProgress > 70 ? '#22c55e' : avgProgress > 40 ? '#f59e0b' : '#ef4444', icon: '📊' },
-              { label: 'Active Projects', value: String(activeCount), color: '#22c55e', icon: '🗂' },
-              { label: 'Total Tasks', value: String(totalTasks), color: '#e2ab41', icon: '✅' },
-            ].map(kpi => (
-              <div key={kpi.label} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${kpi.color}18`, display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0 }}>{kpi.icon}</div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{kpi.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{kpi.value}</div>
-                </div>
-              </div>
-            ))}
-            {/* Status donut */}
-            {statusData.length > 1 && (
-              <div className="card" style={{ padding: '14px 16px' }}>
-                <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Status Split</div>
-                <ResponsiveContainer width="100%" height={100}>
-                  <PieChart>
-                    <Pie data={statusData} cx="50%" cy="50%" outerRadius={40} innerRadius={22} dataKey="value">
-                      {statusData.map((e, i) => <Cell key={i} fill={e.fill} />)}
-                    </Pie>
-                    <Tooltip content={<StatusTip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  {statusData.map(d => <span key={d.name} style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 4, background: `${d.fill}18`, color: d.fill }}>{d.name} {d.value}</span>)}
-                </div>
-              </div>
-            )}
-            {/* Progress bar chart */}
-            {progressBars.length > 0 && (
-              <div className="card" style={{ gridColumn: statusData.length > 1 ? 'span 2' : 'span 1', padding: '14px 16px' }}>
-                <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Project Progress</div>
-                <ResponsiveContainer width="100%" height={progressBars.length * 32 + 8}>
-                  <BarChart data={progressBars} layout="vertical" margin={{ top: 0, right: 28, left: 0, bottom: 0 }}>
-                    <XAxis type="number" domain={[0,100]} tick={{ fill: 'var(--muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`}
-                      label={{ value: 'Completion %', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
-                    />
-                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={72}
-                      label={{ value: 'Project', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 9, fontWeight: 700 } }}
-                    />
-                    <Tooltip content={<ProgressTip />} />
-                    <Bar dataKey="progress" name="Progress" radius={[0,6,6,0]}>
-                      {progressBars.map((e, i) => <Cell key={i} fill={e.fill} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
           </div>
-        )
-      })()}
+        ))}
+      </div>
 
-      {/* Toolbar: search + status filter + view toggle */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Search */}
         <div style={{ flex: '1 1 200px', position: 'relative', minWidth: 140 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }}>
@@ -477,8 +398,6 @@ export function ProjectsPage() {
               borderRadius: 9, background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, outline: 'none',
               fontFamily: 'inherit', boxSizing: 'border-box' }} />
         </div>
-
-        {/* Status filter buttons */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}>
           {(['all', 'active', 'paused', 'completed'] as const).map(s => (
             <button key={s} type="button" onClick={() => setStatusFilter(s)}
@@ -490,11 +409,8 @@ export function ProjectsPage() {
             </button>
           ))}
         </div>
-
-        {/* View toggle — desktop only */}
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}
           className="projViewToggle">
-          {/* Grid */}
           <button type="button" onClick={() => { setViewMode('grid'); try { localStorage.setItem('tf_projects_view','grid') } catch {} }}
             title="Grid view"
             style={{ width: 32, height: 30, borderRadius: 7, border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -505,7 +421,6 @@ export function ProjectsPage() {
               <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
             </svg>
           </button>
-          {/* List */}
           <button type="button" onClick={() => { setViewMode('list'); try { localStorage.setItem('tf_projects_view','list') } catch {} }}
             title="List view"
             style={{ width: 32, height: 30, borderRadius: 7, border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -520,7 +435,6 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      {/* Project list */}
       {q.isLoading ? (
         <div style={{ display: 'grid', gap: 10 }}>
           {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12 }} />)}
@@ -556,14 +470,12 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {/* Result count */}
       {filtered.length > 0 && (search || statusFilter !== 'all') && (
         <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, textAlign: 'center' }}>
           Showing {filtered.length} of {projects.length} projects
         </div>
       )}
 
-      {/* Create modal */}
       <Modal title="New Project" subtitle="Organize related tasks under a project" open={createOpen}
         onClose={() => { setCreateOpen(false); setError(null) }}
         icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>}
@@ -598,7 +510,6 @@ export function ProjectsPage() {
       <ProjectDetailModal projectId={detailId} onClose={() => setDetailId(null)}
         onOpenTasks={() => { setDetailId(null); navigate('/app/tasks') }} />
 
-      {/* ── Status Change Popup ─────────────────────────────────────────────── */}
       {statusChangeTarget && (
         <div className="modalOverlayV2" onMouseDown={() => { if (!statusChangeMutation.isPending) { setStatusChangeTarget(null); setActiveTasks([]) } }}>
           <div className="modalCardV2" style={{ maxWidth: 500 }} onMouseDown={e => e.stopPropagation()}>
@@ -659,29 +570,18 @@ export function ProjectsPage() {
                     </p>
                   )}
                   {statusChangeTarget.targetStatus === 'completed' && (
-                    <>
-                      <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                        <strong>Recommended:</strong> Complete or cancel all tasks before marking the project as done.
-                        {isAdmin && ' As admin/director you may override with a reason.'}
-                      </p>
-                      {isAdmin && (
-                        <div style={{ marginBottom: 14 }}>
-                          <label style={{ fontSize: 11, fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
-                            Override Reason (required)
-                          </label>
-                          <textarea value={overrideReason} onChange={e => setOverrideReason(e.target.value)}
-                            placeholder="Explain why you're completing with active tasks…"
-                            style={{ width: '100%', height: 72, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
-                              background: 'var(--bg2)', color: 'var(--text)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
-                        </div>
-                      )}
-                    </>
+                    <div style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)' }}>
+                      <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 900, marginBottom: 4 }}>Action required</div>
+                      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
+                        Complete or cancel all tasks in this project first. After every task is completed or cancelled, you can mark the project as completed.
+                      </div>
+                    </div>
                   )}
                 </>
               ) : (
                 <p style={{ margin: 0, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
                   {statusChangeTarget.targetStatus === 'completed'
-                    ? 'All tasks are done. You can safely mark this project as completed.'
+                    ? 'All project tasks are completed or cancelled. You can mark this project as completed.'
                     : 'No active tasks found. You can safely pause this project.'}
                 </p>
               )}
@@ -690,7 +590,6 @@ export function ProjectsPage() {
               <button type="button" className="btn btnGhost" onClick={() => { setStatusChangeTarget(null); setActiveTasks([]) }}
                 disabled={statusChangeMutation.isPending}>Cancel</button>
 
-              {/* Can proceed directly — no active tasks */}
               {activeTasks.length === 0 && (
                 <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending}
                   onClick={() => confirmStatusChange(false)}>
@@ -698,20 +597,11 @@ export function ProjectsPage() {
                 </button>
               )}
 
-              {/* Paused with active tasks — force option */}
               {activeTasks.length > 0 && statusChangeTarget.targetStatus === 'paused' && (
                 <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending}
                   style={{ background: '#f59e0b', color: '#1a1d2e' }}
                   onClick={() => confirmStatusChange(true)}>
                   {statusChangeMutation.isPending ? 'Pausing…' : 'Pause Anyway'}
-                </button>
-              )}
-
-              {/* Completed with active tasks — override for admin/director only */}
-              {activeTasks.length > 0 && statusChangeTarget.targetStatus === 'completed' && isAdmin && (
-                <button type="button" className="btn btnPrimary" disabled={statusChangeMutation.isPending || overrideReason.trim().length < 8}
-                  onClick={() => confirmStatusChange(true)}>
-                  {statusChangeMutation.isPending ? 'Completing…' : 'Override & Complete'}
                 </button>
               )}
             </div>
