@@ -167,6 +167,47 @@ async function inferProjectSeedFromTasks(tx, orgId, ids, fallbackName) {
   return rows[0] || null;
 }
 
+async function inferProjectSeedFromBridge(tx, orgId, ids, fallbackName) {
+  const exact = normalizeIdentifiers(ids);
+  if (!exact.length) return null;
+  const ptCols = await getColumns('project_tasks');
+  if (!ptCols.has('project_id') || !ptCols.has('task_id')) return null;
+  const taskCols = await getColumns('tasks');
+  if (!taskCols.has('id')) return null;
+
+  const conditions = ['pt.project_id::text = ANY($2::text[])'];
+  if (ptCols.has('org_id')) conditions.push('pt.org_id = $1');
+  if (taskCols.has('org_id')) conditions.push('t.org_id = $1');
+  if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  const orderParts = ['COUNT(t.id) DESC'];
+  if (taskCols.has('updated_at')) orderParts.push('MAX(t.updated_at) DESC NULLS LAST');
+  if (taskCols.has('created_at')) orderParts.push('MAX(t.created_at) DESC NULLS LAST');
+  const orgSelect = taskCols.has('org_id') ? 't.org_id' : (ptCols.has('org_id') ? 'pt.org_id' : '$1::uuid');
+
+  try {
+    const { rows } = await tx.query(
+      `SELECT pt.project_id::text AS id,
+              ${orgSelect} AS org_id,
+              COALESCE(NULLIF($3::text, ''), NULLIF($4::text, ''), 'Recovered Project') AS name,
+              NULL::text AS description,
+              NOW() AS created_at,
+              'active'::text AS status,
+              pt.project_id::text AS legacy_relation_id
+         FROM project_tasks pt
+         JOIN tasks t ON t.id = pt.task_id
+        WHERE ${conditions.join(' AND ')}
+        GROUP BY pt.project_id, ${orgSelect}
+        ORDER BY ${orderParts.join(', ')}
+        LIMIT 1`,
+      [orgId, exact, fallbackName || '', exact[0] || '']
+    );
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01' || err.code === '42703') return null;
+    throw err;
+  }
+}
+
 async function ensureCanonicalProject(tx, orgId, seed, actorUserId) {
   if (!seed) return null;
   const existing = await findCanonicalProject(tx, orgId, [seed.id, seed.name]);
@@ -206,6 +247,11 @@ async function backfillTaskProjectIds(tx, orgId, canonicalId, ids) {
 
   const relationParts = ['project_id::text = ANY($2::text[])'];
   if (taskCols.has('category_id')) relationParts.push('category_id::text = ANY($2::text[])');
+  const ptCols = await getColumns('project_tasks');
+  if (ptCols.has('project_id') && ptCols.has('task_id')) {
+    const ptOrgGuard = ptCols.has('org_id') ? ' AND pt.org_id = $1' : '';
+    relationParts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = tasks.id AND pt.project_id::text = ANY($2::text[])${ptOrgGuard})`);
+  }
   const conditions = ['org_id = $1', `(${relationParts.join(' OR ')})`];
   if (taskCols.has('deleted_at')) conditions.push('deleted_at IS NULL');
 
@@ -275,12 +321,14 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       let resolvedFrom = 'projects';
       let seed = null;
       if (!project) {
-        seed = await findLegacyCategory(tx, orgId, identifiers) || await inferProjectSeedFromTasks(tx, orgId, identifiers, requestedProjectName);
+        seed = await findLegacyCategory(tx, orgId, identifiers)
+          || await inferProjectSeedFromTasks(tx, orgId, identifiers, requestedProjectName)
+          || await inferProjectSeedFromBridge(tx, orgId, identifiers, requestedProjectName);
         project = await ensureCanonicalProject(tx, orgId, seed, req.user.id);
-        resolvedFrom = seed ? 'legacy_or_task_relation_backfill' : 'unresolved';
+        resolvedFrom = seed ? 'legacy_task_or_bridge_relation_backfill' : 'unresolved';
       }
       if (!project) {
-        throw Object.assign(new Error('Project was not found in canonical projects, legacy categories, or task relations.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
+        throw Object.assign(new Error('Project was not found in canonical projects, legacy categories, task relations, or project_tasks bridge.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
       }
 
       const relationIdentifiers = normalizeIdentifiers([project.id, project.name, ...(identifiers || []), seed?.id, seed?.legacy_relation_id, seed?.name]);
