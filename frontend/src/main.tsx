@@ -9,6 +9,7 @@ import './app-patches.css' // all feature-specific patches (consolidated from 28
 import './overlay-upgrade-fixes.css' // final z-index, dropdown, and mobile notification fixes
 import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visualization
 import './theme-overhaul.css' // FINAL: brand colors, capsule buttons, typography, no oval cards
+import './grid-system.css' // Grid system: alignment, spacing, hierarchy, consistency
 import './dashboard-modern-chart-upgrade' // dashboard chart injector
 import './task-checkbox-event-guard'
 import './global-search-submit'

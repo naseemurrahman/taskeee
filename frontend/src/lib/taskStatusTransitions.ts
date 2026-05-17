@@ -11,6 +11,7 @@ export const PATCH_VALID_STATUSES = [
   'completed',
   'overdue',
   'cancelled',
+  'on_hold',
 ] as const
 
 /**
@@ -28,6 +29,7 @@ const EMPLOYEE: Record<string, string[]> = {
   completed: ['pending', 'in_progress'],
   manager_approved: ['completed'],
   manager_rejected: ['in_progress'],
+  on_hold: [],
   cancelled: ['pending'],
 }
 

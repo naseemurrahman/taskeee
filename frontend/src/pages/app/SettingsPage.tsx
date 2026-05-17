@@ -249,7 +249,7 @@ function ToggleSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) =>
   )
 }
 
-// GitHub-style theme selector with radio cards
+// GitHub-style theme selector - exact match to github.com/settings/appearance
 function AppearanceThemeSelector() {
   const [currentPref, setCurrentPref] = useState<'dark' | 'light' | 'auto'>(() => {
     const s = typeof window !== 'undefined' ? window.localStorage.getItem('tf_theme') : null
@@ -264,122 +264,230 @@ function AppearanceThemeSelector() {
     }
   }
 
-  const THEMES: Array<{ id: 'light' | 'dark' | 'auto'; label: string; desc: string }> = [
-    { id: 'light', label: 'Light', desc: 'Day theme with a light background' },
-    { id: 'dark', label: 'Dark', desc: 'Night theme with a dark background' },
-    { id: 'auto', label: 'Auto', desc: 'Sync with system theme' },
+  const dropdownOptions: Array<{ value: 'dark' | 'light' | 'auto'; label: string; desc: string }> = [
+    { value: 'auto', label: 'Sync with system', desc: 'TaskFlow Pro theme will match your system active settings' },
+    { value: 'light', label: 'Light', desc: 'Day theme with a light background' },
+    { value: 'dark', label: 'Dark', desc: 'Night theme with a dark background' },
   ]
 
+  const selectedOption = dropdownOptions.find(o => o.value === currentPref) || dropdownOptions[0]
+
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      {THEMES.map(theme => {
-        const isSelected = currentPref === theme.id
-        return (
-          <button
-            key={theme.id}
-            type="button"
-            onClick={() => handleThemeChange(theme.id)}
-            style={{
-              all: 'unset',
-              cursor: 'pointer',
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr auto',
-              alignItems: 'start',
-              gap: 14,
-              padding: 16,
-              border: isSelected ? '2px solid var(--primary)' : '2px solid var(--border)',
-              borderRadius: 12,
-              background: isSelected ? 'var(--brand-dim)' : 'var(--bg2)',
-              transition: 'all 0.15s',
-              boxSizing: 'border-box' as const,
-            }}
-            onMouseEnter={(e) => {
-              if (!isSelected) {
-                e.currentTarget.style.borderColor = 'var(--border-strong)'
-                e.currentTarget.style.background = 'var(--surface-up)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isSelected) {
-                e.currentTarget.style.borderColor = 'var(--border)'
-                e.currentTarget.style.background = 'var(--bg2)'
-              }
-            }}
-          >
-            {/* Radio indicator */}
-            <div
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: '50%',
-                border: isSelected ? '5px solid var(--primary)' : '2px solid var(--border)',
-                background: isSelected ? 'var(--primary)' : 'transparent',
-                transition: 'all 0.15s',
-                marginTop: 2,
-              }}
-            />
+    <div style={{ display: 'grid', gap: 20 }}>
+      {/* Theme mode dropdown */}
+      <div>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+          Theme mode
+        </label>
+        <select
+          value={currentPref}
+          onChange={(e) => handleThemeChange(e.target.value as 'dark' | 'light' | 'auto')}
+          style={{
+            width: '100%',
+            maxWidth: 320,
+            padding: '9px 32px 9px 12px',
+            borderRadius: 10,
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: 'pointer',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 12px center',
+            outline: 'none',
+            transition: 'border-color 0.15s',
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+          onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+          {dropdownOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, lineHeight: 1.5 }}>
+          {selectedOption.desc}
+        </div>
+      </div>
 
-            {/* Text content */}
-            <div style={{ display: 'grid', gap: 4, textAlign: 'left' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{theme.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 }}>{theme.desc}</div>
+      {/* Two large theme preview cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 16 }}>
+        {/* Light theme card */}
+        <ThemePreviewCard
+          id="light"
+          title="Light theme"
+          description={currentPref === 'auto' ? 'This theme will be active when your system is set to "light mode"' : 'This theme is active'}
+          isActive={currentPref === 'light' || (currentPref === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)}
+          onSelect={() => handleThemeChange('light')}
+          currentMode={currentPref}
+        />
+        
+        {/* Dark theme card */}
+        <ThemePreviewCard
+          id="dark"
+          title="Dark theme"
+          description={currentPref === 'auto' ? 'This theme will be active when your system is set to "dark mode"' : 'This theme is active'}
+          isActive={currentPref === 'dark' || (currentPref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)}
+          onSelect={() => handleThemeChange('dark')}
+          currentMode={currentPref}
+        />
+      </div>
+    </div>
+  )
+}
+
+// Individual theme preview card matching GitHub's design
+function ThemePreviewCard({ 
+  id, 
+  title, 
+  description, 
+  isActive, 
+  onSelect,
+  currentMode 
+}: { 
+  id: 'light' | 'dark'; 
+  title: string; 
+  description: string; 
+  isActive: boolean; 
+  onSelect: () => void;
+  currentMode: 'dark' | 'light' | 'auto';
+}) {
+  return (
+    <div
+      onClick={currentMode === 'auto' ? undefined : onSelect}
+      style={{
+        border: isActive ? '2px solid var(--primary)' : '2px solid var(--border)',
+        borderRadius: 12,
+        background: 'var(--surface)',
+        overflow: 'hidden',
+        cursor: currentMode === 'auto' ? 'default' : 'pointer',
+        transition: 'border-color 0.15s',
+        position: 'relative',
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive && currentMode !== 'auto') {
+          e.currentTarget.style.borderColor = 'var(--border-strong)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive && currentMode !== 'auto') {
+          e.currentTarget.style.borderColor = 'var(--border)'
+        }
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--divider)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          {id === 'light' ? (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 1.5a6.5 6.5 0 108.484 7.553A5.5 5.5 0 017.5 3 6.478 6.478 0 016 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{title}</span>
+        </div>
+        {isActive && (
+          <div style={{
+            fontSize: 11,
+            fontWeight: 700,
+            padding: '3px 10px',
+            borderRadius: 999,
+            background: 'var(--brand-dim)',
+            color: 'var(--primary)',
+            border: '1px solid var(--brand-border)',
+          }}>
+            Active
+          </div>
+        )}
+      </div>
+
+      {/* Description */}
+      <div style={{ padding: '12px 18px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+        {description}
+      </div>
+
+      {/* Visual preview */}
+      <div style={{ padding: '0 18px 18px' }}>
+        <div
+          style={{
+            background: id === 'light' ? '#f5f7fa' : '#0b0f17',
+            borderRadius: 10,
+            padding: 18,
+            border: `1px solid ${id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+            minHeight: 180,
+            display: 'grid',
+            gridTemplateRows: 'auto 1fr',
+            gap: 12,
+          }}
+        >
+          {/* Mock topbar */}
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            alignItems: 'center',
+          }}>
+            <div style={{ width: 32, height: 6, borderRadius: 3, background: id === 'light' ? '#cbd5e1' : '#374151' }} />
+            <div style={{ width: 24, height: 6, borderRadius: 3, background: id === 'light' ? '#cbd5e1' : '#374151' }} />
+            <div style={{ width: 28, height: 6, borderRadius: 3, background: id === 'light' ? '#cbd5e1' : '#374151' }} />
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#22c55e' }} />
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#ef4444' }} />
             </div>
+          </div>
 
-            {/* Preview card */}
-            <div
-              style={{
-                width: 80,
-                height: 48,
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: theme.id === 'auto' 
-                  ? `linear-gradient(to right, #0b0f17 50%, #f5f7fa 50%)`
-                  : theme.id === 'light' 
-                    ? '#f5f7fa' 
-                    : '#0b0f17',
-                position: 'relative' as const,
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              }}
-            >
-              {/* Preview content - mini cards inside */}
+          {/* Mock content area */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+            {/* Left panel - main content */}
+            <div style={{
+              background: id === 'light' ? '#ffffff' : '#131923',
+              borderRadius: 8,
+              border: `1px solid ${id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+              padding: 12,
+              display: 'grid',
+              gap: 8,
+            }}>
+              <div style={{ width: '60%', height: 5, borderRadius: 2, background: id === 'light' ? '#cbd5e1' : '#374151' }} />
               <div style={{
-                position: 'absolute' as const,
-                top: 6,
-                left: 6,
-                right: 6,
-                bottom: 6,
-                display: 'grid',
-                gridTemplateRows: 'auto 1fr',
-                gap: 3,
+                width: '100%',
+                height: 32,
+                borderRadius: 6,
+                background: id === 'light' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
               }}>
-                {/* Topbar simulation */}
-                <div style={{
-                  height: 6,
-                  borderRadius: 2,
-                  background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
-                  border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
-                }} />
-                {/* Content cards */}
-                <div style={{ display: 'flex', gap: 3 }}>
-                  <div style={{
-                    flex: 1,
-                    borderRadius: 2,
-                    background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
-                    border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
-                  }} />
-                  <div style={{
-                    flex: 1,
-                    borderRadius: 2,
-                    background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
-                    border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
-                  }} />
-                </div>
+                <div style={{ width: '70%', height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.8)' }} />
               </div>
             </div>
-          </button>
-        )
-      })}
+
+            {/* Right panel - sidebar */}
+            <div style={{
+              background: id === 'light' ? '#ffffff' : '#131923',
+              borderRadius: 8,
+              border: `1px solid ${id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+              padding: 10,
+              display: 'grid',
+              gap: 6,
+              alignContent: 'start',
+            }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: '100%', height: 4, borderRadius: 2, background: id === 'light' ? '#cbd5e1' : '#374151' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Theme variant circles (placeholder for future color schemes) */}
+      <div style={{ padding: '0 18px 18px', display: 'flex', gap: 8, alignItems: 'center', borderTop: '1px solid var(--divider)', paddingTop: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>{id === 'light' ? 'Light default' : 'Dark default'}</div>
+      </div>
     </div>
   )
 }

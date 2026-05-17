@@ -1,0 +1,524 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   GRID SYSTEM — alignment, spacing, hierarchy, consistency
+   
+   A modular grid ensures every visual snaps to common edges, maintains
+   even spacing, guides the user's eye, and creates a coherent system.
+   
+   Principles:
+   1. ALIGNMENT — snap to 8px baseline, common edges (no floating)
+   2. SPACING — even padding/margins using 8px scale (8, 16, 24, 32...)
+   3. HIERARCHY — top-left prime real estate, natural F-pattern flow
+   4. CONSISTENCY — matching widths, predictable rhythm
+   5. MODULAR — blocks/cards as part of larger system
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── 8px BASELINE GRID ─────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+/* All spacing uses 8px increments for visual rhythm */
+:root {
+  --space-xs: 4px;   /* exception for very tight gaps */
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Content padding — page wrapper uses these */
+  --app-content-pad: 24px;
+  --app-content-pad-mobile: 16px;
+
+  /* Card internal padding — all cards use these */
+  --card-pad: 20px;
+  --card-pad-sm: 14px;
+  --card-pad-lg: 28px;
+
+  /* Gap between cards — grid uses these */
+  --grid-gap: 16px;
+  --grid-gap-sm: 12px;
+  --grid-gap-lg: 24px;
+
+  /* Container max-width — prevents ultra-wide layouts on large screens */
+  --container-max: 1440px;
+  --container-narrow: 960px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 900px) {
+  :root {
+    --app-content-pad: 16px;
+    --card-pad: 16px;
+    --card-pad-sm: 12px;
+    --grid-gap: 12px;
+  }
+}
+
+/* ─── PAGE CONTAINER ────────────────────────────────────────────────── */
+/* Every app page should use .contentV4 (already in index.css) — enhance it */
+.contentV4 {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--app-content-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--grid-gap-lg);  /* vertical rhythm between sections */
+}
+
+/* Narrow content (for reading-focused pages like docs, forms) */
+.contentNarrow {
+  max-width: var(--container-narrow);
+}
+
+/* ─── GRID LAYOUTS ──────────────────────────────────────────────────── */
+
+/* 12-column responsive grid — foundation for all layouts */
+.grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Common column spans */
+.col-1  { grid-column: span 1; }
+.col-2  { grid-column: span 2; }
+.col-3  { grid-column: span 3; }
+.col-4  { grid-column: span 4; }
+.col-5  { grid-column: span 5; }
+.col-6  { grid-column: span 6; }
+.col-7  { grid-column: span 7; }
+.col-8  { grid-column: span 8; }
+.col-9  { grid-column: span 9; }
+.col-10 { grid-column: span 10; }
+.col-11 { grid-column: span 11; }
+.col-12 { grid-column: span 12; }
+
+/* Auto-fit grid — common for card grids, automatically fills space */
+.gridAuto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Auto-fill variant — creates empty columns if space allows */
+.gridAutoFill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Small cards (KPI tiles, stats) — 4-across on desktop */
+.gridSmall {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--grid-gap-sm);
+  width: 100%;
+}
+
+/* Medium cards (most common) — 3-across on desktop */
+.gridMedium {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Large cards (detailed views) — 2-across on desktop */
+.gridLarge {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: var(--grid-gap-lg);
+  width: 100%;
+}
+
+/* Sidebar + content layout (70/30 split common in analytics) */
+.gridSidebarContent {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--grid-gap-lg);
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .gridSidebarContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── DASHBOARD / ANALYTICS COMMON LAYOUTS ─────────────────────────── */
+
+/* Hero KPI strip — full-width stat tiles at top */
+.dashKpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: var(--grid-gap-sm);
+  width: 100%;
+}
+
+/* Chart row — 2 charts side by side, or 1 chart + 1 stat panel */
+.chartRow2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Chart row — 3 charts side by side */
+.chartRow3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+/* Common dashboard pattern: wide chart left, narrow donut/list right */
+.dashWideNarrow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--grid-gap);
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .dashWideNarrow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── FLEX UTILITIES (for content within cards) ────────────────────── */
+
+/* Horizontal flex with gap */
+.flexRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.flexRowSm { gap: var(--space-sm); }
+.flexRowLg { gap: var(--space-lg); }
+
+/* Vertical flex with gap */
+.flexCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.flexColSm { gap: var(--space-sm); }
+.flexColLg { gap: var(--space-lg); }
+
+/* Justify/align helpers */
+.flexBetween { justify-content: space-between; }
+.flexCenter { justify-content: center; align-items: center; }
+.flexEnd { justify-content: flex-end; }
+.flexWrap { flex-wrap: wrap; }
+
+/* ─── SPACING UTILITIES ─────────────────────────────────────────────── */
+
+/* Margin utilities (use sparingly, prefer grid gap) */
+.mt-xs { margin-top: var(--space-xs) !important; }
+.mt-sm { margin-top: var(--space-sm) !important; }
+.mt-md { margin-top: var(--space-md) !important; }
+.mt-lg { margin-top: var(--space-lg) !important; }
+.mt-xl { margin-top: var(--space-xl) !important; }
+
+.mb-xs { margin-bottom: var(--space-xs) !important; }
+.mb-sm { margin-bottom: var(--space-sm) !important; }
+.mb-md { margin-bottom: var(--space-md) !important; }
+.mb-lg { margin-bottom: var(--space-lg) !important; }
+.mb-xl { margin-bottom: var(--space-xl) !important; }
+
+.ml-auto { margin-left: auto !important; }
+.mr-auto { margin-right: auto !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* Padding utilities */
+.p-0  { padding: 0 !important; }
+.p-sm { padding: var(--card-pad-sm) !important; }
+.p-md { padding: var(--card-pad) !important; }
+.p-lg { padding: var(--card-pad-lg) !important; }
+
+.px-sm { padding-left: var(--card-pad-sm) !important; padding-right: var(--card-pad-sm) !important; }
+.px-md { padding-left: var(--card-pad) !important; padding-right: var(--card-pad) !important; }
+.py-sm { padding-top: var(--card-pad-sm) !important; padding-bottom: var(--card-pad-sm) !important; }
+.py-md { padding-top: var(--card-pad) !important; padding-bottom: var(--card-pad) !important; }
+
+/* ─── CARD INTERNAL STRUCTURE ──────────────────────────────────────── */
+
+/* Every card should have consistent internal padding */
+.card,
+.formCardV3,
+.chartCardV2,
+.pageHeaderCard,
+.kpiCard,
+.statCard {
+  padding: var(--card-pad) !important;
+}
+
+/* Card header — title + actions row */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--divider);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.cardSub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+/* Card body — main content area */
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Card footer — actions or meta at bottom */
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--divider);
+}
+
+/* ─── ALIGNMENT HELPERS ─────────────────────────────────────────────── */
+
+/* Snap to 8px baseline — use on containers with varying content */
+.baselineSnap {
+  line-height: 1.5;  /* ensures text sits on 8px multiples */
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Text alignment */
+.textLeft   { text-align: left !important; }
+.textCenter { text-align: center !important; }
+.textRight  { text-align: right !important; }
+
+/* Vertical alignment in flex */
+.alignStart   { align-items: flex-start !important; }
+.alignCenter  { align-items: center !important; }
+.alignEnd     { align-items: flex-end !important; }
+.alignStretch { align-items: stretch !important; }
+
+/* ─── MODULAR CARD SIZES ────────────────────────────────────────────── */
+
+/* Standardized card min-heights for visual rhythm */
+.cardCompact { min-height: 120px; }  /* KPI tiles, quick stats */
+.cardMedium  { min-height: 240px; }  /* Charts, lists */
+.cardTall    { min-height: 360px; }  /* Detailed charts, tables */
+
+/* Don't force height on cards with dynamic content */
+.cardAuto { min-height: auto !important; }
+
+/* ─── RESPONSIVE BREAKPOINTS ────────────────────────────────────────── */
+
+/* Tablet and below — simplify multi-column grids */
+@media (max-width: 900px) {
+  .grid12 {
+    grid-template-columns: repeat(6, 1fr);  /* 12 → 6 columns */
+  }
+
+  .col-4, .col-5, .col-6, .col-7, .col-8, .col-9, .col-10, .col-11, .col-12 {
+    grid-column: span 6;  /* wide columns go full-width */
+  }
+
+  .gridSidebarContent,
+  .dashWideNarrow,
+  .chartRow2,
+  .chartRow3 {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Mobile — single column everything */
+@media (max-width: 560px) {
+  .grid12,
+  .gridAuto,
+  .gridAutoFill,
+  .gridSmall,
+  .gridMedium,
+  .gridLarge,
+  .dashKpiStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .flexRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cardHeader {
+    gap: var(--space-sm);
+  }
+
+  .cardActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .cardActions > * {
+    flex: 1;
+  }
+}
+
+/* ─── VISUAL HIERARCHY HELPERS ──────────────────────────────────────── */
+
+/* Emphasize important cards — subtle lift + border */
+.cardPrimary {
+  border-color: var(--primary-glow) !important;
+  box-shadow: 0 2px 8px var(--primary-glow), 0 1px 2px rgba(0,0,0,0.08) !important;
+}
+
+/* De-emphasize less important cards */
+.cardMuted {
+  background: var(--bg1) !important;
+  border-color: var(--divider) !important;
+}
+
+/* Full-bleed card (no padding, used when card contains its own layout) */
+.cardFullBleed {
+  padding: 0 !important;
+}
+
+/* ─── OVERFLOW HANDLING ─────────────────────────────────────────────── */
+
+/* Cards with scrollable content */
+.cardScrollY {
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+.cardScrollX {
+  overflow-x: auto;
+}
+
+/* Prevent layout shift from scrollbars appearing */
+.cardScrollY,
+.cardScrollX {
+  scrollbar-gutter: stable;
+}
+
+/* ─── CONSISTENCY ENFORCEMENT ───────────────────────────────────────── */
+
+/* All interactive elements minimum touch target 40×40px (already in buttons) */
+a, button, [role="button"], label[for] {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+/* Icons inside buttons/links center properly */
+a > svg, button > svg, [role="button"] > svg {
+  flex-shrink: 0;
+}
+
+/* Prevent runaway text */
+p, span, div {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* ─── PRINT STYLES ──────────────────────────────────────────────────── */
+@media print {
+  .contentV4 {
+    padding: 0;
+  }
+
+  .card,
+  .formCardV3 {
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+
+  .cardHeader {
+    border-bottom-color: #ddd;
+  }
+
+  .btn, button, .cardActions {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPLEMENTATION NOTES
+   
+   Use these patterns in your pages:
+   
+   1. PAGE WRAPPER
+      <div className="contentV4">
+        <div className="pageHeaderCard">...</div>
+        <div className="dashKpiStrip">...</div>
+        <div className="chartRow2">...</div>
+      </div>
+   
+   2. CARD STRUCTURE
+      <div className="card">
+        <div className="cardHeader">
+          <div>
+            <h3 className="cardTitle">Title</h3>
+            <p className="cardSub">Subtitle</p>
+          </div>
+          <div className="cardActions">
+            <button className="btn btnGhost btnSm">Action</button>
+          </div>
+        </div>
+        <div className="cardBody">
+          ...content...
+        </div>
+      </div>
+   
+   3. RESPONSIVE GRID
+      <div className="gridMedium">
+        <div className="card">Card 1</div>
+        <div className="card">Card 2</div>
+        <div className="card">Card 3</div>
+      </div>
+      
+   4. CUSTOM GRID
+      <div className="grid12">
+        <div className="col-8">Main content</div>
+        <div className="col-4">Sidebar</div>
+      </div>
+   
+   Remember:
+   - Use gap instead of margin between grid items
+   - Use padding inside cards, not margin
+   - Snap all spacing to 8px baseline (use --space-* vars)
+   - Let grid handle alignment, don't float or position:absolute
+   ═══════════════════════════════════════════════════════════════════════ */
