@@ -205,9 +205,32 @@ textarea:focus-visible,
   justify-content: center !important;
 }
 
-/* Collapse button — in collapsed mode center it */
+/* Collapse button — in collapsed mode, overlay on logo and show on hover */
 .sidebarCollapsed .sidebarCollapseBtn {
-  margin: 0 auto !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  margin: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.sidebarCollapsed .sidebarV4Logo {
+  position: relative !important;
+}
+
+/* Show toggle button on hover over logo area when collapsed */
+.sidebarCollapsed .sidebarV4Logo:hover .sidebarCollapseBtn {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Dim logo on hover to make button more visible */
+.sidebarCollapsed .sidebarV4Logo:hover .sidebarV4LogoLink {
+  opacity: 0.3 !important;
 }
 
 /* Collapsed: tight centered icon layout */

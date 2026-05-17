@@ -291,7 +291,15 @@ export function AppLayout() {
             </div>
             {!collapsed && <div><span className="sidebarV4BrandName">TASKEE</span><span className="sidebarV4BrandSub">AI Task Intelligence</span></div>}
           </NavLink>
-          <button type="button" onClick={toggleSidebar} className="sidebarCollapseBtn" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>{collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}</button>
+          {/* Toggle button - shows on hover over logo when collapsed */}
+          <button 
+            type="button" 
+            onClick={toggleSidebar} 
+            className={`sidebarCollapseBtn ${collapsed ? 'sidebarCollapseBtnOverlay' : ''}`}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+          </button>
         </div>
         <nav className="sidebarV4Nav">
           {!collapsed && <div className="sidebarV4SectionLabel">{t('nav.general')}</div>}
