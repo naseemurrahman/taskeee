@@ -32,6 +32,12 @@ type ActiveTask = {
 }
 
 type StatusChangeTarget = { project: Project; targetStatus: 'active' | 'paused' | 'completed' }
+type ProjectStatusChangeResponse = {
+  project?: Project
+  canonicalProjectId?: string
+  requestedProjectId?: string
+  requestedProjectName?: string
+}
 
 async function fetchProjects() {
   const d = await apiFetch<{ projects: Project[] }>('/api/v1/projects')
@@ -51,10 +57,11 @@ async function renameProject(id: string, name: string) {
   return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: { name } })
 }
 
-async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed', opts?: { force?: boolean }) {
+async function changeProjectStatus(id: string, status: 'active' | 'paused' | 'completed', projectName?: string, opts?: { force?: boolean }) {
   const body: Record<string, unknown> = { status }
+  if (projectName) body.project_name = projectName
   if (opts?.force) body.force_pause = true
-  return apiFetch(`/api/v1/projects/${id}`, { method: 'PATCH', json: body })
+  return apiFetch<ProjectStatusChangeResponse>(`/api/v1/projects/${id}`, { method: 'PATCH', json: body })
 }
 
 const PROJECT_PALETTE = [
@@ -269,11 +276,34 @@ export function ProjectsPage() {
   const [loadingActiveTasks, setLoadingActiveTasks] = useState(false)
 
   const statusChangeMutation = useMutation({
-    mutationFn: ({ id, status, opts }: { id: string; status: 'active'|'paused'|'completed'; opts?: Parameters<typeof changeProjectStatus>[2] }) =>
-      changeProjectStatus(id, status, opts),
-    onSuccess: () => {
+    mutationFn: ({ id, name, status, opts }: { id: string; name?: string; status: 'active'|'paused'|'completed'; opts?: Parameters<typeof changeProjectStatus>[3] }) =>
+      changeProjectStatus(id, status, name, opts),
+    onSuccess: (data, variables) => {
+      const updated = data?.project
+      const canonicalId = data?.canonicalProjectId || updated?.id
+      const requestedId = data?.requestedProjectId || variables.id
+      const responseName = data?.requestedProjectName || updated?.name || variables.name
+      const responseNameLower = responseName?.trim().toLowerCase()
+
+      qc.setQueryData<Project[]>(['projects'], (old) => {
+        if (!old?.length) return old
+        return old.map((project) => {
+          const matches =
+            project.id === variables.id ||
+            project.id === requestedId ||
+            (canonicalId ? project.id === canonicalId : false) ||
+            (responseNameLower ? project.name.trim().toLowerCase() === responseNameLower : false)
+          if (!matches) return project
+          return {
+            ...project,
+            ...(updated || {}),
+            id: project.id,
+            status: updated?.status || variables.status,
+          }
+        })
+      })
       qc.invalidateQueries({ queryKey: ['projects'] })
-      toastSuccess('Status updated', `Project is now ${statusChangeTarget?.targetStatus}`)
+      toastSuccess('Status updated', `Project is now ${variables.status}`)
       setStatusChangeTarget(null); setActiveTasks([])
     },
     onError: (err) => toastError('Update failed', err instanceof ApiError ? err.message : 'Could not update status'),
@@ -281,7 +311,7 @@ export function ProjectsPage() {
 
   const handleStatusChangeRequest = useCallback(async (project: Project, targetStatus: 'active'|'paused'|'completed') => {
     if (targetStatus === 'active') {
-      statusChangeMutation.mutate({ id: project.id, status: 'active' })
+      statusChangeMutation.mutate({ id: project.id, name: project.name, status: 'active' })
       return
     }
     setStatusChangeTarget({ project, targetStatus })
@@ -299,9 +329,9 @@ export function ProjectsPage() {
   function confirmStatusChange(force = false) {
     if (!statusChangeTarget) return
     const { project, targetStatus } = statusChangeTarget
-    const opts: Parameters<typeof changeProjectStatus>[2] = {}
+    const opts: Parameters<typeof changeProjectStatus>[3] = {}
     if (targetStatus === 'paused' && force) opts.force = true
-    statusChangeMutation.mutate({ id: project.id, status: targetStatus, opts })
+    statusChangeMutation.mutate({ id: project.id, name: project.name, status: targetStatus, opts })
   }
 
   const projects = useMemo(() => q.data || [], [q.data])
