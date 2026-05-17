@@ -249,6 +249,141 @@ function ToggleSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) =>
   )
 }
 
+// GitHub-style theme selector with radio cards
+function AppearanceThemeSelector() {
+  const [currentPref, setCurrentPref] = useState<'dark' | 'light' | 'auto'>(() => {
+    const s = typeof window !== 'undefined' ? window.localStorage.getItem('tf_theme') : null
+    return (s === 'light' || s === 'dark' || s === 'auto') ? s : 'dark'
+  })
+
+  const handleThemeChange = (newTheme: 'dark' | 'light' | 'auto') => {
+    setCurrentPref(newTheme)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('tf_theme', newTheme)
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: newTheme }))
+    }
+  }
+
+  const THEMES: Array<{ id: 'light' | 'dark' | 'auto'; label: string; desc: string }> = [
+    { id: 'light', label: 'Light', desc: 'Day theme with a light background' },
+    { id: 'dark', label: 'Dark', desc: 'Night theme with a dark background' },
+    { id: 'auto', label: 'Auto', desc: 'Sync with system theme' },
+  ]
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {THEMES.map(theme => {
+        const isSelected = currentPref === theme.id
+        return (
+          <button
+            key={theme.id}
+            type="button"
+            onClick={() => handleThemeChange(theme.id)}
+            style={{
+              all: 'unset',
+              cursor: 'pointer',
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr auto',
+              alignItems: 'start',
+              gap: 14,
+              padding: 16,
+              border: isSelected ? '2px solid var(--primary)' : '2px solid var(--border)',
+              borderRadius: 12,
+              background: isSelected ? 'var(--brand-dim)' : 'var(--bg2)',
+              transition: 'all 0.15s',
+              boxSizing: 'border-box' as const,
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.background = 'var(--surface-up)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.background = 'var(--bg2)'
+              }
+            }}
+          >
+            {/* Radio indicator */}
+            <div
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                border: isSelected ? '5px solid var(--primary)' : '2px solid var(--border)',
+                background: isSelected ? 'var(--primary)' : 'transparent',
+                transition: 'all 0.15s',
+                marginTop: 2,
+              }}
+            />
+
+            {/* Text content */}
+            <div style={{ display: 'grid', gap: 4, textAlign: 'left' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{theme.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 }}>{theme.desc}</div>
+            </div>
+
+            {/* Preview card */}
+            <div
+              style={{
+                width: 80,
+                height: 48,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: theme.id === 'auto' 
+                  ? `linear-gradient(to right, #0b0f17 50%, #f5f7fa 50%)`
+                  : theme.id === 'light' 
+                    ? '#f5f7fa' 
+                    : '#0b0f17',
+                position: 'relative' as const,
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              }}
+            >
+              {/* Preview content - mini cards inside */}
+              <div style={{
+                position: 'absolute' as const,
+                top: 6,
+                left: 6,
+                right: 6,
+                bottom: 6,
+                display: 'grid',
+                gridTemplateRows: 'auto 1fr',
+                gap: 3,
+              }}>
+                {/* Topbar simulation */}
+                <div style={{
+                  height: 6,
+                  borderRadius: 2,
+                  background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
+                  border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+                }} />
+                {/* Content cards */}
+                <div style={{ display: 'flex', gap: 3 }}>
+                  <div style={{
+                    flex: 1,
+                    borderRadius: 2,
+                    background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
+                    border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+                  }} />
+                  <div style={{
+                    flex: 1,
+                    borderRadius: 2,
+                    background: theme.id === 'light' ? '#ffffff' : theme.id === 'dark' ? '#131923' : 'transparent',
+                    border: theme.id === 'auto' ? 'none' : `0.5px solid ${theme.id === 'light' ? '#e2e8f0' : '#1a2231'}`,
+                  }} />
+                </div>
+              </div>
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function NotificationsTab({ me }: { me: ReturnType<typeof getUser> }) {
   const { success: toastSuccess, error: toastError } = useToast()
   const userId = me?.id || ''
@@ -430,6 +565,7 @@ export function SettingsPage() {
 
   const TABS = [
     { key: 'org', label: '🏢 Organization' },
+    { key: 'appearance', label: '🎨 Appearance' },
     { key: 'notifications', label: '🔔 Notifications' },
     { key: 'security', label: '🔐 Security' },
     { key: 'plan', label: '💳 Plan & Billing' },
@@ -530,6 +666,15 @@ export function SettingsPage() {
             </>
           )}
         </form>
+      )}
+
+      {/* ── Appearance tab ── */}
+      {tab === 'appearance' && (
+        <div style={{ display: 'grid', gap: 16 }}>
+          <Section title="Theme preference" sub="Choose how TaskFlow Pro looks to you. Select a single theme, or sync with your system and automatically switch between day and night themes.">
+            <AppearanceThemeSelector />
+          </Section>
+        </div>
       )}
 
       {/* ── Notifications tab ── */}

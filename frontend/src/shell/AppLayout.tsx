@@ -94,15 +94,44 @@ export function AppLayout() {
   const role = me?.role || 'employee'
   const navigate = useNavigate()
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+  const [themePreference, setThemePreference] = useState<'dark' | 'light' | 'auto'>(() => {
     const s = typeof window !== 'undefined' ? window.localStorage.getItem('tf_theme') : null
-    return s === 'light' ? 'light' : 'dark'
+    return (s === 'light' || s === 'dark' || s === 'auto') ? s : 'dark'
   })
+
+  // Compute actual theme based on preference + system
+  const [actualTheme, setActualTheme] = useState<'dark' | 'light'>('dark')
+
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem('tf_theme', theme)
-    document.documentElement.dataset.theme = theme
-  }, [theme])
+    // Save preference
+    window.localStorage.setItem('tf_theme', themePreference)
+
+    // Compute actual theme
+    if (themePreference === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const updateTheme = () => setActualTheme(mediaQuery.matches ? 'dark' : 'light')
+      updateTheme()
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    } else {
+      setActualTheme(themePreference)
+    }
+  }, [themePreference])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    document.documentElement.dataset.theme = actualTheme
+  }, [actualTheme])
+
+  // Listen for theme changes from settings page
+  useEffect(() => {
+    const handler = (e: CustomEvent<'dark' | 'light' | 'auto'>) => {
+      setThemePreference(e.detail)
+    }
+    window.addEventListener('theme-change' as any, handler)
+    return () => window.removeEventListener('theme-change' as any, handler)
+  }, [])
 
   useEffect(() => {
     const dir = lang === 'ar' ? 'rtl' : 'ltr'
@@ -243,7 +272,7 @@ export function AppLayout() {
   const activeLang: Lang = (lang || 'en') as Lang
 
   return (
-    <div className={`appShellV4 ${theme === 'light' ? 'appShellV4Light' : 'appShellV4Dark'} ${collapsed ? 'sidebarCollapsed' : ''} ${mobileOpen ? 'sidebarMobileOpen' : ''}`}>
+    <div className={`appShellV4 ${actualTheme === 'light' ? 'appShellV4Light' : 'appShellV4Dark'} ${collapsed ? 'sidebarCollapsed' : ''} ${mobileOpen ? 'sidebarMobileOpen' : ''}`}>
       <div className="sidebarScrim" onClick={() => setMobileOpen(false)} />
       <aside className="sidebarV4" ref={sidebarRef}>
         <div className="sidebarV4Logo">
@@ -344,7 +373,7 @@ export function AppLayout() {
             )}
           </div>
           <div className="topbarV4Meta" aria-label="workspace quick metrics"><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks')}><span className="topbarMetricDot" />Due today <strong>{dueToday}</strong></button><button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks?status=overdue')}><span className="topbarMetricDot topbarMetricDotWarn" />Overdue <strong>{overdueCount}</strong></button>{canManageReassignment && <button type="button" className="topbarMetricChip" onClick={() => navigate('/app/tasks/reassignment')}><span className="topbarMetricDot topbarMetricDotWarn" />Reassign <strong>{reassignmentCount}</strong></button>}<button type="button" className="topbarMetricChip" onClick={() => navigate('/app/analytics')}><span className="topbarMetricDot topbarMetricDotSuccess" />Completion <strong>{completionRate}%</strong></button></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}><NotificationCenter /><button type="button" className="topbarThemeBtn" onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>{theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}</button><button type="button" className="topbarLangBtn" onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')} title={`${t('nav.language')}: ${activeLang.toUpperCase()}`} aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}><Globe size={13} /><span>{activeLang.toUpperCase()}</span></button><div className="topbarProfileWrap" ref={profileRef}><button type="button" className="topbarV4ProfileBtn" onClick={() => setProfileOpen(v => !v)} title={displayName}>{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} className="topbarV4AvatarImg" /> : <UserRound size={15} />}</button>{profileOpen && <div className="profileDropdown"><div className="profileDropdownHead"><div className="profileDropdownAvatar">{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} /> : (displayName.charAt(0) || '?').toUpperCase()}</div><div style={{ minWidth: 0 }}><div className="profileDropdownName">{displayName || 'My Account'}</div><div className="profileDropdownEmail">{me?.email || ''}</div><div className="profileDropdownRole">{me?.role || 'user'}</div></div></div><div className="profileDropdownList"><button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/profile') }}><UserRound size={14} />My Profile</button><div className="profileDropdownDivider" /><button className="profileDropdownItem profileDropdownItemDanger" onClick={() => { setProfileOpen(false); localStorage.clear(); window.location.href = '/signin' }}>Sign Out</button></div></div>}</div></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 0 }}><NotificationCenter /><button type="button" className="topbarThemeBtn" onClick={() => setThemePreference(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'auto' : 'dark')} title={themePreference === 'auto' ? 'Auto (system)' : actualTheme === 'light' ? 'Light mode' : 'Dark mode'} aria-label={`Theme: ${themePreference}`}>{actualTheme === 'light' ? <Moon size={14} /> : <Sun size={14} />}</button><button type="button" className="topbarLangBtn" onClick={() => setLang(activeLang === 'en' ? 'ar' : 'en')} title={`${t('nav.language')}: ${activeLang.toUpperCase()}`} aria-label={`Language toggle. Current language ${activeLang.toUpperCase()}`}><Globe size={13} /><span>{activeLang.toUpperCase()}</span></button><div className="topbarProfileWrap" ref={profileRef}><button type="button" className="topbarV4ProfileBtn" onClick={() => setProfileOpen(v => !v)} title={displayName}>{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} className="topbarV4AvatarImg" /> : <UserRound size={15} />}</button>{profileOpen && <div className="profileDropdown"><div className="profileDropdownHead"><div className="profileDropdownAvatar">{avatarSrc && !avatarBroken ? <img src={avatarSrc} alt="" onError={() => setFailedAvatarSrc(avatarSrc)} /> : (displayName.charAt(0) || '?').toUpperCase()}</div><div style={{ minWidth: 0 }}><div className="profileDropdownName">{displayName || 'My Account'}</div><div className="profileDropdownEmail">{me?.email || ''}</div><div className="profileDropdownRole">{me?.role || 'user'}</div></div></div><div className="profileDropdownList"><button className="profileDropdownItem" onClick={() => { setProfileOpen(false); navigate('/app/profile') }}><UserRound size={14} />My Profile</button><div className="profileDropdownDivider" /><button className="profileDropdownItem profileDropdownItemDanger" onClick={() => { setProfileOpen(false); localStorage.clear(); window.location.href = '/signin' }}>Sign Out</button></div></div>}</div></div>
         </div>
         <div className="contentV4"><Outlet /></div>
       </main>
