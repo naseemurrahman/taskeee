@@ -3,6 +3,7 @@ import { IconSpark } from '../../components/ui/AppIcons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import { ChartCard } from '../../components/charts/ChartCard'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 
@@ -218,12 +219,10 @@ export function AnalyticsPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       {/* Header */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">Analytics Intelligence</div>
-            <div className="pageHeaderCardSub">Live charts · AI-powered risk analysis · Real-time recommendations</div>
-          </div>
+      <PageHeaderCard
+        title="Analytics Intelligence"
+        subtitle="Live charts · AI-powered risk analysis · Real-time recommendations"
+        actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, border: '1px solid var(--border)' }}>
               {[7, 30, 90].map(d => (
@@ -239,8 +238,8 @@ export function AnalyticsPage() {
                 : <>⟳ Refresh AI</>}
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI strip */}
       <div className="analyticsSignalStrip">

@@ -3,6 +3,7 @@ import { IconTrendUp, IconUsers } from '../../components/ui/AppIcons'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Select } from '../../components/ui/Select'
 import { apiFetch, ApiError } from '../../lib/api'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 
 type BillingSummary = {
   subscription: null | {
@@ -89,25 +90,21 @@ export function BillingPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       {/* Page header card */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              Billing
-            </div>
-            <div className="pageHeaderCardSub">Manage your subscription plan, view seat usage, update payment details, and track billing history.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}>💳</span> Subscription plan</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconUsers size={14} /></span> Seat usage</span>
-              <span className="pageHeaderCardTag"><span style={{ fontSize: 10 }}><IconTrendUp size={14} /></span> Billing history</span>
-            </div>
-          </div>
+      <PageHeaderCard
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}
+        title="Billing"
+        subtitle="Manage your subscription plan, view seat usage, update payment details, and track billing history."
+        badges={[
+          { label: 'Subscription plan', icon: '💳' },
+          { label: 'Seat usage', icon: <IconUsers size={14} /> },
+          { label: 'Billing history', icon: <IconTrendUp size={14} /> },
+        ]}
+        actions={
           <button className="btn btnGhost" style={{ height: 40, padding: '0 12px' }} onClick={() => portalM.mutate()} disabled={portalM.isPending}>
             {portalM.isPending ? 'Opening…' : 'Manage billing'}
           </button>
-        </div>
-      </div>
+        }
+      />
       {error ? <div className="alertV4 alertV4Error">{error}</div> : null}
       {summaryQ.isError ? <div className="alertV4 alertV4Error">Failed to load billing summary.</div> : null}
 
