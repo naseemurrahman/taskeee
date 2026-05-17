@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api'
 import { getUser } from '../../state/auth'
 import { Modal } from '../../components/Modal'
 import { Select } from '../../components/ui/Select'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 
 type ActivityLog = {
   id: string
@@ -133,20 +134,16 @@ export function LogsPage() {
     <div style={{ display: 'grid', gap: 16 }}>
 
       {/* Header */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Activity Logs
-            </div>
-            <div className="pageHeaderCardSub">Real-time record of all user actions — logins, tasks, projects, and security events across your organization.</div>
-            <div className="pageHeaderCardMeta">
-              <span className="pageHeaderCardTag">👁️ User activity</span>
-              <span className="pageHeaderCardTag">🔐 Security events</span>
-              <span className="pageHeaderCardTag">⚡ Real-time</span>
-            </div>
-          </div>
+      <PageHeaderCard
+        icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
+        title="Activity Logs"
+        subtitle="Real-time record of all user actions — logins, tasks, projects, and security events across your organization."
+        badges={[
+          { label: 'User activity', icon: '👁️' },
+          { label: 'Security events', icon: '🔐' },
+          { label: 'Real-time', icon: '⚡' },
+        ]}
+        actions={
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ width: 160 }}>
               <Select
@@ -198,8 +195,8 @@ export function LogsPage() {
               Export CSV
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats row */}
       <div className="grid4">
