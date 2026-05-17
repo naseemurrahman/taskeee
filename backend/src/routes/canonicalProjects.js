@@ -73,6 +73,40 @@ function projectSelectSql({ personalOnly = false, userParam = null, idFilter = f
   `;
 }
 
+function legacyProjectSelectSql({ categoryCols, taskCols, personalOnly = false, userParam = null }) {
+  const deletedGuard = taskCols.has('deleted_at') ? 'AND t.deleted_at IS NULL' : '';
+  const scopedTaskJoin = personalOnly && userParam ? `AND t.assigned_to = $${userParam}` : '';
+  const descriptionSelect = categoryCols.has('description') ? 'tc.description' : 'NULL::text AS description';
+  const iconSelect = categoryCols.has('icon') ? 'tc.icon' : 'NULL::text AS icon';
+  const colorSelect = categoryCols.has('color') ? 'tc.color' : 'NULL::text AS color';
+  const statusSelect = categoryCols.has('status')
+    ? "COALESCE(tc.status, 'active') AS status"
+    : (categoryCols.has('is_active') ? "CASE WHEN tc.is_active THEN 'active' ELSE 'completed' END AS status" : "'active' AS status");
+  const activeSelect = categoryCols.has('is_active') ? 'tc.is_active' : "(COALESCE(tc.status, 'active') = 'active') AS is_active";
+  const createdAtSelect = categoryCols.has('created_at') ? 'tc.created_at' : 'NOW() AS created_at';
+
+  return `
+    SELECT tc.id,
+           tc.name,
+           ${descriptionSelect},
+           ${iconSelect},
+           ${colorSelect},
+           ${statusSelect},
+           ${activeSelect},
+           ${createdAtSelect},
+           COUNT(t.id)::int AS task_count,
+           'task_categories'::text AS source_store
+      FROM task_categories tc
+      LEFT JOIN tasks t ON t.category_id = tc.id ${deletedGuard} ${scopedTaskJoin}
+     WHERE tc.org_id = $1
+       AND NOT EXISTS (
+         SELECT 1 FROM projects p
+          WHERE p.org_id = tc.org_id
+            AND (p.id::text = tc.id::text OR LOWER(p.name) = LOWER(tc.name))
+       )
+  `;
+}
+
 async function canonicalProjectCount(orgId) {
   const { rows } = await query(`SELECT COUNT(*)::int AS cnt FROM projects WHERE org_id = $1`, [orgId]);
   return Number(rows[0]?.cnt || 0);
@@ -103,11 +137,38 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
     }
 
-    const { rows } = await query(
+    const { rows: canonicalRows } = await query(
       `${projectSelectSql({ personalOnly, userParam })}${personalFilter} GROUP BY p.id ORDER BY p.created_at DESC`,
       params
     );
-    return res.json({ projects: rows, meta: { scope: personalOnly ? 'assigned_projects_only' : 'organization_projects', role, store: 'projects', canonical: true, personalOnly } });
+
+    let legacyRows = [];
+    if (await tableExists('task_categories')) {
+      const categoryCols = await getColumns('task_categories');
+      const taskCols = await getColumns('tasks');
+      const legacyParams = [orgId];
+      let legacyUserParam = null;
+      let legacyPersonalFilter = '';
+      if (personalOnly) {
+        legacyParams.push(req.user.id);
+        legacyUserParam = legacyParams.length;
+        legacyPersonalFilter = ` AND EXISTS (
+          SELECT 1 FROM tasks myt
+           WHERE myt.category_id = tc.id
+             AND myt.org_id = tc.org_id
+             AND myt.assigned_to = $${legacyUserParam}
+             ${taskCols.has('deleted_at') ? 'AND myt.deleted_at IS NULL' : ''}
+        )`;
+      }
+      const { rows } = await query(
+        `${legacyProjectSelectSql({ categoryCols, taskCols, personalOnly, userParam: legacyUserParam })}${legacyPersonalFilter} GROUP BY tc.id ORDER BY ${categoryCols.has('created_at') ? 'tc.created_at' : 'tc.id'} DESC`,
+        legacyParams
+      );
+      legacyRows = rows;
+    }
+
+    const projects = [...canonicalRows, ...legacyRows];
+    return res.json({ projects, meta: { scope: personalOnly ? 'assigned_projects_only' : 'organization_projects', role, store: 'merged_projects', canonical: true, includesLegacy: legacyRows.length > 0, personalOnly } });
   } catch (err) { next(err); }
 });
 
