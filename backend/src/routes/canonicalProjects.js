@@ -51,6 +51,10 @@ function isPersonalRole(role) {
   return ['employee', 'technician'].includes(String(role || '').toLowerCase());
 }
 
+function deletedTaskGuard(alias, taskCols) {
+  return taskCols.has('deleted_at') ? `AND ${alias}.deleted_at IS NULL` : '';
+}
+
 function projectSelectSql({ personalOnly = false, userParam = null, idFilter = false }) {
   const scopedTaskJoin = personalOnly && userParam ? `AND t.assigned_to = $${userParam}` : '';
   const idWhere = idFilter ? 'AND p.id = $2' : '';
@@ -71,6 +75,30 @@ function projectSelectSql({ personalOnly = false, userParam = null, idFilter = f
        ${idWhere}
        AND COALESCE(p.status, 'active') <> 'archived'
   `;
+}
+
+function legacyCanonicalExclusionSql(taskCols) {
+  const taskRelationExclusion = taskCols.has('category_id') && taskCols.has('project_id')
+    ? `OR EXISTS (
+         SELECT 1 FROM tasks mt
+          WHERE mt.org_id = tc.org_id
+            AND mt.category_id = tc.id
+            AND mt.project_id = p.id
+            ${deletedTaskGuard('mt', taskCols)}
+       )`
+    : '';
+
+  return `
+       AND NOT EXISTS (
+         SELECT 1 FROM projects p
+          WHERE p.org_id = tc.org_id
+            AND COALESCE(p.status, 'active') <> 'archived'
+            AND (
+              p.id::text = tc.id::text
+              OR LOWER(TRIM(p.name)) = LOWER(TRIM(tc.name))
+              ${taskRelationExclusion}
+            )
+       )`;
 }
 
 function legacyProjectSelectSql({ categoryCols, taskCols, personalOnly = false, userParam = null }) {
@@ -99,11 +127,7 @@ function legacyProjectSelectSql({ categoryCols, taskCols, personalOnly = false, 
       FROM task_categories tc
       LEFT JOIN tasks t ON t.category_id = tc.id ${deletedGuard} ${scopedTaskJoin}
      WHERE tc.org_id = $1
-       AND NOT EXISTS (
-         SELECT 1 FROM projects p
-          WHERE p.org_id = tc.org_id
-            AND (p.id::text = tc.id::text OR LOWER(p.name) = LOWER(tc.name))
-       )
+       ${legacyCanonicalExclusionSql(taskCols)}
   `;
 }
 
