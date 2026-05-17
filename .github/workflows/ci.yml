@@ -35,7 +35,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend smoke and validation
+    name: Backend test, smoke, and validation
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,6 +60,8 @@ jobs:
         run: npm ci
       - name: Build check
         run: npm run build
+      - name: Regression tests
+        run: npm test -- --runInBand
       - name: Import smoke test
         run: npm run smoke
       - name: Validation smoke test
