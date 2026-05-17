@@ -218,6 +218,30 @@ async function backfillTaskProjectIds(tx, orgId, canonicalId, identifiers) {
   );
 }
 
+async function mirrorLegacyProjectStatus(tx, orgId, identifiers, status) {
+  const exact = normalizeIdentifiers(identifiers);
+  if (!exact.length || !(await tableExists('task_categories'))) return 0;
+
+  await tx.query(`ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'active'`);
+  columnsCache.delete('task_categories');
+  const cols = await getColumns('task_categories');
+  if (!cols.has('status')) return 0;
+
+  const lower = exact.map((value) => value.toLowerCase());
+  const setParts = ['status = $3'];
+  const params = [orgId, exact, status];
+  if (cols.has('updated_at')) setParts.push('updated_at = NOW()');
+
+  const { rowCount } = await tx.query(
+    `UPDATE task_categories
+        SET ${setParts.join(', ')}
+      WHERE org_id = $1
+        AND (id::text = ANY($2::text[]) OR LOWER(name) = ANY($4::text[]))`,
+    [...params, lower]
+  );
+  return rowCount || 0;
+}
+
 async function resolveOrRepairProject(tx, { orgId, identifiers, projectName, actorUserId }) {
   await ensureLifecycleSchema(tx);
   let project = await findCanonicalProject(tx, orgId, identifiers);
@@ -336,14 +360,15 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
          RETURNING id, name, description, NULL::text AS icon, NULL::text AS color, COALESCE(status, 'active') AS status, (COALESCE(status, 'active') = 'active') AS is_active, created_at, 'projects'::text AS source_store`,
         params
       );
+      const mirroredLegacyRows = await mirrorLegacyProjectStatus(tx, orgId, resolved.relationIdentifiers, status);
       await mutateTasksForStatus(tx, orgId, resolved.project.id, status, req.user.id);
-      return { project: rows[0] || resolved.project, activeTaskCount, resolvedFrom: resolved.resolvedFrom };
+      return { project: rows[0] || resolved.project, activeTaskCount, resolvedFrom: resolved.resolvedFrom, mirroredLegacyRows };
     });
     try {
-      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: result.project.id, projectName: result.project.name, newStatus: status, activeTaskCount: result.activeTaskCount, resolvedFrom: result.resolvedFrom } });
-      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: result.project.id, metadata: { projectName: result.project.name, newStatus: status, activeTaskCount: result.activeTaskCount, resolvedFrom: result.resolvedFrom, requestedProjectId: projectId, requestedProjectName: projectName }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
+      await logUserActivity({ orgId, userId: req.user.id, activityType: 'project_status_changed', metadata: { projectId: result.project.id, projectName: result.project.name, newStatus: status, activeTaskCount: result.activeTaskCount, resolvedFrom: result.resolvedFrom, mirroredLegacyRows: result.mirroredLegacyRows } });
+      await logAudit({ orgId, actorUserId: req.user.id, action: 'project.status.changed', entityType: 'project', entityId: result.project.id, metadata: { projectName: result.project.name, newStatus: status, activeTaskCount: result.activeTaskCount, resolvedFrom: result.resolvedFrom, mirroredLegacyRows: result.mirroredLegacyRows, requestedProjectId: projectId, requestedProjectName: projectName }, ip: req.ip, userAgent: req.headers['user-agent'] || null });
     } catch { /* non-critical */ }
-    return res.json({ project: result.project, affectedActiveTasks: result.activeTaskCount, canonicalProjectId: result.project.id, requestedProjectId: projectId, requestedProjectName: projectName, resolvedFrom: result.resolvedFrom });
+    return res.json({ project: result.project, affectedActiveTasks: result.activeTaskCount, canonicalProjectId: result.project.id, requestedProjectId: projectId, requestedProjectName: projectName, resolvedFrom: result.resolvedFrom, mirroredLegacyRows: result.mirroredLegacyRows });
   } catch (err) {
     if (err.statusCode) {
       const body = { error: err.message };
