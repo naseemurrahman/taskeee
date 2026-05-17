@@ -520,7 +520,7 @@ export function SettingsPage() {
   const canView = canViewAnalytics(me?.role)
   const { success: toastSuccess, error: toastError } = useToast()
 
-  const [tab, setTab] = useState<'org' | 'notifications' | 'security' | 'plan'>('org')
+  const [tab, setTab] = useState<'org' | 'appearance' | 'notifications' | 'security' | 'plan'>('org')
   const [saved, setSaved] = useState(false)
 
   const { data: org, isLoading } = useQuery({ queryKey: ['org', 'me'], queryFn: fetchOrg })
