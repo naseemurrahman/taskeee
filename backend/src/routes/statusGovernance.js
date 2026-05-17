@@ -401,26 +401,7 @@ tasks.get('/assignable-users', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-tasks.get('/reassignment-needed', authenticate, requireAnyRole('supervisor', 'manager', 'hr', 'director', 'admin'), async (req, res, next) => {
-  try {
-    const orgId = await resolveOrgId(req);
-    if (!orgId) return res.status(401).json({ error: 'Session expired — please sign in again.' });
-    const { rows } = await query(
-      `SELECT t.*, u.full_name AS assigned_to_name, u.email AS assigned_to_email, cat.name AS category_name, cat.color AS category_color
-         FROM tasks t
-         LEFT JOIN users u ON u.id = t.assigned_to
-         LEFT JOIN task_categories cat ON cat.id = t.category_id
-        WHERE t.org_id = $1
-          AND t.deleted_at IS NULL
-          AND ${nonTerminalTaskCondition('t')}
-          AND (COALESCE(t.status, 'pending') = 'on_hold' OR COALESCE(u.is_active, FALSE) = FALSE OR EXISTS (SELECT 1 FROM employees e WHERE e.user_id = t.assigned_to AND e.org_id = $1 AND COALESCE(e.status, 'active') <> 'active'))
-        ORDER BY t.updated_at DESC NULLS LAST, t.created_at DESC
-        LIMIT 200`,
-      [orgId]
-    );
-    return res.json({ tasks: rows });
-  } catch (err) { next(err); }
-});
+/* GET /reassignment-needed — handled by reassignmentGovernance.js (canonical) */
 
 async function preflightTaskCreate(req, res, next) {
   try {

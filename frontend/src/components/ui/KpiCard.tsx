@@ -97,15 +97,17 @@ export function KpiStrip({
   loading,
   skeletonCount = 4,
   className = '',
+  style,
 }: {
   items: KpiStripItem[]
   loading?: boolean
   skeletonCount?: number
   className?: string
+  style?: CSSProperties
 }) {
   if (loading) {
     return (
-      <div className={`kpiStripStandard dashKpiStrip ${className}`.trim()}>
+      <div className={`kpiStripStandard dashKpiStrip ${className}`.trim()} style={style}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <div key={i} className="kpiCard skeleton" style={{ minHeight: 96 }} />
         ))}
@@ -114,7 +116,7 @@ export function KpiStrip({
   }
 
   return (
-    <div className={`kpiStripStandard dashKpiStrip ${className}`.trim()}>
+    <div className={`kpiStripStandard dashKpiStrip ${className}`.trim()} style={style}>
       {items.map((item) => (
         <KpiCard key={item.label} {...item} />
       ))}

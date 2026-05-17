@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { StatusBarChart } from '../charts/PerformanceCharts'
+import { KpiStrip as UnifiedKpiStrip } from '../ui/KpiCard'
 import type { TaskLite } from './types'
 
 export type KpiNumbers = {
@@ -11,26 +12,14 @@ export type KpiNumbers = {
 
 export function KpiStrip(props: KpiNumbers) {
   return (
-    <div className="grid4">
-      <div className="miniCard">
-        <div className="miniLabel">Total</div>
-        <div className="miniValue">{props.total}</div>
-      </div>
-      <div className="miniCard">
-        <div className="miniLabel">In progress</div>
-        <div className="miniValue">{props.inProgress}</div>
-      </div>
-      <div className="miniCard">
-        <div className="miniLabel">Completed</div>
-        <div className="miniValue">{props.completed}</div>
-      </div>
-      <div className="miniCard">
-        <div className="miniLabel">Overdue</div>
-        <div className="miniValue" style={{ color: 'rgba(239, 68, 68, 0.92)' }}>
-          {props.overdue}
-        </div>
-      </div>
-    </div>
+    <UnifiedKpiStrip
+      items={[
+        { label: 'Total', value: props.total, color: '#6366f1' },
+        { label: 'In progress', value: props.inProgress, color: '#a855f7' },
+        { label: 'Completed', value: props.completed, color: '#22c55e' },
+        { label: 'Overdue', value: props.overdue, color: '#ef4444' },
+      ]}
+    />
   )
 }
 

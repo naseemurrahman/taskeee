@@ -2,13 +2,6 @@ import type { ReactNode } from 'react'
 
 /**
  * PageHeaderCard - Standardized header card matching dashboard design
- * 
- * Consistent design across all pages:
- * - Dark background with subtle border
- * - Icon + title + subtitle layout
- * - Optional badges and action buttons
- * - 12px border radius
- * - 20px padding
  */
 
 export interface PageHeaderCardProps {
@@ -43,7 +36,6 @@ export function PageHeaderCard({
         ...style,
       }}
     >
-      {/* Header row: Icon + Title + Actions */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
           {icon && (
@@ -81,7 +73,6 @@ export function PageHeaderCard({
         )}
       </div>
 
-      {/* Badges row */}
       {badges && badges.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {badges.map((badge, i) => (
@@ -112,9 +103,6 @@ export function PageHeaderCard({
   )
 }
 
-/**
- * StatsCardGrid - Grid of stat cards matching dashboard design
- */
 export interface StatCard {
   icon?: ReactNode
   label: string
@@ -144,48 +132,25 @@ export function StatsCardGrid({ stats, columns = 4 }: { stats: StatCard[]; colum
             className="kpiCardAccent"
             style={{ background: `linear-gradient(90deg, ${stat.color || 'var(--primary)'}, ${stat.color || 'var(--primary)'}88)` }}
           />
-          {/* Label row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {stat.icon && (
-              <div style={{ color: stat.color || 'var(--muted)', flexShrink: 0 }}>
-                {stat.icon}
-              </div>
-            )}
-            <div style={{
-              fontSize: 10.5,
-              fontWeight: 700,
-              color: 'var(--muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-            }}>
-              {stat.label}
+          {stat.icon && (
+            <div className="kpiCardWatermark" style={{ color: stat.color || 'var(--muted)' }}>
+              {stat.icon}
             </div>
-          </div>
-
-          {/* Value row */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <div style={{
-              fontSize: 26,
-              fontWeight: 700,
-              color: stat.color || 'var(--text)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {stat.value}
-            </div>
+          )}
+          <div className="kpiCardLabel">{stat.label}</div>
+          <div className="kpiCardValue" style={stat.color ? { color: stat.color } : undefined}>
+            {stat.value}
             {stat.trend && (
-              <div style={{
+              <span style={{
                 fontSize: 11,
                 fontWeight: 600,
+                marginLeft: 8,
                 color: stat.trend.direction === 'up' ? '#22c55e' : stat.trend.direction === 'down' ? '#ef4444' : 'var(--muted)',
               }}>
                 {stat.trend.direction === 'up' ? '↑' : stat.trend.direction === 'down' ? '↓' : '→'} {stat.trend.value}
-              </div>
+              </span>
             )}
           </div>
-
           {stat.subtitle && <div className="kpiCardSub">{stat.subtitle}</div>}
         </div>
       ))}

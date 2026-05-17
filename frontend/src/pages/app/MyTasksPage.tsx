@@ -20,6 +20,7 @@ import { manualStatusOptionsForRole } from '../../lib/taskStatusTransitions'
 import { Select } from '../../components/ui/Select'
 import { useToast } from '../../components/ui/ToastSystem'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { KpiCard } from '../../components/ui/KpiCard'
 import '../../my-tasks-pro.css'
 
 type TaskRow = {
@@ -368,7 +369,7 @@ export function MyTasksPage() {
         </div>
       </div>
 
-      <section className="myTasksCommandCenter">
+      <section className="myTasksCommandCenter kpiStripStandard">
         <div className="myTasksProgressCard" style={{ '--kpi-color': '#6366f1' } as any}>
           <div>
             <div className="miniLabel">Personal Progress</div>
@@ -377,10 +378,10 @@ export function MyTasksPage() {
           </div>
           <div className="myTasksProgressRing" style={{ ['--pct' as any]: `${completionRate}%` }}><span>{completionRate}%</span></div>
         </div>
-        <div className="myTasksStatCard" style={{ '--kpi-color': '#06b6d4' } as any}><Clock3 size={17} /><div><span>To do</span><strong>{taskStats.pending}</strong></div></div>
-        <div className="myTasksStatCard" style={{ '--kpi-color': '#a855f7' } as any}><Activity size={17} /><div><span>In progress</span><strong>{taskStats.in_progress}</strong></div></div>
-        <div className="myTasksStatCard" style={{ '--kpi-color': '#06b6d4' } as any}><Sparkles size={17} /><div><span>Review</span><strong>{taskStats.submitted}</strong></div></div>
-        <div className="myTasksStatCard" style={{ '--kpi-color': '#22c55e' } as any}><CheckCircle2 size={17} /><div><span>Done</span><strong>{taskStats.done}</strong></div></div>
+        <KpiCard label="To do" value={taskStats.pending} color="#06b6d4" icon={<Clock3 size={28} />} className="myTasksStatCard" />
+        <KpiCard label="In progress" value={taskStats.in_progress} color="#a855f7" icon={<Activity size={28} />} className="myTasksStatCard" />
+        <KpiCard label="Review" value={taskStats.submitted} color="#06b6d4" icon={<Sparkles size={28} />} className="myTasksStatCard" />
+        <KpiCard label="Done" value={taskStats.done} color="#22c55e" icon={<CheckCircle2 size={28} />} className="myTasksStatCard" />
       </section>
 
       <section className="myTasksToolbar card">

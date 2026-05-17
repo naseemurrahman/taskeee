@@ -45,7 +45,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 
 function labelKey(label: string): string {
   const map: Record<string, string> = {
-    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'Needs Reassignment': 'Needs Reassignment', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
+    Dashboard: 'nav.dashboard', Tasks: 'nav.tasks', 'Needs Reassignment': 'nav.reassignment', 'My tasks': 'nav.myTasks', 'Recurring tasks': 'Recurring tasks',
     Analytics: 'nav.analytics', Billing: 'nav.billing', Contractors: 'nav.contractors',
     Jeczone: 'nav.jeczone', Profile: 'nav.profile', Directory: 'nav.directory',
     Reports: 'nav.reports', Audit: 'nav.audit', Employees: 'nav.employees',

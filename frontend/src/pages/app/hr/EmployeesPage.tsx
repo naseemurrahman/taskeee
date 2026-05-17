@@ -9,6 +9,8 @@ import { Select } from '../../../components/ui/Select'
 import { Input } from '../../../components/ui/Input'
 import { Modal } from '../../../components/Modal'
 import { useToast } from '../../../components/ui/ToastSystem'
+import { KpiStrip } from '../../../components/ui/KpiCard'
+import { Users, UserCheck, Palmtree, Building2 } from 'lucide-react'
 import { useRealtimeInvalidation } from '../../../lib/socket'
 
 type Employee = {
@@ -222,25 +224,14 @@ export function EmployeesPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
 
-      {/* KPI Cards */}
-      <div className="grid4 kpiStripStandard">
-        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
-          <div className="miniLabel">Total Employees</div>
-          <div className="miniValue">{q.data?.total || employees.length}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
-          <div className="miniLabel">Active</div>
-          <div className="miniValue">{employees.filter(e => e.status === 'active').length}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#eab308' } as any}>
-          <div className="miniLabel">On Leave</div>
-          <div className="miniValue">{employees.filter(e => e.status === 'on_leave').length}</div>
-        </div>
-        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
-          <div className="miniLabel">Departments</div>
-          <div className="miniValue">{new Set(employees.map(e => e.department).filter(Boolean)).size}</div>
-        </div>
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Total Employees', value: q.data?.total || employees.length, color: '#6366f1', icon: <Users size={36} /> },
+          { label: 'Active', value: employees.filter(e => e.status === 'active').length, color: '#22c55e', icon: <UserCheck size={36} /> },
+          { label: 'On Leave', value: employees.filter(e => e.status === 'on_leave').length, color: '#eab308', icon: <Palmtree size={36} /> },
+          { label: 'Departments', value: new Set(employees.map(e => e.department).filter(Boolean)).size, color: '#a855f7', icon: <Building2 size={36} /> },
+        ]}
+      />
 
       {/* Credentials panel shown after creating */}
       {createdData && (

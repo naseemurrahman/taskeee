@@ -14,6 +14,7 @@ import './design-system-dynamic.css' // DYNAMIC: All CSS variables, responsive, 
 import './ui-kpi-unified.css' // Unified KPI cards matching dashboard standard
 import './ui-control-heights.css' // Topbar, search, and button height consistency
 import './ui-charts-standard.css' // Chart card heights and typography (dashboard-aligned)
+import './ui-responsive-shell.css' // Fluid grids and mobile KPI scroll
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'
