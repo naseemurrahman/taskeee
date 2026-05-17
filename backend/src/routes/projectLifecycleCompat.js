@@ -77,6 +77,10 @@ function activeTaskCondition(alias = 't') {
   return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled','on_hold')`;
 }
 
+function preflightActiveTaskCondition(alias = 't') {
+  return `COALESCE(${alias}.status, 'pending') NOT IN ('completed','manager_approved','cancelled')`;
+}
+
 function quotedIdExpr(taskCols) {
   const parts = [];
   if (taskCols.has('category_id')) parts.push('t.category_id::text');
@@ -208,6 +212,50 @@ async function inferProjectSeedFromBridge(tx, orgId, ids, fallbackName) {
   }
 }
 
+async function inferProjectSeedFromActiveTaskLookup(tx, orgId, ids, fallbackName) {
+  const exact = normalizeIdentifiers(ids);
+  const requestedId = exact[0];
+  if (!requestedId) return null;
+  const taskCols = await getColumns('tasks');
+  const relationParts = [];
+  if (taskCols.has('category_id')) relationParts.push('t.category_id = $2');
+  if (taskCols.has('project_id')) relationParts.push('t.project_id = $2');
+  const ptCols = await getColumns('project_tasks');
+  if (ptCols.has('project_id') && ptCols.has('task_id')) {
+    const ptOrgGuard = ptCols.has('org_id') ? ' AND pt.org_id = $1' : '';
+    relationParts.push(`EXISTS (SELECT 1 FROM project_tasks pt WHERE pt.task_id = t.id AND pt.project_id = $2${ptOrgGuard})`);
+  }
+  if (!relationParts.length) return null;
+  const conditions = ['t.org_id = $1', `(${relationParts.join(' OR ')})`];
+  if (taskCols.has('deleted_at')) conditions.push('t.deleted_at IS NULL');
+  if (taskCols.has('status')) conditions.push(preflightActiveTaskCondition('t'));
+
+  try {
+    const { rows } = await tx.query(
+      `SELECT COUNT(DISTINCT t.id)::int AS cnt
+         FROM tasks t
+        WHERE ${conditions.join(' AND ')}`,
+      [orgId, requestedId]
+    );
+    if (Number(rows[0]?.cnt || 0) <= 0) return null;
+    return {
+      id: requestedId,
+      org_id: orgId,
+      name: fallbackName || requestedId,
+      description: null,
+      created_at: new Date(),
+      status: 'active',
+      legacy_relation_id: requestedId,
+    };
+  } catch (err) {
+    // This fallback deliberately mirrors the legacy active-tasks route. If a
+    // specific database casts the incoming id differently, ignore the failed
+    // probe and let the normal controlled 404 path respond.
+    if (['22P02', '42883', '42P01', '42703'].includes(err.code)) return null;
+    throw err;
+  }
+}
+
 async function ensureCanonicalProject(tx, orgId, seed, actorUserId) {
   if (!seed) return null;
   const existing = await findCanonicalProject(tx, orgId, [seed.id, seed.name]);
@@ -323,12 +371,13 @@ router.patch('/:projectId', authenticate, requireAnyRole('admin', 'director', 'h
       if (!project) {
         seed = await findLegacyCategory(tx, orgId, identifiers)
           || await inferProjectSeedFromTasks(tx, orgId, identifiers, requestedProjectName)
-          || await inferProjectSeedFromBridge(tx, orgId, identifiers, requestedProjectName);
+          || await inferProjectSeedFromBridge(tx, orgId, identifiers, requestedProjectName)
+          || await inferProjectSeedFromActiveTaskLookup(tx, orgId, identifiers, requestedProjectName);
         project = await ensureCanonicalProject(tx, orgId, seed, req.user.id);
-        resolvedFrom = seed ? 'legacy_task_or_bridge_relation_backfill' : 'unresolved';
+        resolvedFrom = seed ? 'legacy_task_bridge_or_active_lookup_backfill' : 'unresolved';
       }
       if (!project) {
-        throw Object.assign(new Error('Project was not found in canonical projects, legacy categories, task relations, or project_tasks bridge.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
+        throw Object.assign(new Error('Project was not found by the same resolver used for active-task preflight.'), { statusCode: 404, code: 'PROJECT_NOT_MIGRATED', identifiers });
       }
 
       const relationIdentifiers = normalizeIdentifiers([project.id, project.name, ...(identifiers || []), seed?.id, seed?.legacy_relation_id, seed?.name]);
