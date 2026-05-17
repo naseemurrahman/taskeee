@@ -9,6 +9,7 @@ import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -283,17 +284,15 @@ export function InsightsPage() {
     <div className="insightsPage" ref={pageRef}>
 
       {/* ── Header ── */}
-      <div className="pageHeaderCard">
-        <div className="insightsHeader">
-          <div>
-            <div className="pageHeaderCardTitle">Insights</div>
-            <div className="pageHeaderCardSub">Real-time performance analysis from your live task data</div>
-          </div>
+      <PageHeaderCard
+        title="Insights"
+        subtitle="Real-time performance analysis from your live task data"
+        actions={
           <div className="insightsRangeSelect">
             <Select value={days} onChange={setDays} options={RANGE_OPTS} />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Loading skeletons ── */}
       {loading && (
