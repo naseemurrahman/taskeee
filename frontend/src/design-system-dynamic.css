@@ -151,10 +151,16 @@ input[type="datetime-local"],
   box-sizing: border-box !important;
 }
 
+input:hover:not(:disabled):not(:focus),
+.input:hover:not(:disabled):not(:focus) {
+  border-color: var(--border-strong) !important;
+}
+
 /* Buttons */
 .btn,
 button.btn,
-a.btn {
+a.btn,
+button[type="button"]:not(.inlineEditBtn):not(.taskCheckbox):not([role="tab"]):not([role="menuitem"]) {
   height: var(--button-height) !important;
   min-height: var(--button-height) !important;
   padding: 0 var(--space-5) !important;
@@ -162,17 +168,34 @@ a.btn {
   font-size: 13.5px !important;
   font-weight: 600 !important;
   transition: all var(--transition-fast) !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
 }
 
-/* Dropdowns */
+/* Dropdowns and Selects */
 .selectTrigger,
 .dropdownTrigger,
 select,
-.select {
+.select,
+select:not([multiple]) {
   height: var(--dropdown-height) !important;
   min-height: var(--dropdown-height) !important;
   padding: 0 var(--space-3) !important;
   border-radius: var(--radius-input) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+.selectTrigger:hover:not(:disabled),
+.dropdownTrigger:hover:not(:disabled),
+select:hover:not(:disabled) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface-up) !important;
 }
 
 /* Filters */
@@ -209,7 +232,7 @@ button[role="tab"] {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   IMPROVED BUTTON CONTRAST (BOTH THEMES)
+   IMPROVED BUTTON CONTRAST AND HOVER (BOTH THEMES)
    ═══════════════════════════════════════════════════════════════════════ */
 
 .btnPrimary,
@@ -235,7 +258,7 @@ button.btnPrimary {
   transform: translateY(0) !important;
 }
 
-/* Ghost/Secondary Buttons */
+/* Ghost/Secondary Buttons with PRIMARY hover */
 .btnGhost,
 .btnSecondary {
   background: transparent !important;
@@ -245,9 +268,16 @@ button.btnPrimary {
 
 .btnGhost:hover:not(:disabled),
 .btnSecondary:hover:not(:disabled) {
-  background: var(--surface-up) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text) !important;
+  background: var(--primary-glow) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.btnGhost:active:not(:disabled),
+.btnSecondary:active:not(:disabled) {
+  background: var(--primary-glow) !important;
+  border-color: var(--primary) !important;
+  transform: scale(0.98) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -325,8 +355,9 @@ button[role="tab"][aria-selected="true"],
 .dropdownItem:hover,
 [role="option"]:hover,
 [role="menuitem"]:hover {
-  background: var(--dropdown-item-hover) !important;
-  color: var(--text) !important;
+  background: var(--primary-glow) !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
 }
 
 .selectItem[data-selected="true"],
@@ -334,9 +365,11 @@ button[role="tab"][aria-selected="true"],
 .selectItem.active,
 .dropdownItem.active,
 [role="option"][aria-selected="true"] {
-  background: var(--dropdown-item-active) !important;
-  color: var(--dropdown-item-active-text) !important;
-  font-weight: 600 !important;
+  background: var(--primary-glow) !important;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  border-left: 2px solid var(--primary) !important;
+  padding-left: calc(var(--space-3) - 2px) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

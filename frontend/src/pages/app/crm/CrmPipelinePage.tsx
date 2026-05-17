@@ -127,6 +127,26 @@ export function CrmPipelinePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
+      {/* KPI Cards */}
+      <div className="grid4">
+        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
+          <div className="miniLabel">Total Deals</div>
+          <div className="miniValue">{deals.length}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
+          <div className="miniLabel">Pipeline Value</div>
+          <div className="miniValue" style={{ fontSize: 24 }}>{fmt(totalValue, 'USD')}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
+          <div className="miniLabel">Stages</div>
+          <div className="miniValue">{stages.length}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#eab308' } as any}>
+          <div className="miniLabel">Avg Deal Size</div>
+          <div className="miniValue" style={{ fontSize: 24 }}>{deals.length > 0 ? fmt(totalValue / deals.length, 'USD') : '$0'}</div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="pageHeaderCard">
         <div className="pageHeaderCardInner">

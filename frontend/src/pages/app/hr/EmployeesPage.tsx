@@ -222,6 +222,26 @@ export function EmployeesPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
 
+      {/* KPI Cards */}
+      <div className="grid4">
+        <div className="miniCard" style={{ '--kpi-color': '#6366f1' } as any}>
+          <div className="miniLabel">Total Employees</div>
+          <div className="miniValue">{pagination?.total || employees.length}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#22c55e' } as any}>
+          <div className="miniLabel">Active</div>
+          <div className="miniValue">{employees.filter(e => e.status === 'active').length}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#eab308' } as any}>
+          <div className="miniLabel">On Leave</div>
+          <div className="miniValue">{employees.filter(e => e.status === 'on_leave').length}</div>
+        </div>
+        <div className="miniCard" style={{ '--kpi-color': '#a855f7' } as any}>
+          <div className="miniLabel">Departments</div>
+          <div className="miniValue">{new Set(employees.map(e => e.department).filter(Boolean)).size}</div>
+        </div>
+      </div>
+
       {/* Credentials panel shown after creating */}
       {createdData && (
         <div className="credBox">
