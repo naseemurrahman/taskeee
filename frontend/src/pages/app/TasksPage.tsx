@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { buildTaskSignal, signalBadgeClass } from '../../utils/taskSignals'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import { SkeletonRows, ErrorRetry, EmptyState } from '../../components/ui/PageStates'
 
 type Task = {

@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
+import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
@@ -166,16 +167,25 @@ export function BoardPage() {
 
   return (
     <div className="boardPageRoot" style={{display:'flex',flexDirection:'column',gap:18}}>
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle" style={{display:'flex',alignItems:'center',gap:10}}>Intelligent Board{canDrag && <span style={{fontSize:10,fontWeight:800,padding:'2px 8px',borderRadius:999,background:'rgba(139,92,246,0.15)',color:'#8B5CF6',border:'1px solid rgba(139,92,246,0.3)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Drag & Drop</span>}</div>
-            <div className="pageHeaderCardSub">Drag cards between columns. Tasks under paused/completed projects are locked until the project is reactivated.</div>
-            <div className="pageHeaderCardMeta"><span className="pageHeaderCardTag">{tasks.length} tasks</span>{lockedCount>0&&<span className="pageHeaderCardTag" style={{color:'#f59e0b',background:'rgba(245,158,11,0.10)',borderColor:'rgba(245,158,11,0.24)'}}>🔒 {lockedCount} project locked</span>}{focusMode&&<span className="pageHeaderCardTag" style={{color:'#f97316',background:'rgba(249,115,22,0.10)',borderColor:'rgba(249,115,22,0.24)'}}>Focus: {visibleTasks.length}</span>}{intelligence.risky.length>0&&<span className="pageHeaderCardTag" style={{color:'#f97316',background:'rgba(249,115,22,0.10)',borderColor:'rgba(249,115,22,0.24)'}}>{intelligence.risky.length} need attention</span>}{!canDrag&&<span className="pageHeaderCardTag" style={{color:'#9ca3af'}}>Read-only view</span>}</div>
-          </div>
-          {canManage && <button className="btn btnPrimary" onClick={()=>setCreateOpen(true)} style={{display:'flex',alignItems:'center',gap:7}}>+ Create Task</button>}
-        </div>
-      </div>
+      <PageHeaderCard
+        title="Intelligent Board"
+        subtitle="Drag cards between columns. Tasks under paused/completed projects are locked until the project is reactivated."
+        badges={[
+          { label: `${tasks.length} tasks` },
+          ...(canDrag ? [{ label: 'Drag & Drop', color: '#8B5CF6' }] : []),
+          ...(lockedCount > 0 ? [{ label: `🔒 ${lockedCount} project locked`, color: '#f59e0b' }] : []),
+          ...(focusMode ? [{ label: `Focus: ${visibleTasks.length}`, color: '#f97316' }] : []),
+          ...(intelligence.risky.length > 0 ? [{ label: `${intelligence.risky.length} need attention`, color: '#f97316' }] : []),
+          ...(!canDrag ? [{ label: 'Read-only view', color: '#9ca3af' }] : []),
+        ]}
+        actions={
+          canManage ? (
+            <button className="btn btnPrimary" onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              + Create Task
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="boardChartsPanel">
         <div className="boardChartSummaryCard"><div><div className="miniLabel">Board Health</div><div className="boardChartBigValue">{boardCharts.completionRate}%</div><div className="boardChartMuted">completion across {tasks.length} tasks</div></div><div className="boardDonut" style={{ ['--pct' as any]: `${boardCharts.completionRate}%` }}><span>{boardCharts.completionRate}%</span></div></div>
