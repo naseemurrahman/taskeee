@@ -217,7 +217,14 @@ export function ReassignmentTasksPage() {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     <th className="thCheckbox" onClick={e => { e.stopPropagation(); toggleAllVisible() }}>
-                      <input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                      <input
+                        type="checkbox"
+                        className="taskCheckbox"
+                        checked={allVisibleSelected}
+                        aria-label="Select all visible reassignment tasks"
+                        onClick={e => e.stopPropagation()}
+                        onChange={toggleAllVisible}
+                      />
                     </th>
                     <th className="thCell">Task</th>
                     <th className="thCell">Current Assignee</th>
@@ -234,7 +241,14 @@ export function ReassignmentTasksPage() {
                     return (
                       <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: checked ? 'rgba(226,171,65,0.07)' : undefined }}>
                         <td className="thCheckbox" onClick={e => { e.stopPropagation(); toggleTask(task.id) }}>
-                          <input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} />
+                          <input
+                            type="checkbox"
+                            className="taskCheckbox"
+                            checked={checked}
+                            aria-label={`Select ${task.title || 'task'}`}
+                            onClick={e => e.stopPropagation()}
+                            onChange={() => toggleTask(task.id)}
+                          />
                         </td>
                         <td style={{ padding: '11px 14px', fontWeight: 800, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title || task.id}</td>
                         <td style={{ padding: '11px 14px' }}>
@@ -262,7 +276,13 @@ export function ReassignmentTasksPage() {
             <div className="reassignMobile">
               {/* Select-all row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-                <input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                <input
+                  type="checkbox"
+                  className="taskCheckbox"
+                  checked={allVisibleSelected}
+                  aria-label="Select all visible reassignment tasks"
+                  onChange={toggleAllVisible}
+                />
                 <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {allVisibleSelected ? 'Deselect all' : `Select all (${filtered.length})`}
                 </span>
@@ -279,7 +299,13 @@ export function ReassignmentTasksPage() {
                     <div style={{ display: 'flex', gap: 12, padding: '14px 14px 12px', alignItems: 'flex-start' }}>
                       {/* Checkbox */}
                       <div onClick={e => e.stopPropagation()} style={{ paddingTop: 2, flexShrink: 0 }}>
-                        <input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} />
+                        <input
+                          type="checkbox"
+                          className="taskCheckbox"
+                          checked={checked}
+                          aria-label={`Select ${task.title || 'task'}`}
+                          onChange={() => toggleTask(task.id)}
+                        />
                       </div>
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
