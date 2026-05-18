@@ -13,7 +13,7 @@ const DashboardHomePage        = lazy(() => import('./pages/app/DashboardHomePag
 const TasksPage                = lazy(() => import('./pages/app/TasksPage').then(m => ({ default: m.TasksPage })))
 const ReassignmentTasksPage    = lazy(() => import('./pages/app/ReassignmentTasksPage').then(m => ({ default: m.ReassignmentTasksPage })))
 const MyTasksPage              = lazy(() => import('./pages/app/MyTasksPage').then(m => ({ default: m.MyTasksPage })))
-const ProjectsPage             = lazy(() => import('./pages/app/ProjectsPage').then(m => ({ default: m.ProjectsPage })))
+const ProjectsAnalyticsPage    = lazy(() => import('./pages/app/ProjectsAnalyticsPage').then(m => ({ default: m.ProjectsAnalyticsPage })))
 const ProjectOverrideReviewPage = lazy(() => import('./pages/app/ProjectOverrideReviewPage').then(m => ({ default: m.ProjectOverrideReviewPage })))
 const BoardPage                = lazy(() => import('./pages/app/BoardPage').then(m => ({ default: m.BoardPage })))
 const CalendarPage             = lazy(() => import('./pages/app/CalendarPage').then(m => ({ default: m.CalendarPage })))
@@ -101,7 +101,7 @@ export default function App() {
           <Route path="tasks/reassignment" element={<ReassignmentEntry />} />
           <Route path="my-tasks"         element={<MyTasksPage />} />
           <Route path="recurring-tasks"  element={<RecurringTasksPage />} />
-          <Route path="projects"         element={<ProjectsPage />} />
+          <Route path="projects"         element={<ProjectsAnalyticsPage />} />
           <Route path="projects/overrides" element={<ProjectOverrideReviewPage />} />
           <Route path="board"            element={<BoardPage />} />
           <Route path="calendar"         element={<CalendarPage />} />
