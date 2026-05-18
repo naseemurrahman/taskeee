@@ -229,6 +229,119 @@ button {
   }
 }
 
+/* KPI cards: use a true responsive grid everywhere. Horizontal list strips
+   are intentionally disabled because they hide information on small screens. */
+.contentV4 :is(
+  .kpiStripStandard,
+  .dashKpiStrip,
+  .analyticsSignalStrip,
+  .insightsKpiStrip,
+  .myTasksCommandCenter,
+  .reportStatGrid,
+  .grid4.kpiStripStandard
+) {
+  --kpi-grid-min: 168px;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--kpi-grid-min)), 1fr)) !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: unset !important;
+  gap: clamp(8px, 1.4vw, 14px) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  padding-bottom: 0 !important;
+  scroll-snap-type: none !important;
+}
+
+.contentV4 :is(
+  .kpiStripStandard,
+  .dashKpiStrip,
+  .analyticsSignalStrip,
+  .insightsKpiStrip,
+  .myTasksCommandCenter,
+  .reportStatGrid,
+  .grid4.kpiStripStandard
+) > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: initial !important;
+  scroll-snap-align: none !important;
+}
+
+.contentV4 :is(.kpiCard, .miniCard, .myTasksStatCard, .insightsKpiCard) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.contentV4 :is(.kpiCardLabel, .kpiCardSub, .miniLabel, .insightsKpiLabel, .myTasksStatCard span) {
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  line-height: 1.25 !important;
+}
+
+.contentV4 :is(.kpiCardValue, .miniValue, .insightsKpiValue, .myTasksStatCard strong) {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+@media (min-width: 1201px) {
+  .contentV4 :is(.kpiStripStandard, .dashKpiStrip) {
+    --kpi-grid-min: 170px;
+  }
+}
+
+@media (max-width: 900px) {
+  .contentV4 :is(
+    .kpiStripStandard,
+    .dashKpiStrip,
+    .analyticsSignalStrip,
+    .insightsKpiStrip,
+    .myTasksCommandCenter,
+    .reportStatGrid,
+    .grid4.kpiStripStandard
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .contentV4 :is(.kpiCard, .miniCard, .myTasksStatCard, .insightsKpiCard) {
+    min-height: 92px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .contentV4 :is(.kpiCardValue, .miniValue, .insightsKpiValue, .myTasksStatCard strong) {
+    font-size: clamp(22px, 7vw, 30px) !important;
+    line-height: 1 !important;
+  }
+
+  .contentV4 :is(.kpiCardWatermark, .insightsKpiIcon, .myTasksStatCard > svg) {
+    opacity: 0.16 !important;
+    transform: scale(0.84) !important;
+    transform-origin: center !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .contentV4 :is(
+    .kpiStripStandard,
+    .dashKpiStrip,
+    .analyticsSignalStrip,
+    .insightsKpiStrip,
+    .myTasksCommandCenter,
+    .reportStatGrid,
+    .grid4.kpiStripStandard
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 /* Prevent one-letter-per-line headings if a container is still constrained by
    older inline styles while the new layout is loading. */
 .contentV4 :is(
