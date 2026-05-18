@@ -19,7 +19,7 @@ const BoardPage                = lazy(() => import('./pages/app/BoardPage').then
 const CalendarPage             = lazy(() => import('./pages/app/CalendarPage').then(m => ({ default: m.CalendarPage })))
 const AnalyticsPage            = lazy(() => import('./pages/app/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const InsightsPage             = lazy(() => import('./pages/app/InsightsPage').then(m => ({ default: m.InsightsPage })))
-const ReportsPage              = lazy(() => import('./pages/app/ReportsPage').then(m => ({ default: m.ReportsPage })))
+const ReportsAnalyticsPage     = lazy(() => import('./pages/app/ReportsAnalyticsPage').then(m => ({ default: m.ReportsAnalyticsPage })))
 const ReportDetailPage         = lazy(() => import('./pages/app/ReportDetailPage').then(m => ({ default: m.ReportDetailPage })))
 const AuditPage                = lazy(() => import('./pages/app/AuditPage').then(m => ({ default: m.AuditPage })))
 const LogsPage                 = lazy(() => import('./pages/app/LogsPage').then(m => ({ default: m.LogsPage })))
@@ -107,7 +107,7 @@ export default function App() {
           <Route path="calendar"         element={<CalendarPage />} />
           <Route path="analytics"        element={<OrgAnalyticsEntry />} />
           <Route path="insights"         element={<InsightsPage />} />
-          <Route path="reports"          element={<ReportsPage />} />
+          <Route path="reports"          element={<ReportsAnalyticsPage />} />
           <Route path="reports/:id"      element={<ReportDetailPage />} />
           <Route path="audit"            element={<AuditPage />} />
           <Route path="logs"             element={<LogsPage />} />
