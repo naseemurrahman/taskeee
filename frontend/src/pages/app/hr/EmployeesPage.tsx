@@ -224,14 +224,27 @@ export function EmployeesPage() {
   return (
     <div style={{ display: 'grid', gap: 18 }}>
 
-      <KpiStrip
-        items={[
-          { label: 'Total Employees', value: q.data?.total || employees.length, color: '#6366f1', icon: <Users size={36} /> },
-          { label: 'Active', value: employees.filter(e => e.status === 'active').length, color: '#22c55e', icon: <UserCheck size={36} /> },
-          { label: 'On Leave', value: employees.filter(e => e.status === 'on_leave').length, color: '#eab308', icon: <Palmtree size={36} /> },
-          { label: 'Departments', value: new Set(employees.map(e => e.department).filter(Boolean)).size, color: '#a855f7', icon: <Building2 size={36} /> },
-        ]}
-      />
+      {/* ── Page Header ── */}
+      <div className="pageHeaderCard">
+        <div className="pageHeaderCardInner">
+          <div className="pageHeaderCardLeft">
+            <div className="pageHeaderCardTitle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Employee Directory
+              {employees.length > 0 && <span style={{ fontSize: 12, fontWeight: 800, padding: '2px 10px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)', border: '1px solid var(--brandBorder)', marginLeft: 4 }}>{employees.length}</span>}
+            </div>
+            <div className="pageHeaderCardSub">Manage your organization's employees, view profiles, and track workspace accounts.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link className="btn btnGhost" to="/app/hr/time-off" style={{ height: 38, padding: '0 16px', fontSize: 13 }}>Time Off</Link>
+            <button type="button" className="btn btnPrimary" onClick={() => { resetForm(); setAddOpen(true) }} style={{ height: 38, padding: '0 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Employee
+            </button>
+          </div>
+        </div>
+      </div>
+
 
       {/* Credentials panel shown after creating */}
       {createdData && (
@@ -265,26 +278,15 @@ export function EmployeesPage() {
         </div>
       )}
 
-      {/* ── Page Header ── */}
-      <div className="pageHeaderCard">
-        <div className="pageHeaderCardInner">
-          <div className="pageHeaderCardLeft">
-            <div className="pageHeaderCardTitle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Employee Directory
-              {employees.length > 0 && <span style={{ fontSize: 12, fontWeight: 800, padding: '2px 10px', borderRadius: 999, background: 'var(--brandDim)', color: 'var(--brand)', border: '1px solid var(--brandBorder)', marginLeft: 4 }}>{employees.length}</span>}
-            </div>
-            <div className="pageHeaderCardSub">Manage your organization's employees, view profiles, and track workspace accounts.</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link className="btn btnGhost" to="/app/hr/time-off" style={{ height: 38, padding: '0 16px', fontSize: 13 }}>Time Off</Link>
-            <button type="button" className="btn btnPrimary" onClick={() => { resetForm(); setAddOpen(true) }} style={{ height: 38, padding: '0 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Employee
-            </button>
-          </div>
-        </div>
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Total Employees', value: q.data?.total || employees.length, color: '#6366f1', icon: <Users size={36} /> },
+          { label: 'Active', value: employees.filter(e => e.status === 'active').length, color: '#22c55e', icon: <UserCheck size={36} /> },
+          { label: 'On Leave', value: employees.filter(e => e.status === 'on_leave').length, color: '#eab308', icon: <Palmtree size={36} /> },
+          { label: 'Departments', value: new Set(employees.map(e => e.department).filter(Boolean)).size, color: '#a855f7', icon: <Building2 size={36} /> },
+        ]}
+      />
+
 
       {/* ── Filters Bar ── */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

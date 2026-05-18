@@ -243,10 +243,12 @@ const NOTIF_PREFS = [
 function ToggleSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)}
-      style={{ position:'relative', width:44, height:24, borderRadius:999, border:'none', cursor:'pointer',
-        background: on ? 'var(--brand)' : 'rgba(148,163,184,0.25)', transition:'background 0.2s', flexShrink:0, padding:0 }}>
-      <span style={{ position:'absolute', top:2, left: on ? 'calc(100% - 22px)' : 2, width:20, height:20,
-        borderRadius:'50%', background:'#fff', transition:'left 0.18s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)', display:'block' }} />
+      style={{ position:'relative', width:48, height:26, borderRadius:999, border:'none', cursor:'pointer',
+        background: on ? '#22c55e' : 'rgba(148,163,184,0.30)',
+        transition:'background 0.2s', flexShrink:0, padding:0, outline:'none' }}>
+      <span style={{ position:'absolute', top:3, left: on ? 'calc(100% - 23px)' : 3, width:20, height:20,
+        borderRadius:'50%', background:'#fff', transition:'left 0.18s ease',
+        boxShadow:'0 1px 4px rgba(0,0,0,0.25)', display:'block' }} />
     </button>
   )
 }

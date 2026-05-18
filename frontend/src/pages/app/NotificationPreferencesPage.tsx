@@ -16,8 +16,13 @@ type DigestPreferences = {
 function Toggle({ on, onChange, disabled = false }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button type="button" role="switch" aria-checked={on} disabled={disabled} onClick={() => onChange(!on)}
-      style={{ position: 'relative', width: 46, height: 26, borderRadius: 999, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: on ? 'var(--brand)' : 'rgba(148,163,184,0.25)', opacity: disabled ? 0.55 : 1 }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s' }} />
+      style={{ position: 'relative', width: 48, height: 26, borderRadius: 999, border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        background: on ? '#22c55e' : 'rgba(148,163,184,0.30)',
+        opacity: disabled ? 0.55 : 1, transition: 'background 0.2s', flexShrink: 0, padding: 0, outline: 'none' }}>
+      <span style={{ position: 'absolute', top: 3, left: on ? 25 : 3, width: 20, height: 20,
+        borderRadius: '50%', background: '#fff', transition: 'left 0.15s ease',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.25)', display: 'block' }} />
     </button>
   )
 }
