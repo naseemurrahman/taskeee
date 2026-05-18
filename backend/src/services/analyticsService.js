@@ -77,8 +77,6 @@ async function analyticsTargetIds(user, filters = {}) {
 
   if (!orgId) return [user.id].filter(Boolean);
 
-  // Only HR, Director, and Admin get full organization analytics.
-  // Terminated employees are always excluded from analytics targets.
   if (hasOrgWideAnalytics(user)) {
     if (filters.employeeId) {
       return filterNonTerminatedUserIds(orgId, [filters.employeeId], { requireActive: true });
@@ -91,17 +89,11 @@ async function analyticsTargetIds(user, filters = {}) {
     }
   }
 
-  // Employee, technician, supervisor, and manager analytics are personal by default.
-  // This prevents non-HR roles from drilling into organization-wide analysis.
   if (['employee', 'technician', 'supervisor', 'manager'].includes(role)) {
     return await getOwnTargetIds(user);
   }
 
   return filterNonTerminatedUserIds(orgId, [user.id], { requireActive: true });
-}
-
-function col(columns, name, fallbackSql = 'NULL') {
-  return columns.has(name) ? name : fallbackSql;
 }
 
 function buildDateClause(params, column) {
@@ -118,9 +110,10 @@ function buildDateClause(params, column) {
   return clauses;
 }
 
-async function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
+async function buildOrgScope(user, filters = {}, columns, columnPrefix = 't', options = {}) {
   const orgColumn = columns.has('org_id') ? `${columnPrefix}.org_id` : null;
-  const createdAtColumn = columns.has('created_at') ? `${columnPrefix}.created_at` : null;
+  const dateColumnName = options.dateColumn || 'created_at';
+  const dateColumn = columns.has(dateColumnName) ? `${columnPrefix}.${dateColumnName}` : null;
   const params = {
     values: [],
     clauses: [],
@@ -149,7 +142,9 @@ async function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
     params.values.push(filters.projectId);
   }
 
-  params.clauses.push(...buildDateClause(params, createdAtColumn));
+  if (options.includeExplicitDateFilters !== false) {
+    params.clauses.push(...buildDateClause(params, dateColumn));
+  }
   return params;
 }
 
@@ -167,12 +162,12 @@ function userTaskJoin(columns) {
 async function getSummary(user, filters = {}) {
   const columns = await getTaskColumns();
   const scope = await buildOrgScope(user, filters, columns);
-  const statusCol = columns.has('status') ? 'status' : `'unknown'`;
-  const dueCol = columns.has('due_date') ? 'due_date' : 'NULL::timestamp';
-  const completedAtCol = columns.has('completed_at') ? 'completed_at' : 'NULL::timestamp';
-  const createdAtCol = columns.has('created_at') ? 'created_at' : 'NULL::timestamp';
-  const assignedToCol = columns.has('assigned_to') ? 'assigned_to' : 'NULL';
-  const confidenceCol = columns.has('ai_confidence_score') ? 'ai_confidence_score' : 'NULL::numeric';
+  const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
+  const dueCol = columns.has('due_date') ? 't.due_date' : 'NULL::timestamp';
+  const completedAtCol = columns.has('completed_at') ? 't.completed_at' : 'NULL::timestamp';
+  const createdAtCol = columns.has('created_at') ? 't.created_at' : 'NULL::timestamp';
+  const assignedToCol = columns.has('assigned_to') ? 't.assigned_to' : 'NULL';
+  const confidenceCol = columns.has('ai_confidence_score') ? 't.ai_confidence_score' : 'NULL::numeric';
 
   const { rows } = await query(
     `SELECT
@@ -194,7 +189,7 @@ async function getSummary(user, filters = {}) {
 async function getTaskStatus(user, filters = {}) {
   const columns = await getTaskColumns();
   const scope = await buildOrgScope(user, filters, columns);
-  const statusCol = columns.has('status') ? 'status' : `'unknown'`;
+  const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
   const { rows } = await query(
     `SELECT COALESCE(${statusCol}, 'unknown') AS status, COUNT(*)::int AS count
      FROM tasks t
@@ -209,33 +204,86 @@ async function getTaskStatus(user, filters = {}) {
 async function getTasksOverTime(user, filters = {}) {
   const columns = await getTaskColumns();
   const days = parsePositiveInt(filters.days, 30, 365);
-  const scope = await buildOrgScope(user, filters, columns);
-  if (columns.has('created_at')) {
-    scope.clauses.push(`t.created_at >= NOW() - ($${scope.values.length + 1}::text || ' days')::interval`);
-    scope.values.push(String(days));
-  }
-  const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
-  const dueCol = columns.has('due_date') ? 't.due_date' : 'NULL::timestamp';
-  const dayExpr = columns.has('created_at') ? `date_trunc('day', t.created_at)::date` : `CURRENT_DATE`;
+  const scope = await buildOrgScope(user, filters, columns, 't', { includeExplicitDateFilters: false });
 
+  const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
+  const createdCol = columns.has('created_at') ? 't.created_at' : 'NOW()';
+  const completedCol = columns.has('completed_at') ? 't.completed_at' : columns.has('updated_at') ? 't.updated_at' : createdCol;
+  const overdueDateCol = columns.has('due_date') ? 't.due_date' : createdCol;
+  const dayStart = filters.from ? `${filters.from}` : null;
+  const dayEnd = filters.to ? `${filters.to}` : null;
+
+  const values = [...scope.values, COMPLETED_STATUSES, String(days)];
+  const completedStatusParam = scope.values.length + 1;
+  const daysParam = scope.values.length + 2;
+  let dateWindowSql = `d.day >= CURRENT_DATE - (($${daysParam}::int - 1) * INTERVAL '1 day') AND d.day <= CURRENT_DATE`;
+  if (dayStart) {
+    values.push(dayStart);
+    dateWindowSql = `d.day >= $${values.length}::date`;
+    if (dayEnd) {
+      values.push(dayEnd);
+      dateWindowSql += ` AND d.day <= $${values.length}::date`;
+    } else {
+      dateWindowSql += ` AND d.day <= CURRENT_DATE`;
+    }
+  } else if (dayEnd) {
+    values.push(dayEnd);
+    dateWindowSql = `d.day >= ($${values.length}::date - (($${daysParam}::int - 1) * INTERVAL '1 day'))::date AND d.day <= $${values.length}::date`;
+  }
+
+  const taskWhere = whereSql(scope);
   const { rows } = await query(
-    `SELECT ${dayExpr} AS day,
-            COUNT(*)::int AS created,
-            COUNT(*) FILTER (WHERE ${statusCol} = ANY($${scope.values.length + 1}))::int AS completed,
-            COUNT(*) FILTER (WHERE ${dueCol} < NOW() AND ${statusCol} NOT IN ('completed', 'manager_approved'))::int AS overdue
-     FROM tasks t
-     ${whereSql(scope)}
-     GROUP BY 1
-     ORDER BY 1 ASC`,
-    [...scope.values, COMPLETED_STATUSES]
+    `WITH days AS (
+       SELECT generate_series(
+         CASE
+           WHEN $${daysParam}::int > 0 THEN CURRENT_DATE - (($${daysParam}::int - 1) * INTERVAL '1 day')
+           ELSE CURRENT_DATE
+         END,
+         CURRENT_DATE,
+         INTERVAL '1 day'
+       )::date AS day
+     ), scoped_tasks AS (
+       SELECT t.* FROM tasks t ${taskWhere}
+     ), created AS (
+       SELECT date_trunc('day', ${createdCol})::date AS day, COUNT(*)::int AS created
+       FROM scoped_tasks t
+       WHERE ${createdCol} IS NOT NULL
+       GROUP BY 1
+     ), completed AS (
+       SELECT date_trunc('day', ${completedCol})::date AS day, COUNT(*)::int AS completed
+       FROM scoped_tasks t
+       WHERE ${statusCol} = ANY($${completedStatusParam}) AND ${completedCol} IS NOT NULL
+       GROUP BY 1
+     ), overdue AS (
+       SELECT date_trunc('day', ${overdueDateCol})::date AS day, COUNT(*)::int AS overdue
+       FROM scoped_tasks t
+       WHERE ${overdueDateCol} IS NOT NULL
+         AND ${overdueDateCol} < NOW()
+         AND ${statusCol} NOT IN ('completed', 'manager_approved')
+       GROUP BY 1
+     )
+     SELECT
+       d.day::text AS day,
+       COALESCE(c.created, 0)::int AS created,
+       COALESCE(cm.completed, 0)::int AS completed,
+       COALESCE(o.overdue, 0)::int AS overdue
+     FROM days d
+     LEFT JOIN created c ON c.day = d.day
+     LEFT JOIN completed cm ON cm.day = d.day
+     LEFT JOIN overdue o ON o.day = d.day
+     WHERE ${dateWindowSql}
+     ORDER BY d.day ASC`,
+    values
   );
   return { points: rows };
 }
 
 async function getEmployeePerformance(user, filters = {}) {
   const columns = await getTaskColumns();
+  const days = parsePositiveInt(filters.days, 30, 365);
   const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
   const dueCol = columns.has('due_date') ? 't.due_date' : 'NULL::timestamp';
+  const createdCol = columns.has('created_at') ? 't.created_at' : 'NOW()';
   const join = userTaskJoin(columns);
   const orgId = userOrgId(user);
   const values = [];
@@ -255,6 +303,9 @@ async function getEmployeePerformance(user, filters = {}) {
 
   values.push(COMPLETED_STATUSES);
   const statusParam = values.length;
+  values.push(String(days));
+  const daysParam = values.length;
+  const dateClause = columns.has('created_at') ? `AND ${createdCol} >= NOW() - ($${daysParam}::text || ' days')::interval` : '';
   const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
   const { rows } = await query(
@@ -264,7 +315,7 @@ async function getEmployeePerformance(user, filters = {}) {
             COUNT(t.id) FILTER (WHERE ${statusCol} = ANY($${statusParam}))::int AS completed,
             COUNT(t.id) FILTER (WHERE ${dueCol} < NOW() AND ${statusCol} NOT IN ('completed', 'manager_approved'))::int AS overdue
      FROM users u
-     LEFT JOIN tasks t ON ${join}
+     LEFT JOIN tasks t ON ${join} ${dateClause}
      ${where}
      GROUP BY u.id, u.full_name
      ORDER BY completed DESC, overdue ASC, assigned DESC
@@ -278,9 +329,9 @@ async function getAiValidation(user, filters = {}) {
   const columns = await getTaskColumns();
   const scope = await buildOrgScope(user, filters, columns);
   const validationCol = columns.has('ai_validation_status')
-    ? 'ai_validation_status'
+    ? 't.ai_validation_status'
     : columns.has('manual_review_status')
-      ? 'manual_review_status'
+      ? 't.manual_review_status'
       : `'unknown'`;
   const { rows } = await query(
     `SELECT COALESCE(${validationCol}, 'unknown') AS status,
@@ -297,7 +348,7 @@ async function getAiValidation(user, filters = {}) {
 async function getAiConfidence(user, filters = {}) {
   const columns = await getTaskColumns();
   const scope = await buildOrgScope(user, filters, columns);
-  const confidenceCol = columns.has('ai_confidence_score') ? 'ai_confidence_score' : 'NULL::numeric';
+  const confidenceCol = columns.has('ai_confidence_score') ? 't.ai_confidence_score' : 'NULL::numeric';
   const { rows } = await query(
     `SELECT
        COUNT(*) FILTER (WHERE ${confidenceCol} < 0.4)::int AS low,
@@ -352,18 +403,26 @@ async function getWorkload(user, filters = {}) {
 async function getCompletionTime(user, filters = {}) {
   const columns = await getTaskColumns();
   const scope = await buildOrgScope(user, filters, columns);
-  if (columns.has('completed_at')) scope.clauses.push('t.completed_at IS NOT NULL');
-  const categoryCol = columns.has('category') ? 't.category' : `'uncategorized'`;
   const completedAtCol = columns.has('completed_at') ? 't.completed_at' : 'NULL::timestamp';
   const createdAtCol = columns.has('created_at') ? 't.created_at' : 'NULL::timestamp';
+  const categoryExpr = columns.has('category')
+    ? 't.category'
+    : columns.has('category_name')
+      ? 't.category_name'
+      : columns.has('category_id')
+        ? 'COALESCE(c.name, \'uncategorized\')'
+        : `'uncategorized'`;
+  const joinCategory = columns.has('category_id') ? 'LEFT JOIN task_categories c ON c.id = t.category_id AND c.org_id = t.org_id' : '';
+  if (columns.has('completed_at')) scope.clauses.push('t.completed_at IS NOT NULL');
   const { rows } = await query(
-    `SELECT COALESCE(${categoryCol}, 'uncategorized') AS category,
+    `SELECT COALESCE(${categoryExpr}, 'uncategorized') AS category,
             COALESCE(AVG(EXTRACT(EPOCH FROM (${completedAtCol} - ${createdAtCol})) / 3600), 0)::numeric(10,2) AS avg_hours,
             COUNT(*)::int AS completed_count
      FROM tasks t
+     ${joinCategory}
      ${whereSql(scope)}
      GROUP BY 1
-     ORDER BY avg_hours DESC`,
+     ORDER BY completed_count DESC, avg_hours DESC`,
     scope.values
   );
   return { categories: rows };
@@ -372,25 +431,56 @@ async function getCompletionTime(user, filters = {}) {
 async function getOverdueTrend(user, filters = {}) {
   const columns = await getTaskColumns();
   const days = parsePositiveInt(filters.days, 30, 365);
-  const scope = await buildOrgScope(user, filters, columns);
-  if (columns.has('due_date')) {
-    scope.clauses.push(`t.due_date >= NOW() - ($${scope.values.length + 1}::text || ' days')::interval`);
-    scope.values.push(String(days));
-  }
+  const scope = await buildOrgScope(user, filters, columns, 't', { includeExplicitDateFilters: false });
   const statusCol = columns.has('status') ? 't.status' : `'unknown'`;
-  const dueCol = columns.has('due_date') ? 't.due_date' : 'NULL::timestamp';
-  const dayExpr = columns.has('due_date') ? `date_trunc('day', t.due_date)::date` : `CURRENT_DATE`;
+  const dueCol = columns.has('due_date') ? 't.due_date' : null;
+  const values = [...scope.values, String(days)];
+  const daysParam = scope.values.length + 1;
+
+  if (!dueCol) {
+    const { rows } = await query(
+      `SELECT generate_series(CURRENT_DATE - (($1::int - 1) * INTERVAL '1 day'), CURRENT_DATE, INTERVAL '1 day')::date::text AS day,
+              0::int AS overdue`,
+      [String(days)]
+    );
+    return { points: rows };
+  }
 
   const { rows } = await query(
-    `SELECT ${dayExpr} AS day,
-            COUNT(*) FILTER (WHERE ${dueCol} < NOW() AND ${statusCol} NOT IN ('completed', 'manager_approved'))::int AS overdue
+    `WITH days AS (
+       SELECT generate_series(CURRENT_DATE - (($${daysParam}::int - 1) * INTERVAL '1 day'), CURRENT_DATE, INTERVAL '1 day')::date AS day
+     ), scoped_tasks AS (
+       SELECT t.* FROM tasks t ${whereSql(scope)}
+     ), overdue AS (
+       SELECT date_trunc('day', ${dueCol})::date AS day, COUNT(*)::int AS overdue
+       FROM scoped_tasks t
+       WHERE ${dueCol} IS NOT NULL
+         AND ${dueCol} < NOW()
+         AND ${statusCol} NOT IN ('completed', 'manager_approved')
+       GROUP BY 1
+     )
+     SELECT d.day::text AS day, COALESCE(o.overdue, 0)::int AS overdue
+     FROM days d
+     LEFT JOIN overdue o ON o.day = d.day
+     ORDER BY d.day ASC`,
+    values
+  );
+  return { points: rows };
+}
+
+async function getPriorityBreakdown(user, filters = {}) {
+  const columns = await getTaskColumns();
+  const scope = await buildOrgScope(user, filters, columns);
+  const priorityCol = columns.has('priority') ? 'LOWER(COALESCE(t.priority, \'unspecified\'))' : `'unspecified'`;
+  const { rows } = await query(
+    `SELECT ${priorityCol} AS priority, COUNT(*)::int AS count
      FROM tasks t
      ${whereSql(scope)}
      GROUP BY 1
-     ORDER BY 1 ASC`,
+     ORDER BY count DESC`,
     scope.values
   );
-  return { points: rows };
+  return { priorities: rows };
 }
 
 module.exports = {
@@ -403,4 +493,5 @@ module.exports = {
   getWorkload,
   getCompletionTime,
   getOverdueTrend,
+  getPriorityBreakdown,
 };
