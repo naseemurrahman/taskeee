@@ -16,14 +16,13 @@ import './ui-control-heights.css' // Topbar, search, and button height consisten
 import './ui-charts-standard.css' // Chart card heights and typography (dashboard-aligned)
 import './ui-responsive-shell.css' // Fluid grids and mobile KPI scroll
 import './responsive-hardening.css' // final viewport and mobile layout guardrails
-import './chart-render-fixes.css' // final chart visibility and responsive sizing guardrails
+import './chart-render-fixes.css' // scoped Recharts fallback sizing only
 import './insights-responsive-upgrade.css' // Insights page mobile-safe analytical chart layout
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'
 import './topbar-action-visibility-guard'
 import './mobile-pull-to-refresh-guard'
-import './chart-render-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
