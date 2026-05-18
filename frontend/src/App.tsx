@@ -31,7 +31,7 @@ const OnboardingPage           = lazy(() => import('./pages/app/OnboardingPage')
 const DiagnosticsPage          = lazy(() => import('./pages/app/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })))
 const SearchPage               = lazy(() => import('./pages/app/SearchPage').then(m => ({ default: m.SearchPage })))
 const JeczoneDashboardPage     = lazy(() => import('./pages/app/jeczone/JeczoneDashboardPage').then(m => ({ default: m.JeczoneDashboardPage })))
-const EmployeesPage            = lazy(() => import('./pages/app/hr/EmployeesPage').then(m => ({ default: m.EmployeesPage })))
+const EmployeesAnalyticsPage   = lazy(() => import('./pages/app/hr/EmployeesAnalyticsPage').then(m => ({ default: m.EmployeesAnalyticsPage })))
 const EmployeeProfilePage      = lazy(() => import('./pages/app/hr/EmployeeProfilePage').then(m => ({ default: m.EmployeeProfilePage })))
 const TimeOffPage              = lazy(() => import('./pages/app/hr/TimeOffPage').then(m => ({ default: m.TimeOffPage })))
 const ContractorsPage          = lazy(() => import('./pages/app/contractors/ContractorsPage').then(m => ({ default: m.ContractorsPage })))
@@ -119,7 +119,7 @@ export default function App() {
           <Route path="diagnostics"      element={<DiagnosticsPage />} />
           <Route path="search"           element={<SearchPage />} />
           <Route path="jeczone"          element={<JeczoneDashboardPage />} />
-          <Route path="hr/employees"     element={<EmployeesPage />} />
+          <Route path="hr/employees"     element={<EmployeesAnalyticsPage />} />
           <Route path="hr/employees/:id" element={<EmployeeProfilePage />} />
           <Route path="hr/time-off"      element={<TimeOffPage />} />
           <Route path="contractors"      element={<ContractorsPage />} />
