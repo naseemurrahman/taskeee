@@ -1,4 +1,5 @@
 const { query } = require('../utils/db');
+const { filterNonTerminatedUserIds } = require('../utils/employeeVisibility');
 
 const COMPLETED_STATUSES = ['completed', 'manager_approved'];
 const ORG_WIDE_ANALYTICS_ROLES = new Set(['hr', 'director', 'admin']);
@@ -48,12 +49,13 @@ async function tableExists(tableName) {
 async function getOwnTargetIds(user) {
   const ids = [user.id].filter(Boolean);
   const orgId = userOrgId(user);
-  if (!orgId || !(await tableExists('employees'))) return ids;
+  if (!orgId || !(await tableExists('employees'))) return filterNonTerminatedUserIds(orgId, ids, { requireActive: true });
   try {
     const { rows } = await query(
       `SELECT id
        FROM employees
        WHERE org_id = $1
+         AND LOWER(COALESCE(status, 'active')) <> 'terminated'
          AND (
            user_id = $2
            OR (work_email IS NOT NULL AND LOWER(work_email) = LOWER($3))
@@ -66,7 +68,7 @@ async function getOwnTargetIds(user) {
   } catch {
     // Legacy employee mapping is optional.
   }
-  return ids;
+  return filterNonTerminatedUserIds(orgId, ids, { requireActive: true });
 }
 
 async function analyticsTargetIds(user, filters = {}) {
@@ -76,14 +78,13 @@ async function analyticsTargetIds(user, filters = {}) {
   if (!orgId) return [user.id].filter(Boolean);
 
   // Only HR, Director, and Admin get full organization analytics.
+  // Terminated employees are always excluded from analytics targets.
   if (hasOrgWideAnalytics(user)) {
-    if (filters.employeeId) return [filters.employeeId];
+    if (filters.employeeId) {
+      return filterNonTerminatedUserIds(orgId, [filters.employeeId], { requireActive: true });
+    }
     try {
-      const { rows } = await query(
-        `SELECT id FROM users WHERE org_id = $1 AND COALESCE(is_active, TRUE) = TRUE`,
-        [orgId]
-      );
-      const ids = rows.map(r => r.id);
+      const ids = await filterNonTerminatedUserIds(orgId, null, { requireActive: true });
       return ids.length ? ids : [user.id];
     } catch {
       return [user.id].filter(Boolean);
@@ -96,7 +97,7 @@ async function analyticsTargetIds(user, filters = {}) {
     return await getOwnTargetIds(user);
   }
 
-  return [user.id].filter(Boolean);
+  return filterNonTerminatedUserIds(orgId, [user.id], { requireActive: true });
 }
 
 function col(columns, name, fallbackSql = 'NULL') {
@@ -138,6 +139,8 @@ async function buildOrgScope(user, filters = {}, columns, columnPrefix = 't') {
     if (targetIds.length) {
       params.clauses.push(`${columnPrefix}.assigned_to = ANY($${params.values.length + 1})`);
       params.values.push(targetIds);
+    } else {
+      params.clauses.push('FALSE');
     }
   }
 
@@ -241,16 +244,15 @@ async function getEmployeePerformance(user, filters = {}) {
     values.push(orgId);
     whereParts.push(`u.org_id = $${values.length}`);
   }
-  if (!hasOrgWideAnalytics(user)) {
-    const ids = await analyticsTargetIds(user, filters);
-    if (ids.length) {
-      values.push(ids);
-      whereParts.push(`u.id = ANY($${values.length})`);
-    }
-  } else if (filters.employeeId) {
-    values.push(filters.employeeId);
-    whereParts.push(`u.id = $${values.length}`);
+
+  const ids = await analyticsTargetIds(user, filters);
+  if (ids.length) {
+    values.push(ids);
+    whereParts.push(`u.id = ANY($${values.length})`);
+  } else {
+    whereParts.push('FALSE');
   }
+
   values.push(COMPLETED_STATUSES);
   const statusParam = values.length;
   const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
@@ -320,16 +322,15 @@ async function getWorkload(user, filters = {}) {
     values.push(orgId);
     whereParts.push(`u.org_id = $${values.length}`);
   }
-  if (!hasOrgWideAnalytics(user)) {
-    const ids = await analyticsTargetIds(user, filters);
-    if (ids.length) {
-      values.push(ids);
-      whereParts.push(`u.id = ANY($${values.length})`);
-    }
-  } else if (filters.employeeId) {
-    values.push(filters.employeeId);
-    whereParts.push(`u.id = $${values.length}`);
+
+  const ids = await analyticsTargetIds(user, filters);
+  if (ids.length) {
+    values.push(ids);
+    whereParts.push(`u.id = ANY($${values.length})`);
+  } else {
+    whereParts.push('FALSE');
   }
+
   const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
   const { rows } = await query(
