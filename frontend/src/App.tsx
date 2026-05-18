@@ -9,7 +9,7 @@ import { MarketingLayout } from './pages/marketing/MarketingLayout'
 import { MarketingHomePage } from './pages/marketing/MarketingHomePage'
 import { isEmployeeRole } from './lib/rbac'
 
-const DashboardHomePage        = lazy(() => import('./pages/app/DashboardHomePage').then(m => ({ default: m.DashboardHomePage })))
+const DashboardAnalyticsPage   = lazy(() => import('./pages/app/DashboardAnalyticsPage').then(m => ({ default: m.DashboardAnalyticsPage })))
 const TasksPage                = lazy(() => import('./pages/app/TasksPage').then(m => ({ default: m.TasksPage })))
 const ReassignmentTasksPage    = lazy(() => import('./pages/app/ReassignmentTasksPage').then(m => ({ default: m.ReassignmentTasksPage })))
 const MyTasksPage              = lazy(() => import('./pages/app/MyTasksPage').then(m => ({ default: m.MyTasksPage })))
@@ -96,7 +96,7 @@ export default function App() {
 
         <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"        element={<DashboardHomePage />} />
+          <Route path="dashboard"        element={<DashboardAnalyticsPage />} />
           <Route path="tasks"            element={<TasksEntry />} />
           <Route path="tasks/reassignment" element={<ReassignmentEntry />} />
           <Route path="my-tasks"         element={<MyTasksPage />} />
