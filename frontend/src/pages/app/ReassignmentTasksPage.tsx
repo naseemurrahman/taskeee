@@ -205,7 +205,7 @@ export function ReassignmentTasksPage() {
             <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th className="thCheckbox"><input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
+                  <th className="thCheckbox" onClick={e => { e.stopPropagation(); toggleAllVisible() }}><input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
                   <th className="thCell">Task</th>
                   <th className="thCell">Current assignee</th>
                   <th className="thCell">Project</th>
@@ -219,7 +219,7 @@ export function ReassignmentTasksPage() {
                   const checked = selectedTaskIds.has(task.id)
                   return (
                     <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: checked ? 'rgba(226,171,65,0.07)' : undefined }}>
-                      <td className="thCheckbox"><input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} /></td>
+                      <td className="thCheckbox" onClick={e => { e.stopPropagation(); toggleTask(task.id) }}><input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} /></td>
                       <td style={{ padding: '11px 14px', fontWeight: 800 }}>{task.title || task.id}</td>
                       <td style={{ padding: '11px 14px' }}>
                         <div style={{ fontSize: 12, fontWeight: 800 }}>{task.assigned_to_name || 'Unavailable assignee'}</div>

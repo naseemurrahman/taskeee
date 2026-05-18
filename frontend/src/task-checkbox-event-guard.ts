@@ -76,6 +76,7 @@ function installTaskCheckboxEventGuard() {
     const { checkbox, isHeader } = hit
     const target = event.target
 
+    // Always stop the row-level click (prevents drawer/navigation opening)
     event.stopPropagation()
 
     if (isHeader) {
@@ -85,7 +86,15 @@ function installTaskCheckboxEventGuard() {
       return
     }
 
-    if (target !== checkbox) {
+    if (target === checkbox) {
+      // Clicking the checkbox directly: stopPropagation already called above,
+      // which prevents the native click from reaching the input (capture phase).
+      // We must manually toggle and dispatch change so React's onChange fires.
+      event.preventDefault()
+      checkbox.focus({ preventScroll: true })
+      toggleSingleCheckbox(checkbox)
+    } else {
+      // Clicking anywhere else in the checkbox cell
       event.preventDefault()
       checkbox.focus({ preventScroll: true })
       toggleSingleCheckbox(checkbox)

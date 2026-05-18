@@ -162,7 +162,7 @@ input:hover:not(:disabled):not(:focus),
 .btn,
 button.btn,
 a.btn,
-button[type="button"]:not(.inlineEditBtn):not(.taskCheckbox):not([role="tab"]):not([role="menuitem"]) {
+button[type="button"]:not(.inlineEditBtn):not(.taskCheckbox):not([role="tab"]):not([role="menuitem"]):not(.kpiCard):not(.jecKpiCard):not(.projectCard) {
   height: var(--button-height) !important;
   min-height: var(--button-height) !important;
   padding: 0 var(--space-5) !important;

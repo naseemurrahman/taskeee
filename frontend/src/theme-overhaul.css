@@ -14,21 +14,21 @@
 /* ─── DARK THEME (default) ──────────────────────────────────────────── */
 :root,
 .appShellV4Dark {
-  /* Brand: light cool gray on dark backgrounds */
-  --primary: #ccd5de;
-  --primary-hover: #dde4eb;
-  --primary-active: #b8c4cf;
-  --primary-glow: rgba(204, 213, 222, 0.30);
-  --primary-text-on: #022b59;  /* text color when sitting on primary bg */
+  /* Brand: gold gradient — consistent across both themes */
+  --primary: #e2ab41;
+  --primary-hover: #d4930a;
+  --primary-active: #b87c08;
+  --primary-glow: rgba(226, 171, 65, 0.32);
+  --primary-text-on: #1a1d2e;  /* dark text on gold bg */
 
   /* Aliases for legacy class names */
-  --brand: #ccd5de;
-  --brand-light: rgba(204, 213, 222, 0.12);
-  --brand-dim: rgba(204, 213, 222, 0.10);
-  --brandDim: rgba(204, 213, 222, 0.10);
-  --brand-border: rgba(204, 213, 222, 0.30);
-  --brandBorder: rgba(204, 213, 222, 0.30);
-  --brand-dark: #9aa6b2;
+  --brand: #e2ab41;
+  --brand-light: rgba(226, 171, 65, 0.12);
+  --brand-dim: rgba(226, 171, 65, 0.10);
+  --brandDim: rgba(226, 171, 65, 0.10);
+  --brand-border: rgba(226, 171, 65, 0.30);
+  --brandBorder: rgba(226, 171, 65, 0.30);
+  --brand-dark: #b87c08;
 
   /* Background and surfaces */
   --bg: #0b0f17;
@@ -52,8 +52,8 @@
   --muted: #8a94a0;
 
   /* Brand gradient (used in primary buttons / hero accents) */
-  --brand-gradient: linear-gradient(135deg, #ccd5de 0%, #dde4eb 100%);
-  --gradient-primary: linear-gradient(135deg, #ccd5de 0%, #dde4eb 100%);
+  --brand-gradient: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  --gradient-primary: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
 
   --shadowLg: 0 18px 46px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.25);
 
@@ -63,21 +63,21 @@
 /* ─── LIGHT THEME ───────────────────────────────────────────────────── */
 .appShellV4Light,
 .appShellLight {
-  /* Brand: deep navy on light backgrounds */
-  --primary: #022b59;
-  --primary-hover: #023a78;
-  --primary-active: #011d3d;
-  --primary-glow: rgba(2, 43, 89, 0.18);
-  --primary-text-on: #ffffff;
+  /* Brand: gold — same as dark theme for consistency */
+  --primary: #d4930a;
+  --primary-hover: #b87c08;
+  --primary-active: #8f6006;
+  --primary-glow: rgba(226, 171, 65, 0.25);
+  --primary-text-on: #1a1d2e;
 
   /* Aliases */
-  --brand: #022b59;
-  --brand-light: rgba(2, 43, 89, 0.08);
-  --brand-dim: rgba(2, 43, 89, 0.06);
-  --brandDim: rgba(2, 43, 89, 0.06);
-  --brand-border: rgba(2, 43, 89, 0.28);
-  --brandBorder: rgba(2, 43, 89, 0.28);
-  --brand-dark: #011d3d;
+  --brand: #e2ab41;
+  --brand-light: rgba(226, 171, 65, 0.10);
+  --brand-dim: rgba(226, 171, 65, 0.08);
+  --brandDim: rgba(226, 171, 65, 0.08);
+  --brand-border: rgba(226, 171, 65, 0.35);
+  --brandBorder: rgba(226, 171, 65, 0.35);
+  --brand-dark: #b87c08;
 
   /* Backgrounds and surfaces */
   --bg: #f5f7fa;
@@ -100,8 +100,8 @@
   --text2: #324153;
   --muted: #62718a;
 
-  --brand-gradient: linear-gradient(135deg, #022b59 0%, #023a78 100%);
-  --gradient-primary: linear-gradient(135deg, #022b59 0%, #023a78 100%);
+  --brand-gradient: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  --gradient-primary: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
 
   --shadowLg: 0 18px 46px rgba(2, 43, 89, 0.10), 0 2px 10px rgba(2, 43, 89, 0.06);
 
@@ -213,24 +213,24 @@ label.btn {
   cursor: not-allowed !important;
 }
 
-/* Primary button — solid brand color */
+/* Primary button — gold brand gradient, dark text, both themes */
 .btnPrimary {
-  background: var(--primary) !important;
-  border-color: var(--primary) !important;
-  color: var(--primary-text-on) !important;
-  font-weight: 700 !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px var(--primary-glow) !important;
+  background: var(--brand-gradient) !important;
+  border-color: rgba(226,171,65,0.45) !important;
+  color: #1a1d2e !important;
+  font-weight: 800 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 14px rgba(226,171,65,0.30) !important;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: var(--primary-hover) !important;
-  border-color: var(--primary-hover) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 6px 16px var(--primary-glow) !important;
+  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(200,130,10,1.0)) !important;
+  border-color: rgba(226,171,65,0.65) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 6px 20px rgba(226,171,65,0.42) !important;
 }
 
 .btnPrimary:active:not(:disabled) {
-  background: var(--primary-active) !important;
-  border-color: var(--primary-active) !important;
+  background: linear-gradient(315deg, rgba(226,171,65,1.0), rgba(184,124,8,1.0)) !important;
+  border-color: rgba(226,171,65,0.70) !important;
 }
 
 /* Ghost button — transparent with border */

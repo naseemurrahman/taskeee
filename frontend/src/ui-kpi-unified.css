@@ -44,6 +44,8 @@ button.kpiCard {
   width: 100%;
   height: 100%;
   align-self: stretch;
+  /* Override the generic button[type=button] 999px radius rule */
+  border-radius: 12px !important;
 }
 
 button.kpiCard:hover {

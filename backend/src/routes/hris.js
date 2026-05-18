@@ -98,13 +98,18 @@ router.get('/employees', authenticate, requireAnyRole('supervisor', 'manager', '
     const orgCol = empCols.has('org_id') ? 'org_id' : (empCols.has('organization_id') ? 'organization_id' : null);
     if (!orgCol) return res.json({ employees: [], total: 0 });
 
-    const { page = 1, limit = 50, status, search, department } = req.query;
+    const { page = 1, limit = 50, status, search, department, includeTerminated } = req.query;
     const safeLimit = Math.min(parseInt(limit, 10) || 50, 100);
     const offset = ((parseInt(page, 10) || 1) - 1) * safeLimit;
 
     const params = [orgId];
     const conditions = [`e.${orgCol} = $1`];
     let p = 2;
+
+    // Always hide terminated employees unless explicitly requested (e.g. HR audit)
+    if (!includeTerminated && empCols.has('status')) {
+      conditions.push(`COALESCE(e.status, 'active') != 'terminated'`);
+    }
 
     if (!isOrgWideRole(req.user.role) && empCols.has('user_id')) {
       const subIds = await safeGetSubordinateIds(req.user.id);
@@ -113,7 +118,13 @@ router.get('/employees', authenticate, requireAnyRole('supervisor', 'manager', '
       params.push(ids);
     }
 
-    if (status && empCols.has('status')) { conditions.push(`e.status = $${p++}`); params.push(String(status)); }
+    if (status && empCols.has('status')) {
+      // Explicit status filter — removes the default terminated exclusion and filters to exact status
+      const termIdx = conditions.findIndex(c => c.includes("!= 'terminated'"))
+      if (termIdx !== -1) conditions.splice(termIdx, 1)
+      conditions.push(`e.status = $${p++}`)
+      params.push(String(status))
+    }
     if (department && empCols.has('department')) { conditions.push(`COALESCE(e.department,'') ILIKE $${p++}`); params.push(`%${department}%`); }
     if (search) {
       const searchParts = [];

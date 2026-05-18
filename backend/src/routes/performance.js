@@ -25,7 +25,13 @@ async function getScopedAssigneeFilter(user) {
   const orgId = user.org_id ?? user.orgId;
   let assigneeFilter = [];
   if (isOrgWideRole(user.role)) {
-    let { rows } = await query(`SELECT id FROM users WHERE org_id = $1 AND is_active = TRUE`, [orgId]);
+    let { rows } = await query(
+      `SELECT u.id FROM users u
+       LEFT JOIN employees e ON e.user_id = u.id AND e.org_id = $1
+       WHERE u.org_id = $1 AND u.is_active = TRUE
+         AND COALESCE(e.status, 'active') != 'terminated'`,
+      [orgId]
+    );
     if (!rows.length) ({ rows } = await query(`SELECT id FROM users WHERE org_id = $1`, [orgId]));
     assigneeFilter = rows.map(r => r.id);
   } else {
