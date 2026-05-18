@@ -17,6 +17,7 @@ import './ui-charts-standard.css' // Chart card heights and typography (dashboar
 import './ui-responsive-shell.css' // Fluid grids and mobile KPI scroll
 import './responsive-hardening.css' // final viewport and mobile layout guardrails
 import './chart-render-fixes.css' // final chart visibility and responsive sizing guardrails
+import './insights-responsive-upgrade.css' // Insights page mobile-safe analytical chart layout
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'
