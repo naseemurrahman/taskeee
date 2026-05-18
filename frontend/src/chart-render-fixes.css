@@ -1,0 +1,89 @@
+/*
+ * Recharts rendering guardrails.
+ *
+ * Several app pages mount charts inside responsive cards whose width can change
+ * after the sidebar/topbar/mobile layout settles. These rules keep chart
+ * containers measurable and keep SVG layers visible in both themes.
+ */
+
+.contentV4 :is(.insightsChartCard, .chartV3, .chartCardV2, .card):has(.recharts-responsive-container) {
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.contentV4 :is(.insightsChartBody, .chartCardV2Body, .chartV3, .card) .recharts-responsive-container {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 180px !important;
+}
+
+.contentV4 .insightsChartBody {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 190px !important;
+  overflow: visible !important;
+}
+
+.contentV4 .insightsChartBody > .recharts-responsive-container {
+  min-height: inherit !important;
+}
+
+.contentV4 .recharts-wrapper,
+.contentV4 .recharts-surface {
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.contentV4 .recharts-wrapper,
+.contentV4 .recharts-surface,
+.contentV4 .recharts-layer,
+.contentV4 .recharts-legend-wrapper,
+.contentV4 .recharts-cartesian-axis,
+.contentV4 .recharts-cartesian-grid,
+.contentV4 .recharts-bar,
+.contentV4 .recharts-line,
+.contentV4 .recharts-area,
+.contentV4 .recharts-pie,
+.contentV4 .recharts-radar {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.contentV4 :is(
+  .recharts-sector,
+  .recharts-rectangle,
+  .recharts-area-area,
+  .recharts-area-curve,
+  .recharts-line-curve,
+  .recharts-radar-polygon,
+  .recharts-radar-dot
+) {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.appShellV4Light .contentV4 .recharts-cartesian-grid line,
+.appShellV4Light .contentV4 .recharts-polar-grid-angle line,
+.appShellV4Light .contentV4 .recharts-polar-grid-concentric path {
+  stroke: rgba(15, 23, 42, 0.08) !important;
+}
+
+.appShellV4Dark .contentV4 .recharts-cartesian-grid line,
+.appShellV4Dark .contentV4 .recharts-polar-grid-angle line,
+.appShellV4Dark .contentV4 .recharts-polar-grid-concentric path {
+  stroke: rgba(255, 255, 255, 0.08) !important;
+}
+
+.contentV4 .chartEmptyState {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
