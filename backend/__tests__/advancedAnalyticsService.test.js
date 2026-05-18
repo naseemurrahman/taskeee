@@ -16,7 +16,9 @@ const userColumns = [
 ].map(column_name => ({ column_name }));
 
 function loadService() {
-  jest.resetModules();
+  // Keep the already-configured db/visibility mocks intact while reloading the
+  // service so its module-level table/column caches are fresh for each test.
+  delete require.cache[require.resolve('../src/services/advancedAnalyticsService')];
   return require('../src/services/advancedAnalyticsService');
 }
 
