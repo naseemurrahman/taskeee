@@ -93,6 +93,187 @@ button {
   max-width: 100%;
 }
 
+/* Top app header: keep controls visible in both dark and light themes. */
+.appShellV4 .topbarV4 {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9000 !important;
+  isolation: isolate !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 8px clamp(10px, 1.8vw, 18px) !important;
+  gap: 10px !important;
+  border-bottom: 1px solid rgba(226, 171, 65, 0.28) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(18px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15) !important;
+  color: var(--text) !important;
+  overflow: visible !important;
+}
+
+.appShellV4Dark .topbarV4 {
+  background: linear-gradient(180deg, rgba(16, 20, 30, 0.98), rgba(12, 15, 23, 0.96)) !important;
+}
+
+.appShellV4Light .topbarV4 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 251, 0.96)) !important;
+  border-bottom-color: rgba(180, 83, 9, 0.22) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.10) !important;
+}
+
+.appShellV4 .topbarV4::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(201, 131, 23, 0.18), rgba(226, 171, 65, 0.72), rgba(245, 158, 11, 0.18));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.appShellV4 .topbarV4SearchWrap {
+  position: relative !important;
+  flex: 1 1 min(520px, 48vw) !important;
+  min-width: 160px !important;
+  max-width: 620px !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  background: rgba(15, 23, 42, 0.42) !important;
+  color: var(--text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.appShellV4Light .topbarV4SearchWrap {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.appShellV4 .topbarV4SearchIcon {
+  color: var(--text2) !important;
+  opacity: 1 !important;
+  z-index: 2 !important;
+}
+
+.appShellV4 .topbarV4SearchInput {
+  color: var(--text) !important;
+  caret-color: var(--brand, #e2ab41) !important;
+  opacity: 1 !important;
+}
+
+.appShellV4 .topbarV4SearchInput::placeholder {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+.appShellV4 :is(
+  .topbarV4MenuBtn,
+  .topbarNotifyBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn
+) {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  border-radius: 13px !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--text) !important;
+  opacity: 1 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+
+.appShellV4Light :is(
+  .topbarV4MenuBtn,
+  .topbarNotifyBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn
+) {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.90) !important;
+}
+
+.appShellV4 :is(
+  .topbarV4MenuBtn,
+  .topbarNotifyBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn
+):hover {
+  border-color: rgba(226, 171, 65, 0.42) !important;
+  background: rgba(226, 171, 65, 0.12) !important;
+  color: var(--text) !important;
+}
+
+.appShellV4Light :is(
+  .topbarV4MenuBtn,
+  .topbarNotifyBtn,
+  .topbarThemeBtn,
+  .topbarLangBtn,
+  .topbarV4ProfileBtn
+):hover {
+  background: rgba(226, 171, 65, 0.14) !important;
+  color: #0f172a !important;
+}
+
+.appShellV4 :is(.topbarV4MenuBtn, .topbarNotifyBtn, .topbarThemeBtn, .topbarLangBtn, .topbarV4ProfileBtn) svg {
+  display: block !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  opacity: 1 !important;
+}
+
+.appShellV4 .topbarLangBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  width: auto !important;
+  min-width: 44px !important;
+  padding: 0 9px !important;
+  font-weight: 900 !important;
+  font-size: 11px !important;
+}
+
+.appShellV4 .topbarNotifyWrap {
+  position: relative !important;
+  z-index: 3 !important;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+}
+
+.appShellV4 .topbarNotifyBadge {
+  z-index: 5 !important;
+  box-shadow: 0 0 0 2px rgba(12, 15, 23, 0.98) !important;
+}
+
+.appShellV4Light .topbarNotifyBadge {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98) !important;
+}
+
+.appShellV4 .topbarProfileWrap {
+  position: relative !important;
+  z-index: 4 !important;
+}
+
+.appShellV4 .topbarV4AvatarImg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+  display: block !important;
+}
+
 /* Dashboard overview charts: desktop can use 2fr/1fr/1fr, but tablets and
    phones must not keep the three fixed columns. */
 @media (min-width: 721px) and (max-width: 1280px) {
@@ -201,6 +382,40 @@ button {
     align-items: flex-start !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .appShellV4 .topbarV4 {
+    gap: 7px !important;
+    padding-inline: 8px !important;
+  }
+
+  .appShellV4 .topbarV4SearchWrap {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .appShellV4 .topbarV4SearchInput::placeholder {
+    color: transparent !important;
+  }
+
+  .appShellV4 :is(.topbarV4MenuBtn, .topbarNotifyBtn, .topbarThemeBtn, .topbarV4ProfileBtn) {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 12px !important;
+  }
+
+  .appShellV4 .topbarLangBtn {
+    min-width: 38px !important;
+    padding: 0 !important;
+  }
+
+  .appShellV4 .topbarLangBtn span {
+    display: none !important;
   }
 }
 
