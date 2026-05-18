@@ -1,0 +1,54 @@
+/* Static topbar visibility rules.
+   Replaces the previous MutationObserver-based topbar-action-visibility guard.
+   The topbar buttons are now styled directly so their SVG/text content remains
+   visible in both light and dark themes without runtime DOM injection. */
+
+.appShellV4 .topbarV4 :is(.topbarV4MenuBtn,.topbarNotifyBtn,.topbarThemeBtn,.topbarLangBtn,.topbarV4ProfileBtn) {
+  position: relative !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  color: var(--text, #f7d890) !important;
+  -webkit-text-fill-color: currentColor !important;
+  background: linear-gradient(180deg, rgba(24,31,44,.98), rgba(13,18,29,.98)) !important;
+  border: 1px solid rgba(226,171,65,.42) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.appShellV4Light .topbarV4 :is(.topbarV4MenuBtn,.topbarNotifyBtn,.topbarThemeBtn,.topbarLangBtn,.topbarV4ProfileBtn) {
+  color: #7c2d12 !important;
+  -webkit-text-fill-color: #7c2d12 !important;
+  background: linear-gradient(180deg, #ffffff, #eef2f7) !important;
+  border-color: rgba(180,83,9,.32) !important;
+}
+
+.appShellV4 .topbarV4 :is(.topbarV4MenuBtn,.topbarNotifyBtn,.topbarThemeBtn,.topbarLangBtn,.topbarV4ProfileBtn) > svg,
+.appShellV4 .topbarV4 :is(.topbarV4MenuBtn,.topbarNotifyBtn,.topbarThemeBtn,.topbarLangBtn,.topbarV4ProfileBtn) :is(svg, span) {
+  position: relative !important;
+  z-index: 2 !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.appShellV4 .topbarV4 .topbarLangBtn > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: 11px !important;
+  font-weight: 950 !important;
+}
+
+.appShellV4 .topbarV4 .topbarV4ProfileBtn img,
+.appShellV4 .topbarV4 .topbarV4AvatarImg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
