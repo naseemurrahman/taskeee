@@ -6,31 +6,22 @@
  * sidebar quick-stats, and any widget that needs a fast count summary
  * without loading the full performance summary.
  *
- * Returns counts scoped to the caller's role:
- *   - Admin/HR/Director: org-wide
- *   - Manager/Supervisor: subtree
- *   - Employee: self only
+ * Returns counts scoped to the caller's role. Terminated employees are excluded
+ * from charts, performance, leaderboard, and count summaries; every other
+ * employee status remains visible.
  */
 const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, isOrgWideRole } = require('../middleware/auth');
+const { scopedNonTerminatedUserIds } = require('../utils/employeeVisibility');
 
 async function getScopedIds(user) {
-  const orgId = user.org_id ?? user.orgId;
-  if (isOrgWideRole(user.role)) {
-    const { rows } = await query(
-      `SELECT id FROM users WHERE org_id = $1 AND is_active = TRUE`, [orgId]
-    );
-    return rows.map(r => r.id);
-  }
-  if (['supervisor', 'manager', 'director'].includes(user.role)) {
-    const { rows } = await query(
-      `SELECT user_id FROM get_subordinate_ids($1)`, [user.id]
-    );
-    return [user.id, ...rows.map(r => r.user_id)];
-  }
-  return [user.id];
+  return scopedNonTerminatedUserIds(user, {
+    orgWideRoles: ['admin', 'director', 'hr'],
+    managerRoles: ['supervisor', 'manager', 'director'],
+    requireActive: true,
+  });
 }
 
 router.get('/', authenticate, async (req, res, next) => {
@@ -39,7 +30,7 @@ router.get('/', authenticate, async (req, res, next) => {
     const scopedIds = await getScopedIds(req.user);
 
     const [taskStats, userStats, pendingApprovals] = await Promise.all([
-      query(`
+      scopedIds.length ? query(`
         SELECT
           COUNT(*)::int                                              AS total,
           COUNT(*) FILTER (WHERE status = 'in_progress')::int       AS in_progress,
@@ -56,24 +47,24 @@ router.get('/', authenticate, async (req, res, next) => {
         FROM tasks
         WHERE org_id = $1
           AND assigned_to = ANY($2)
-      `, [orgId, scopedIds]),
+      `, [orgId, scopedIds]) : Promise.resolve({ rows: [{}] }),
 
       isOrgWideRole(req.user.role) ? query(`
         SELECT
           COUNT(*)::int                                      AS total,
-          COUNT(*) FILTER (WHERE is_active = TRUE)::int     AS active,
+          COUNT(*) FILTER (WHERE COALESCE(is_active, TRUE) = TRUE)::int AS active,
           COUNT(*) FILTER (WHERE role = 'employee')::int    AS employees,
           COUNT(*) FILTER (WHERE role IN ('manager','supervisor','director'))::int AS managers
-        FROM users WHERE org_id = $1
-      `, [orgId]) : Promise.resolve({ rows: [null] }),
+        FROM users WHERE org_id = $1 AND id = ANY($2)
+      `, [orgId, scopedIds]) : Promise.resolve({ rows: [null] }),
 
-      query(`
+      scopedIds.length ? query(`
         SELECT COUNT(*)::int AS count
         FROM tasks
         WHERE org_id = $1
           AND status = 'submitted'
           AND assigned_to = ANY($2)
-      `, [orgId, scopedIds]),
+      `, [orgId, scopedIds]) : Promise.resolve({ rows: [{ count: 0 }] }),
     ]);
 
     const tasks = taskStats.rows[0] || {};
@@ -216,7 +207,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
         ROUND(100.0 * COUNT(t.id) FILTER (WHERE t.status IN ('completed','manager_approved')) / NULLIF(COUNT(t.id),0),1)::float AS completion_rate
       FROM users u
       LEFT JOIN tasks t ON t.assigned_to = u.id AND t.org_id = u.org_id
-      WHERE u.org_id=$1 AND u.id=ANY($2) AND u.is_active=TRUE
+      WHERE u.org_id=$1 AND u.id=ANY($2) AND COALESCE(u.is_active, TRUE)=TRUE
       GROUP BY u.id, u.full_name, u.department, u.role
       ORDER BY completion_rate DESC NULLS LAST, total DESC
       LIMIT 10
