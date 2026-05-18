@@ -15,6 +15,7 @@ type InsightsResponse = { generated_at: string; insights: Insight[] }
 type AnalyticsSummary = { total_tasks: number; completed_tasks: number; pending_tasks: number; overdue_tasks: number; active_employees: number; avg_completion_hours: string | number; avg_ai_confidence: string | number }
 type StatusPoint = { status: string; count: number }
 type TrendPoint = { day: string; created?: number; completed?: number; overdue?: number }
+type PriorityPoint = { priority: string; count: number }
 type EmployeePerformance = { employee_id: string; employee_name: string; assigned: number; completed: number; overdue: number }
 type WorkloadEmployee = { employee_id: string; employee_name: string; open_tasks: number; total_tasks: number }
 type RiskSignal = { title: string; detail: string; score: number; severity: Insight['severity']; action: string }
@@ -22,7 +23,7 @@ type Redistribution = { from: string; to: string; tasks: number; reason: string 
 type AIInsight = { title: string; description: string; severity: Insight['severity']; recommendation: string; evidence?: string }
 type BackendAiOverview = {
   generated_at: string
-  ai_model?: string           // 'groq-llama3' | 'claude-sonnet' | 'rule-based'
+  ai_model?: string
   ai_generated_at?: string
   predictive_risks: RiskSignal[]
   risk_tasks: Array<{ task_id: string; title: string; risk_score: number; severity: Insight['severity']; reason: string; suggestion: string; assigned_to_name?: string; due_date?: string; priority?: string; status?: string }>
@@ -37,6 +38,7 @@ async function fetchInsights(days: number) { return apiFetch<InsightsResponse>(`
 async function fetchSummary(days: number) { return apiFetch<AnalyticsSummary>(`/api/v1/analytics/summary?days=${days}`) }
 async function fetchStatus(days: number) { return apiFetch<{ statuses: StatusPoint[] }>(`/api/v1/analytics/task-status?days=${days}`) }
 async function fetchTrend(days: number) { return apiFetch<{ points: TrendPoint[] }>(`/api/v1/analytics/tasks-over-time?days=${days}`) }
+async function fetchPriorities(days: number) { return apiFetch<{ priorities: PriorityPoint[] }>(`/api/v1/analytics/priority-breakdown?days=${days}`) }
 async function fetchEmployees(days: number) { return apiFetch<{ employees: EmployeePerformance[] }>(`/api/v1/analytics/employee-performance?days=${days}`) }
 async function fetchWorkload(days: number) { return apiFetch<{ employees: WorkloadEmployee[] }>(`/api/v1/analytics/workload?days=${days}`) }
 async function fetchBackendAi(days: number) { return apiFetch<BackendAiOverview>(`/api/v1/ai/predictive-overview?days=${days}`) }
@@ -55,6 +57,7 @@ function riskSeverity(score: number): Insight['severity'] {
 }
 function toNumber(value: string | number | undefined | null) { return Number(value || 0) }
 function statusMap(points: StatusPoint[] = []) { return Object.fromEntries(points.map((p) => [p.status, Number(p.count || 0)])) }
+function priorityMap(points: PriorityPoint[] = []) { return Object.fromEntries(points.map((p) => [String(p.priority || 'unspecified').toLowerCase(), Number(p.count || 0)])) }
 function hasMetric(value: unknown) { return value !== null && value !== undefined && Number(value) > 0 }
 function timeAgoShort(iso?: string) {
   if (!iso) return ''
@@ -89,9 +92,6 @@ export function AnalyticsPage() {
 
   useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
 
-  // AI status from backend — always fresh, refetches every 30s
-  // This drives the badge: as soon as GROQ_API_KEY is set in Railway and redeploy completes,
-  // this query returns { active_model: 'groq-llama3' } and the badge updates automatically.
   const aiStatusQ = useQuery({
     queryKey: ['ai-status'],
     queryFn: () => apiFetch<AIStatus>('/api/v1/ai/status'),
@@ -100,13 +100,13 @@ export function AnalyticsPage() {
     refetchOnWindowFocus: true,
   })
 
-  const insightsQ   = useQuery({ queryKey: ['insights', days],           queryFn: () => fetchInsights(days), staleTime: 60_000, refetchInterval: 60_000 })
-  const summaryQ    = useQuery({ queryKey: ['analytics-summary', days],  queryFn: () => fetchSummary(days),  staleTime: 30_000, refetchInterval: 30_000 })
-  const statusQ     = useQuery({ queryKey: ['analytics-status', days],   queryFn: () => fetchStatus(days),   staleTime: 30_000, refetchInterval: 30_000 })
-  const trendQ      = useQuery({ queryKey: ['analytics-trend', days],    queryFn: () => fetchTrend(days),    staleTime: 60_000, refetchInterval: 60_000 })
-  const employeesQ  = useQuery({ queryKey: ['analytics-employees', days],queryFn: () => fetchEmployees(days),staleTime: 60_000, refetchInterval: 60_000 })
-  const workloadQ   = useQuery({ queryKey: ['analytics-workload', days], queryFn: () => fetchWorkload(days), staleTime: 30_000, refetchInterval: 30_000 })
-  // AI overview: refetch every 5 min automatically (LLM analysis is expensive — don't spam)
+  const insightsQ   = useQuery({ queryKey: ['insights', days],             queryFn: () => fetchInsights(days),   staleTime: 60_000, refetchInterval: 60_000 })
+  const summaryQ    = useQuery({ queryKey: ['analytics-summary', days],    queryFn: () => fetchSummary(days),    staleTime: 30_000, refetchInterval: 30_000 })
+  const statusQ     = useQuery({ queryKey: ['analytics-status', days],     queryFn: () => fetchStatus(days),     staleTime: 30_000, refetchInterval: 30_000 })
+  const trendQ      = useQuery({ queryKey: ['analytics-trend', days],      queryFn: () => fetchTrend(days),      staleTime: 30_000, refetchInterval: 30_000 })
+  const priorityQ   = useQuery({ queryKey: ['analytics-priority', days],   queryFn: () => fetchPriorities(days), staleTime: 30_000, refetchInterval: 30_000 })
+  const employeesQ  = useQuery({ queryKey: ['analytics-employees', days],  queryFn: () => fetchEmployees(days),  staleTime: 30_000, refetchInterval: 30_000 })
+  const workloadQ   = useQuery({ queryKey: ['analytics-workload', days],   queryFn: () => fetchWorkload(days),   staleTime: 30_000, refetchInterval: 30_000 })
   const backendAiQ  = useQuery({
     queryKey: ['backend-ai-overview', days],
     queryFn: () => fetchBackendAi(days),
@@ -115,7 +115,6 @@ export function AnalyticsPage() {
     refetchInterval: 5 * 60_000,
   })
 
-  // Manual refresh of AI analysis only
   const refreshAI = useCallback(async () => {
     setAiRefreshing(true)
     await qc.invalidateQueries({ queryKey: ['backend-ai-overview', days] })
@@ -124,6 +123,7 @@ export function AnalyticsPage() {
 
   const summary = summaryQ.data
   const byStatus = useMemo(() => statusMap(statusQ.data?.statuses), [statusQ.data])
+  const priorityPressure = useMemo(() => priorityMap(priorityQ.data?.priorities), [priorityQ.data])
   const trend = trendQ.data?.points || []
   const employees = employeesQ.data?.employees || []
   const workloadEmployees = workloadQ.data?.employees || []
@@ -154,9 +154,6 @@ export function AnalyticsPage() {
     return { name: e.employee_name || 'Unassigned', active: Math.max(0, assigned - done), completed: done, performanceScore: score }
   })
 
-  const priorityPressure = { high: overdue, medium: Math.max(0, pending - overdue), low: Math.max(0, total - pending - completed) }
-
-  // Rule-based fallbacks (used only when AI call fails)
   const fallbackPredictiveRisks = useMemo<RiskSignal[]>(() => {
     const latest = trend.slice(-7)
     const recentCreated = latest.reduce((s, p) => s + Number(p.created || 0), 0)
@@ -193,12 +190,9 @@ export function AnalyticsPage() {
   }, [workload.averageOpenTasks, workloadEmployees])
 
   const backendAi = backendAiQ.data
-  // Use /ai/status as the authoritative badge source — it reflects env vars directly.
-  // Fall back to what the predictive-overview response says if status hasn't loaded yet.
   const aiModel = aiStatusQ.data?.active_model || backendAi?.ai_model
   const isRealAI = aiModel === 'groq-llama3' || aiModel === 'claude-sonnet'
 
-  // Use AI-generated content when available, fall back to rule-based
   const predictiveRisks = backendAi?.predictive_risks?.length ? backendAi.predictive_risks : fallbackPredictiveRisks
   const aiSuggestions   = (backendAi?.ai_suggestions?.length ? backendAi.ai_suggestions : backendAi?.suggestions?.length ? backendAi.suggestions : fallbackSuggestions)
   const aiInsightsCards = backendAi?.ai_insights || []
@@ -208,18 +202,17 @@ export function AnalyticsPage() {
 
   const kpis = [
     { label: 'Total tasks',      value: summaryQ.isLoading ? '—' : total,              tone: undefined,                            color: '#6366f1' },
-    { label: 'Completion rate',  value: `${completionRate}%`,                           tone: '#22c55e',                            color: '#22c55e' },
-    { label: 'Pending',          value: pending,                                         tone: undefined,                            color: '#eab308' },
-    { label: 'Overdue',          value: overdue,                                         tone: overdue > 0 ? 'rgba(239,68,68,.92)' : undefined, color: '#ef4444' },
-    { label: 'Active employees', value: summary?.active_employees ?? 0,                 tone: undefined,                            color: '#06b6d4' },
-    { label: 'Avg completion',   value: avgHours ? `${avgHours.toFixed(1)}h` : '—',     tone: undefined,                            color: '#a855f7' },
+    { label: 'Completion rate',  value: `${completionRate}%`,                         tone: '#22c55e',                            color: '#22c55e' },
+    { label: 'Pending',          value: pending,                                       tone: undefined,                            color: '#eab308' },
+    { label: 'Overdue',          value: overdue,                                       tone: overdue > 0 ? 'rgba(239,68,68,.92)' : undefined, color: '#ef4444' },
+    { label: 'Active employees', value: summary?.active_employees ?? 0,                tone: undefined,                            color: '#06b6d4' },
+    { label: 'Avg completion',   value: avgHours ? `${avgHours.toFixed(1)}h` : '—',    tone: undefined,                            color: '#a855f7' },
     { label: 'AI confidence',    value: avgConfidenceAvailable ? `${Math.round(avgConfidence * 100)}%` : '—', tone: undefined, color: '#06b6d4' },
-    { label: 'Avg workload',     value: workload.averageOpenTasks.toFixed(1),            tone: undefined,                            color: '#f97316' },
+    { label: 'Avg workload',     value: workload.averageOpenTasks.toFixed(1),          tone: undefined,                            color: '#f97316' },
   ]
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      {/* Header */}
       <PageHeaderCard
         title="Analytics Intelligence"
         subtitle="Live charts · AI-powered risk analysis · Real-time recommendations"
@@ -245,18 +238,11 @@ export function AnalyticsPage() {
       <KpiStrip
         loading={summaryQ.isLoading}
         skeletonCount={8}
-        items={kpis.map((item) => ({
-          label: item.label,
-          value: item.value,
-          color: item.tone || item.color,
-          animate: false,
-        }))}
+        items={kpis.map((item) => ({ label: item.label, value: item.value, color: item.tone || item.color, animate: false }))}
       />
 
-
-      {/* Charts grid */}
       <div style={{ display: 'grid', gap: 16 }}>
-        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Velocity over the last ${days} days`} loading={trendQ.isLoading}>
+        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Server-generated live date series over the last ${days} days`} loading={trendQ.isLoading}>
           <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} loading={trendQ.isLoading} />
         </ChartCard>
         <div className="analyticsChartGrid">
@@ -268,8 +254,8 @@ export function AnalyticsPage() {
           </ChartCard>
         </div>
         <div className="analyticsChartGrid">
-          <ChartCard title="Priority Pressure" subtitle="Risk-weighted work pressure" loading={summaryQ.isLoading}>
-            <PriorityPieChart byPriority={priorityPressure} loading={summaryQ.isLoading} />
+          <ChartCard title="Priority Pressure" subtitle="Live priority mix from task records" loading={priorityQ.isLoading}>
+            <PriorityPieChart byPriority={priorityPressure} loading={priorityQ.isLoading} />
           </ChartCard>
           <ChartCard title="Workload Balance" subtitle="Overloaded vs underutilized members" loading={workloadQ.isLoading}>
             <WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} loading={workloadQ.isLoading} />
@@ -280,33 +266,15 @@ export function AnalyticsPage() {
         </ChartCard>
       </div>
 
-      {/* AI Intelligence header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0 4px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--text)' }}>🤖 AI Intelligence</div>
         <AIModelBadge model={aiModel} />
-        {aiTimestamp && (
-          <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
-            Last analyzed {timeAgoShort(aiTimestamp)}
-          </span>
-        )}
-        {!backendAiQ.isFetching && !isRealAI && (
-          <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>
-            ⚠ Set GROQ_API_KEY in Railway for real AI analysis
-          </span>
-        )}
-        {backendAiQ.isFetching && (
-          <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 700, animation: 'pulse 1.5s ease-in-out infinite' }}>
-            Analyzing your live data…
-          </span>
-        )}
+        {aiTimestamp && <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Last analyzed {timeAgoShort(aiTimestamp)}</span>}
+        {!backendAiQ.isFetching && !isRealAI && <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>⚠ Set GROQ_API_KEY in Railway for real AI analysis</span>}
+        {backendAiQ.isFetching && <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 700, animation: 'pulse 1.5s ease-in-out infinite' }}>Analyzing your live data…</span>}
       </div>
 
-      {/* Predictive risk cards */}
-      <ChartCard
-        title="Predictive Risk Intelligence"
-        subtitle={isRealAI ? `AI-generated risk analysis from live task signals` : 'Rule-based risk scoring from live task signals'}
-        loading={backendAiQ.isLoading}
-      >
+      <ChartCard title="Predictive Risk Intelligence" subtitle={isRealAI ? `AI-generated risk analysis from live task signals` : 'Rule-based risk scoring from live task signals'} loading={backendAiQ.isLoading}>
         {backendAiQ.isError && <div className="alertV4 alertV4Error" style={{ marginBottom: 12 }}>AI service unavailable — showing rule-based predictions.</div>}
         <div className="grid3">
           {predictiveRisks.map((risk) => {
@@ -328,7 +296,6 @@ export function AnalyticsPage() {
         </div>
       </ChartCard>
 
-      {/* AI-generated insight cards — only shown when real AI responds */}
       {aiInsightsCards.length > 0 && (
         <ChartCard title="AI Insight Cards" subtitle={`${aiInsightsCards.length} insights generated by ${aiModel === 'groq-llama3' ? 'Llama 3.3 70B' : 'Claude Sonnet'}`}>
           <div style={{ display: 'grid', gap: 10 }}>
@@ -350,7 +317,6 @@ export function AnalyticsPage() {
         </ChartCard>
       )}
 
-      {/* Risk tasks */}
       {riskTasks.length > 0 && (
         <ChartCard title="Highest-Risk Tasks" subtitle="Task-level risk scores from live signal analysis">
           <div style={{ display: 'grid', gap: 10 }}>
@@ -373,25 +339,17 @@ export function AnalyticsPage() {
       )}
 
       <div className="grid2">
-        {/* AI suggestions */}
-        <ChartCard
-          title={isRealAI ? 'AI-Generated Action Plan' : 'Suggested Actions'}
-          subtitle={isRealAI ? `Specific moves recommended by ${aiModel === 'groq-llama3' ? 'Llama 3.3 70B' : 'Claude Sonnet'} from your live data` : 'Rule-based recommendations from live analytics'}
-          loading={backendAiQ.isLoading}
-        >
+        <ChartCard title={isRealAI ? 'AI-Generated Action Plan' : 'Suggested Actions'} subtitle={isRealAI ? `Specific moves recommended by ${aiModel === 'groq-llama3' ? 'Llama 3.3 70B' : 'Claude Sonnet'} from your live data` : 'Rule-based recommendations from live analytics'} loading={backendAiQ.isLoading}>
           <div style={{ display: 'grid', gap: 10 }}>
             {aiSuggestions.map((suggestion, index) => (
               <div key={suggestion} className="miniCard" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', borderLeft: `3px solid ${isRealAI ? '#8b5cf6' : 'var(--border)'}` }}>
-                <span className="pill pillMuted" style={{ color: isRealAI ? '#8b5cf6' : 'var(--muted)', flexShrink: 0 }}>
-                  {isRealAI ? <IconSpark size={14} /> : '→'} {index + 1}
-                </span>
+                <span className="pill pillMuted" style={{ color: isRealAI ? '#8b5cf6' : 'var(--muted)', flexShrink: 0 }}>{isRealAI ? <IconSpark size={14} /> : '→'} {index + 1}</span>
                 <div style={{ color: 'var(--text2)', lineHeight: 1.6, fontSize: 13 }}>{suggestion}</div>
               </div>
             ))}
           </div>
         </ChartCard>
 
-        {/* Workload redistribution */}
         <ChartCard title="Workload Redistribution" subtitle="Suggested reassignment moves to reduce delivery risk">
           <div style={{ display: 'grid', gap: 10 }}>
             {redistribution.length === 0
@@ -403,17 +361,13 @@ export function AnalyticsPage() {
                       <span style={{ color: 'var(--muted)', fontSize: 18 }}>→</span>
                       <span style={{ color: '#22c55e' }}>{move.to}</span>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
-                      Move ~{move.tasks} task{move.tasks === 1 ? '' : 's'}. {move.reason}
-                    </div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>Move ~{move.tasks} task{move.tasks === 1 ? '' : 's'}. {move.reason}</div>
                   </div>
-                ))
-            }
+                ))}
           </div>
         </ChartCard>
       </div>
 
-      {/* Insights engine output */}
       <ChartCard title="Insights Engine" subtitle="Prioritized signals from the local analytics engine">
         {insightsQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Analyzing…</div> : null}
         {insightsQ.isError ? <div className="alertV4 alertV4Error">Failed to load insights.</div> : null}
