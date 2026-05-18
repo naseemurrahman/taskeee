@@ -1,84 +1,101 @@
-const TOUCH_DELTA_THRESHOLD = 4
-const ROOT_SCROLL_PRIME = 1
-
-function appViewportHeight() {
-  return `${window.visualViewport?.height || window.innerHeight}px`
-}
+const TOUCH_DELTA_THRESHOLD = 6
+const REFRESH_THRESHOLD = 86
+const MAX_PULL_DISTANCE = 128
 
 function installPullRefreshStyles() {
-  if (document.getElementById('mobile-pull-to-refresh-guard-style')) return
+  const existing = document.getElementById('mobile-pull-to-refresh-guard-style')
+  if (existing) existing.remove()
+
   const style = document.createElement('style')
   style.id = 'mobile-pull-to-refresh-guard-style'
   style.textContent = `
-    html.taskeeNoPullRefresh,
-    html.taskeeNoPullRefresh body,
-    html.taskeeNoPullRefresh #root {
-      width: 100% !important;
-      max-width: 100% !important;
-      height: 100% !important;
-      min-height: 100% !important;
-      overflow: hidden !important;
-      overscroll-behavior: none !important;
-      overscroll-behavior-y: none !important;
-      overscroll-behavior-x: none !important;
+    html,
+    body,
+    #root {
+      overscroll-behavior-x: none;
     }
 
-    html.taskeeNoPullRefresh body {
-      position: fixed !important;
-      inset: 0 !important;
-      touch-action: pan-y !important;
+    .contentV4,
+    .sidebarV4Nav,
+    .modalCardV2,
+    .topbarNotifyList,
+    .topbarV4SearchDropdown,
+    .selectV3Dropdown,
+    .profileDropdown {
+      -webkit-overflow-scrolling: touch;
     }
 
-    html.taskeeNoPullRefresh .appShellV4 {
-      height: var(--taskee-vh, 100dvh) !important;
-      min-height: var(--taskee-vh, 100dvh) !important;
-      max-height: var(--taskee-vh, 100dvh) !important;
-      overflow: hidden !important;
-      overscroll-behavior: none !important;
-      overscroll-behavior-y: none !important;
-      overscroll-behavior-x: none !important;
+    .taskeePullRefreshIndicator {
+      position: fixed;
+      left: 50%;
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      z-index: 2147483000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 132px;
+      height: 34px;
+      padding: 0 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(226, 171, 65, 0.38);
+      background: rgba(12, 15, 23, 0.94);
+      color: #f8d98d;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+      font: 800 12px/1 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate3d(-50%, -70px, 0) scale(0.96);
+      transition: opacity 140ms ease, transform 140ms ease;
+      will-change: transform, opacity;
     }
 
-    html.taskeeNoPullRefresh .mainV4 {
-      height: var(--taskee-vh, 100dvh) !important;
-      min-height: 0 !important;
-      max-height: var(--taskee-vh, 100dvh) !important;
-      overflow: hidden !important;
-      overscroll-behavior: none !important;
-      overscroll-behavior-y: none !important;
+    html[data-theme='light'] .taskeePullRefreshIndicator,
+    .appShellV4Light ~ .taskeePullRefreshIndicator {
+      background: rgba(255, 255, 255, 0.96);
+      color: #7c2d12;
+      border-color: rgba(180, 83, 9, 0.26);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
     }
 
-    html.taskeeNoPullRefresh .contentV4 {
-      height: calc(var(--taskee-vh, 100dvh) - var(--topbar-height, 56px)) !important;
-      min-height: 0 !important;
-      max-height: calc(var(--taskee-vh, 100dvh) - var(--topbar-height, 56px)) !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      overscroll-behavior: contain !important;
-      overscroll-behavior-y: contain !important;
-      -webkit-overflow-scrolling: touch !important;
+    .taskeePullRefreshIndicator[data-state='pull'],
+    .taskeePullRefreshIndicator[data-state='ready'],
+    .taskeePullRefreshIndicator[data-state='refreshing'] {
+      opacity: 1;
     }
 
-    html.taskeeNoPullRefresh .sidebarV4Nav,
-    html.taskeeNoPullRefresh .modalCardV2,
-    html.taskeeNoPullRefresh .topbarNotifyList,
-    html.taskeeNoPullRefresh .topbarV4SearchDropdown,
-    html.taskeeNoPullRefresh .selectV3Dropdown,
-    html.taskeeNoPullRefresh .profileDropdown,
-    html.taskeeNoPullRefresh .tasksTableWrap,
-    html.taskeeNoPullRefresh .tableWrap,
-    html.taskeeNoPullRefresh .responsiveTableWrap,
-    html.taskeeNoPullRefresh .chartV3:has(table) {
-      overscroll-behavior: contain !important;
-      overscroll-behavior-y: contain !important;
-      -webkit-overflow-scrolling: touch !important;
+    .taskeePullRefreshSpinner {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      opacity: 0.9;
+      transform: rotate(0deg);
+    }
+
+    .taskeePullRefreshIndicator[data-state='refreshing'] .taskeePullRefreshSpinner {
+      animation: taskeePullRefreshSpin 0.7s linear infinite;
+    }
+
+    @keyframes taskeePullRefreshSpin {
+      to { transform: rotate(360deg); }
     }
   `
   document.head.appendChild(style)
 }
 
-function updateViewportHeight() {
-  document.documentElement.style.setProperty('--taskee-vh', appViewportHeight())
+function ensureIndicator() {
+  let indicator = document.querySelector<HTMLDivElement>('.taskeePullRefreshIndicator')
+  if (!indicator) {
+    indicator = document.createElement('div')
+    indicator.className = 'taskeePullRefreshIndicator'
+    indicator.setAttribute('role', 'status')
+    indicator.setAttribute('aria-live', 'polite')
+    indicator.innerHTML = '<span class="taskeePullRefreshSpinner" aria-hidden="true"></span><span class="taskeePullRefreshText">Pull to refresh</span>'
+    document.body.appendChild(indicator)
+  }
+  return indicator
 }
 
 function isScrollableY(el: Element) {
@@ -104,51 +121,75 @@ function rootScrollTop() {
   return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
 }
 
-function primeScrollableBoundary(el: HTMLElement | null) {
-  if (!el || el.scrollHeight <= el.clientHeight + 1) return
-  if (el.scrollTop <= 0) {
-    el.scrollTop = 1
-  } else if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
-    el.scrollTop = Math.max(0, el.scrollTop - 1)
-  }
+function isAtTop(scrollable: HTMLElement | null) {
+  if (scrollable) return scrollable.scrollTop <= 0
+  return rootScrollTop() <= 0
 }
 
-function primeRootBoundary() {
-  // Some mobile browsers only trigger pull-to-refresh when the root scroll is
-  // exactly zero. Keep the root one CSS pixel away from that boundary; the app
-  // itself scrolls inside .contentV4, so this is visually imperceptible.
-  if (rootScrollTop() <= 0) {
-    window.scrollTo(0, ROOT_SCROLL_PRIME)
-    document.documentElement.scrollTop = ROOT_SCROLL_PRIME
-    document.body.scrollTop = ROOT_SCROLL_PRIME
-  }
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return !!target.closest('input, textarea, select, [contenteditable="true"]')
 }
 
-function installPullToRefreshGuard() {
+function setIndicatorState(indicator: HTMLDivElement, state: 'idle' | 'pull' | 'ready' | 'refreshing', distance = 0) {
+  indicator.dataset.state = state === 'idle' ? '' : state
+  const text = indicator.querySelector<HTMLSpanElement>('.taskeePullRefreshText')
+
+  if (state === 'ready') {
+    if (text) text.textContent = 'Release to refresh'
+  } else if (state === 'refreshing') {
+    if (text) text.textContent = 'Refreshing…'
+  } else {
+    if (text) text.textContent = 'Pull to refresh'
+  }
+
+  if (state === 'idle') {
+    indicator.style.transform = 'translate3d(-50%, -70px, 0) scale(0.96)'
+    indicator.style.opacity = '0'
+    return
+  }
+
+  const y = Math.min(MAX_PULL_DISTANCE, Math.max(0, distance))
+  const scale = state === 'ready' || state === 'refreshing' ? 1 : 0.96 + Math.min(0.04, y / 2400)
+  indicator.style.opacity = String(Math.min(1, 0.25 + y / 70))
+  indicator.style.transform = `translate3d(-50%, ${Math.max(-52, -58 + y)}px, 0) scale(${scale})`
+}
+
+function installPullToRefresh() {
   if (typeof window === 'undefined') return
   if (!('ontouchstart' in window) && navigator.maxTouchPoints <= 0) return
-  if ((window as any).__taskeePullToRefreshGuardInstalled) return
-  ;(window as any).__taskeePullToRefreshGuardInstalled = true
+  if ((window as any).__taskeePullToRefreshInstalled) return
+  ;(window as any).__taskeePullToRefreshInstalled = true
 
-  document.documentElement.classList.add('taskeeNoPullRefresh')
+  document.documentElement.classList.remove('taskeeNoPullRefresh')
   installPullRefreshStyles()
-  updateViewportHeight()
+  const indicator = ensureIndicator()
 
   let startX = 0
   let startY = 0
+  let pulling = false
+  let refreshing = false
+  let pullDistance = 0
   let activeScrollable: HTMLElement | null = null
 
+  const reset = () => {
+    if (refreshing) return
+    pulling = false
+    pullDistance = 0
+    window.setTimeout(() => setIndicatorState(indicator, 'idle'), 40)
+  }
+
   const onTouchStart = (event: TouchEvent) => {
-    if (event.touches.length !== 1) return
+    if (refreshing || event.touches.length !== 1 || isEditableTarget(event.target)) return
     startX = event.touches[0].clientX
     startY = event.touches[0].clientY
     activeScrollable = nearestScrollableY(event.target instanceof Element ? event.target : null)
-    primeScrollableBoundary(activeScrollable)
-    primeRootBoundary()
+    pulling = false
+    pullDistance = 0
   }
 
   const onTouchMove = (event: TouchEvent) => {
-    if (event.defaultPrevented || event.touches.length !== 1) return
+    if (refreshing || event.touches.length !== 1 || isEditableTarget(event.target)) return
 
     const touch = event.touches[0]
     const deltaY = touch.clientY - startY
@@ -157,40 +198,40 @@ function installPullToRefreshGuard() {
     if (Math.abs(deltaY) < TOUCH_DELTA_THRESHOLD) return
     if (Math.abs(deltaX) > Math.abs(deltaY) * 1.15) return
 
-    const scrollable = activeScrollable || nearestScrollableY(event.target instanceof Element ? event.target : null)
-
-    if (scrollable) {
-      const atTop = scrollable.scrollTop <= 0
-      const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1
-
-      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
-        event.preventDefault()
-      }
+    if (deltaY <= 0) {
+      reset()
       return
     }
 
-    if (deltaY > 0) {
-      event.preventDefault()
-      primeRootBoundary()
+    const scrollable = activeScrollable || nearestScrollableY(event.target instanceof Element ? event.target : null)
+    if (!isAtTop(scrollable)) return
+
+    // The app uses nested scroll containers on many pages, so browser-native
+    // pull-to-refresh does not reliably fire. Prevent the rubber-band gesture
+    // and perform an app-level reload when the user pulls far enough.
+    event.preventDefault()
+    pulling = true
+    pullDistance = Math.min(MAX_PULL_DISTANCE, deltaY * 0.62)
+    setIndicatorState(indicator, pullDistance >= REFRESH_THRESHOLD ? 'ready' : 'pull', pullDistance)
+  }
+
+  const onTouchEnd = () => {
+    if (!pulling || refreshing) return
+
+    if (pullDistance >= REFRESH_THRESHOLD) {
+      refreshing = true
+      setIndicatorState(indicator, 'refreshing', REFRESH_THRESHOLD)
+      window.setTimeout(() => window.location.reload(), 120)
+      return
     }
-  }
 
-  const onScroll = () => {
-    primeRootBoundary()
-  }
-
-  const onResize = () => {
-    updateViewportHeight()
-    primeRootBoundary()
+    reset()
   }
 
   document.addEventListener('touchstart', onTouchStart, { passive: true, capture: true })
   document.addEventListener('touchmove', onTouchMove, { passive: false, capture: true })
-  window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('resize', onResize, { passive: true })
-  window.visualViewport?.addEventListener('resize', onResize, { passive: true })
-  window.setTimeout(primeRootBoundary, 0)
-  window.setTimeout(primeRootBoundary, 300)
+  document.addEventListener('touchend', onTouchEnd, { passive: true, capture: true })
+  document.addEventListener('touchcancel', reset, { passive: true, capture: true })
 }
 
-installPullToRefreshGuard()
+installPullToRefresh()
