@@ -17,11 +17,11 @@ import './ui-charts-standard.css' // Chart card heights and typography (dashboar
 import './ui-responsive-shell.css' // Fluid grids and mobile KPI scroll
 import './responsive-hardening.css' // final viewport and mobile layout guardrails
 import './chart-render-fixes.css' // scoped Recharts fallback sizing only
+import './topbar-action-visibility.css' // static topbar button visibility rules
 import './insights-responsive-upgrade.css' // Insights page mobile-safe analytical chart layout
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'
-import './topbar-action-visibility-guard'
 import './mobile-pull-to-refresh-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
