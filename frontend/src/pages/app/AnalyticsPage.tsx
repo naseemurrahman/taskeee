@@ -275,7 +275,7 @@ export function AnalyticsPage() {
             <WorkloadBalanceChart userCount={workloadEmployees.length} workload={workload} loading={workloadQ.isLoading} />
           </ChartCard>
         </div>
-        <ChartCard title="Employee Performance" subtitle="Completion and delivery score by employee" loading={employeesQ.isLoading}>
+        <ChartCard title="Employee Performance Rate Curve" subtitle="Dual-axis view: score/completion rate vs completed/active task volume" loading={employeesQ.isLoading}>
           <AssigneeScoreChart fillHeight rows={performanceRows} loading={employeesQ.isLoading} />
         </ChartCard>
       </div>
