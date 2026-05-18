@@ -752,3 +752,86 @@ select:focus-visible {
 [style*="color:#e2ab41"] {
   color: var(--primary) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OPS TABS — theme-adaptive active state
+   Both themes: active pill uses var(--primary) bg + var(--primary-text-on)
+   Dark:  #ccd5de bg (light gray) + #022b59 text ✓
+   Light: #022b59 bg (deep navy) + #ffffff text ✓
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.opsTabActive {
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+}
+
+.opsTab {
+  color: var(--text2) !important;
+}
+
+.opsTab:hover {
+  color: var(--text) !important;
+  background: var(--surface-up) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NOTIFICATION POPOVER — theme-adaptive colors
+   Replace all hardcoded gold rgba(226,171,65,...) with primary-based vars
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Active tab in notification panel */
+.topbarNotifyTabActive {
+  background: var(--brand-dim) !important;
+  border-color: var(--brand-border) !important;
+  color: var(--primary) !important;
+}
+
+/* Unread item highlight — subtle primary tint instead of gold */
+.topbarNotifyItemUnread {
+  background: color-mix(in srgb, var(--primary) 6%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+/* Unread dot */
+.topbarNotifyItemUnread .topbarNotifyDot,
+.topbarNotifyItemUnread .topbarNotifyUnreadDot {
+  background: var(--primary) !important;
+}
+
+/* Type pill (e.g. "task", "reminder") */
+.topbarNotifyTypePill {
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+}
+
+/* Action buttons (mark all, icon actions) in notification header */
+.topbarNotifyIconAction,
+.topbarNotifyMarkAll {
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent) !important;
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
+}
+
+.topbarNotifyIconAction:hover:not(:disabled),
+.topbarNotifyMarkAll:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 16%, transparent) !important;
+}
+
+/* Notification popover background — dark theme: use theme surface, not hardcoded dark */
+:root .topbarNotifyPopover,
+.appShellV4Dark .topbarNotifyPopover {
+  background: var(--bg1) !important;
+  border-color: var(--border) !important;
+}
+
+.appShellV4Light .topbarNotifyPopover {
+  background: var(--bg1) !important;
+  border-color: var(--border) !important;
+}
+
+/* Search result active tab */
+.searchTabList button.searchTabActive {
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+  color: var(--primary) !important;
+}
