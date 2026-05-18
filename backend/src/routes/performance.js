@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../utils/db');
 const { authenticate, requireAnyRole, isOrgWideRole } = require('../middleware/auth');
+const { scopedNonTerminatedUserIds } = require('../utils/employeeVisibility');
 
 let columnsCache = new Map();
 async function getColumns(tableName) {
@@ -22,27 +23,11 @@ async function getColumns(tableName) {
 }
 
 async function getScopedAssigneeFilter(user) {
-  const orgId = user.org_id ?? user.orgId;
-  let assigneeFilter = [];
-  if (isOrgWideRole(user.role)) {
-    let { rows } = await query(
-      `SELECT u.id FROM users u
-       LEFT JOIN employees e ON e.user_id = u.id AND e.org_id = $1
-       WHERE u.org_id = $1 AND u.is_active = TRUE
-         AND COALESCE(e.status, 'active') != 'terminated'`,
-      [orgId]
-    );
-    if (!rows.length) ({ rows } = await query(`SELECT id FROM users WHERE org_id = $1`, [orgId]));
-    assigneeFilter = rows.map(r => r.id);
-  } else {
-    try {
-      const { rows: subs } = await query(`SELECT user_id FROM get_subordinate_ids($1)`, [user.id]);
-      assigneeFilter = [user.id, ...subs.map(r => r.user_id)];
-    } catch {
-      assigneeFilter = [user.id];
-    }
-  }
-  return assigneeFilter;
+  return scopedNonTerminatedUserIds(user, {
+    orgWideRoles: ['admin', 'director', 'hr'],
+    managerRoles: ['supervisor', 'manager', 'director'],
+    requireActive: true,
+  });
 }
 
 function calculateScore({ total, completed, overdue, rejected, onTimeCompleted }) {
