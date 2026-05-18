@@ -1,8 +1,9 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BarChart3, CheckCircle2, Clock3, FileBarChart, FolderOpen, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { KpiStrip } from '../ui/KpiCard'
+import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
 type AnalyticsSummary = {
   total_tasks: number
@@ -66,14 +67,6 @@ type SlaRisk = {
   }>
 }
 
-function n(value: unknown) {
-  return Number(value || 0)
-}
-
-function pct(done: number, total: number) {
-  return total ? Math.round((done / total) * 100) : 0
-}
-
 async function fetchSummary(days: number) {
   return apiFetch<AnalyticsSummary>(`/api/v1/analytics/summary?days=${days}`)
 }
@@ -95,37 +88,6 @@ async function fetchEmployees(days: number) {
 
 async function fetchSlaRisk(days: number) {
   return apiFetch<SlaRisk>(`/api/v1/analytics/sla-risk?days=${days}`)
-}
-
-function Empty({ title, detail = 'No report analytics for the selected period.' }: { title: string; detail?: string }) {
-  return (
-    <div style={{ minHeight: 116, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 900 }}>{title}</div>
-        <div style={{ marginTop: 4, fontSize: 11 }}>{detail}</div>
-      </div>
-    </div>
-  )
-}
-
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <div className="card" style={{ display: 'grid', gap: 12, minWidth: 0, overflow: 'hidden' }}>
-      <div>
-        <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 950 }}>{title}</div>
-        {subtitle ? <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 750, marginTop: 2 }}>{subtitle}</div> : null}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Loading({ height = 160 }: { height?: number }) {
-  return <div className="skeleton" style={{ height, borderRadius: 14 }} />
-}
-
-function ErrorNotice() {
-  return <div className="alertV4 alertV4Error">Live report analytics failed to load. Existing report snapshots remain available and this panel will retry automatically.</div>
 }
 
 function SnapshotReadiness({ summary, projects, departments, employees, sla }: {
@@ -167,7 +129,7 @@ function ProjectRows({ projects }: { projects: ProjectSummary[] }) {
     .filter((p) => n(p.total_tasks) > 0)
     .sort((a, b) => n(b.overdue_tasks) - n(a.overdue_tasks) || n(b.open_tasks) - n(a.open_tasks) || n(b.total_tasks) - n(a.total_tasks))
     .slice(0, 7)
-  if (!rows.length) return <Empty title="No project report data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No project report data" detail="No report analytics for the selected period." minHeight={116} />
   const max = Math.max(1, ...rows.map((row) => n(row.total_tasks)))
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -199,7 +161,7 @@ function DepartmentRows({ departments }: { departments: DepartmentPerformance[] 
     .filter((d) => n(d.assigned_tasks) > 0 || n(d.employee_count) > 0)
     .sort((a, b) => n(b.assigned_tasks) - n(a.assigned_tasks))
     .slice(0, 7)
-  if (!rows.length) return <Empty title="No department report data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No department report data" detail="No report analytics for the selected period." minHeight={116} />
   const max = Math.max(1, ...rows.map((row) => n(row.assigned_tasks)))
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -228,7 +190,7 @@ function EmployeeRows({ employees }: { employees: EmployeePerformance[] }) {
     .map((e) => ({ ...e, rate: pct(n(e.completed), Math.max(n(e.assigned), n(e.completed))) }))
     .sort((a, b) => b.rate - a.rate || n(b.completed) - n(a.completed))
     .slice(0, 7)
-  if (!rows.length) return <Empty title="No employee performance report data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No employee performance report data" detail="No report analytics for the selected period." minHeight={116} />
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {rows.map((row) => {
@@ -241,28 +203,6 @@ function EmployeeRows({ employees }: { employees: EmployeePerformance[] }) {
             </div>
             <div style={{ height: 9, borderRadius: 999, background: 'rgba(148,163,184,.14)', overflow: 'hidden' }}>
               <i style={{ display: 'block', width: `${Math.max(4, row.rate)}%`, height: '100%', background: color, borderRadius: 999 }} />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function RiskQueue({ sla }: { sla?: SlaRisk }) {
-  if (!sla?.tasks?.length) return <Empty title="No SLA risk report queue" detail="No overdue, due-soon, stalled, critical, or review-backlog task risk." />
-  return (
-    <div style={{ display: 'grid', gap: 9 }}>
-      {sla.tasks.slice(0, 6).map((task) => {
-        const color = n(task.risk_score) >= 80 ? '#ef4444' : n(task.risk_score) >= 50 ? '#f97316' : '#e2ab41'
-        return (
-          <div key={task.task_id || task.title} className="miniCard" style={{ borderLeft: `4px solid ${color}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</strong>
-              <span className="pill pillMuted" style={{ color }}>{task.risk_score}</span>
-            </div>
-            <div style={{ marginTop: 5, color: 'var(--text2)', fontSize: 12, lineHeight: 1.45 }}>
-              {task.risk_reason}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}{task.due_date ? ` · due ${new Date(task.due_date).toLocaleDateString()}` : ''}
             </div>
           </div>
         )
@@ -299,7 +239,7 @@ export function ReportAnalyticsPanel({ days = 30 }: { days?: number }) {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {hasError && <ErrorNotice />}
+      {hasError && <AnalyticsErrorNotice message="Live report analytics failed to load. Existing report snapshots remain available and this panel will retry automatically." />}
       <KpiStrip
         loading={loading}
         skeletonCount={5}
@@ -313,24 +253,24 @@ export function ReportAnalyticsPanel({ days = 30 }: { days?: number }) {
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
-        <Card title="Snapshot Readiness" subtitle="Which backend analytics sections can be included in generated reports">
-          {loading ? <Loading /> : <SnapshotReadiness summary={summary} projects={projects} departments={departments} employees={employees} sla={sla} />}
-        </Card>
-        <Card title="SLA Risk Queue" subtitle="Tasks most likely to affect report outcomes">
-          {slaQ.isLoading ? <Loading /> : <RiskQueue sla={sla} />}
-        </Card>
+        <AnalyticsCard title="Snapshot Readiness" subtitle="Which backend analytics sections can be included in generated reports">
+          {loading ? <AnalyticsLoadingBlock height={160} /> : <SnapshotReadiness summary={summary} projects={projects} departments={departments} employees={employees} sla={sla} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="SLA Risk Queue" subtitle="Tasks most likely to affect report outcomes">
+          {slaQ.isLoading ? <AnalyticsLoadingBlock height={160} /> : <AnalyticsRiskQueue tasks={sla?.tasks} emptyTitle="No SLA risk report queue" emptyDetail="No overdue, due-soon, stalled, critical, or review-backlog task risk." />}
+        </AnalyticsCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
-        <Card title="Project Report Coverage" subtitle="Project completion, open, and overdue mix">
-          {projectsQ.isLoading ? <Loading /> : <ProjectRows projects={projects} />}
-        </Card>
-        <Card title="Department Report Coverage" subtitle="Task volume by department">
-          {departmentsQ.isLoading ? <Loading /> : <DepartmentRows departments={departments} />}
-        </Card>
-        <Card title="Employee Report Coverage" subtitle="Completion rate by employee">
-          {employeesQ.isLoading ? <Loading /> : <EmployeeRows employees={employees} />}
-        </Card>
+        <AnalyticsCard title="Project Report Coverage" subtitle="Project completion, open, and overdue mix">
+          {projectsQ.isLoading ? <AnalyticsLoadingBlock height={160} /> : <ProjectRows projects={projects} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Department Report Coverage" subtitle="Task volume by department">
+          {departmentsQ.isLoading ? <AnalyticsLoadingBlock height={160} /> : <DepartmentRows departments={departments} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Employee Report Coverage" subtitle="Completion rate by employee">
+          {employeesQ.isLoading ? <AnalyticsLoadingBlock height={160} /> : <EmployeeRows employees={employees} />}
+        </AnalyticsCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
