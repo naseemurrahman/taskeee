@@ -47,6 +47,10 @@ function statusLabel(value?: string | null) {
   return String(value || 'pending').replace(/_/g, ' ')
 }
 
+const PRIORITY_COLOR: Record<string, string> = {
+  low: '#38bdf8', medium: '#8B5CF6', high: '#f97316', critical: '#ef4444', urgent: '#ef4444',
+}
+
 export function ReassignmentTasksPage() {
   const me = getUser()
   const canManage = canCreateTasksAndProjects(me?.role)
@@ -139,6 +143,18 @@ export function ReassignmentTasksPage() {
     )
   }
 
+  const tableContent = tasksQ.isLoading ? (
+    <div style={{ padding: 16 }}><SkeletonRows count={6} /></div>
+  ) : tasksQ.isError ? (
+    <ErrorRetry queryKey={['tasks', 'reassignment-needed']} message="Could not load reassignment tasks." />
+  ) : filtered.length === 0 ? (
+    <EmptyState
+      icon={<ClipboardList size={14} />}
+      title={search ? 'No reassignment tasks match your search' : 'No tasks need reassignment'}
+      sub={search ? 'Clear the search to view all held tasks.' : 'Inactive employee and paused-project tasks will appear here when action is needed.'}
+    />
+  ) : null
+
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       <PageHeaderCard
@@ -162,81 +178,143 @@ export function ReassignmentTasksPage() {
         ]}
       />
 
-      <div className="chartV3" style={{ padding: 14, display: 'grid', gap: 12 }}>
+      {/* ── Filter / action bar — height fits content ── */}
+      <div className="chartV3" style={{ padding: 14, alignSelf: 'start' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 220px', minWidth: 160 }}>
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search held tasks…" />
           </div>
-          <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
             <Select value={assigneeId} onChange={setAssigneeId} options={assigneeOptions} />
           </div>
           <button
             type="button"
             className="btn btnPrimary"
+            style={{ flexShrink: 0 }}
             disabled={!assigneeId || selectedTasks.length === 0 || reassignM.isPending}
             onClick={() => reassignM.mutate()}
           >
-            {reassignM.isPending ? 'Reassigning…' : `Reassign ${selectedTasks.length || ''}`.trim()}
+            {reassignM.isPending ? 'Reassigning…' : selectedTasks.length > 0 ? `Reassign ${selectedTasks.length}` : 'Reassign'}
           </button>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-          Select tasks, choose an active employee, then reassign. Reassigned tasks are returned to Pending for normal workflow.
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+          Select tasks below, choose an active employee, then click Reassign. Tasks return to Pending status.
         </div>
         {usersQ.isError && (
-          <div style={{ fontSize: 12, color: '#ef4444', fontWeight: 700 }}>
-            Could not load assignable users. Refresh the page or check your permissions.
+          <div style={{ marginTop: 8, fontSize: 12, color: '#ef4444', fontWeight: 700 }}>
+            Could not load assignable users. Refresh or check your permissions.
           </div>
         )}
       </div>
 
+      {/* ── Table card ── */}
       <div className="chartV3" style={{ padding: 0, overflow: 'hidden' }}>
-        {tasksQ.isLoading ? (
-          <div style={{ padding: 16 }}><SkeletonRows count={6} /></div>
-        ) : tasksQ.isError ? (
-          <ErrorRetry queryKey={['tasks', 'reassignment-needed']} message="Could not load reassignment tasks. Check your connection and try again." />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            icon={<ClipboardList size={14} />}
-            title={search ? 'No reassignment tasks match your search' : 'No tasks need reassignment'}
-            sub={search ? 'Clear the search to view all held tasks.' : 'Inactive employee and paused-project tasks will appear here when action is needed.'}
-          />
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="tasksTable" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th className="thCheckbox" onClick={e => { e.stopPropagation(); toggleAllVisible() }}><input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
-                  <th className="thCell">Task</th>
-                  <th className="thCell">Current assignee</th>
-                  <th className="thCell">Project</th>
-                  <th className="thCell">Status</th>
-                  <th className="thCell">Priority</th>
-                  <th className="thCell">Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(task => {
-                  const checked = selectedTaskIds.has(task.id)
-                  return (
-                    <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: checked ? 'rgba(226,171,65,0.07)' : undefined }}>
-                      <td className="thCheckbox" onClick={e => { e.stopPropagation(); toggleTask(task.id) }}><input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} /></td>
-                      <td style={{ padding: '11px 14px', fontWeight: 800 }}>{task.title || task.id}</td>
-                      <td style={{ padding: '11px 14px' }}>
-                        <div style={{ fontSize: 12, fontWeight: 800 }}>{task.assigned_to_name || 'Unavailable assignee'}</div>
-                        {task.assigned_to_email && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{task.assigned_to_email}</div>}
-                      </td>
-                      <td style={{ padding: '11px 14px' }}>
-                        {task.category_name ? <span style={{ fontSize: 12, fontWeight: 800, color: task.category_color || 'var(--text2)' }}>{task.category_name}</span> : <span style={{ color: 'var(--muted)' }}>—</span>}
-                      </td>
-                      <td style={{ padding: '11px 14px', textTransform: 'capitalize', color: '#f59e0b', fontWeight: 800 }}>{statusLabel(task.status)}</td>
-                      <td style={{ padding: '11px 14px', textTransform: 'capitalize' }}>{task.priority || '—'}</td>
-                      <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>{fmtDate(task.due_date)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+        {tableContent ?? (
+          <>
+            {/* Desktop table */}
+            <div className="reassignDesktop" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th className="thCheckbox" onClick={e => { e.stopPropagation(); toggleAllVisible() }}>
+                      <input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                    </th>
+                    <th className="thCell">Task</th>
+                    <th className="thCell">Current Assignee</th>
+                    <th className="thCell">Project</th>
+                    <th className="thCell">Status</th>
+                    <th className="thCell">Priority</th>
+                    <th className="thCell">Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(task => {
+                    const checked = selectedTaskIds.has(task.id)
+                    const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
+                    return (
+                      <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: checked ? 'rgba(226,171,65,0.07)' : undefined }}>
+                        <td className="thCheckbox" onClick={e => { e.stopPropagation(); toggleTask(task.id) }}>
+                          <input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} />
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 800, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title || task.id}</td>
+                        <td style={{ padding: '11px 14px' }}>
+                          <div style={{ fontSize: 12, fontWeight: 800 }}>{task.assigned_to_name || 'Unavailable'}</div>
+                          {task.assigned_to_email && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{task.assigned_to_email}</div>}
+                        </td>
+                        <td style={{ padding: '11px 14px' }}>
+                          {task.category_name
+                            ? <span style={{ fontSize: 12, fontWeight: 800, color: task.category_color || 'var(--text2)' }}>{task.category_name}</span>
+                            : <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '11px 14px', textTransform: 'capitalize', color: '#f59e0b', fontWeight: 800, whiteSpace: 'nowrap' }}>{statusLabel(task.status)}</td>
+                        <td style={{ padding: '11px 14px', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                          {task.priority ? <span style={{ color: pColor, fontWeight: 800 }}>{task.priority}</span> : <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap', color: 'var(--text2)' }}>{fmtDate(task.due_date)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="reassignMobile">
+              {/* Select-all row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+                <input type="checkbox" className="taskCheckbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {allVisibleSelected ? 'Deselect all' : `Select all (${filtered.length})`}
+                </span>
+              </div>
+              {filtered.map(task => {
+                const checked = selectedTaskIds.has(task.id)
+                const pColor = PRIORITY_COLOR[task.priority || ''] || 'var(--muted)'
+                return (
+                  <div
+                    key={task.id}
+                    style={{ borderBottom: '1px solid var(--border)', background: checked ? 'rgba(226,171,65,0.06)' : undefined, cursor: 'pointer' }}
+                    onClick={() => toggleTask(task.id)}
+                  >
+                    <div style={{ display: 'flex', gap: 12, padding: '14px 14px 12px', alignItems: 'flex-start' }}>
+                      {/* Checkbox */}
+                      <div onClick={e => e.stopPropagation()} style={{ paddingTop: 2, flexShrink: 0 }}>
+                        <input type="checkbox" className="taskCheckbox" checked={checked} onChange={() => toggleTask(task.id)} />
+                      </div>
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 6, lineHeight: 1.3 }}>{task.title || task.id}</div>
+                        {/* Assignee */}
+                        <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 700, marginBottom: 4 }}>
+                          👤 {task.assigned_to_name || 'Unavailable'}
+                          {task.assigned_to_email && <span style={{ color: 'var(--muted)', fontWeight: 600 }}> · {task.assigned_to_email}</span>}
+                        </div>
+                        {/* Pills row */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {task.category_name && (
+                            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: (task.category_color || '#6366f1') + '18', color: task.category_color || '#818cf8', border: `1px solid ${(task.category_color || '#6366f1')}28` }}>
+                              {task.category_name}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.24)', textTransform: 'capitalize' }}>
+                            {statusLabel(task.status)}
+                          </span>
+                          {task.priority && (
+                            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: pColor + '18', color: pColor, border: `1px solid ${pColor}28`, textTransform: 'capitalize' }}>
+                              {task.priority}
+                            </span>
+                          )}
+                          {task.due_date && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)' }}>📅 {fmtDate(task.due_date)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -8559,3 +8559,17 @@ html, body, #root {
   background: rgba(34,197,94,0.07) !important;
   color: #16a34a !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REASSIGNMENT TABLE — responsive desktop/mobile switching
+   Desktop: horizontal-scroll table. Mobile: tap-friendly card list.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Default: show desktop table, hide mobile cards */
+.reassignDesktop { display: block; }
+.reassignMobile  { display: none; }
+
+@media (max-width: 700px) {
+  .reassignDesktop { display: none !important; }
+  .reassignMobile  { display: block !important; }
+}
