@@ -37,5 +37,6 @@ router.get('/ai-confidence', analyticsHandler('getAiConfidence'));
 router.get('/workload', analyticsHandler('getWorkload'));
 router.get('/completion-time', analyticsHandler('getCompletionTime'));
 router.get('/overdue-trend', analyticsHandler('getOverdueTrend'));
+router.get('/priority-breakdown', analyticsHandler('getPriorityBreakdown'));
 
 module.exports = router;
