@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Select } from '../../../components/ui/Select'
+import { KpiCard } from '../../../components/ui/KpiCard'
 import { apiFetch } from '../../../lib/api'
 import { getUser } from '../../../state/auth'
 import { canCreateTasksAndProjects, canViewAnalytics } from '../../../lib/rbac'
@@ -21,6 +22,7 @@ import {
 import { EmployeeDetailModal } from '../../../components/employees/EmployeeDetailModal'
 import { AiAssistant } from '../../../components/ai/AiAssistant'
 import { ProjectDetailModal } from '../../../components/projects/ProjectDetailModal'
+import { ClipboardList, CheckCircle2, AlertTriangle, Star } from 'lucide-react'
 
 type Project = {
   id: string
@@ -230,23 +232,36 @@ export function JeczoneDashboardPage() {
 
       {tab === 'overview' ? (
         <>
-          <div className="grid4">
-            <button type="button" className="jecKpiCard" style={{ '--kpi-color': '#6366f1' } as any} onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}>
-              <div className="miniLabel">Total tasks</div>
-              <div className="miniValue">{total}</div>
-            </button>
-            <button type="button" className="jecKpiCard" style={{ '--kpi-color': '#22c55e' } as any} onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}>
-              <div className="miniLabel">Completion</div>
-              <div className="miniValue">{completionRate}%</div>
-            </button>
-            <button type="button" className="jecKpiCard" style={{ '--kpi-color': '#ef4444' } as any} onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}>
-              <div className="miniLabel">Overdue</div>
-              <div className="miniValue" style={{ color: 'rgba(239, 68, 68, 0.92)' }}>{overdue}</div>
-            </button>
-            <button type="button" className="jecKpiCard" style={{ '--kpi-color': '#a855f7' } as any} onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}>
-              <div className="miniLabel">Team score</div>
-              <div className="miniValue">{score}</div>
-            </button>
+          <div className="kpiStripStandard dashKpiStrip">
+            <KpiCard
+              label="Total Tasks"
+              value={total}
+              color="#6366f1"
+              icon={<ClipboardList size={36} />}
+              onClick={() => setDetail({ title: 'Total tasks', kind: 'kpi' })}
+            />
+            <KpiCard
+              label="Completion"
+              value={`${completionRate}%`}
+              color="#22c55e"
+              icon={<CheckCircle2 size={36} />}
+              animate={false}
+              onClick={() => setDetail({ title: 'Completion rate', kind: 'kpi' })}
+            />
+            <KpiCard
+              label="Overdue"
+              value={overdue}
+              color="#ef4444"
+              icon={<AlertTriangle size={36} />}
+              onClick={() => setDetail({ title: 'Overdue', kind: 'kpi' })}
+            />
+            <KpiCard
+              label="Team Score"
+              value={score}
+              color="#a855f7"
+              icon={<Star size={36} />}
+              onClick={() => setDetail({ title: 'Team score', kind: 'kpi' })}
+            />
           </div>
 
           <div className="grid2">
@@ -334,8 +349,13 @@ export function JeczoneDashboardPage() {
       ) : null}
 
       {tab === 'projects' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Projects</h3>
+        <div className="chartV3">
+          <div className="chartV3Head">
+            <div>
+              <div className="chartV3Title">Projects</div>
+              <div className="chartV3Sub">Progress overview for all projects.</div>
+            </div>
+          </div>
           <div className="projectGrid">
             {projectCards.map((p) => (
               <button
@@ -357,9 +377,13 @@ export function JeczoneDashboardPage() {
       ) : null}
 
       {tab === 'gantt' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Gantt (by due date)</h3>
-          <div style={{ color: 'var(--text2)', marginBottom: 12 }}>Shows upcoming tasks (sorted by due date). Timeline is simplified for MVP.</div>
+        <div className="chartV3">
+          <div className="chartV3Head">
+            <div>
+              <div className="chartV3Title">Gantt Timeline</div>
+              <div className="chartV3Sub">Upcoming tasks sorted by due date. Timeline simplified for MVP.</div>
+            </div>
+          </div>
           <div style={{ display: 'grid', gap: 10 }}>
             {ganttRows.map((t) => (
               <div key={t.id} className="miniCard" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
@@ -381,9 +405,13 @@ export function JeczoneDashboardPage() {
       ) : null}
 
       {tab === 'resources' ? (
-        <div className="card">
-          <h3 style={{ margin: 0, marginBottom: 12 }}>Resources</h3>
-          <div style={{ color: 'var(--text2)', marginBottom: 12 }}>Workload and performance from the leaderboard.</div>
+        <div className="chartV3">
+          <div className="chartV3Head">
+            <div>
+              <div className="chartV3Title">Resources</div>
+              <div className="chartV3Sub">Workload and performance leaderboard.</div>
+            </div>
+          </div>
           {perfQ.isLoading ? <div style={{ color: 'var(--text2)' }}>Loading…</div> : null}
           {perfQ.isError ? <div className="alert alertError">Failed to load resources.</div> : null}
           <div style={{ display: 'grid', gap: 10 }}>

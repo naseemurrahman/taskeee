@@ -8,17 +8,19 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 12px;
   width: 100%;
+  align-items: stretch;
 }
 
+/* dashKpiStrip stays grid — equal-height cards guaranteed in every row */
 .kpiStripStandard.dashKpiStrip {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 12px;
 }
 
 .kpiStripStandard.dashKpiStrip > .kpiCard {
-  flex: 1 1 130px;
-  min-width: 130px;
+  /* grid children stretch to row height automatically */
+  width: 100%;
 }
 
 /* Primary KPI card (Dashboard standard) */
@@ -40,6 +42,8 @@ button.kpiCard {
   font: inherit;
   color: inherit;
   width: 100%;
+  height: 100%;
+  align-self: stretch;
 }
 
 button.kpiCard:hover {
@@ -352,17 +356,25 @@ button.kpiCard:active {
 }
 
 @media (max-width: 640px) {
+  /* Horizontal scroll strip on mobile — keeps cards uniform */
   .kpiStripStandard.dashKpiStrip {
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
     -webkit-overflow-scrolling: touch;
+    align-items: stretch;
+    scrollbar-width: none;
+  }
+
+  .kpiStripStandard.dashKpiStrip::-webkit-scrollbar {
+    display: none;
   }
 
   .kpiStripStandard.dashKpiStrip > .kpiCard {
-    flex: 0 0 140px;
-    min-width: 140px;
+    flex: 0 0 150px;
+    min-width: 150px;
+    height: auto;
   }
 
   .kpiCardValue,

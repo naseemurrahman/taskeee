@@ -125,46 +125,45 @@ export function AiAssistant() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {/* Header card */}
-      <div className="formCardV3">
-        <div className="formCardV3Head">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #6d5efc, #e2ab41)', display: 'grid', placeItems: 'center', fontSize: 22 }}><IconRobot size={14} /></div>
+      {/* Quick prompts */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {QUICK_PROMPTS.map(p => (
+          <button key={p} type="button" className="btn btnGhost btnSm" style={{ fontSize: 12, borderRadius: 8 }} onClick={() => send(p)} disabled={loading}>{p}</button>
+        ))}
+      </div>
+
+      {/* Chat window */}
+      <div className="chartV3" style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Chat header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #6d5efc, #e2ab41)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><IconRobot size={14} /></div>
             <div>
-              <div className="formCardV3Title">JecZone AI Assistant</div>
-              <div className="formCardV3Sub">Live org data · Status suggestions · Team analysis</div>
+              <div style={{ fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>JecZone AI Assistant</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginTop: 2 }}>Live org data · Status suggestions · Team analysis</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {context && <>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.22)' }}>{context.tasks.length} tasks live</span>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 6, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.22)' }}>{context.tasks.length} tasks live</span>
               {context.tasks.filter((t: Task) => t.status === 'overdue').length > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.22)' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.22)' }}>
                   ⚠ {context.tasks.filter((t: Task) => t.status === 'overdue').length} overdue
                 </span>
               )}
             </>}
           </div>
         </div>
-      </div>
 
-      {/* Quick prompts */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {QUICK_PROMPTS.map(p => (
-          <button key={p} type="button" className="btn btnGhost btnSm" style={{ fontSize: 12, borderRadius: 999 }} onClick={() => send(p)} disabled={loading}>{p}</button>
-        ))}
-      </div>
-
-      {/* Chat window */}
-      <div className="formCardV3" style={{ padding: 0 }}>
-        <div style={{ height: 400, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Messages */}
+        <div style={{ height: 420, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: m.role === 'assistant' ? 14 : 12, fontWeight: 900, background: m.role === 'assistant' ? 'linear-gradient(135deg, #6d5efc, #e2ab41)' : 'var(--brandDim)', border: m.role === 'user' ? '1.5px solid var(--brandBorder)' : 'none', color: m.role === 'user' ? 'var(--brand)' : undefined }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: m.role === 'assistant' ? 14 : 12, fontWeight: 900, background: m.role === 'assistant' ? 'linear-gradient(135deg, #6d5efc, #e2ab41)' : 'var(--brandDim)', border: m.role === 'user' ? '1.5px solid var(--brandBorder)' : 'none', color: m.role === 'user' ? 'var(--brand)' : undefined }}>
                 {m.role === 'assistant' ? <IconRobot size={14} /> : (me?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               <div style={{ maxWidth: '78%' }}>
-                <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: m.role === 'user' ? 'var(--brandDim)' : 'var(--surfaceUp)', border: '1px solid ' + (m.role === 'user' ? 'var(--brandBorder)' : 'var(--border)'), fontSize: 13, lineHeight: 1.6, color: 'var(--text)', wordBreak: 'break-word' }}>
+                <div style={{ padding: '10px 14px', borderRadius: m.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', background: m.role === 'user' ? 'var(--brandDim)' : 'var(--bg2)', border: '1px solid ' + (m.role === 'user' ? 'var(--brandBorder)' : 'var(--border)'), fontSize: 13, lineHeight: 1.6, color: 'var(--text)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                   {m.role === 'assistant' ? renderMessage(m.content, handleApply) : m.content}
                 </div>
               </div>
@@ -172,9 +171,9 @@ export function AiAssistant() {
           ))}
           {loading && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#6d5efc,#e2ab41)', display: 'grid', placeItems: 'center', fontSize: 14 }}><IconRobot size={14} /></div>
-              <div style={{ padding: '12px 16px', borderRadius: '14px 14px 14px 4px', background: 'var(--surfaceUp)', border: '1px solid var(--border)' }}>
-                <span style={{ display: 'inline-flex', gap: 5 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6d5efc,#e2ab41)', display: 'grid', placeItems: 'center', fontSize: 14 }}><IconRobot size={14} /></div>
+              <div style={{ padding: '12px 16px', borderRadius: '12px 12px 12px 4px', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
                   {[0,1,2].map(n => <span key={n} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--brand)', display: 'inline-block', animation: `pulse 1.2s ${n*0.2}s ease-in-out infinite` }} />)}
                 </span>
               </div>
@@ -182,12 +181,13 @@ export function AiAssistant() {
           )}
           <div ref={bottomRef} />
         </div>
-        {/* Input */}
+
+        {/* Input area */}
         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end', flexDirection: 'column' }}>
-          {/* Inline confirm banner — replaces window.confirm */}
+          {/* Inline confirm banner */}
           {pendingAction && (
             <div style={{
-              width: '100%', padding: '10px 14px', borderRadius: 12,
+              width: '100%', padding: '10px 14px', borderRadius: 10,
               background: 'rgba(249,115,22,0.08)', border: '1.5px solid rgba(249,115,22,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
             }}>
@@ -203,7 +203,7 @@ export function AiAssistant() {
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', width: '100%' }}>
-          <textarea ref={textareaRef} className="taskCommentTextarea" style={{ borderRadius: 14, flex: 1 }} value={input} onChange={e => setInput(e.target.value)}
+          <textarea ref={textareaRef} className="taskCommentTextarea" style={{ borderRadius: 10, flex: 1 }} value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
             placeholder="Ask about tasks, performance, bottlenecks… (Enter to send)" rows={2} disabled={loading}
           />
@@ -211,7 +211,7 @@ export function AiAssistant() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
           {messages.length > 1 && (
-            <button type="button" className="btn btnGhost btnSm" style={{ flexShrink: 0, borderRadius: 999 }} onClick={() => setMessages([messages[0]])} disabled={loading} title="Clear">
+            <button type="button" className="btn btnGhost btnSm" style={{ flexShrink: 0, borderRadius: 8 }} onClick={() => setMessages([messages[0]])} disabled={loading} title="Clear chat">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             </button>
           )}
