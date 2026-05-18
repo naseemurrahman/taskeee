@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const { query } = require('../utils/db');
 const logger = require('../utils/logger');
+const { filterNonTerminatedUserIds, safeSubordinateUserIds } = require('../utils/employeeVisibility');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -12,8 +13,12 @@ const transporter = nodemailer.createTransport({
 /**
  * Generate a report for a user scoped to their visibility level.
  * - Employee: only their own tasks
- * - Supervisor/Manager: their team
- * - Director: full org
+ * - Supervisor/Manager: their visible team
+ * - Director/Admin/HR: visible organization
+ *
+ * Terminated employees are excluded from generated charts, top performers,
+ * overdue lists, and project/task totals. Any non-terminated employee status is
+ * included.
  */
 async function generateReport(userId, orgId, periodStart, periodEnd, reportType = 'daily') {
   const { rows: [user] } = await query(
@@ -22,18 +27,43 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
 
   if (!user) throw new Error('User not found');
 
-  let targetUserIds = [userId];
+  let candidateUserIds = [userId];
 
-  if (['supervisor', 'manager', 'director', 'admin', 'hr'].includes(user.role)) {
+  if (['supervisor', 'manager'].includes(user.role)) {
     try {
-      const { rows } = await query(
-        `SELECT user_id FROM get_subordinate_ids($1)`, [userId]
-      );
-      targetUserIds = [userId, ...rows.map(r => r.user_id).filter(Boolean)];
+      const subordinateIds = await safeSubordinateUserIds(userId);
+      candidateUserIds = [userId, ...subordinateIds];
     } catch (_err) {
-      // get_subordinate_ids() may not exist on older DB schemas — fall back to own tasks only
       logger.warn(`[reportService] get_subordinate_ids not available, using self-only scope for ${userId}`);
     }
+  } else if (['director', 'admin', 'hr'].includes(user.role)) {
+    candidateUserIds = null;
+  }
+
+  const targetUserIds = await filterNonTerminatedUserIds(orgId, candidateUserIds, { requireActive: true });
+
+  if (!targetUserIds.length) {
+    const emptyReportData = {
+      user: { id: userId, fullName: user.full_name, role: user.role },
+      period: { start: periodStart, end: periodEnd, type: reportType },
+      summary: { total: 0, completed: 0, completionRate: 0, overdueTasks: 0 },
+      statusBreakdown: [],
+      overdueTasks: [],
+      aiStats: { approved: 0, rejected: 0, total: 0 },
+      topPerformers: [],
+      projectBreakdown: [],
+      generatedAt: new Date().toISOString()
+    };
+
+    await query(`
+      INSERT INTO reports (org_id, generated_for, report_type, scope_type, period_start, period_end, data)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [orgId, userId, reportType,
+        user.role === 'employee' ? 'personal' :
+        user.role === 'director' ? 'org' : 'team',
+        periodStart, periodEnd, JSON.stringify(emptyReportData)]);
+
+    return emptyReportData;
   }
 
   // Task stats
@@ -50,7 +80,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
 
   // Task completion rate
   const total = stats.reduce((sum, s) => sum + parseInt(s.count), 0);
-  const completed = stats.find(s => s.status === 'completed')?.count || 0;
+  const completed = stats.find(s => ['completed', 'manager_approved'].includes(s.status))?.count || 0;
   const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
 
   // Overdue tasks
@@ -61,7 +91,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     JOIN users u ON u.id = t.assigned_to
     LEFT JOIN projects p ON p.id = t.project_id AND p.org_id = t.org_id
     WHERE t.assigned_to = ANY($1) AND t.org_id = $2
-      AND t.due_date < NOW() AND t.status NOT IN ('completed','cancelled')
+      AND t.due_date < NOW() AND t.status NOT IN ('completed','manager_approved','cancelled')
     ORDER BY t.due_date ASC LIMIT 10
   `, [targetUserIds, orgId]).catch(async (err) => {
     if (err.code !== '42P01' && err.code !== '42703') throw err;
@@ -70,7 +100,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
              NULL::text AS project_name
       FROM tasks t JOIN users u ON u.id = t.assigned_to
       WHERE t.assigned_to = ANY($1) AND t.org_id = $2
-        AND t.due_date < NOW() AND t.status NOT IN ('completed','cancelled')
+        AND t.due_date < NOW() AND t.status NOT IN ('completed','manager_approved','cancelled')
       ORDER BY t.due_date ASC LIMIT 10
     `, [targetUserIds, orgId]);
   });
@@ -92,7 +122,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
   if (targetUserIds.length > 1) {
     const { rows } = await query(`
       SELECT u.full_name, u.email,
-        COUNT(*) FILTER (WHERE t.status = 'completed') AS completed,
+        COUNT(*) FILTER (WHERE t.status IN ('completed','manager_approved')) AS completed,
         COUNT(*) AS total
       FROM tasks t JOIN users u ON u.id = t.assigned_to
       WHERE t.assigned_to = ANY($1) AND t.org_id = $2
@@ -186,10 +216,11 @@ async function sendReportEmail(userId, orgId, reportData) {
  * Each level gets a report scoped to their visibility.
  */
 async function runHierarchicalReports(orgId, reportType) {
-  const { rows: users } = await query(
-    `SELECT id, role FROM users WHERE org_id = $1 AND is_active = TRUE ORDER BY role`,
-    [orgId]
-  );
+  const targetUserIds = await filterNonTerminatedUserIds(orgId, null, { requireActive: true });
+  const { rows: users } = targetUserIds.length ? await query(
+    `SELECT id, role FROM users WHERE org_id = $1 AND id = ANY($2) ORDER BY role`,
+    [orgId, targetUserIds]
+  ) : { rows: [] };
 
   const now = new Date();
   const periodEnd = now;
@@ -199,7 +230,7 @@ async function runHierarchicalReports(orgId, reportType) {
   else if (reportType === 'weekly') periodStart.setDate(now.getDate() - 7);
   else if (reportType === 'monthly') periodStart.setMonth(now.getMonth() - 1);
 
-  // Generate for all users concurrently
+  // Generate for all visible non-terminated users concurrently
   await Promise.allSettled(
     users.map(async (u) => {
       const reportData = await generateReport(u.id, orgId, periodStart, periodEnd, reportType);
