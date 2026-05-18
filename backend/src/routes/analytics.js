@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const analyticsService = require('../services/analyticsService');
+const advancedAnalyticsService = require('../services/advancedAnalyticsService');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 
 const ANALYTICS_ROLES = ['employee', 'hr', 'manager', 'supervisor', 'director', 'admin'];
@@ -15,10 +16,10 @@ function filtersFromQuery(req) {
   };
 }
 
-function analyticsHandler(methodName) {
+function analyticsHandler(methodName, service = analyticsService) {
   return async (req, res, next) => {
     try {
-      const data = await analyticsService[methodName](req.user, filtersFromQuery(req));
+      const data = await service[methodName](req.user, filtersFromQuery(req));
       res.json(data);
     } catch (err) {
       next(err);
@@ -38,5 +39,11 @@ router.get('/workload', analyticsHandler('getWorkload'));
 router.get('/completion-time', analyticsHandler('getCompletionTime'));
 router.get('/overdue-trend', analyticsHandler('getOverdueTrend'));
 router.get('/priority-breakdown', analyticsHandler('getPriorityBreakdown'));
+
+router.get('/project-summary', analyticsHandler('getProjectSummary', advancedAnalyticsService));
+router.get('/project-trend', analyticsHandler('getProjectTrend', advancedAnalyticsService));
+router.get('/department-performance', analyticsHandler('getDepartmentPerformance', advancedAnalyticsService));
+router.get('/employee-trend', analyticsHandler('getEmployeeTrend', advancedAnalyticsService));
+router.get('/sla-risk', analyticsHandler('getSlaRisk', advancedAnalyticsService));
 
 module.exports = router;
