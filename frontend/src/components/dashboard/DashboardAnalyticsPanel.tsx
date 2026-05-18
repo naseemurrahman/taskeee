@@ -1,8 +1,9 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, FolderOpen, Gauge, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { KpiStrip } from '../ui/KpiCard'
+import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
 type AnalyticsSummary = {
   total_tasks: number
@@ -52,14 +53,6 @@ type SlaRisk = {
   }>
 }
 
-function n(value: unknown) {
-  return Number(value || 0)
-}
-
-function pct(done: number, total: number) {
-  return total ? Math.round((done / total) * 100) : 0
-}
-
 async function fetchSummary(days: number) {
   return apiFetch<AnalyticsSummary>(`/api/v1/analytics/summary?days=${days}`)
 }
@@ -87,74 +80,12 @@ async function fetchSlaRisk(days: number) {
   return apiFetch<SlaRisk>(`/api/v1/analytics/sla-risk?days=${days}`)
 }
 
-function Empty({ title, detail = 'No live dashboard analytics for the selected period.' }: { title: string; detail?: string }) {
-  return (
-    <div style={{ minHeight: 118, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 900 }}>{title}</div>
-        <div style={{ marginTop: 4, fontSize: 11 }}>{detail}</div>
-      </div>
-    </div>
-  )
-}
-
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <div className="card" style={{ display: 'grid', gap: 12, minWidth: 0, overflow: 'hidden' }}>
-      <div>
-        <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 950 }}>{title}</div>
-        {subtitle ? <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 750, marginTop: 2 }}>{subtitle}</div> : null}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Loading({ height = 165 }: { height?: number }) {
-  return <div className="skeleton" style={{ height, borderRadius: 14 }} />
-}
-
-function ErrorNotice() {
-  return <div className="alertV4 alertV4Error">Live dashboard analytics failed to load. The panel will retry automatically.</div>
-}
-
-function TrendMini({ points }: { points: TrendPoint[] }) {
-  const rows = points.map((p) => ({ day: String(p.day || '').slice(5, 10), created: n(p.created), completed: n(p.completed), overdue: n(p.overdue) }))
-  const total = rows.reduce((s, row) => s + row.created + row.completed + row.overdue, 0)
-  if (!rows.length || total === 0) return <Empty title="No dashboard trend movement" detail="Created, completed, and overdue task movement will appear here." />
-
-  const W = 720, H = 210, L = 34, R = 14, T = 14, B = 32
-  const max = Math.max(1, ...rows.flatMap((row) => [row.created, row.completed, row.overdue]))
-  const x = (i: number) => L + i * (W - L - R) / Math.max(1, rows.length - 1)
-  const y = (v: number) => T + (1 - v / max) * (H - T - B)
-  const path = (key: 'created' | 'completed' | 'overdue') => rows.map((row, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(row[key])}`).join(' ')
-  const tickEvery = Math.max(1, Math.ceil(rows.length / 6))
-
-  return (
-    <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="210" role="img" aria-label="Dashboard live trend">
-        {[0, .25, .5, .75, 1].map((tick) => {
-          const yy = T + tick * (H - T - B)
-          return <line key={tick} x1={L} x2={W - R} y1={yy} y2={yy} stroke="rgba(148,163,184,.16)" strokeDasharray="4 4" />
-        })}
-        <path d={path('created')} fill="none" stroke="#e2ab41" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('completed')} fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('overdue')} fill="none" stroke="#ef4444" strokeWidth="3" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
-        {rows.map((row, i) => i % tickEvery === 0 || i === rows.length - 1 ? <text key={`${row.day}-${i}`} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--muted)">{row.day}</text> : null)}
-      </svg>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', fontSize: 11, fontWeight: 800 }}>
-        <span style={{ color: '#e2ab41' }}>● Created</span><span style={{ color: '#22c55e' }}>● Completed</span><span style={{ color: '#ef4444' }}>● Overdue</span>
-      </div>
-    </div>
-  )
-}
-
 function StatusPriorityMatrix({ statuses, priorities }: { statuses: StatusPoint[]; priorities: PriorityPoint[] }) {
   const statusRows = statuses.map((s) => ({ label: String(s.status || 'unknown').replace(/_/g, ' '), value: n(s.count), color: statusColor(String(s.status || '')) })).filter((row) => row.value > 0)
   const priorityRows = priorities.map((p) => ({ label: String(p.priority || 'unspecified'), value: n(p.count), color: priorityColor(String(p.priority || '')) })).filter((row) => row.value > 0)
   const rows = [...statusRows.slice(0, 5), ...priorityRows.slice(0, 5)]
   const max = Math.max(1, ...rows.map((row) => row.value))
-  if (!rows.length) return <Empty title="No status or priority data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No status or priority data" />
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {rows.map((row, idx) => (
@@ -194,7 +125,7 @@ function ProjectWorkload({ projects }: { projects: ProjectSummary[] }) {
     .filter((p) => n(p.total_tasks) > 0 || n(p.open_tasks) > 0)
     .sort((a, b) => n(b.overdue_tasks) - n(a.overdue_tasks) || n(b.open_tasks) - n(a.open_tasks))
     .slice(0, 8)
-  if (!rows.length) return <Empty title="No project workload data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No project workload data" />
   const max = Math.max(1, ...rows.map((row) => n(row.total_tasks)))
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -224,7 +155,7 @@ function ProjectWorkload({ projects }: { projects: ProjectSummary[] }) {
 function TeamLoad({ workload }: { workload: WorkloadEmployee[] }) {
   const rows = workload.filter((row) => n(row.total_tasks) > 0 || n(row.open_tasks) > 0).sort((a, b) => n(b.open_tasks) - n(a.open_tasks)).slice(0, 8)
   const maxOpen = Math.max(1, ...rows.map((row) => n(row.open_tasks)))
-  if (!rows.length) return <Empty title="No team workload data" />
+  if (!rows.length) return <EmptyAnalyticsState title="No team workload data" />
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {rows.map((row) => {
@@ -242,28 +173,6 @@ function TeamLoad({ workload }: { workload: WorkloadEmployee[] }) {
             <div style={{ display: 'flex', height: 10, borderRadius: 999, background: 'rgba(148,163,184,.14)', overflow: 'hidden' }}>
               <i style={{ width: `${pct(done, total)}%`, background: '#22c55e' }} />
               <i style={{ width: `${pct(open, total)}%`, background: color }} />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function RiskQueue({ sla }: { sla?: SlaRisk }) {
-  if (!sla?.tasks?.length) return <Empty title="No dashboard SLA risk queue" detail="No overdue, due-soon, stalled, critical, or review-backlog tasks." />
-  return (
-    <div style={{ display: 'grid', gap: 9 }}>
-      {sla.tasks.slice(0, 5).map((task) => {
-        const color = n(task.risk_score) >= 80 ? '#ef4444' : n(task.risk_score) >= 50 ? '#f97316' : '#e2ab41'
-        return (
-          <div key={task.task_id || task.title} className="miniCard" style={{ borderLeft: `4px solid ${color}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</strong>
-              <span className="pill pillMuted" style={{ color }}>{task.risk_score}</span>
-            </div>
-            <div style={{ marginTop: 5, color: 'var(--text2)', fontSize: 12, lineHeight: 1.45 }}>
-              {task.risk_reason}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}{task.due_date ? ` · due ${new Date(task.due_date).toLocaleDateString()}` : ''}
             </div>
           </div>
         )
@@ -302,7 +211,7 @@ export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {hasError && <ErrorNotice />}
+      {hasError && <AnalyticsErrorNotice message="Live dashboard analytics failed to load. The panel will retry automatically." />}
       <KpiStrip
         loading={loading}
         skeletonCount={6}
@@ -317,24 +226,34 @@ export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(min(100%,320px),.85fr)', gap: 16 }}>
-        <Card title="Live Activity Flow" subtitle="Backend-generated created, completed, and overdue trend">
-          {trendQ.isLoading ? <Loading height={210} /> : <TrendMini points={trendQ.data || []} />}
-        </Card>
-        <Card title="Status + Priority Mix" subtitle="Current operational distribution">
-          {statusQ.isLoading || priorityQ.isLoading ? <Loading /> : <StatusPriorityMatrix statuses={statusQ.data || []} priorities={priorityQ.data || []} />}
-        </Card>
+        <AnalyticsCard title="Live Activity Flow" subtitle="Backend-generated created, completed, and overdue trend">
+          {trendQ.isLoading ? <AnalyticsLoadingBlock height={210} /> : (
+            <AnalyticsTrendLineChart
+              points={trendQ.data || []}
+              keys={['created', 'completed', 'overdue']}
+              labels={{ created: 'Created', completed: 'Completed', overdue: 'Overdue' }}
+              colors={{ created: '#e2ab41', completed: '#22c55e', overdue: '#ef4444' }}
+              emptyTitle="No dashboard trend movement"
+              emptyDetail="Created, completed, and overdue task movement will appear here."
+              ariaLabel="Dashboard live trend"
+            />
+          )}
+        </AnalyticsCard>
+        <AnalyticsCard title="Status + Priority Mix" subtitle="Current operational distribution">
+          {statusQ.isLoading || priorityQ.isLoading ? <AnalyticsLoadingBlock /> : <StatusPriorityMatrix statuses={statusQ.data || []} priorities={priorityQ.data || []} />}
+        </AnalyticsCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
-        <Card title="Project Workload" subtitle="Backend project-summary completion/open/overdue split">
-          {projectQ.isLoading ? <Loading /> : <ProjectWorkload projects={projects} />}
-        </Card>
-        <Card title="Team Load" subtitle="Backend workload API by employee">
-          {workloadQ.isLoading ? <Loading /> : <TeamLoad workload={workload} />}
-        </Card>
-        <Card title="SLA Risk Queue" subtitle="Due-soon, overdue, stalled, critical, and review backlog">
-          {slaQ.isLoading ? <Loading /> : <RiskQueue sla={slaQ.data} />}
-        </Card>
+        <AnalyticsCard title="Project Workload" subtitle="Backend project-summary completion/open/overdue split">
+          {projectQ.isLoading ? <AnalyticsLoadingBlock /> : <ProjectWorkload projects={projects} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Team Load" subtitle="Backend workload API by employee">
+          {workloadQ.isLoading ? <AnalyticsLoadingBlock /> : <TeamLoad workload={workload} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="SLA Risk Queue" subtitle="Due-soon, overdue, stalled, critical, and review backlog">
+          {slaQ.isLoading ? <AnalyticsLoadingBlock /> : <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No dashboard SLA risk queue" limit={5} />}
+        </AnalyticsCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
