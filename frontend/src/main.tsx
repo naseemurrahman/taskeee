@@ -19,6 +19,7 @@ import './responsive-hardening.css' // final viewport and mobile layout guardrai
 import './task-checkbox-event-guard'
 import './global-search-submit'
 import './employee-profile-delete-action'
+import './topbar-action-visibility-guard'
 import App from './App.tsx'
 import { I18nProvider } from './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary'
