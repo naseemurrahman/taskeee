@@ -6,6 +6,7 @@ import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import { KpiStrip } from '../../components/ui/KpiCard'
 import { ChartCard } from '../../components/charts/ChartCard'
+import { AdvancedAnalyticsPanels } from '../../components/charts/AdvancedAnalyticsPanels'
 import { AssigneeScoreChart, DeadlinesTrendChart, PriorityPieChart, StatusBarChart, StatusDonutChart, WorkloadBalanceChart } from '../../components/charts/PerformanceCharts'
 
 type AIStatus = { active_model: string; groq: boolean; anthropic: boolean }
@@ -264,6 +265,7 @@ export function AnalyticsPage() {
         <ChartCard title="Employee Performance Rate Curve" subtitle="Dual-axis view: score/completion rate vs completed/active task volume" loading={employeesQ.isLoading}>
           <AssigneeScoreChart fillHeight rows={performanceRows} loading={employeesQ.isLoading} />
         </ChartCard>
+        <AdvancedAnalyticsPanels days={days} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0 4px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
