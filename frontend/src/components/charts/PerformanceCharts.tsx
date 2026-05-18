@@ -3,6 +3,7 @@ import { IconBarChart } from '../ui/AppIcons'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, AreaChart, Area, RadialBarChart, RadialBar,
+  LineChart, Line,
 } from 'recharts'
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
@@ -66,9 +67,10 @@ function Shell({
 // ─── Tooltip ────────────────────────────────────────────────────────────────
 function GlassTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
+  const displayLabel = payload?.[0]?.payload?.employee || label
   return (
     <div style={{ background: '#101522', border: '1px solid rgba(255,255,255,.16)', borderRadius: 12, padding: '12px 16px', boxShadow: '0 16px 40px rgba(0,0,0,0.4)', fontSize: 12, color: 'var(--text)', minWidth: 140 }}>
-      {label && <div style={{ fontWeight: 900, fontSize: 11, marginBottom: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>}
+      {displayLabel && <div style={{ fontWeight: 900, fontSize: 11, marginBottom: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{displayLabel}</div>}
       {payload.map((p: any, i: number) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: i > 0 ? 6 : 0 }}>
           <div style={{ width: 10, height: 10, borderRadius: 3, background: p.color, flexShrink: 0 }} />
@@ -325,41 +327,82 @@ export function WorkloadBalanceChart(props: {
 }
 
 // ─── Assignee Score ───────────────────────────────────────────────────────────
+// Employee performance uses the requested dual-axis line-chart pattern:
+// left axis = rate metrics, right axis = task-volume metrics.
 export function AssigneeScoreChart(props: {
   rows: Array<{ name:string; active:number; completed:number; performanceScore:number }>
   fillHeight?: boolean; loading?: boolean }) {
-  const data = (props.rows||[])
-    .slice(0,8)
-    .sort((a,b) => (b.performanceScore||0)-(a.performanceScore||0))
-    .map(r => ({
-      name:  r.name.split(' ').slice(0,2).join(' ').slice(0,16),
-      score: Math.round(r.performanceScore),
-      active: r.active,
-      done:   r.completed,
-    }))
-  if (!data.length) return <EmptyChart title="No performance data yet" />
-  const maxCount = Math.max(1, ...data.map(d => Math.max(d.active, d.done)))
-  const h = Math.max(H, data.length*52)
+  const source = (props.rows || [])
+    .filter(r => (Number(r.active || 0) + Number(r.completed || 0)) > 0)
+    .sort((a, b) => (b.performanceScore || 0) - (a.performanceScore || 0))
+    .slice(0, 12)
+
+  if (!source.length) return <EmptyChart title="No performance data yet" />
+
+  const data = source.map((r, index) => {
+    const active = Number(r.active || 0)
+    const done = Number(r.completed || 0)
+    const total = Math.max(0, active + done)
+    const completionRate = total ? Math.round((done / total) * 100) : 0
+    const score = Math.max(0, Math.min(100, Math.round(Number(r.performanceScore || completionRate))))
+    return {
+      label: String(index + 1),
+      employee: r.name || 'Unassigned',
+      score,
+      completionRate,
+      completedTasks: done,
+      activeTasks: active,
+    }
+  })
+
+  const maxTasks = Math.max(1, ...data.map(d => Math.max(d.completedTasks, d.activeTasks)))
+  const h = props.fillHeight ? H_TALL : H
+
   return (
     <Shell height={h} loading={props.loading}>
       {(w) => (
-        <BarChart width={w} height={h} data={data} layout="vertical"
-          barCategoryGap="32%" margin={{ top:8, right:16, left:4, bottom:24 }}>
-          <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" horizontal={false} />
-          <XAxis xAxisId="score" type="number" domain={[0,100]} tick={AXIS} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`}
-            label={{ value: 'Performance Score (0–100%)', position: 'insideBottom', offset: -10, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+        <LineChart width={w} height={h} data={data} margin={{ top: 14, right: 44, left: 16, bottom: 44 }}>
+          <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={AXIS}
+            axisLine={false}
+            tickLine={false}
+            interval={0}
+            label={{ value: 'Employee Rank', position: 'insideBottom', offset: -18, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
-          <XAxis xAxisId="count" type="number" domain={[0,maxCount]} hide />
-          <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={90} />
-          <Tooltip content={<GlassTooltip />} cursor={{ fill:'rgba(99,102,241,0.05)' }} />
-          <Legend iconType="circle" iconSize={8}
-            verticalAlign="bottom" align="center"
-            wrapperStyle={{ fontSize:11, fontWeight:700, color:'var(--chart-tick2)', paddingTop:12 }} />
-          {/* Score bar — no label (was overlapping legend) — shown via tooltip */}
-          <Bar dataKey="score"  xAxisId="score" name="Score %" fill="#8b5cf6" radius={[0,6,6,0]} barSize={11} />
-          <Bar dataKey="done"   xAxisId="count" name="Done"    fill="#22c55e" radius={[0,6,6,0]} barSize={7} />
-          <Bar dataKey="active" xAxisId="count" name="Active"  fill="#f4ca57" radius={[0,6,6,0]} barSize={7} />
-        </BarChart>
+          <YAxis
+            yAxisId="rate"
+            tick={AXIS}
+            axisLine={false}
+            tickLine={false}
+            domain={[0, 100]}
+            tickFormatter={(v) => `${v}%`}
+            label={{ value: 'Performance Rate', angle: -90, position: 'insideLeft', offset: 8, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <YAxis
+            yAxisId="tasks"
+            orientation="right"
+            tick={AXIS}
+            axisLine={false}
+            tickLine={false}
+            allowDecimals={false}
+            domain={[0, maxTasks]}
+            label={{ value: 'Task Volume', angle: 90, position: 'insideRight', offset: 6, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+          />
+          <Tooltip content={<GlassTooltip />} cursor={{ stroke: 'rgba(148,163,184,0.22)', strokeWidth: 1 }} />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            verticalAlign="bottom"
+            align="center"
+            wrapperStyle={{ fontSize: 11, fontWeight: 700, color: 'var(--chart-tick2)', paddingTop: 12 }}
+          />
+          <Line yAxisId="rate" type="monotone" dataKey="score" name="Score %" stroke="#2563eb" strokeWidth={2.6} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          <Line yAxisId="rate" type="monotone" dataKey="completionRate" name="Completion %" stroke="#8b5cf6" strokeWidth={2.4} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          <Line yAxisId="tasks" type="monotone" dataKey="completedTasks" name="Completed Tasks" stroke="#f59e0b" strokeWidth={2.4} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          <Line yAxisId="tasks" type="monotone" dataKey="activeTasks" name="Active Tasks" stroke="#f97316" strokeWidth={2.2} strokeDasharray="5 3" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+        </LineChart>
       )}
     </Shell>
   )
