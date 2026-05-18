@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const analyticsService = require('../services/analyticsService');
 const advancedAnalyticsService = require('../services/advancedAnalyticsService');
+const slaRiskAnalyticsService = require('../services/slaRiskAnalyticsService');
 const { authenticate, requireAnyRole } = require('../middleware/auth');
 
 const ANALYTICS_ROLES = ['employee', 'hr', 'manager', 'supervisor', 'director', 'admin'];
@@ -44,6 +45,6 @@ router.get('/project-summary', analyticsHandler('getProjectSummary', advancedAna
 router.get('/project-trend', analyticsHandler('getProjectTrend', advancedAnalyticsService));
 router.get('/department-performance', analyticsHandler('getDepartmentPerformance', advancedAnalyticsService));
 router.get('/employee-trend', analyticsHandler('getEmployeeTrend', advancedAnalyticsService));
-router.get('/sla-risk', analyticsHandler('getSlaRisk', advancedAnalyticsService));
+router.get('/sla-risk', analyticsHandler('getSlaRisk', slaRiskAnalyticsService));
 
 module.exports = router;
