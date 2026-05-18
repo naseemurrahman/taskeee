@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, LineChart, Users, UserCheck } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { KpiStrip } from '../ui/KpiCard'
+import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
 type EmployeePerformance = {
   employee_id: string
@@ -60,14 +60,6 @@ type SlaRisk = {
   }>
 }
 
-function n(value: unknown) {
-  return Number(value || 0)
-}
-
-function pct(done: number, total: number) {
-  return total ? Math.round((done / total) * 100) : 0
-}
-
 async function fetchEmployeePerformance(days: number) {
   const data = await apiFetch<{ employees: EmployeePerformance[] }>(`/api/v1/analytics/employee-performance?days=${days}`)
   return data.employees || []
@@ -92,37 +84,6 @@ async function fetchSlaRisk(days: number) {
   return apiFetch<SlaRisk>(`/api/v1/analytics/sla-risk?days=${days}`)
 }
 
-function Empty({ title, detail = 'No employee analytics for the selected period.' }: { title: string; detail?: string }) {
-  return (
-    <div style={{ minHeight: 120, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 900 }}>{title}</div>
-        <div style={{ marginTop: 4, fontSize: 11 }}>{detail}</div>
-      </div>
-    </div>
-  )
-}
-
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <div className="card" style={{ display: 'grid', gap: 12, minWidth: 0, overflow: 'hidden' }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 950, color: 'var(--text)' }}>{title}</div>
-        {subtitle ? <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>{subtitle}</div> : null}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function ErrorNotice() {
-  return <div className="alertV4 alertV4Error">Employee analytics failed to load. Visible data remains available and the app will retry automatically.</div>
-}
-
-function LoadingBlock({ height = 180 }: { height?: number }) {
-  return <div className="skeleton" style={{ height, borderRadius: 14 }} />
-}
-
 function DeliveryScoreRows({ rows }: { rows: EmployeePerformance[] }) {
   const data = rows
     .filter((row) => n(row.assigned) > 0 || n(row.completed) > 0)
@@ -137,7 +98,7 @@ function DeliveryScoreRows({ rows }: { rows: EmployeePerformance[] }) {
     .sort((a, b) => b.score - a.score || b.completed - a.completed)
     .slice(0, 8)
 
-  if (!data.length) return <Empty title="No delivery score data" />
+  if (!data.length) return <EmptyAnalyticsState title="No delivery score data" detail="No employee analytics for the selected period." minHeight={120} />
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -168,7 +129,7 @@ function WorkloadRows({ rows }: { rows: WorkloadEmployee[] }) {
     .sort((a, b) => n(b.open_tasks) - n(a.open_tasks) || n(b.total_tasks) - n(a.total_tasks))
     .slice(0, 8)
   const maxOpen = Math.max(1, ...data.map((row) => n(row.open_tasks)))
-  if (!data.length) return <Empty title="No workload data" />
+  if (!data.length) return <EmptyAnalyticsState title="No workload data" detail="No employee workload for the selected period." minHeight={120} />
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -204,7 +165,7 @@ function DepartmentRows({ rows }: { rows: DepartmentPerformance[] }) {
     .sort((a, b) => n(b.completed_tasks) - n(a.completed_tasks) || n(b.assigned_tasks) - n(a.assigned_tasks))
     .slice(0, 8)
   const max = Math.max(1, ...data.map((row) => Math.max(n(row.completed_tasks), n(row.open_tasks), n(row.overdue_tasks))))
-  if (!data.length) return <Empty title="No department analytics" />
+  if (!data.length) return <EmptyAnalyticsState title="No department analytics" detail="No department activity for the selected period." minHeight={120} />
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -233,67 +194,27 @@ function DepartmentRows({ rows }: { rows: DepartmentPerformance[] }) {
   )
 }
 
-function TrendSvg({ points }: { points: EmployeeTrendPoint[] }) {
-  const totals = useMemo(() => {
-    const byDay = new Map<string, { day: string; assigned: number; completed: number; overdue: number }>()
-    for (const point of points || []) {
-      const day = String(point.day || '').slice(5, 10)
-      const current = byDay.get(day) || { day, assigned: 0, completed: 0, overdue: 0 }
-      current.assigned += n(point.assigned)
-      current.completed += n(point.completed)
-      current.overdue += n(point.overdue)
-      byDay.set(day, current)
-    }
-    return Array.from(byDay.values())
-  }, [points])
-  const total = totals.reduce((sum, row) => sum + row.assigned + row.completed + row.overdue, 0)
-  if (!totals.length || total === 0) return <Empty title="No employee trend movement" detail="Assigned, completed, and overdue movement will appear when tasks change." />
-
-  const W = 720, H = 230, L = 34, R = 14, T = 16, B = 34
-  const max = Math.max(1, ...totals.flatMap((row) => [row.assigned, row.completed, row.overdue]))
-  const x = (i: number) => L + i * (W - L - R) / Math.max(1, totals.length - 1)
-  const y = (v: number) => T + (1 - v / max) * (H - T - B)
-  const path = (key: 'assigned' | 'completed' | 'overdue') => totals.map((row, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(row[key])}`).join(' ')
-  const tickEvery = Math.max(1, Math.ceil(totals.length / 6))
-
+function TrendChart({ points }: { points: EmployeeTrendPoint[] }) {
+  const byDay = new Map<string, { day: string; assigned: number; completed: number; overdue: number }>()
+  for (const point of points || []) {
+    const key = String(point.day || '')
+    const current = byDay.get(key) || { day: key, assigned: 0, completed: 0, overdue: 0 }
+    current.assigned += n(point.assigned)
+    current.completed += n(point.completed)
+    current.overdue += n(point.overdue)
+    byDay.set(key, current)
+  }
   return (
-    <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="230" role="img" aria-label="Employee delivery trend">
-        {[0, .25, .5, .75, 1].map((tick) => {
-          const yy = T + tick * (H - T - B)
-          return <line key={tick} x1={L} x2={W - R} y1={yy} y2={yy} stroke="rgba(148,163,184,.16)" strokeDasharray="4 4" />
-        })}
-        <path d={path('assigned')} fill="none" stroke="#e2ab41" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('completed')} fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('overdue')} fill="none" stroke="#ef4444" strokeWidth="3" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
-        {totals.map((row, i) => i % tickEvery === 0 || i === totals.length - 1 ? <text key={row.day} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--muted)">{row.day}</text> : null)}
-      </svg>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', fontSize: 11, fontWeight: 800 }}>
-        <span style={{ color: '#e2ab41' }}>● Assigned</span><span style={{ color: '#22c55e' }}>● Completed</span><span style={{ color: '#ef4444' }}>● Overdue</span>
-      </div>
-    </div>
-  )
-}
-
-function SlaRiskQueue({ data }: { data?: SlaRisk }) {
-  if (!data?.tasks?.length) return <Empty title="No employee SLA risk queue" detail="No overdue, due-soon, stalled, critical, or review-backlog tasks." />
-  return (
-    <div style={{ display: 'grid', gap: 9 }}>
-      {data.tasks.slice(0, 6).map((task) => {
-        const color = n(task.risk_score) >= 80 ? '#ef4444' : n(task.risk_score) >= 50 ? '#f97316' : '#e2ab41'
-        return (
-          <div key={task.task_id || task.title} className="miniCard" style={{ borderLeft: `4px solid ${color}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</strong>
-              <span className="pill pillMuted" style={{ color }}>{task.risk_score}</span>
-            </div>
-            <div style={{ marginTop: 5, color: 'var(--text2)', fontSize: 12, lineHeight: 1.45 }}>
-              {task.risk_reason}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}{task.due_date ? ` · due ${new Date(task.due_date).toLocaleDateString()}` : ''}
-            </div>
-          </div>
-        )
-      })}
-    </div>
+    <AnalyticsTrendLineChart
+      points={Array.from(byDay.values())}
+      keys={['assigned', 'completed', 'overdue']}
+      labels={{ assigned: 'Assigned', completed: 'Completed', overdue: 'Overdue' }}
+      colors={{ assigned: '#e2ab41', completed: '#22c55e', overdue: '#ef4444' }}
+      emptyTitle="No employee trend movement"
+      emptyDetail="Assigned, completed, and overdue movement will appear when tasks change."
+      height={230}
+      ariaLabel="Employee delivery trend"
+    />
   )
 }
 
@@ -317,7 +238,7 @@ export function EmployeeAnalyticsPanel({ days = 30 }: { days?: number }) {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {(performanceQ.isError || trendQ.isError || workloadQ.isError || departmentQ.isError || slaQ.isError) && <ErrorNotice />}
+      {(performanceQ.isError || trendQ.isError || workloadQ.isError || departmentQ.isError || slaQ.isError) && <AnalyticsErrorNotice message="Employee analytics failed to load. Visible data remains available and the app will retry automatically." />}
       <KpiStrip
         loading={performanceQ.isLoading || workloadQ.isLoading}
         skeletonCount={5}
@@ -330,23 +251,23 @@ export function EmployeeAnalyticsPanel({ days = 30 }: { days?: number }) {
         ]}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
-        <Card title="Employee Delivery Scores" subtitle="Backend employee-performance endpoint">
-          {performanceQ.isLoading ? <LoadingBlock /> : <DeliveryScoreRows rows={performance} />}
-        </Card>
-        <Card title="Workload Pressure" subtitle="Open/completed split and relative pressure">
-          {workloadQ.isLoading ? <LoadingBlock /> : <WorkloadRows rows={workload} />}
-        </Card>
+        <AnalyticsCard title="Employee Delivery Scores" subtitle="Backend employee-performance endpoint">
+          {performanceQ.isLoading ? <AnalyticsLoadingBlock /> : <DeliveryScoreRows rows={performance} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Workload Pressure" subtitle="Open/completed split and relative pressure">
+          {workloadQ.isLoading ? <AnalyticsLoadingBlock /> : <WorkloadRows rows={workload} />}
+        </AnalyticsCard>
       </div>
-      <Card title="Employee Trend" subtitle="Assigned, completed, and overdue movement over the last 30 days">
-        {trendQ.isLoading ? <LoadingBlock height={230} /> : <TrendSvg points={trendQ.data || []} />}
-      </Card>
+      <AnalyticsCard title="Employee Trend" subtitle="Assigned, completed, and overdue movement over the last 30 days">
+        {trendQ.isLoading ? <AnalyticsLoadingBlock height={230} /> : <TrendChart points={trendQ.data || []} />}
+      </AnalyticsCard>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
-        <Card title="Department Performance" subtitle="Department-level completion/open/overdue mix">
-          {departmentQ.isLoading ? <LoadingBlock /> : <DepartmentRows rows={departments} />}
-        </Card>
-        <Card title="Employee SLA Risk Queue" subtitle="Due-soon, overdue, stalled, critical, and review-backlog tasks">
-          {slaQ.isLoading ? <LoadingBlock /> : <SlaRiskQueue data={slaQ.data} />}
-        </Card>
+        <AnalyticsCard title="Department Performance" subtitle="Department-level completion/open/overdue mix">
+          {departmentQ.isLoading ? <AnalyticsLoadingBlock /> : <DepartmentRows rows={departments} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Employee SLA Risk Queue" subtitle="Due-soon, overdue, stalled, critical, and review-backlog tasks">
+          {slaQ.isLoading ? <AnalyticsLoadingBlock /> : <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No employee SLA risk queue" />}
+        </AnalyticsCard>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         <div className="miniCard"><UserCheck size={16} color="#22c55e" /><strong>{departments.length}</strong><span style={{ color: 'var(--muted)', fontSize: 12 }}>departments tracked</span></div>
