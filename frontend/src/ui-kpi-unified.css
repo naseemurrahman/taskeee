@@ -27,7 +27,7 @@
 .kpiCard {
   background: var(--bg1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 18px !important;
+  border-radius: 12px !important;
   padding: 16px 18px !important;
   position: relative;
   overflow: hidden;
@@ -62,7 +62,7 @@ button.kpiCard:active {
   left: 0;
   right: 0;
   height: 3px;
-  border-radius: 18px 18px 0 0;
+  border-radius: 12px 12px 0 0;
   pointer-events: none;
 }
 
@@ -112,7 +112,7 @@ button.kpiCard:active {
 .analyticsSignalStrip.kpiStripStandard > .miniCard {
   background: var(--bg1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 18px !important;
+  border-radius: 12px !important;
   padding: 16px 18px !important;
   position: relative;
   overflow: hidden;
@@ -130,7 +130,7 @@ button.kpiCard:active {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--kpi-color, var(--primary)), color-mix(in srgb, var(--kpi-color, var(--primary)) 55%, transparent));
-  border-radius: 18px 18px 0 0;
+  border-radius: 12px 12px 0 0;
   opacity: 1;
   inset: auto;
 }
@@ -215,7 +215,7 @@ button.kpiCard:active {
 .insightsKpiStrip .kpiCard {
   background: var(--bg1) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 18px !important;
+  border-radius: 12px !important;
   padding: 16px 18px !important;
   position: relative;
   overflow: hidden;
@@ -234,7 +234,7 @@ button.kpiCard:active {
   left: 0;
   right: 0;
   height: 3px;
-  border-radius: 18px 18px 0 0;
+  border-radius: 12px 12px 0 0;
   background: linear-gradient(90deg, var(--kpi-color, var(--primary)), color-mix(in srgb, var(--kpi-color, var(--primary)) 55%, transparent));
   pointer-events: none;
 }
@@ -284,7 +284,7 @@ button.kpiCard:active {
 .myTasksCommandCenter.kpiStripStandard .kpiCard {
   min-height: 108px !important;
   padding: 16px 18px !important;
-  border-radius: 18px !important;
+  border-radius: 12px !important;
   background: var(--bg1) !important;
   border: 1px solid var(--border) !important;
   position: relative;
@@ -304,7 +304,7 @@ button.kpiCard:active {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--kpi-color, var(--primary)), transparent);
-  border-radius: 18px 18px 0 0;
+  border-radius: 12px 12px 0 0;
 }
 
 .myTasksCommandCenter .myTasksStatCard > svg {

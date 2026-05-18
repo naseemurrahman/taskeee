@@ -4,8 +4,8 @@
  */
 
 .appShellV4 {
-  --std-card-radius: 16px;
-  --std-card-radius-mobile: 14px;
+  --std-card-radius: 12px;
+  --std-card-radius-mobile: 10px;
   --std-card-gap: 14px;
   --std-card-gap-mobile: 9px;
   --std-card-pad: 16px;
