@@ -278,8 +278,7 @@ export function EmployeesPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link className="btn btnGhost" to="/app/hr/time-off" style={{ height: 38, padding: '0 16px', fontSize: 13 }}>Time Off</Link>
-            <button type="button" onClick={() => { resetForm(); setAddOpen(true) }}
-              style={{ height: 38, padding: '0 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(315deg,rgba(249,230,162,1.0),rgba(226,171,65,1.0))', color: '#1a1200', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <button type="button" className="btn btnPrimary" onClick={() => { resetForm(); setAddOpen(true) }} style={{ height: 38, padding: '0 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Employee
             </button>

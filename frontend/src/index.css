@@ -335,9 +335,9 @@
   background: rgba(255,255,255,0.04);
 }
 .mktBtnPrimary {
-  background: linear-gradient(135deg, var(--primary), rgba(244, 202, 87, 0.72));
-  border-color: rgba(244, 202, 87, 0.22);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text-on);
 }
 .mktBtnGhost { background: rgba(255,255,255,0.04); }
 .mktMain { width: 100%; padding: 0; }
@@ -542,14 +542,15 @@
 }
 
 .appShellLight .btnPrimary {
-  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
-  border-color: rgba(226, 171, 65, 0.4);
-  color: #1a1d2e;
-  box-shadow: 0 4px 14px rgba(226, 171, 65, 0.35);
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
 }
 .appShellLight .btnPrimary:hover {
-  background: linear-gradient(135deg, #f9e6a2 0%, #c8820a 100%);
-  box-shadow: 0 6px 20px rgba(226, 171, 65, 0.45);
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 6px 20px var(--primary-glow) !important;
   transform: translateY(-1px);
 }
 .appShellLight .btnGhost {
@@ -3216,19 +3217,20 @@ button.projectCard {
   padding: 0 22px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e2ab41, #c8820a);
-  color: #0b0d12;
+  background: var(--primary);
+  color: var(--primary-text-on);
   font-weight: 900;
   font-size: 14px;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(244,202,87,0.35), 0 2px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px var(--primary-glow), 0 2px 6px rgba(0,0,0,0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .heroCtaBtn:hover {
+  background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(244,202,87,0.45), 0 4px 10px rgba(0,0,0,0.25);
+  box-shadow: 0 12px 32px var(--primary-glow), 0 4px 10px rgba(0,0,0,0.25);
 }
 
 .heroStats {
@@ -3599,9 +3601,9 @@ button.projectCard {
   width: 100%;
   height: 50px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e2ab41, #c8820a);
+  background: var(--primary);
   border: none;
-  color: #0b0d12;
+  color: var(--primary-text-on);
   font-size: 15px;
   font-weight: 900;
   cursor: pointer;
@@ -3610,12 +3612,13 @@ button.projectCard {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(244,202,87,0.3);
+  box-shadow: 0 6px 20px var(--primary-glow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .authV2Submit:hover:not(:disabled) {
+  background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px rgba(244,202,87,0.4);
+  box-shadow: 0 10px 28px var(--primary-glow);
 }
 .authV2Submit:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -5474,7 +5477,7 @@ select.input option { background: #1a1d2e; color: white; }
 /* Primary button — gold on both themes */
 .appShellV4Dark .btnPrimary,
 .appShellV4Light .btnPrimary {
-  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
+  background: var(--primary) !important;
   color: #1a1d2e; border-color: rgba(226, 171, 65,0.4);
   box-shadow: 0 4px 14px rgba(226, 171, 65,0.28);
 }
@@ -5633,15 +5636,15 @@ select.input option { background: #1a1d2e; color: white; }
 
 .authV4SubmitBtn {
   width: 100%; height: 48px; border-radius: 13px;
-  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
-  color: #ffffff; font-size: 15px; font-weight: 900;
+  background: var(--primary);
+  color: var(--primary-text-on); font-size: 15px; font-weight: 900;
   border: none; cursor: pointer; letter-spacing: -0.2px;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(226, 171, 65,0.30);
+  box-shadow: 0 4px 16px var(--primary-glow);
 }
 .authV4SubmitBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f9e6a2 0%, #b87200 100%);
-  box-shadow: 0 6px 24px rgba(226, 171, 65,0.42);
+  background: var(--primary-hover);
+  box-shadow: 0 6px 24px var(--primary-glow);
   transform: translateY(-1px);
 }
 .authV4SubmitBtn:disabled { opacity: 0.65; cursor: not-allowed; }
@@ -5963,34 +5966,25 @@ select.input option { background: #1a1d2e; color: white; }
 
 
 /* ═══════════════════════════════════════════════════════════════
-   GOLD GRADIENT PRIMARY — f9e6a2 → e2ab41 (315deg)
-   Dark border visibility + page header cards
+   PRIMARY BUTTON — uses var(--primary) from active theme
+   Dark: #ccd5de (cool gray)  Light: #022b59 (deep navy)
    ═══════════════════════════════════════════════════════════════ */
 
-/* Brand gradient vars */
-:root, .appShellV4Dark, .appShellV4Light {
-  --brand-gradient: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0));
-  --brand-gradient-hover: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(200,130,10,1.0));
-  --brand: #e2ab41;
-  --brandLight: #f9e6a2;
-  --brandDim: rgba(226,171,65,0.14);
-  --brandBorder: rgba(226,171,65,0.32);
-}
-
-/* Fix all primary buttons to use gradient */
+/* All primary buttons defer to theme --primary */
 .btn.btnPrimary, .btnPrimary,
 .appShellV4Dark .btnPrimary, .appShellV4Light .btnPrimary,
 .authV4SubmitBtn {
-  background: var(--brand-gradient) !important;
-  color: #1a1d2e !important;
-  border-color: rgba(226,171,65,0.40) !important;
-  box-shadow: 0 4px 14px rgba(226,171,65,0.28) !important;
-  font-weight: 900;
+  background: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
+  font-weight: 700;
 }
 .btn.btnPrimary:hover:not(:disabled), .btnPrimary:hover:not(:disabled),
 .authV4SubmitBtn:hover:not(:disabled) {
-  background: var(--brand-gradient-hover) !important;
-  box-shadow: 0 6px 22px rgba(226,171,65,0.42) !important;
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 6px 22px var(--primary-glow) !important;
   transform: translateY(-1px);
 }
 
@@ -6162,12 +6156,12 @@ select.input option { background: #1a1d2e; color: white; }
 
 /* Keep filled buttons in primary color while preserving non-filled button variants */
 .btnPrimary {
-  background: var(--brand) !important;
-  border-color: var(--brand) !important;
-  color: #111827 !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text-on) !important;
 }
 .btnPrimary:hover {
-  filter: brightness(0.97);
+  background: var(--primary-hover) !important;
 }
 
 .appShellV4 button:not(.topbarV4ProfileBtn):not(.sidebarCollapseBtn):not(.topbarV4MenuBtn) {
@@ -6396,22 +6390,23 @@ label.btn,
   border-radius: 8px !important;
 }
 
-/* ── 2. FILLED BUTTON — gold gradient preserved ──────────────── */
+/* ── 2. FILLED BUTTON — theme-adaptive var(--primary) ───────── */
 .btn.btnPrimary,
 .btnPrimary,
 button.btnPrimary,
 .appShellV4Dark .btnPrimary,
 .appShellV4Light .btnPrimary,
 .appShellLight .btnPrimary {
-  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(226,171,65,1.0)) !important;
-  border-color: rgba(226,171,65,0.40) !important;
-  color: #1a1d2e !important;
-  box-shadow: 0 4px 14px rgba(226,171,65,0.28) !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text-on) !important;
+  box-shadow: 0 4px 14px var(--primary-glow) !important;
 }
 .btn.btnPrimary:hover:not(:disabled),
 .btnPrimary:hover:not(:disabled) {
-  background: linear-gradient(315deg, rgba(249,230,162,1.0), rgba(200,130,10,1.0)) !important;
-  box-shadow: 0 6px 22px rgba(226,171,65,0.42) !important;
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 6px 22px var(--primary-glow) !important;
   transform: translateY(-1px);
 }
 
