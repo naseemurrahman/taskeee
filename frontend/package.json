@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run test:contracts && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test:contracts": "node scripts/test-frontend-contracts.mjs",
