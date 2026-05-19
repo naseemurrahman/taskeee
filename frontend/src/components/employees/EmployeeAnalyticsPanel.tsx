@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, LineChart, Users, UserCheck } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
+import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -219,11 +220,11 @@ function TrendChart({ points }: { points: EmployeeTrendPoint[] }) {
 }
 
 export function EmployeeAnalyticsPanel({ days = 30 }: { days?: number }) {
-  const performanceQ = useQuery({ queryKey: ['employees-analytics-performance', days], queryFn: () => fetchEmployeePerformance(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const trendQ = useQuery({ queryKey: ['employees-analytics-trend', days], queryFn: () => fetchEmployeeTrend(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const workloadQ = useQuery({ queryKey: ['employees-analytics-workload', days], queryFn: () => fetchWorkload(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const departmentQ = useQuery({ queryKey: ['employees-analytics-departments', days], queryFn: () => fetchDepartmentPerformance(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const slaQ = useQuery({ queryKey: ['employees-analytics-sla', days], queryFn: () => fetchSlaRisk(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
+  const performanceQ = useQuery(liveAnalyticsQueryOptions<EmployeePerformance[]>({ queryKey: ['employees-analytics-performance', days], queryFn: () => fetchEmployeePerformance(days) }))
+  const trendQ = useQuery(liveAnalyticsQueryOptions<EmployeeTrendPoint[]>({ queryKey: ['employees-analytics-trend', days], queryFn: () => fetchEmployeeTrend(days) }))
+  const workloadQ = useQuery(liveAnalyticsQueryOptions<WorkloadEmployee[]>({ queryKey: ['employees-analytics-workload', days], queryFn: () => fetchWorkload(days) }))
+  const departmentQ = useQuery(liveAnalyticsQueryOptions<DepartmentPerformance[]>({ queryKey: ['employees-analytics-departments', days], queryFn: () => fetchDepartmentPerformance(days) }))
+  const slaQ = useQuery(liveAnalyticsQueryOptions<SlaRisk>({ queryKey: ['employees-analytics-sla', days], queryFn: () => fetchSlaRisk(days) }))
 
   const performance = performanceQ.data || []
   const workload = workloadQ.data || []
