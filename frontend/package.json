@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
+    "test:contracts": "node scripts/test-frontend-contracts.mjs",
     "preview": "vite preview",
     "preview:prod": "vite preview --host 0.0.0.0 --port 5174 --strictPort"
   },
