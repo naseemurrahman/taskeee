@@ -19,6 +19,127 @@ async function ensureReportsBeforeRetry(err) {
   return true;
 }
 
+function parseReportData(data) {
+  if (!data) return {};
+  if (typeof data !== 'string') return data;
+  try { return JSON.parse(data || '{}'); } catch (_err) { return {}; }
+}
+
+function safeText(value, fallback = '—') {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (value instanceof Date) return value.toLocaleString();
+  return String(value);
+}
+
+function addPdfPageIfNeeded(doc, needed = 74) {
+  if (doc.y + needed > doc.page.height - doc.page.margins.bottom) doc.addPage();
+}
+
+function addPdfSection(doc, title) {
+  addPdfPageIfNeeded(doc, 58);
+  doc.moveDown(0.7);
+  doc.fillColor('#111').fontSize(13).font('Helvetica-Bold').text(title);
+  doc.moveDown(0.25);
+}
+
+function addPdfKeyValues(doc, rows) {
+  rows.forEach(([label, value]) => {
+    addPdfPageIfNeeded(doc, 24);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#555').text(`${label}: `, { continued: true });
+    doc.font('Helvetica').fillColor('#111').text(safeText(value));
+  });
+}
+
+function addPdfRows(doc, rows, mapper, emptyText) {
+  if (!rows || !rows.length) {
+    doc.font('Helvetica').fontSize(9).fillColor('#666').text(emptyText || 'No rows available.');
+    return;
+  }
+  rows.forEach((row, index) => {
+    addPdfPageIfNeeded(doc, 38);
+    const lines = mapper(row, index).filter(Boolean);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#111').text(lines[0]);
+    lines.slice(1).forEach((line) => doc.font('Helvetica').fontSize(8).fillColor('#555').text(line));
+    doc.moveDown(0.2);
+  });
+}
+
+function renderReportPdf(doc, report, payload) {
+  const snapshot = payload.analyticsSnapshot || {};
+  const summary = payload.summary || {};
+  const snapSummary = snapshot.summary || {};
+  const projectSummary = snapshot.project_summary?.projects || [];
+  const departments = snapshot.department_performance?.departments || [];
+  const employees = snapshot.employee_performance?.employees || [];
+  const slaRisk = snapshot.sla_risk || { summary: {}, tasks: [] };
+
+  doc.font('Helvetica-Bold').fontSize(21).fillColor('#111').text('TASKEE Report');
+  doc.moveDown(0.4);
+  doc.font('Helvetica').fontSize(10).fillColor('#555');
+  doc.text(`Report ID: ${report.id}`);
+  doc.text(`Type: ${report.report_type}`);
+  doc.text(`Scope: ${safeText(report.scope_type)}`);
+  doc.text(`Generated: ${new Date(report.created_at).toLocaleString()}`);
+  doc.moveDown(0.4);
+  doc.font('Helvetica-Bold').fontSize(9).fillColor('#7c2d12').text('Terminated employees are excluded from report charts, performance, workload, SLA risk, project, and department analytics.');
+
+  addPdfSection(doc, 'Snapshot Summary');
+  addPdfKeyValues(doc, [
+    ['Legacy total tasks', summary.total ?? 0],
+    ['Legacy completion rate', `${summary.completionRate ?? 0}%`],
+    ['Legacy overdue tasks', summary.overdueTasks ?? 0],
+    ['Analytics tasks in scope', snapSummary.total_tasks ?? 0],
+    ['Analytics completed tasks', snapSummary.completed_tasks ?? 0],
+    ['Analytics pending tasks', snapSummary.pending_tasks ?? 0],
+    ['Analytics overdue tasks', snapSummary.overdue_tasks ?? 0],
+    ['Active employees', snapSummary.active_employees ?? 0],
+    ['SLA open tasks', slaRisk.summary?.open_tasks ?? 0],
+    ['SLA due within 72h', slaRisk.summary?.due_soon_72h ?? 0],
+    ['SLA critical open', slaRisk.summary?.critical_priority_open ?? 0],
+  ]);
+
+  addPdfSection(doc, 'Task Status Breakdown');
+  addPdfRows(doc, payload.statusBreakdown || [], (row) => [
+    `${safeText(row.status).replace(/_/g, ' ')} — ${safeText(row.count, 0)}`,
+    `Average hours: ${safeText(row.avg_hours, 0)}`,
+  ], 'No task status data in this snapshot.');
+
+  addPdfSection(doc, 'Project Snapshot');
+  addPdfRows(doc, projectSummary.slice(0, 12), (row) => [
+    `${safeText(row.project_name)} — ${safeText(row.completion_rate, 0)}% complete`,
+    `Total ${safeText(row.total_tasks, 0)} · Open ${safeText(row.open_tasks, 0)} · Overdue ${safeText(row.overdue_tasks, 0)} · High priority ${safeText(row.high_priority_tasks, 0)}`,
+  ], 'No project analytics in this snapshot.');
+
+  addPdfSection(doc, 'Department Performance');
+  addPdfRows(doc, departments.slice(0, 12), (row) => [
+    `${safeText(row.department, 'Unassigned')} — ${safeText(row.completion_rate, 0)}% complete`,
+    `People ${safeText(row.employee_count, 0)} · Assigned ${safeText(row.assigned_tasks, 0)} · Open ${safeText(row.open_tasks, 0)} · Overdue ${safeText(row.overdue_tasks, 0)}`,
+  ], 'No department analytics in this snapshot.');
+
+  addPdfSection(doc, 'Employee Performance');
+  addPdfRows(doc, employees.slice(0, 12), (row) => [
+    `${safeText(row.employee_name, 'Unassigned')}`,
+    `Assigned ${safeText(row.assigned, 0)} · Completed ${safeText(row.completed, 0)} · Overdue ${safeText(row.overdue, 0)}`,
+  ], 'No employee performance analytics in this snapshot.');
+
+  addPdfSection(doc, 'SLA Risk Queue');
+  addPdfRows(doc, (slaRisk.tasks || []).slice(0, 12), (row) => [
+    `${safeText(row.title)} — score ${safeText(row.risk_score, 0)}`,
+    `${safeText(row.risk_reason)} · Owner ${safeText(row.assigned_to_name, 'Unassigned')} · Due ${safeText(row.due_date)}`,
+  ], 'No SLA risk tasks in this snapshot.');
+
+  addPdfSection(doc, 'Overdue Tasks');
+  addPdfRows(doc, (payload.overdueTasks || []).slice(0, 12), (row) => [
+    `${safeText(row.title)} — due ${safeText(row.due_date)}`,
+    `Project ${safeText(row.project_name)} · Owner ${safeText(row.assigned_to_name, 'Unassigned')}`,
+  ], 'No overdue tasks in this report.');
+
+  if (snapshot.errors?.length) {
+    addPdfSection(doc, 'Snapshot Warnings');
+    addPdfRows(doc, snapshot.errors, (row, index) => [`${index + 1}. ${safeText(row)}`], 'No snapshot warnings.');
+  }
+}
+
 // GET /reports
 router.get('/', authenticate, async (req, res, next) => {
   async function runListQuery() {
@@ -144,7 +265,7 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
     }
 
     if (format === 'csv') {
-      const payload = typeof report.data === 'string' ? JSON.parse(report.data || '{}') : (report.data || {});
+      const payload = parseReportData(report.data);
       const flattened = Object.entries(payload).map(([key, value]) => [
         key,
         typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')
@@ -156,23 +277,12 @@ router.get('/:id/export', authenticate, async (req, res, next) => {
     }
 
     if (format === 'pdf') {
-      const payload = typeof report.data === 'string' ? JSON.parse(report.data || '{}') : (report.data || {});
-      const doc = new PDFDocument({ margin: 40 });
+      const payload = parseReportData(report.data);
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const chunks = [];
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('error', () => null);
-      doc.fontSize(20).text('TASKEE Report', { align: 'left' });
-      doc.moveDown(0.6);
-      doc.fontSize(11).fillColor('#555').text(`Report ID: ${report.id}`);
-      doc.text(`Type: ${report.report_type}`);
-      doc.text(`Generated: ${new Date(report.created_at).toLocaleString()}`);
-      doc.moveDown(0.8);
-      doc.fillColor('#111').fontSize(12).text('Summary');
-      doc.moveDown(0.3);
-      Object.entries(payload || {}).slice(0, 50).forEach(([k, v]) => {
-        const value = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
-        doc.fontSize(10).fillColor('#111').text(`${k}: ${value}`);
-      });
+      renderReportPdf(doc, report, payload);
       doc.end();
       const pdfBuffer = await new Promise((resolve) => {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
