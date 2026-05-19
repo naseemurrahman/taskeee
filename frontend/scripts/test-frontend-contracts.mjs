@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
-const read = (path) => readFileSync(resolve(root, path), 'utf8');
+const pathOf = (path) => resolve(root, path);
+const read = (path) => readFileSync(pathOf(path), 'utf8');
+const exists = (path) => existsSync(pathOf(path));
 
 function assertContains(file, needle, message) {
   assert.ok(read(file).includes(needle), `${message}\nExpected ${file} to contain: ${needle}`);
@@ -11,6 +13,14 @@ function assertContains(file, needle, message) {
 
 function assertNotContains(file, needle, message) {
   assert.ok(!read(file).includes(needle), `${message}\nExpected ${file} not to contain: ${needle}`);
+}
+
+function assertOptionalFileHasNoSideEffects(file) {
+  if (!exists(file)) return;
+  const content = read(file);
+  for (const forbidden of ['MutationObserver', 'addEventListener', 'appendChild', 'document.querySelector', 'document.addEventListener']) {
+    assert.ok(!content.includes(forbidden), `${file} must remain inert and not contain ${forbidden}`);
+  }
 }
 
 function testMainHasNoRuntimeSideEffectGuards() {
@@ -28,6 +38,19 @@ function testMainHasNoRuntimeSideEffectGuards() {
   assert.ok(main.includes("./task-checkbox.css"), 'main.tsx must load stable task checkbox CSS');
   assert.ok(main.includes("./mobile-pull-to-refresh.css"), 'main.tsx must load React pull refresh CSS');
   assert.ok(main.includes("./topbar-action-visibility.css"), 'main.tsx must load static topbar visibility CSS');
+}
+
+function testDeprecatedSideEffectModulesAreAbsentOrInert() {
+  for (const file of [
+    'src/task-checkbox-event-guard.ts',
+    'src/global-search-submit.ts',
+    'src/employee-profile-delete-action.ts',
+    'src/mobile-pull-to-refresh-guard.ts',
+    'src/topbar-action-visibility-guard.ts',
+    'src/chart-render-guard.ts',
+  ]) {
+    assertOptionalFileHasNoSideEffects(file);
+  }
 }
 
 function testSharedAnalyticsQueryOptionsAreUsed() {
@@ -70,11 +93,11 @@ function testReportSnapshotContracts() {
 function testEmployeeProfileActionIsComponentOwned() {
   assertContains('src/pages/app/hr/EmployeeProfilePage.tsx', 'onDeleteEmployee', 'Employee delete action must live inside EmployeeProfilePage');
   assertContains('src/pages/app/hr/EmployeeProfilePage.tsx', 'deleteM.mutate(empId)', 'Employee delete mutation must be component-owned');
-  assertNotContains('src/employee-profile-delete-action.ts', 'MutationObserver', 'Deprecated employee delete module must not use DOM mutation observers');
 }
 
 const tests = [
   testMainHasNoRuntimeSideEffectGuards,
+  testDeprecatedSideEffectModulesAreAbsentOrInert,
   testSharedAnalyticsQueryOptionsAreUsed,
   testMobileResponsiveContracts,
   testReportSnapshotContracts,
