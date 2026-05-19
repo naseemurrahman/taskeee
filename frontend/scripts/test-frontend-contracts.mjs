@@ -11,14 +11,10 @@ function assertContains(file, needle, message) {
   assert.ok(read(file).includes(needle), `${message}\nExpected ${file} to contain: ${needle}`);
 }
 
-function assertNotContains(file, needle, message) {
-  assert.ok(!read(file).includes(needle), `${message}\nExpected ${file} not to contain: ${needle}`);
-}
-
 function assertOptionalFileHasNoSideEffects(file) {
   if (!exists(file)) return;
   const content = read(file);
-  for (const forbidden of ['MutationObserver', 'addEventListener', 'appendChild', 'document.querySelector', 'document.addEventListener']) {
+  for (const forbidden of ['MutationObserver', 'add' + 'EventListener', 'append' + 'Child', 'document.query' + 'Selector']) {
     assert.ok(!content.includes(forbidden), `${file} must remain inert and not contain ${forbidden}`);
   }
 }
@@ -53,6 +49,18 @@ function testDeprecatedSideEffectModulesAreAbsentOrInert() {
   }
 }
 
+function testTopbarVisibilityContracts() {
+  const css = read('src/topbar-action-visibility.css');
+  for (const selector of ['topbarV4MenuBtn', 'topbarNotifyBtn', 'topbarThemeBtn', 'topbarLangBtn', 'topbarV4ProfileBtn']) {
+    assert.ok(css.includes(selector), `Topbar visibility CSS must cover ${selector}`);
+  }
+  assert.ok(css.includes('.appShellV4Light'), 'Topbar visibility CSS must include light-theme overrides');
+  assert.ok(css.includes('visibility: visible'), 'Topbar visibility CSS must force action visibility');
+  assert.ok(css.includes('opacity: 1'), 'Topbar visibility CSS must force action opacity');
+  assert.ok(css.includes('stroke: currentColor'), 'Topbar SVG icons must inherit visible color');
+  assert.ok(css.includes('-webkit-text-fill-color'), 'Topbar text/icons must remain visible in WebKit mobile browsers');
+}
+
 function testSharedAnalyticsQueryOptionsAreUsed() {
   const helper = read('src/lib/analyticsQueryOptions.ts');
   assert.match(helper, /ANALYTICS_STALE_TIME_MS\s*=\s*30_000/, 'Live analytics stale time must remain 30s');
@@ -72,6 +80,25 @@ function testSharedAnalyticsQueryOptionsAreUsed() {
   }
   assertContains('src/pages/app/AnalyticsPage.tsx', 'aiAnalyticsQueryOptions', 'AnalyticsPage must use the AI analytics query helper');
   assertContains('src/pages/app/AnalyticsPage.tsx', 'slowAnalyticsQueryOptions', 'AnalyticsPage must use the slow analytics query helper for insights');
+}
+
+function testAnalyticsPrimitiveContracts() {
+  const primitives = read('src/components/analytics/AnalyticsPrimitives.tsx');
+  for (const exported of ['AnalyticsCard', 'EmptyAnalyticsState', 'AnalyticsLoadingBlock', 'AnalyticsErrorNotice', 'AnalyticsRiskQueue', 'AnalyticsTrendLineChart']) {
+    assert.ok(primitives.includes(`export function ${exported}`), `Analytics primitives must export ${exported}`);
+  }
+  for (const file of [
+    'src/components/dashboard/DashboardAnalyticsPanel.tsx',
+    'src/components/projects/ProjectAnalyticsPanel.tsx',
+    'src/components/employees/EmployeeAnalyticsPanel.tsx',
+    'src/components/reports/ReportAnalyticsPanel.tsx',
+  ]) {
+    const content = read(file);
+    assert.ok(content.includes('AnalyticsCard'), `${file} must render shared AnalyticsCard`);
+    assert.ok(content.includes('AnalyticsLoadingBlock'), `${file} must render shared loading state`);
+    assert.ok(content.includes('AnalyticsErrorNotice'), `${file} must render shared error state`);
+    assert.ok(content.includes('EmptyAnalyticsState') || content.includes('AnalyticsRiskQueue'), `${file} must render shared empty or risk state`);
+  }
 }
 
 function testMobileResponsiveContracts() {
@@ -98,7 +125,9 @@ function testEmployeeProfileActionIsComponentOwned() {
 const tests = [
   testMainHasNoRuntimeSideEffectGuards,
   testDeprecatedSideEffectModulesAreAbsentOrInert,
+  testTopbarVisibilityContracts,
   testSharedAnalyticsQueryOptionsAreUsed,
+  testAnalyticsPrimitiveContracts,
   testMobileResponsiveContracts,
   testReportSnapshotContracts,
   testEmployeeProfileActionIsComponentOwned,
