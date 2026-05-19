@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { FolderOpen, AlertTriangle, CheckCircle2, Clock3, ListTodo, TrendingUp } from 'lucide-react'
+import { FolderOpen, AlertTriangle, CheckCircle2, Clock3, ListTodo } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
+import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
+import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
 type ProjectSummary = {
   project_id: string
@@ -27,14 +28,6 @@ type ProjectTrendPoint = {
   overdue: number
 }
 
-function n(value: unknown) {
-  return Number(value || 0)
-}
-
-function pct(done: number, total: number) {
-  return total ? Math.round((done / total) * 100) : 0
-}
-
 async function fetchProjectSummary() {
   const data = await apiFetch<{ projects: ProjectSummary[] }>('/api/v1/analytics/project-summary?days=90')
   return data.projects || []
@@ -45,32 +38,9 @@ async function fetchProjectTrend() {
   return data.points || []
 }
 
-function Empty({ title, detail = 'No project analytics for the selected period.' }: { title: string; detail?: string }) {
-  return (
-    <div style={{ minHeight: 120, display: 'grid', placeItems: 'center', color: 'var(--muted)', textAlign: 'center', padding: 16 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 900 }}>{title}</div>
-        <div style={{ fontSize: 11, marginTop: 4 }}>{detail}</div>
-      </div>
-    </div>
-  )
-}
-
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div className="card" style={{ display: 'grid', gap: 12, minWidth: 0, overflow: 'hidden' }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 950, color: 'var(--text)' }}>{title}</div>
-        {subtitle ? <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, fontWeight: 700 }}>{subtitle}</div> : null}
-      </div>
-      {children}
-    </div>
-  )
-}
-
 function ProgressRows({ projects }: { projects: ProjectSummary[] }) {
   const rows = projects.filter((p) => n(p.total_tasks) > 0).slice(0, 8)
-  if (!rows.length) return <Empty title="No project progress yet" />
+  if (!rows.length) return <EmptyAnalyticsState title="No project progress yet" detail="No project analytics for the selected period." minHeight={120} />
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {rows.map((p, index) => {
@@ -108,7 +78,7 @@ function PortfolioRisk({ projects }: { projects: ProjectSummary[] }) {
     .sort((a, b) => b.risk - a.risk)
     .slice(0, 8)
   const max = Math.max(1, ...rows.map((p) => p.risk))
-  if (!rows.length) return <Empty title="No project risk signals" detail="No open, overdue, or high-priority project load found." />
+  if (!rows.length) return <EmptyAnalyticsState title="No project risk signals" detail="No open, overdue, or high-priority project load found." minHeight={120} />
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {rows.map((p) => {
@@ -129,50 +99,33 @@ function PortfolioRisk({ projects }: { projects: ProjectSummary[] }) {
   )
 }
 
-function TrendSvg({ points }: { points: ProjectTrendPoint[] }) {
-  const totals = useMemo(() => {
-    const byDay = new Map<string, { day: string; created: number; completed: number; overdue: number }>()
-    for (const p of points || []) {
-      const day = String(p.day || '').slice(5, 10)
-      const current = byDay.get(day) || { day, created: 0, completed: 0, overdue: 0 }
-      current.created += n(p.created)
-      current.completed += n(p.completed)
-      current.overdue += n(p.overdue)
-      byDay.set(day, current)
-    }
-    return Array.from(byDay.values())
-  }, [points])
-  const sum = totals.reduce((s, d) => s + d.created + d.completed + d.overdue, 0)
-  if (!totals.length || sum === 0) return <Empty title="No project movement yet" detail="Created, completed, and overdue task movement will appear here." />
-
-  const W = 720, H = 230, L = 34, R = 14, T = 16, B = 34
-  const max = Math.max(1, ...totals.flatMap((d) => [d.created, d.completed, d.overdue]))
-  const x = (i: number) => L + i * (W - L - R) / Math.max(1, totals.length - 1)
-  const y = (v: number) => T + (1 - v / max) * (H - T - B)
-  const path = (key: 'created' | 'completed' | 'overdue') => totals.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(d[key])}`).join(' ')
-  const tickEvery = Math.max(1, Math.ceil(totals.length / 6))
+function TrendChart({ points }: { points: ProjectTrendPoint[] }) {
+  const byDay = new Map<string, { day: string; created: number; completed: number; overdue: number }>()
+  for (const p of points || []) {
+    const key = String(p.day || '')
+    const current = byDay.get(key) || { day: key, created: 0, completed: 0, overdue: 0 }
+    current.created += n(p.created)
+    current.completed += n(p.completed)
+    current.overdue += n(p.overdue)
+    byDay.set(key, current)
+  }
   return (
-    <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="230" role="img" aria-label="Project trend">
-        {[0, .25, .5, .75, 1].map((t) => {
-          const yy = T + t * (H - T - B)
-          return <line key={t} x1={L} x2={W - R} y1={yy} y2={yy} stroke="rgba(148,163,184,.16)" strokeDasharray="4 4" />
-        })}
-        <path d={path('created')} fill="none" stroke="#e2ab41" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('completed')} fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={path('overdue')} fill="none" stroke="#ef4444" strokeWidth="3" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
-        {totals.map((d, i) => i % tickEvery === 0 || i === totals.length - 1 ? <text key={d.day} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--muted)">{d.day}</text> : null)}
-      </svg>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', fontSize: 11, fontWeight: 800, color: 'var(--muted)' }}>
-        <span style={{ color: '#e2ab41' }}>● Created</span><span style={{ color: '#22c55e' }}>● Completed</span><span style={{ color: '#ef4444' }}>● Overdue</span>
-      </div>
-    </div>
+    <AnalyticsTrendLineChart
+      points={Array.from(byDay.values())}
+      keys={['created', 'completed', 'overdue']}
+      labels={{ created: 'Created', completed: 'Completed', overdue: 'Overdue' }}
+      colors={{ created: '#e2ab41', completed: '#22c55e', overdue: '#ef4444' }}
+      emptyTitle="No project movement yet"
+      emptyDetail="Created, completed, and overdue task movement will appear here."
+      height={230}
+      ariaLabel="Project trend"
+    />
   )
 }
 
 export function ProjectAnalyticsPanel() {
-  const summaryQ = useQuery({ queryKey: ['projects-analytics-summary'], queryFn: fetchProjectSummary, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const trendQ = useQuery({ queryKey: ['projects-analytics-trend'], queryFn: fetchProjectTrend, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
+  const summaryQ = useQuery(liveAnalyticsQueryOptions<ProjectSummary[]>({ queryKey: ['projects-analytics-summary'], queryFn: fetchProjectSummary }))
+  const trendQ = useQuery(liveAnalyticsQueryOptions<ProjectTrendPoint[]>({ queryKey: ['projects-analytics-trend'], queryFn: fetchProjectTrend }))
 
   const projects = summaryQ.data || []
   const totalTasks = projects.reduce((s, p) => s + n(p.total_tasks), 0)
@@ -184,7 +137,7 @@ export function ProjectAnalyticsPanel() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {(summaryQ.isError || trendQ.isError) && <div className="alertV4 alertV4Error">Project analytics failed to load. Available data remains visible and the app will retry automatically.</div>}
+      {(summaryQ.isError || trendQ.isError) && <AnalyticsErrorNotice message="Project analytics failed to load. Available data remains visible and the app will retry automatically." />}
       <KpiStrip
         loading={summaryQ.isLoading}
         skeletonCount={5}
@@ -197,16 +150,16 @@ export function ProjectAnalyticsPanel() {
         ]}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
-        <Card title="Project Completion Mix" subtitle="Backend-generated completion/open/overdue split">
-          {summaryQ.isLoading ? <div className="skeleton" style={{ height: 180, borderRadius: 14 }} /> : <ProgressRows projects={projects} />}
-        </Card>
-        <Card title="Portfolio Risk Load" subtitle="Weighted from open, overdue, and high-priority tasks">
-          {summaryQ.isLoading ? <div className="skeleton" style={{ height: 180, borderRadius: 14 }} /> : <PortfolioRisk projects={projects} />}
-        </Card>
+        <AnalyticsCard title="Project Completion Mix" subtitle="Backend-generated completion/open/overdue split">
+          {summaryQ.isLoading ? <AnalyticsLoadingBlock height={180} /> : <ProgressRows projects={projects} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Portfolio Risk Load" subtitle="Weighted from open, overdue, and high-priority tasks">
+          {summaryQ.isLoading ? <AnalyticsLoadingBlock height={180} /> : <PortfolioRisk projects={projects} />}
+        </AnalyticsCard>
       </div>
-      <Card title="Project Movement Trend" subtitle="Created, completed, and overdue movement over the last 30 days">
-        {trendQ.isLoading ? <div className="skeleton" style={{ height: 230, borderRadius: 14 }} /> : <TrendSvg points={trendQ.data || []} />}
-      </Card>
+      <AnalyticsCard title="Project Movement Trend" subtitle="Created, completed, and overdue movement over the last 30 days">
+        {trendQ.isLoading ? <AnalyticsLoadingBlock height={230} /> : <TrendChart points={trendQ.data || []} />}
+      </AnalyticsCard>
     </div>
   )
 }
