@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { IconSpark } from '../../components/ui/AppIcons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
+import { aiAnalyticsQueryOptions, liveAnalyticsQueryOptions, slowAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
 import { KpiStrip } from '../../components/ui/KpiCard'
@@ -93,28 +94,22 @@ export function AnalyticsPage() {
 
   useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
 
-  const aiStatusQ = useQuery({
+  const aiStatusQ = useQuery(liveAnalyticsQueryOptions<AIStatus>({
     queryKey: ['ai-status'],
     queryFn: () => apiFetch<AIStatus>('/api/v1/ai/status'),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-  })
+  }))
 
-  const insightsQ   = useQuery({ queryKey: ['insights', days],             queryFn: () => fetchInsights(days),   staleTime: 60_000, refetchInterval: 60_000 })
-  const summaryQ    = useQuery({ queryKey: ['analytics-summary', days],    queryFn: () => fetchSummary(days),    staleTime: 30_000, refetchInterval: 30_000 })
-  const statusQ     = useQuery({ queryKey: ['analytics-status', days],     queryFn: () => fetchStatus(days),     staleTime: 30_000, refetchInterval: 30_000 })
-  const trendQ      = useQuery({ queryKey: ['analytics-trend', days],      queryFn: () => fetchTrend(days),      staleTime: 30_000, refetchInterval: 30_000 })
-  const priorityQ   = useQuery({ queryKey: ['analytics-priority', days],   queryFn: () => fetchPriorities(days), staleTime: 30_000, refetchInterval: 30_000 })
-  const employeesQ  = useQuery({ queryKey: ['analytics-employees', days],  queryFn: () => fetchEmployees(days),  staleTime: 30_000, refetchInterval: 30_000 })
-  const workloadQ   = useQuery({ queryKey: ['analytics-workload', days],   queryFn: () => fetchWorkload(days),   staleTime: 30_000, refetchInterval: 30_000 })
-  const backendAiQ  = useQuery({
+  const insightsQ   = useQuery(slowAnalyticsQueryOptions<InsightsResponse>({ queryKey: ['insights', days], queryFn: () => fetchInsights(days) }))
+  const summaryQ    = useQuery(liveAnalyticsQueryOptions<AnalyticsSummary>({ queryKey: ['analytics-summary', days], queryFn: () => fetchSummary(days) }))
+  const statusQ     = useQuery(liveAnalyticsQueryOptions<{ statuses: StatusPoint[] }>({ queryKey: ['analytics-status', days], queryFn: () => fetchStatus(days) }))
+  const trendQ      = useQuery(liveAnalyticsQueryOptions<{ points: TrendPoint[] }>({ queryKey: ['analytics-trend', days], queryFn: () => fetchTrend(days) }))
+  const priorityQ   = useQuery(liveAnalyticsQueryOptions<{ priorities: PriorityPoint[] }>({ queryKey: ['analytics-priority', days], queryFn: () => fetchPriorities(days) }))
+  const employeesQ  = useQuery(liveAnalyticsQueryOptions<{ employees: EmployeePerformance[] }>({ queryKey: ['analytics-employees', days], queryFn: () => fetchEmployees(days) }))
+  const workloadQ   = useQuery(liveAnalyticsQueryOptions<{ employees: WorkloadEmployee[] }>({ queryKey: ['analytics-workload', days], queryFn: () => fetchWorkload(days) }))
+  const backendAiQ  = useQuery(aiAnalyticsQueryOptions<BackendAiOverview>({
     queryKey: ['backend-ai-overview', days],
     queryFn: () => fetchBackendAi(days),
-    retry: false,
-    staleTime: 5 * 60_000,
-    refetchInterval: 5 * 60_000,
-  })
+  }))
 
   const refreshAI = useCallback(async () => {
     setAiRefreshing(true)
