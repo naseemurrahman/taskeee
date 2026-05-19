@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, FolderOpen, Gauge, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
+import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -182,13 +183,13 @@ function TeamLoad({ workload }: { workload: WorkloadEmployee[] }) {
 }
 
 export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
-  const summaryQ = useQuery({ queryKey: ['dashboard-live-summary', days], queryFn: () => fetchSummary(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const trendQ = useQuery({ queryKey: ['dashboard-live-trend', days], queryFn: () => fetchTrend(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const statusQ = useQuery({ queryKey: ['dashboard-live-status', days], queryFn: () => fetchStatus(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const priorityQ = useQuery({ queryKey: ['dashboard-live-priority', days], queryFn: () => fetchPriority(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const projectQ = useQuery({ queryKey: ['dashboard-live-projects', days], queryFn: () => fetchProjects(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const workloadQ = useQuery({ queryKey: ['dashboard-live-workload', days], queryFn: () => fetchWorkload(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const slaQ = useQuery({ queryKey: ['dashboard-live-sla', days], queryFn: () => fetchSlaRisk(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
+  const summaryQ = useQuery(liveAnalyticsQueryOptions<AnalyticsSummary>({ queryKey: ['dashboard-live-summary', days], queryFn: () => fetchSummary(days) }))
+  const trendQ = useQuery(liveAnalyticsQueryOptions<TrendPoint[]>({ queryKey: ['dashboard-live-trend', days], queryFn: () => fetchTrend(days) }))
+  const statusQ = useQuery(liveAnalyticsQueryOptions<StatusPoint[]>({ queryKey: ['dashboard-live-status', days], queryFn: () => fetchStatus(days) }))
+  const priorityQ = useQuery(liveAnalyticsQueryOptions<PriorityPoint[]>({ queryKey: ['dashboard-live-priority', days], queryFn: () => fetchPriority(days) }))
+  const projectQ = useQuery(liveAnalyticsQueryOptions<ProjectSummary[]>({ queryKey: ['dashboard-live-projects', days], queryFn: () => fetchProjects(days) }))
+  const workloadQ = useQuery(liveAnalyticsQueryOptions<WorkloadEmployee[]>({ queryKey: ['dashboard-live-workload', days], queryFn: () => fetchWorkload(days) }))
+  const slaQ = useQuery(liveAnalyticsQueryOptions<SlaRisk>({ queryKey: ['dashboard-live-sla', days], queryFn: () => fetchSlaRisk(days) }))
 
   const summary = summaryQ.data
   const projects = projectQ.data || []
