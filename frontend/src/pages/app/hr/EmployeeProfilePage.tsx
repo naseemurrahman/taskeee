@@ -71,10 +71,12 @@ async function updateEmployee(input: { id: string; patch: EmployeePatch }) {
   })
 }
 
+async function deleteEmployee(id: string) {
+  return apiFetch(`/api/v1/hris/employees/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 async function fetchEmployeeTasks(employee?: Employee | null) {
   if (!employee) return [] as TaskRow[]
-  // ONLY use user_id (users table UUID) — tasks.assigned_to stores users.id, not employees.id
-  // Using employee.id as a fallback would return wrong or all-org tasks
   const userId = employee.user_id
   if (!userId) return [] as TaskRow[]
   try {
@@ -197,6 +199,18 @@ export function EmployeeProfilePage() {
     },
   })
 
+  const deleteM = useMutation({
+    mutationFn: deleteEmployee,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
+      navigate('/app/hr/employees', { replace: true })
+    },
+    onError: (err) => {
+      if (err instanceof ApiError) setError(err.message)
+      else setError('Could not delete employee.')
+    },
+  })
+
   function onSave(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -226,6 +240,14 @@ export function EmployeeProfilePage() {
         status: status || 'active',
       },
     })
+  }
+
+  function onDeleteEmployee() {
+    if (!empId || deleteM.isPending) return
+    setError(null)
+    const confirmed = window.confirm('Delete this employee and deactivate the linked workspace account? This action cannot be undone.')
+    if (!confirmed) return
+    deleteM.mutate(empId)
   }
 
   const tabs: Array<{ key: TabKey; label: string; count?: number }> = [
@@ -258,9 +280,14 @@ export function EmployeeProfilePage() {
               </div>
             ) : null}
           </div>
-          <Link className="btn btnGhost" style={{ height: 40, display: 'grid', placeItems: 'center', padding: '0 12px' }} to="/app/hr/employees">
-            Back to directory
-          </Link>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btnGhost" type="button" onClick={onDeleteEmployee} disabled={!employee || deleteM.isPending} style={{ height: 40, display: 'grid', placeItems: 'center', padding: '0 12px', borderColor: 'rgba(239,68,68,0.35)', color: '#ef4444' }}>
+              {deleteM.isPending ? 'Deleting…' : 'Delete employee'}
+            </button>
+            <Link className="btn btnGhost" style={{ height: 40, display: 'grid', placeItems: 'center', padding: '0 12px' }} to="/app/hr/employees">
+              Back to directory
+            </Link>
+          </div>
         </div>
       </div>
 
