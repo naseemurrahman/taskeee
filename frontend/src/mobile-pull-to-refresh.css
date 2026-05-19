@@ -1,0 +1,72 @@
+html,
+body,
+#root {
+  overscroll-behavior-x: none;
+}
+
+.contentV4,
+.sidebarV4Nav,
+.modalCardV2,
+.topbarNotifyList,
+.topbarV4SearchDropdown,
+.selectV3Dropdown,
+.profileDropdown {
+  -webkit-overflow-scrolling: touch;
+}
+
+.taskeePullRefreshIndicator {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  z-index: 2147483000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 171, 65, 0.38);
+  background: rgba(12, 15, 23, 0.94);
+  color: #f8d98d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+  font: 800 12px/1 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, -70px, 0) scale(0.96);
+  transition: opacity 140ms ease, transform 140ms ease;
+  will-change: transform, opacity;
+}
+
+html[data-theme='light'] .taskeePullRefreshIndicator,
+.appShellV4Light ~ .taskeePullRefreshIndicator {
+  background: rgba(255, 255, 255, 0.96);
+  color: #7c2d12;
+  border-color: rgba(180, 83, 9, 0.26);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+}
+
+.taskeePullRefreshIndicator[data-state='pull'],
+.taskeePullRefreshIndicator[data-state='ready'],
+.taskeePullRefreshIndicator[data-state='refreshing'] {
+  opacity: 1;
+}
+
+.taskeePullRefreshSpinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0.9;
+  transform: rotate(0deg);
+}
+
+.taskeePullRefreshIndicator[data-state='refreshing'] .taskeePullRefreshSpinner {
+  animation: taskeePullRefreshSpin 0.7s linear infinite;
+}
+
+@keyframes taskeePullRefreshSpin {
+  to { transform: rotate(360deg); }
+}
