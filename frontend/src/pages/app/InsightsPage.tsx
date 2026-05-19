@@ -7,6 +7,7 @@ import {
   IconRobot,
 } from '../../components/ui/AppIcons'
 import { apiFetch } from '../../lib/api'
+import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
@@ -316,12 +317,12 @@ export function InsightsPage() {
   const dayNum = parseInt(days, 10) || 30
   useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
 
-  const tasksQ = useQuery({ queryKey: ['insights-tasks', dayNum], queryFn: fetchTasks, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const summaryQ = useQuery({ queryKey: ['insights-summary', dayNum], queryFn: () => fetchSummary(dayNum), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const statusQ = useQuery({ queryKey: ['insights-status', dayNum], queryFn: () => fetchStatus(dayNum), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const trendQ = useQuery({ queryKey: ['insights-trend', dayNum], queryFn: () => fetchTrend(dayNum), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const priorityQ = useQuery({ queryKey: ['insights-priority', dayNum], queryFn: () => fetchPriority(dayNum), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const workloadQ = useQuery({ queryKey: ['insights-workload', dayNum], queryFn: () => fetchWorkload(dayNum), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
+  const tasksQ = useQuery(liveAnalyticsQueryOptions<TaskRow[]>({ queryKey: ['insights-tasks', dayNum], queryFn: fetchTasks }))
+  const summaryQ = useQuery(liveAnalyticsQueryOptions<AnalyticsSummary>({ queryKey: ['insights-summary', dayNum], queryFn: () => fetchSummary(dayNum) }))
+  const statusQ = useQuery(liveAnalyticsQueryOptions<StatusPoint[]>({ queryKey: ['insights-status', dayNum], queryFn: () => fetchStatus(dayNum) }))
+  const trendQ = useQuery(liveAnalyticsQueryOptions<TrendPoint[]>({ queryKey: ['insights-trend', dayNum], queryFn: () => fetchTrend(dayNum) }))
+  const priorityQ = useQuery(liveAnalyticsQueryOptions<PriorityPoint[]>({ queryKey: ['insights-priority', dayNum], queryFn: () => fetchPriority(dayNum) }))
+  const workloadQ = useQuery(liveAnalyticsQueryOptions<WorkloadRow[]>({ queryKey: ['insights-workload', dayNum], queryFn: () => fetchWorkload(dayNum) }))
 
   const tasks = tasksQ.data || []
   const summary = summaryQ.data
