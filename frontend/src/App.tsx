@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { getUser, isAuthed } from './state/auth'
 import { SessionGuard } from './components/SessionGuard'
+import { MobilePullToRefresh } from './components/mobile/MobilePullToRefresh'
 import { AppLayout } from './shell/AppLayout'
 import { SignInPage } from './pages/SignInPage'
 import { SignUpPage } from './pages/SignUpPage'
@@ -78,58 +79,61 @@ function OrgAnalyticsEntry() {
 
 export default function App() {
   return (
-    <><SessionGuard />
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route element={<MarketingLayout />}>
-          <Route path="/" element={<MarketingHomePage />} />
-          <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/pricing" element={<PricingPage />} />
-        </Route>
+    <>
+      <SessionGuard />
+      <MobilePullToRefresh />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<MarketingLayout />}>
+            <Route path="/" element={<MarketingHomePage />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/pricing" element={<PricingPage />} />
+          </Route>
 
-        <Route path="/signin"          element={<SignInPage />} />
-        <Route path="/signup"          element={<SignUpPage />} />
-        <Route path="/mfa"             element={<MfaPage />} />
-        <Route path="/verify-email"    element={<VerifyEmailPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/signin"          element={<SignInPage />} />
+          <Route path="/signup"          element={<SignUpPage />} />
+          <Route path="/mfa"             element={<MfaPage />} />
+          <Route path="/verify-email"    element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
-        <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"        element={<DashboardAnalyticsPage />} />
-          <Route path="tasks"            element={<TasksEntry />} />
-          <Route path="tasks/reassignment" element={<ReassignmentEntry />} />
-          <Route path="my-tasks"         element={<MyTasksPage />} />
-          <Route path="recurring-tasks"  element={<RecurringTasksPage />} />
-          <Route path="projects"         element={<ProjectsAnalyticsPage />} />
-          <Route path="projects/overrides" element={<ProjectOverrideReviewPage />} />
-          <Route path="board"            element={<BoardPage />} />
-          <Route path="calendar"         element={<CalendarPage />} />
-          <Route path="analytics"        element={<OrgAnalyticsEntry />} />
-          <Route path="insights"         element={<InsightsPage />} />
-          <Route path="reports"          element={<ReportsAnalyticsPage />} />
-          <Route path="reports/:id"      element={<ReportDetailPage />} />
-          <Route path="audit"            element={<AuditPage />} />
-          <Route path="logs"             element={<LogsPage />} />
-          <Route path="profile"          element={<ProfilePage />} />
-          <Route path="settings"         element={<SettingsPage />} />
-          <Route path="notification-preferences" element={<NotificationPreferencesPage />} />
-          <Route path="billing"          element={<BillingPage />} />
-          <Route path="onboarding"       element={<OnboardingPage />} />
-          <Route path="diagnostics"      element={<DiagnosticsPage />} />
-          <Route path="search"           element={<SearchPage />} />
-          <Route path="jeczone"          element={<JeczoneDashboardPage />} />
-          <Route path="hr/employees"     element={<EmployeesAnalyticsPage />} />
-          <Route path="hr/employees/:id" element={<EmployeeProfilePage />} />
-          <Route path="hr/time-off"      element={<TimeOffPage />} />
-          <Route path="contractors"      element={<ContractorsPage />} />
-          <Route path="contractors/:id"  element={<ContractorProfilePage />} />
-          <Route path="crm/pipeline"     element={<CrmPipelinePage />} />
-          <Route path="crm/leads"        element={<CrmLeadsPage />} />
-        </Route>
+          <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard"        element={<DashboardAnalyticsPage />} />
+            <Route path="tasks"            element={<TasksEntry />} />
+            <Route path="tasks/reassignment" element={<ReassignmentEntry />} />
+            <Route path="my-tasks"         element={<MyTasksPage />} />
+            <Route path="recurring-tasks"  element={<RecurringTasksPage />} />
+            <Route path="projects"         element={<ProjectsAnalyticsPage />} />
+            <Route path="projects/overrides" element={<ProjectOverrideReviewPage />} />
+            <Route path="board"            element={<BoardPage />} />
+            <Route path="calendar"         element={<CalendarPage />} />
+            <Route path="analytics"        element={<OrgAnalyticsEntry />} />
+            <Route path="insights"         element={<InsightsPage />} />
+            <Route path="reports"          element={<ReportsAnalyticsPage />} />
+            <Route path="reports/:id"      element={<ReportDetailPage />} />
+            <Route path="audit"            element={<AuditPage />} />
+            <Route path="logs"             element={<LogsPage />} />
+            <Route path="profile"          element={<ProfilePage />} />
+            <Route path="settings"         element={<SettingsPage />} />
+            <Route path="notification-preferences" element={<NotificationPreferencesPage />} />
+            <Route path="billing"          element={<BillingPage />} />
+            <Route path="onboarding"       element={<OnboardingPage />} />
+            <Route path="diagnostics"      element={<DiagnosticsPage />} />
+            <Route path="search"           element={<SearchPage />} />
+            <Route path="jeczone"          element={<JeczoneDashboardPage />} />
+            <Route path="hr/employees"     element={<EmployeesAnalyticsPage />} />
+            <Route path="hr/employees/:id" element={<EmployeeProfilePage />} />
+            <Route path="hr/time-off"      element={<TimeOffPage />} />
+            <Route path="contractors"      element={<ContractorsPage />} />
+            <Route path="contractors/:id"  element={<ContractorProfilePage />} />
+            <Route path="crm/pipeline"     element={<CrmPipelinePage />} />
+            <Route path="crm/leads"        element={<CrmLeadsPage />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense></>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </>
   )
 }
