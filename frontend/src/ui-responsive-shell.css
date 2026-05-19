@@ -24,29 +24,58 @@
   }
 }
 
-/* KPI strips: horizontal scroll on small screens */
+/* KPI strips: grid-first on small screens so cards stay readable. */
 @media (max-width: 720px) {
-  .kpiStripStandard:not(.dashKpiStrip),
+  .kpiStripStandard,
+  .dashKpiStrip,
   .analyticsSignalStrip.kpiStripStandard,
   .insightsKpiStrip.kpiStripStandard,
   .myTasksCommandCenter.kpiStripStandard {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 6px !important;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
   }
 
-  .kpiStripStandard:not(.dashKpiStrip) > .kpiCard,
+  .kpiStripStandard > .kpiCard,
+  .dashKpiStrip > .kpiCard,
   .analyticsSignalStrip.kpiStripStandard > *,
   .insightsKpiStrip.kpiStripStandard > *,
   .myTasksCommandCenter.kpiStripStandard > * {
-    flex: 0 0 min(72vw, 200px) !important;
-    min-width: min(72vw, 200px) !important;
-    scroll-snap-align: start;
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: none !important;
   }
+}
+
+@media (max-width: 420px) {
+  .kpiStripStandard,
+  .dashKpiStrip,
+  .analyticsSignalStrip.kpiStripStandard,
+  .insightsKpiStrip.kpiStripStandard,
+  .myTasksCommandCenter.kpiStripStandard {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Shared analytics panels: keep multi-column inline grids mobile-safe. */
+@media (max-width: 860px) {
+  .contentV4 [style*="minmax(0,1.5fr) minmax(min(100%,320px),.85fr)"],
+  .contentV4 [style*="minmax(0,1.5fr) minmax(min(100%, 320px),.85fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.contentV4 svg[role='img'] {
+  max-width: 100%;
+  height: auto;
+}
+
+.contentV4 .miniCard,
+.contentV4 .card {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Compact chart detail actions */
