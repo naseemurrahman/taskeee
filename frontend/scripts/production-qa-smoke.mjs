@@ -74,8 +74,7 @@ function assertCompiledAssetContracts(assets) {
     assert.ok(css.includes(signature), `Compiled CSS is missing ${signature}`);
   }
 
-  // Prefer stable runtime strings/API paths here. Function names and imported
-  // helper names can be minified away in production bundles.
+  // Use stable runtime strings and API paths. Function/helper names can be minified away.
   const runtimeContracts = [
     'Release to refresh',
     'Pull to refresh',
@@ -83,7 +82,6 @@ function assertCompiledAssetContracts(assets) {
     '/api/v1/analytics/sla-risk',
     '/api/v1/analytics/project-summary',
     '/api/v1/analytics/department-performance',
-    'analyticsSnapshot',
   ];
   for (const signature of runtimeContracts) {
     assert.ok(all.includes(signature), `Compiled assets are missing ${signature}`);
@@ -105,5 +103,5 @@ assertCompiledAssetContracts(assets);
 console.table(results);
 console.table(assets.map(asset => ({ asset: asset.url.replace(baseUrl, ''), status: asset.response.status, bytes: asset.text.length })));
 console.log(`Production SPA smoke passed for ${routes.length} routes at ${baseUrl}`);
-console.log('Compiled asset contracts passed for topbar, pull-to-refresh, task checkboxes, KPI grid, analytics endpoints, and report snapshots.');
-console.log('Visual QA still requires an authenticated mobile browser session for topbar, chart layout, pull-to-refresh, and theme checks.');
+console.log('Compiled asset contracts passed for topbar, pull-to-refresh, task checkboxes, KPI grid, and analytics endpoints.');
+console.log('Visual QA still requires an authenticated mobile browser session for topbar, chart layout, pull-to-refresh, report exports, and theme checks.');
