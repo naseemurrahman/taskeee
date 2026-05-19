@@ -1,0 +1,24 @@
+/* Task table checkbox behavior without global event interception.
+   Row checkbox cells own the click target; the input is visual/state only, so
+   a tap does not double-toggle or bubble into the row drawer. Header checkbox
+   remains a normal input for select-all behavior. */
+
+.tasksTable tbody td.thCheckbox {
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.tasksTable tbody td.thCheckbox input.taskCheckbox {
+  pointer-events: none;
+}
+
+.tasksTable thead th.thCheckbox input.taskCheckbox {
+  pointer-events: auto;
+}
+
+.tasksTable .taskCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand, #e2ab41);
+}
