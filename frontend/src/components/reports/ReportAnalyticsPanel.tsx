@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BarChart3, CheckCircle2, Clock3, FileBarChart, FolderOpen, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
+import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -212,11 +213,11 @@ function EmployeeRows({ employees }: { employees: EmployeePerformance[] }) {
 }
 
 export function ReportAnalyticsPanel({ days = 30 }: { days?: number }) {
-  const summaryQ = useQuery({ queryKey: ['reports-analytics-summary', days], queryFn: () => fetchSummary(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const projectsQ = useQuery({ queryKey: ['reports-analytics-projects', days], queryFn: () => fetchProjects(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const departmentsQ = useQuery({ queryKey: ['reports-analytics-departments', days], queryFn: () => fetchDepartments(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const employeesQ = useQuery({ queryKey: ['reports-analytics-employees', days], queryFn: () => fetchEmployees(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
-  const slaQ = useQuery({ queryKey: ['reports-analytics-sla', days], queryFn: () => fetchSlaRisk(days), staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true })
+  const summaryQ = useQuery(liveAnalyticsQueryOptions<AnalyticsSummary>({ queryKey: ['reports-analytics-summary', days], queryFn: () => fetchSummary(days) }))
+  const projectsQ = useQuery(liveAnalyticsQueryOptions<ProjectSummary[]>({ queryKey: ['reports-analytics-projects', days], queryFn: () => fetchProjects(days) }))
+  const departmentsQ = useQuery(liveAnalyticsQueryOptions<DepartmentPerformance[]>({ queryKey: ['reports-analytics-departments', days], queryFn: () => fetchDepartments(days) }))
+  const employeesQ = useQuery(liveAnalyticsQueryOptions<EmployeePerformance[]>({ queryKey: ['reports-analytics-employees', days], queryFn: () => fetchEmployees(days) }))
+  const slaQ = useQuery(liveAnalyticsQueryOptions<SlaRisk>({ queryKey: ['reports-analytics-sla', days], queryFn: () => fetchSlaRisk(days) }))
 
   const summary = summaryQ.data
   const projects = projectsQ.data || []
