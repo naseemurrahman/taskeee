@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const { query } = require('../utils/db');
 const logger = require('../utils/logger');
 const { filterNonTerminatedUserIds, safeSubordinateUserIds } = require('../utils/employeeVisibility');
+const { buildReportAnalyticsSnapshot } = require('./reportSnapshotService');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -26,6 +27,9 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
   );
 
   if (!user) throw new Error('User not found');
+
+  const reportUser = { ...user, org_id: orgId };
+  const analyticsSnapshot = await buildReportAnalyticsSnapshot(reportUser, { periodStart, periodEnd, reportType });
 
   let candidateUserIds = [userId];
 
@@ -52,6 +56,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
       aiStats: { approved: 0, rejected: 0, total: 0 },
       topPerformers: [],
       projectBreakdown: [],
+      analyticsSnapshot,
       generatedAt: new Date().toISOString()
     };
 
@@ -167,6 +172,7 @@ async function generateReport(userId, orgId, periodStart, periodEnd, reportType 
     aiStats,
     topPerformers,
     projectBreakdown,
+    analyticsSnapshot,
     generatedAt: new Date().toISOString()
   };
 
@@ -240,7 +246,13 @@ async function runHierarchicalReports(orgId, reportType) {
 }
 
 function buildEmailHtml(report) {
-  const { summary, statusBreakdown, overdueTasks, topPerformers, projectBreakdown = [], user, period } = report;
+  const { summary, statusBreakdown, overdueTasks, topPerformers, projectBreakdown = [], analyticsSnapshot, user, period } = report;
+  const snapshot = analyticsSnapshot || {};
+  const snapSummary = snapshot.summary || {};
+  const snapProjects = snapshot.project_summary?.projects || [];
+  const snapDepartments = snapshot.department_performance?.departments || [];
+  const snapEmployees = snapshot.employee_performance?.employees || [];
+  const snapSla = snapshot.sla_risk || { summary: {}, tasks: [] };
 
   const statusRows = statusBreakdown.map(s =>
     `<tr><td style="padding:6px 12px">${s.status.replace(/_/g,' ')}</td>
@@ -266,13 +278,41 @@ function buildEmailHtml(report) {
      <td style="padding:6px 12px;text-align:center">${p.completed_tasks}/${p.total_tasks}</td></tr>`
   ).join('');
 
+  const analyticsProjectRows = snapProjects.slice(0, 8).map(p =>
+    `<tr><td style="padding:6px 12px">${p.project_name}</td>
+     <td style="padding:6px 12px;text-align:center">${p.open_tasks}</td>
+     <td style="padding:6px 12px;text-align:center">${p.overdue_tasks}</td>
+     <td style="padding:6px 12px;text-align:center">${p.completion_rate || 0}%</td></tr>`
+  ).join('');
+
+  const analyticsDepartmentRows = snapDepartments.slice(0, 8).map(d =>
+    `<tr><td style="padding:6px 12px">${d.department || 'Unassigned'}</td>
+     <td style="padding:6px 12px;text-align:center">${d.employee_count}</td>
+     <td style="padding:6px 12px;text-align:center">${d.open_tasks}</td>
+     <td style="padding:6px 12px;text-align:center">${d.completion_rate || 0}%</td></tr>`
+  ).join('');
+
+  const analyticsEmployeeRows = snapEmployees.slice(0, 8).map(e =>
+    `<tr><td style="padding:6px 12px">${e.employee_name || 'Unassigned'}</td>
+     <td style="padding:6px 12px;text-align:center">${e.assigned}</td>
+     <td style="padding:6px 12px;text-align:center">${e.completed}</td>
+     <td style="padding:6px 12px;text-align:center">${e.overdue}</td></tr>`
+  ).join('');
+
+  const slaRows = (snapSla.tasks || []).slice(0, 8).map(t =>
+    `<tr><td style="padding:6px 12px;color:#e53e3e">${t.title}</td>
+     <td style="padding:6px 12px;text-align:center">${t.risk_score}</td>
+     <td style="padding:6px 12px">${t.risk_reason || ''}</td></tr>`
+  ).join('');
+
   return `
   <!DOCTYPE html>
   <html>
-  <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
+  <body style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:20px;color:#333">
     <div style="background:#6c47d9;padding:24px;border-radius:8px;color:white;margin-bottom:24px">
       <h1 style="margin:0;font-size:22px">TASKEE</h1>
       <p style="margin:8px 0 0;opacity:0.85">${period.type.charAt(0).toUpperCase()+period.type.slice(1)} Report for ${user.fullName}</p>
+      <p style="margin:8px 0 0;opacity:0.85;font-size:12px">Terminated employees excluded from all analytics snapshots.</p>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
@@ -289,6 +329,16 @@ function buildEmailHtml(report) {
         <div style="font-size:12px;color:#666;margin-top:4px">Overdue</div>
       </div>
     </div>
+
+    <h3>Live Analytics Snapshot</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <tbody>
+        <tr><td style="padding:6px 12px">Tasks in scope</td><td style="padding:6px 12px;text-align:right;font-weight:600">${snapSummary.total_tasks || 0}</td></tr>
+        <tr><td style="padding:6px 12px">Completed tasks</td><td style="padding:6px 12px;text-align:right;font-weight:600">${snapSummary.completed_tasks || 0}</td></tr>
+        <tr><td style="padding:6px 12px">Active employees</td><td style="padding:6px 12px;text-align:right;font-weight:600">${snapSummary.active_employees || 0}</td></tr>
+        <tr><td style="padding:6px 12px">SLA risk signals</td><td style="padding:6px 12px;text-align:right;font-weight:600">${(snapSla.tasks || []).length}</td></tr>
+      </tbody>
+    </table>
 
     <h3>Task Status Breakdown</h3>
     <table style="width:100%;border-collapse:collapse">
@@ -309,6 +359,34 @@ function buildEmailHtml(report) {
         <th style="padding:8px 12px;text-align:center">Completed/Total</th>
       </tr></thead>
       <tbody>${projectRows}</tbody>
+    </table>` : ''}
+
+    ${analyticsProjectRows ? `
+    <h3>Advanced Project Snapshot</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f0f0f0"><th style="padding:8px 12px;text-align:left">Project</th><th>Open</th><th>Overdue</th><th>Completion</th></tr></thead>
+      <tbody>${analyticsProjectRows}</tbody>
+    </table>` : ''}
+
+    ${analyticsDepartmentRows ? `
+    <h3>Department Snapshot</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f0f0f0"><th style="padding:8px 12px;text-align:left">Department</th><th>People</th><th>Open</th><th>Completion</th></tr></thead>
+      <tbody>${analyticsDepartmentRows}</tbody>
+    </table>` : ''}
+
+    ${analyticsEmployeeRows ? `
+    <h3>Employee Performance Snapshot</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f0f0f0"><th style="padding:8px 12px;text-align:left">Employee</th><th>Assigned</th><th>Completed</th><th>Overdue</th></tr></thead>
+      <tbody>${analyticsEmployeeRows}</tbody>
+    </table>` : ''}
+
+    ${slaRows ? `
+    <h3 style="color:#e53e3e">SLA Risk Queue</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#fff5f5"><th style="padding:8px 12px;text-align:left">Task</th><th>Score</th><th>Reason</th></tr></thead>
+      <tbody>${slaRows}</tbody>
     </table>` : ''}
 
     ${overdueTasks.length ? `
