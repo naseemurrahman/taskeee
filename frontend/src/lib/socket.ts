@@ -125,6 +125,11 @@ export function subscribeToOrg(callbacks: {
  */
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { invalidateAllLiveMetrics } from './invalidateLiveMetrics'
+
+function refreshLiveMetrics(qc: ReturnType<typeof useQueryClient>) {
+  invalidateAllLiveMetrics(qc)
+}
 
 export function useRealtimeInvalidation(opts: {
   tasks?:     boolean
@@ -135,46 +140,14 @@ export function useRealtimeInvalidation(opts: {
   const qc = useQueryClient()
   useEffect(() => {
     return subscribeToOrg({
-      onTaskUpdated: opts.tasks ? () => {
-        qc.invalidateQueries({ queryKey: ['tasks'] })
-        qc.invalidateQueries({ queryKey: ['analytics-summary'] })
-        qc.invalidateQueries({ queryKey: ['analytics-status'] })
-        qc.invalidateQueries({ queryKey: ['analytics-trend'] })
-        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
-        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
-        qc.invalidateQueries({ queryKey: ['insights'] })
-        qc.invalidateQueries({ queryKey: ['insights-tasks'] })
-        qc.invalidateQueries({ queryKey: ['insights-workload'] })
-        qc.invalidateQueries({ queryKey: ['insights-analytics'] })
-        if (opts.dashboard) qc.invalidateQueries({ queryKey: ['dashboard'] })
-      } : undefined,
-      onTaskCreated: opts.tasks ? () => {
-        qc.invalidateQueries({ queryKey: ['tasks'] })
-        qc.invalidateQueries({ queryKey: ['analytics-summary'] })
-        qc.invalidateQueries({ queryKey: ['analytics-status'] })
-        qc.invalidateQueries({ queryKey: ['analytics-trend'] })
-        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
-        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
-        qc.invalidateQueries({ queryKey: ['insights'] })
-        qc.invalidateQueries({ queryKey: ['insights-tasks'] })
-        if (opts.dashboard) qc.invalidateQueries({ queryKey: ['dashboard'] })
-      } : undefined,
+      onTaskUpdated: opts.tasks ? () => refreshLiveMetrics(qc) : undefined,
+      onTaskCreated: opts.tasks ? () => refreshLiveMetrics(qc) : undefined,
       onBoardMoved: opts.board ? () => {
         qc.invalidateQueries({ queryKey: ['tasks', 'board'] })
-        if (opts.dashboard) qc.invalidateQueries({ queryKey: ['dashboard'] })
+        refreshLiveMetrics(qc)
       } : undefined,
-      onEmployeeAdded: opts.employees ? () => {
-        qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
-        qc.invalidateQueries({ queryKey: ['team', 'users'] })
-        qc.invalidateQueries({ queryKey: ['dashboard'] })
-        qc.invalidateQueries({ queryKey: ['insights-workload'] })
-        qc.invalidateQueries({ queryKey: ['analytics-workload'] })
-      } : undefined,
-      onEmployeeUpdated: opts.employees ? () => {
-        qc.invalidateQueries({ queryKey: ['hris', 'employees'] })
-        qc.invalidateQueries({ queryKey: ['team', 'users'] })
-        qc.invalidateQueries({ queryKey: ['analytics-employees'] })
-      } : undefined,
+      onEmployeeAdded: opts.employees ? () => refreshLiveMetrics(qc) : undefined,
+      onEmployeeUpdated: opts.employees ? () => refreshLiveMetrics(qc) : undefined,
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

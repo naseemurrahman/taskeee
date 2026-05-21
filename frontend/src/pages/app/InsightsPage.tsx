@@ -11,6 +11,7 @@ import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { Select } from '../../components/ui/Select'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { PageLiveCharts } from '../../components/charts/PageLiveCharts'
 import { KpiStrip } from '../../components/ui/KpiCard'
 
 type TaskRow = {
@@ -419,6 +420,8 @@ export function InsightsPage() {
           Some analytics endpoints failed to load. The page is showing all available live data and will retry automatically.
         </div>
       )}
+
+      <PageLiveCharts title="Live insights overview" days={dayNum} />
 
       <KpiStrip
         loading={loading}

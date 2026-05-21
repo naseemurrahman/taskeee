@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { apiFetch } from '../../lib/api'
 import { ChartCard } from './ChartCard'
 
@@ -174,6 +175,7 @@ function EmployeeTrend({ points }: { points: EmployeeTrendPoint[] }) {
 }
 
 export function AdvancedAnalyticsPanels({ days }: { days: number }) {
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const projectQ = useQuery({ queryKey: ['analytics-project-summary', days], queryFn: () => apiFetch<{ projects: ProjectSummary[] }>(`/api/v1/analytics/project-summary?days=${days}`), staleTime: 30_000, refetchInterval: 30_000 })
   const departmentQ = useQuery({ queryKey: ['analytics-department-performance', days], queryFn: () => apiFetch<{ departments: DepartmentPerformance[] }>(`/api/v1/analytics/department-performance?days=${days}`), staleTime: 30_000, refetchInterval: 30_000 })
   const employeeTrendQ = useQuery({ queryKey: ['analytics-employee-trend', days], queryFn: () => apiFetch<{ points: EmployeeTrendPoint[] }>(`/api/v1/analytics/employee-trend?days=${days}`), staleTime: 30_000, refetchInterval: 30_000 })

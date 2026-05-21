@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, LineChart, Users, UserCheck } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -220,6 +221,7 @@ function TrendChart({ points }: { points: EmployeeTrendPoint[] }) {
 }
 
 export function EmployeeAnalyticsPanel({ days = 30 }: { days?: number }) {
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const performanceQ = useQuery(liveAnalyticsQueryOptions<EmployeePerformance[]>({ queryKey: ['employees-analytics-performance', days], queryFn: () => fetchEmployeePerformance(days) }))
   const trendQ = useQuery(liveAnalyticsQueryOptions<EmployeeTrendPoint[]>({ queryKey: ['employees-analytics-trend', days], queryFn: () => fetchEmployeeTrend(days) }))
   const workloadQ = useQuery(liveAnalyticsQueryOptions<WorkloadEmployee[]>({ queryKey: ['employees-analytics-workload', days], queryFn: () => fetchWorkload(days) }))

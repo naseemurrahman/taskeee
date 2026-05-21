@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../lib/api'
 import { useRealtimeInvalidation } from '../../lib/socket'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { PageLiveCharts } from '../../components/charts/PageLiveCharts'
 import { getUser } from '../../state/auth'
 import { canCreateTasksAndProjects, canChangeTaskStatus, isEmployeeRole } from '../../lib/rbac'
 import { CreateTaskModal } from '../../components/tasks/CreateTaskModal'
@@ -186,6 +187,8 @@ export function BoardPage() {
           ) : undefined
         }
       />
+
+      <PageLiveCharts title="Live board metrics" variant="compact" days={30} />
 
       <div className="boardChartsPanel">
         <div className="boardChartSummaryCard"><div><div className="miniLabel">Board Health</div><div className="boardChartBigValue">{boardCharts.completionRate}%</div><div className="boardChartMuted">completion across {tasks.length} tasks</div></div><div className="boardDonut" style={{ ['--pct' as any]: `${boardCharts.completionRate}%` }}><span>{boardCharts.completionRate}%</span></div></div>

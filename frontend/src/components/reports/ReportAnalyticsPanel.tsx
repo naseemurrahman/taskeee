@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BarChart3, CheckCircle2, Clock3, FileBarChart, FolderOpen, Users } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -213,6 +214,7 @@ function EmployeeRows({ employees }: { employees: EmployeePerformance[] }) {
 }
 
 export function ReportAnalyticsPanel({ days = 30 }: { days?: number }) {
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const summaryQ = useQuery(liveAnalyticsQueryOptions<AnalyticsSummary>({ queryKey: ['reports-analytics-summary', days], queryFn: () => fetchSummary(days) }))
   const projectsQ = useQuery(liveAnalyticsQueryOptions<ProjectSummary[]>({ queryKey: ['reports-analytics-projects', days], queryFn: () => fetchProjects(days) }))
   const departmentsQ = useQuery(liveAnalyticsQueryOptions<DepartmentPerformance[]>({ queryKey: ['reports-analytics-departments', days], queryFn: () => fetchDepartments(days) }))

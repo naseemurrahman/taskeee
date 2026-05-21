@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useRealtimeInvalidation } from '../../../lib/socket'
 import { useNavigate } from 'react-router-dom'
 import { Select } from '../../../components/ui/Select'
 import { KpiCard } from '../../../components/ui/KpiCard'
@@ -75,7 +76,8 @@ export function JeczoneDashboardPage() {
   const [resourcePick, setResourcePick] = useState<string | null>(null)
   const [projectModalId, setProjectModalId] = useState<string | null>(null)
 
-  const projectsQ = useQuery({ queryKey: ['jeczone', 'projects'], queryFn: fetchProjects })
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
+  const projectsQ = useQuery({ queryKey: ['jeczone', 'projects'], queryFn: fetchProjects, staleTime: 30_000, refetchInterval: 30_000 })
   const tasksQ = useQuery({ queryKey: ['jeczone', 'tasks'], queryFn: fetchTasks })
   const perfQ = useQuery({ queryKey: ['jeczone', 'perf'], queryFn: fetchPerf })
 

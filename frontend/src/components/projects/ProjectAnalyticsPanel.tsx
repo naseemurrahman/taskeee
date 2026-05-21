@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { FolderOpen, AlertTriangle, CheckCircle2, Clock3, ListTodo } from 'lucide-react'
 import { apiFetch } from '../../lib/api'
 import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
+import { useRealtimeInvalidation } from '../../lib/socket'
 import { KpiStrip } from '../ui/KpiCard'
 import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
@@ -124,6 +125,7 @@ function TrendChart({ points }: { points: ProjectTrendPoint[] }) {
 }
 
 export function ProjectAnalyticsPanel() {
+  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
   const summaryQ = useQuery(liveAnalyticsQueryOptions<ProjectSummary[]>({ queryKey: ['projects-analytics-summary'], queryFn: fetchProjectSummary }))
   const trendQ = useQuery(liveAnalyticsQueryOptions<ProjectTrendPoint[]>({ queryKey: ['projects-analytics-trend'], queryFn: fetchProjectTrend }))
 

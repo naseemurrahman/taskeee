@@ -11,6 +11,7 @@ import { Modal } from '../../components/Modal'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/ToastSystem'
 import { PageHeaderCard } from '../../components/ui/PageHeaderCard'
+import { PageLiveCharts } from '../../components/charts/PageLiveCharts'
 import { KpiStrip } from '../../components/ui/KpiCard'
 import { FolderOpen, CircleDot, ListTodo } from 'lucide-react'
 
@@ -410,6 +411,7 @@ export function ProjectsPage() {
         ]}
       />
 
+      <PageLiveCharts title="Live project analytics" variant="compact" days={30} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: '1 1 200px', position: 'relative', minWidth: 140 }}>
