@@ -7,7 +7,8 @@ import './index.css'       // design tokens, keyframes, base component classes
 import './overrides.css'   // component layout overrides, grid utilities
 import './app-patches.css' // all feature-specific patches (consolidated from 28 files)
 import './overlay-upgrade-fixes.css' // final z-index, dropdown, and mobile notification fixes
-import './dashboard-modern-chart-upgrade.css' // modern realtime dashboard visualization styles
+import './dashboard-modern-chart-upgrade.css' // hero chart glass panel styles
+import './dashboard-charts-layout.css' // dashboard priority chart grids
 import './theme-overhaul.css' // FINAL: brand colors, capsule buttons, typography, no oval cards
 import './grid-system.css' // Grid system: alignment, spacing, hierarchy, consistency
 import './design-system-dynamic.css' // DYNAMIC: All CSS variables, responsive, no hardcoded values, uniform heights

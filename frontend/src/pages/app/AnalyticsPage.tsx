@@ -237,19 +237,19 @@ export function AnalyticsPage() {
         items={kpis.map((item) => ({ label: item.label, value: item.value, color: item.tone || item.color, animate: false }))}
       />
 
-      <div style={{ display: 'grid', gap: 16 }}>
-        <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Server-generated live date series over the last ${days} days`} loading={trendQ.isLoading}>
-          <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} loading={trendQ.isLoading} />
-        </ChartCard>
-        <div className="analyticsChartGrid">
-          <ChartCard title="Task Status Distribution" subtitle="Current task mix by lifecycle state" loading={statusQ.isLoading}>
-            <StatusDonutChart byStatus={byStatus} loading={statusQ.isLoading} />
+      <div className="dashChartsSection">
+        <div className="analyticsHeroRow">
+          <ChartCard title="Created / Completed / Overdue Trend" subtitle={`Live date series over the last ${days} days`} loading={trendQ.isLoading} fillHeight>
+            <DeadlinesTrendChart fillHeight points={trend.map((p) => ({ day: String(p.day).slice(5, 10), due: Number(p.created || 0), completed: Number(p.completed || 0), overdue: Number(p.overdue || 0) }))} loading={trendQ.isLoading} />
           </ChartCard>
-          <ChartCard title="Tasks by Status" subtitle="Operational workload grouped by status" loading={statusQ.isLoading}>
-            <StatusBarChart byStatus={byStatus} loading={statusQ.isLoading} />
+          <ChartCard title="Status Distribution" subtitle="Current task lifecycle mix" loading={statusQ.isLoading}>
+            <StatusDonutChart byStatus={byStatus} loading={statusQ.isLoading} />
           </ChartCard>
         </div>
         <div className="analyticsChartGrid">
+          <ChartCard title="Tasks by Status" subtitle="Volume and share % by lifecycle state" loading={statusQ.isLoading}>
+            <StatusBarChart byStatus={byStatus} loading={statusQ.isLoading} />
+          </ChartCard>
           <ChartCard title="Priority Pressure" subtitle="Live priority mix from task records" loading={priorityQ.isLoading}>
             <PriorityPieChart byPriority={priorityPressure} loading={priorityQ.isLoading} />
           </ChartCard>

@@ -1,0 +1,426 @@
+/* Dashboard chart priority layout — hero first, responsive grids */
+
+.dashChartsSection {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  width: 100%;
+  min-width: 0;
+}
+
+.dashChartsHero {
+  width: 100%;
+  min-width: 0;
+}
+
+.dashChartsPriority {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.85fr) minmax(260px, 0.85fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.dashChartsRow2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.dashChartsFull {
+  width: 100%;
+  min-width: 0;
+}
+
+.chartEmptyState {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  padding: 20px;
+}
+
+.chartGlassTooltip {
+  background: var(--chart-tooltip-bg, #101522);
+  border: 1px solid var(--chart-tooltip-border, rgba(255, 255, 255, 0.16));
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  color: var(--text);
+  min-width: 150px;
+}
+
+.chartGlassTooltipLabel {
+  font-weight: 900;
+  font-size: 11px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chartGlassTooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.chartGlassTooltipRow:first-of-type {
+  margin-top: 0;
+}
+
+.chartGlassTooltipSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.chartGlassTooltipName {
+  color: var(--text2);
+  flex: 1;
+}
+
+.chartGlassTooltipValue {
+  font-weight: 900;
+}
+
+.dashActivityWrap {
+  display: grid;
+  gap: 14px;
+}
+
+.dashActivityKpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dashActivityKpi {
+  flex: 1 1 88px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.dashActivityKpiLabel {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 4px;
+}
+
+.dashActivityKpiValue {
+  font-size: 24px;
+  font-weight: 950;
+  color: var(--text);
+  line-height: 1;
+}
+
+.dashActivityKpiTrend {
+  border-color: var(--border) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.dashActivityTrendRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dashVelocityMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  align-items: center;
+}
+
+.dashVelocityMeta i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.dashVelocityNetPos {
+  margin-left: auto;
+  color: #22c55e;
+  font-weight: 800;
+}
+
+.dashVelocityNetNeg {
+  margin-left: auto;
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.dashProjectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px 20px;
+}
+
+.dashProjectRow {
+  min-width: 0;
+}
+
+.dashProjectHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dashProjectName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.dashProjectName span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashProjectDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dashProjectMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dashProjectMeta strong {
+  font-size: 14px;
+  font-weight: 950;
+  min-width: 36px;
+  text-align: right;
+}
+
+.dashProjectBar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg2);
+  display: flex;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.dashProjectBar > div {
+  transition: flex 0.6s ease;
+  min-width: 2px;
+}
+
+.dashProjectOverdue {
+  font-size: 10px;
+  color: #ef4444;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.dashTeamList {
+  display: grid;
+  gap: 10px;
+}
+
+.dashTeamRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dashTeamRank {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1.5px solid;
+}
+
+.dashTeamBody {
+  min-width: 0;
+}
+
+.dashTeamHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.dashTeamHead span:first-child {
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashTeamHead span:last-child {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dashTeamTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg2);
+  overflow: hidden;
+}
+
+.dashTeamTrack > div {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s ease;
+}
+
+.dashWorkloadGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px 20px;
+}
+
+.dashWorkloadRow {
+  min-width: 0;
+}
+
+.dashWorkloadHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashWorkloadHead span:last-child {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.dashWorkloadLegend {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dashWorkloadKeys {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.dashWorkloadKeys i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.dashPriorityList {
+  display: grid;
+  gap: 10px;
+}
+
+.dashPriorityHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashPriorityTrack {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg2);
+  overflow: hidden;
+}
+
+.dashPriorityTrack > div {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s ease;
+}
+
+.analyticsHeroRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(min(100%, 300px), 0.9fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 1180px) {
+  .dashChartsPriority {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .dashChartsPriority > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .analyticsHeroRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashChartsPriority,
+  .dashChartsRow2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashProjectGrid,
+  .dashWorkloadGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashVelocityNetPos,
+  .dashVelocityNetNeg {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -5,6 +5,7 @@
 :root {
   --chart-card-min-height: 320px;
   --chart-plot-height: 220px;
+  --chart-plot-height-hero: 280px;
   --chart-plot-height-sm: 200px;
   --chart-card-title-size: 14px;
   --chart-card-subtitle-size: 11px;
@@ -82,6 +83,16 @@
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.dashChartsHero .dashboardModernCard,
+.analyticsHeroRow .chartCardV2 {
+  min-height: auto;
+}
+
+.analyticsHeroRow .chartCardV2Body .recharts-responsive-container,
+.analyticsHeroRow [class*="Shell"] {
+  min-height: var(--chart-plot-height-hero) !important;
 }
 
 @media (max-width: 900px) {

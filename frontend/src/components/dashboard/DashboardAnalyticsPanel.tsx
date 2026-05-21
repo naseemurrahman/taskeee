@@ -4,7 +4,11 @@ import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, FolderOpen, G
 import { apiFetch } from '../../lib/api'
 import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
-import { AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue, AnalyticsTrendLineChart, EmptyAnalyticsState, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
+import { ChartCard } from '../charts/ChartCard'
+import { AssignmentsChart } from '../charts/WorkCharts'
+import { DeadlinesTrendChart, PriorityPieChart, StatusDonutChart, WorkloadBalanceChart } from '../charts/PerformanceCharts'
+import { DashboardProjectProgressChart } from '../charts/DashboardCharts'
+import { AnalyticsErrorNotice, AnalyticsRiskQueue, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
 
 type AnalyticsSummary = {
   total_tasks: number
@@ -81,105 +85,11 @@ async function fetchSlaRisk(days: number) {
   return apiFetch<SlaRisk>(`/api/v1/analytics/sla-risk?days=${days}`)
 }
 
-function StatusPriorityMatrix({ statuses, priorities }: { statuses: StatusPoint[]; priorities: PriorityPoint[] }) {
-  const statusRows = statuses.map((s) => ({ label: String(s.status || 'unknown').replace(/_/g, ' '), value: n(s.count), color: statusColor(String(s.status || '')) })).filter((row) => row.value > 0)
-  const priorityRows = priorities.map((p) => ({ label: String(p.priority || 'unspecified'), value: n(p.count), color: priorityColor(String(p.priority || '')) })).filter((row) => row.value > 0)
-  const rows = [...statusRows.slice(0, 5), ...priorityRows.slice(0, 5)]
-  const max = Math.max(1, ...rows.map((row) => row.value))
-  if (!rows.length) return <EmptyAnalyticsState title="No status or priority data" />
-  return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      {rows.map((row, idx) => (
-        <div key={`${row.label}-${idx}`} style={{ display: 'grid', gap: 5 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-            <strong style={{ fontSize: 12, textTransform: 'capitalize' }}>{row.label}</strong>
-            <span style={{ color: row.color, fontSize: 12, fontWeight: 950 }}>{row.value}</span>
-          </div>
-          <div style={{ height: 9, borderRadius: 999, background: 'rgba(148,163,184,.14)', overflow: 'hidden' }}>
-            <i style={{ display: 'block', width: `${Math.max(4, row.value / max * 100)}%`, height: '100%', background: row.color, borderRadius: 999 }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+function statusMap(points: StatusPoint[] = []) {
+  return Object.fromEntries(points.map((p) => [p.status, n(p.count)]))
 }
-
-function statusColor(value: string) {
-  const key = value.toLowerCase()
-  if (key.includes('completed') || key.includes('approved')) return '#22c55e'
-  if (key.includes('overdue') || key.includes('rejected')) return '#ef4444'
-  if (key.includes('submitted') || key.includes('review')) return '#38bdf8'
-  if (key.includes('progress')) return '#8b5cf6'
-  return '#e2ab41'
-}
-function priorityColor(value: string) {
-  const key = value.toLowerCase()
-  if (key === 'urgent' || key === 'critical') return '#ef4444'
-  if (key === 'high') return '#f97316'
-  if (key === 'medium') return '#8b5cf6'
-  if (key === 'low') return '#38bdf8'
-  return '#94a3b8'
-}
-
-function ProjectWorkload({ projects }: { projects: ProjectSummary[] }) {
-  const rows = projects
-    .filter((p) => n(p.total_tasks) > 0 || n(p.open_tasks) > 0)
-    .sort((a, b) => n(b.overdue_tasks) - n(a.overdue_tasks) || n(b.open_tasks) - n(a.open_tasks))
-    .slice(0, 8)
-  if (!rows.length) return <EmptyAnalyticsState title="No project workload data" />
-  const max = Math.max(1, ...rows.map((row) => n(row.total_tasks)))
-  return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      {rows.map((row) => {
-        const total = Math.max(1, n(row.total_tasks))
-        const completed = n(row.completed_tasks)
-        const open = n(row.open_tasks)
-        const overdue = n(row.overdue_tasks)
-        return (
-          <div key={row.project_id || row.project_name} style={{ display: 'grid', gap: 5 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <strong style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.project_name}</strong>
-              <span style={{ color: overdue > 0 ? '#ef4444' : '#22c55e', fontSize: 12, fontWeight: 950 }}>{pct(completed, total)}%</span>
-            </div>
-            <div style={{ width: `${Math.max(18, total / max * 100)}%`, maxWidth: '100%', display: 'flex', height: 10, borderRadius: 999, background: 'rgba(148,163,184,.14)', overflow: 'hidden' }}>
-              <i style={{ width: `${pct(completed, total)}%`, background: '#22c55e' }} />
-              <i style={{ width: `${pct(open, total)}%`, background: '#8b5cf6' }} />
-              <i style={{ width: `${pct(overdue, total)}%`, background: '#ef4444' }} />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function TeamLoad({ workload }: { workload: WorkloadEmployee[] }) {
-  const rows = workload.filter((row) => n(row.total_tasks) > 0 || n(row.open_tasks) > 0).sort((a, b) => n(b.open_tasks) - n(a.open_tasks)).slice(0, 8)
-  const maxOpen = Math.max(1, ...rows.map((row) => n(row.open_tasks)))
-  if (!rows.length) return <EmptyAnalyticsState title="No team workload data" />
-  return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      {rows.map((row) => {
-        const open = n(row.open_tasks)
-        const total = Math.max(1, n(row.total_tasks))
-        const done = Math.max(0, total - open)
-        const pressure = pct(open, maxOpen)
-        const color = pressure > 75 ? '#ef4444' : pressure > 45 ? '#f97316' : '#22c55e'
-        return (
-          <div key={row.employee_id || row.employee_name} style={{ display: 'grid', gap: 5 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <strong style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.employee_name || 'Unassigned'}</strong>
-              <span style={{ color, fontSize: 12, fontWeight: 950 }}>{open} open</span>
-            </div>
-            <div style={{ display: 'flex', height: 10, borderRadius: 999, background: 'rgba(148,163,184,.14)', overflow: 'hidden' }}>
-              <i style={{ width: `${pct(done, total)}%`, background: '#22c55e' }} />
-              <i style={{ width: `${pct(open, total)}%`, background: color }} />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
+function priorityMap(points: PriorityPoint[] = []) {
+  return Object.fromEntries(points.map((p) => [String(p.priority || 'unspecified').toLowerCase(), n(p.count)]))
 }
 
 export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
@@ -210,6 +120,51 @@ export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
   const loading = summaryQ.isLoading || trendQ.isLoading || projectQ.isLoading || workloadQ.isLoading || slaQ.isLoading
   const hasError = summaryQ.isError || trendQ.isError || statusQ.isError || priorityQ.isError || projectQ.isError || workloadQ.isError || slaQ.isError
 
+  const byStatus = statusMap(statusQ.data)
+  const byPriority = priorityMap(priorityQ.data)
+  const workloadBalance = useMemo(() => {
+    const avg = workload.length ? workload.reduce((s, e) => s + n(e.open_tasks), 0) / workload.length : 0
+    return {
+      averageOpenTasks: avg,
+      overloaded: workload.filter((e) => n(e.open_tasks) > Math.max(5, avg * 1.5)),
+      underutilized: workload.filter((e) => n(e.open_tasks) <= Math.max(1, avg * 0.35)),
+    }
+  }, [workload])
+
+  const projectRows = useMemo(
+    () => projects
+      .filter((p) => n(p.total_tasks) > 0)
+      .map((p) => {
+        const total = n(p.total_tasks)
+        const completed = n(p.completed_tasks)
+        const open = n(p.open_tasks)
+        const overdue = n(p.overdue_tasks)
+        return {
+          id: p.project_id,
+          name: p.project_name,
+          total,
+          completed,
+          overdue,
+          in_progress: open,
+          pending: Math.max(0, total - completed - open - overdue),
+          progress: p.completion_rate != null ? Math.round(p.completion_rate) : pct(completed, total),
+        }
+      }),
+    [projects],
+  )
+
+  const assignmentRows = useMemo(
+    () => workload
+      .filter((e) => n(e.total_tasks) > 0)
+      .map((e) => ({
+        name: e.employee_name || 'Unassigned',
+        active: n(e.open_tasks),
+        overdue: 0,
+        done: Math.max(0, n(e.total_tasks) - n(e.open_tasks)),
+      })),
+    [workload],
+  )
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       {hasError && <AnalyticsErrorNotice message="Live dashboard analytics failed to load. The panel will retry automatically." />}
@@ -226,35 +181,43 @@ export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
         ]}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(min(100%,320px),.85fr)', gap: 16 }}>
-        <AnalyticsCard title="Live Activity Flow" subtitle="Backend-generated created, completed, and overdue trend">
-          {trendQ.isLoading ? <AnalyticsLoadingBlock height={210} /> : (
-            <AnalyticsTrendLineChart
-              points={trendQ.data || []}
-              keys={['created', 'completed', 'overdue']}
-              labels={{ created: 'Created', completed: 'Completed', overdue: 'Overdue' }}
-              colors={{ created: '#e2ab41', completed: '#22c55e', overdue: '#ef4444' }}
-              emptyTitle="No dashboard trend movement"
-              emptyDetail="Created, completed, and overdue task movement will appear here."
-              ariaLabel="Dashboard live trend"
-            />
-          )}
-        </AnalyticsCard>
-        <AnalyticsCard title="Status + Priority Mix" subtitle="Current operational distribution">
-          {statusQ.isLoading || priorityQ.isLoading ? <AnalyticsLoadingBlock /> : <StatusPriorityMatrix statuses={statusQ.data || []} priorities={priorityQ.data || []} />}
-        </AnalyticsCard>
+      <div className="analyticsHeroRow">
+        <ChartCard title="Live Activity Flow" subtitle={`Created · completed · overdue — last ${days} days`} loading={trendQ.isLoading} fillHeight>
+          <DeadlinesTrendChart
+            fillHeight
+            loading={trendQ.isLoading}
+            points={(trendQ.data || []).map((p) => ({
+              day: String(p.day).slice(5, 10),
+              due: n(p.created),
+              completed: n(p.completed),
+              overdue: n(p.overdue),
+            }))}
+          />
+        </ChartCard>
+        <ChartCard title="Status Distribution" subtitle="Live lifecycle mix" loading={statusQ.isLoading}>
+          <StatusDonutChart byStatus={byStatus} loading={statusQ.isLoading} />
+        </ChartCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
-        <AnalyticsCard title="Project Workload" subtitle="Backend project-summary completion/open/overdue split">
-          {projectQ.isLoading ? <AnalyticsLoadingBlock /> : <ProjectWorkload projects={projects} />}
-        </AnalyticsCard>
-        <AnalyticsCard title="Team Load" subtitle="Backend workload API by employee">
-          {workloadQ.isLoading ? <AnalyticsLoadingBlock /> : <TeamLoad workload={workload} />}
-        </AnalyticsCard>
-        <AnalyticsCard title="SLA Risk Queue" subtitle="Due-soon, overdue, stalled, critical, and review backlog">
-          {slaQ.isLoading ? <AnalyticsLoadingBlock /> : <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No dashboard SLA risk queue" limit={5} />}
-        </AnalyticsCard>
+      <div className="analyticsChartGrid">
+        <ChartCard title="Priority Pressure" subtitle="Radar view of urgency mix" loading={priorityQ.isLoading}>
+          <PriorityPieChart byPriority={byPriority} loading={priorityQ.isLoading} />
+        </ChartCard>
+        <ChartCard title="Workload Balance" subtitle="Overloaded vs underutilized" loading={workloadQ.isLoading}>
+          <WorkloadBalanceChart userCount={workload.length} workload={workloadBalance} loading={workloadQ.isLoading} />
+        </ChartCard>
+        <ChartCard title="SLA Risk Queue" subtitle="Highest-risk operational tasks" loading={slaQ.isLoading}>
+          <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No dashboard SLA risk queue" limit={5} />
+        </ChartCard>
+      </div>
+
+      <div className="analyticsChartGrid">
+        <ChartCard title="Project Workload" subtitle="Completion split by project" loading={projectQ.isLoading}>
+          <DashboardProjectProgressChart projects={projectRows} />
+        </ChartCard>
+        <ChartCard title="Team Load" subtitle="Stacked assignment volume" loading={workloadQ.isLoading} fillHeight>
+          <AssignmentsChart rows={assignmentRows} loading={workloadQ.isLoading} />
+        </ChartCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
