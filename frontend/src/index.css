@@ -4609,6 +4609,21 @@ button.projectCard {
 .dashGrid13 {
   display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px;
 }
+/* Row 1 of dashboard: wide activity chart + status donut + priority bars */
+.dashRow1Grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 1200px) {
+  .dashRow1Grid { grid-template-columns: 1fr 1fr; }
+  .dashRow1Grid > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .dashRow1Grid { grid-template-columns: 1fr; }
+  .dashRow1Grid > :first-child { grid-column: unset; }
+}
 @media (max-width: 1100px) {
   .dashGrid2, .dashGrid21, .dashGrid13 { grid-template-columns: 1fr; }
 }

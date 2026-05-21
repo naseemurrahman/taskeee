@@ -17,11 +17,11 @@ import {
   LayoutDashboard, TrendingUp, TrendingDown, Minus
 } from 'lucide-react'
 import {
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, ReferenceLine
+  ComposedChart, Area, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts'
 
-// ── Modern Task Activity Chart ─────────────────────────────────────────────────
+// ── Task Activity Chart (14-day area/line) ──────────────────────────────────
 interface ActivityPoint { day: string; label: string; completed: number; overdue: number; created: number }
 
 function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
@@ -36,7 +36,6 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
   const formatted = data.map(d => ({
     ...d,
     label: d.label || d.day.slice(5),
-    net: d.completed - d.created,
   }))
 
   const totalCreated   = data.reduce((s, d) => s + d.created, 0)
@@ -65,26 +64,26 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
 
   return (
     <div>
-      {/* KPI strip above chart */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+      {/* KPI strip */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         {[
           { label: 'Created', value: totalCreated, color: '#e2ab41', icon: '＋' },
           { label: 'Completed', value: totalCompleted, color: '#22c55e', icon: '✓' },
           { label: 'Overdue', value: totalOverdue, color: '#ef4444', icon: '⚠' },
         ].map(({ label, value, color, icon }) => (
           <div key={label} style={{
-            flex: '1 1 80px', padding: '10px 14px', borderRadius: 12,
+            flex: '1 1 70px', padding: '8px 12px', borderRadius: 10,
             background: `linear-gradient(135deg, ${color}18, ${color}08)`,
             border: `1px solid ${color}30`,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
               {icon} {label}
             </div>
-            <div style={{ fontSize: 24, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 22, fontWeight: 950, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
           </div>
         ))}
         <div style={{
-          flex: '1 1 80px', padding: '10px 14px', borderRadius: 12,
+          flex: '1 1 70px', padding: '8px 12px', borderRadius: 10,
           background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
         }}>
@@ -104,9 +103,9 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
         </div>
       </div>
 
-      {/* Recharts composite chart — responsive, real data */}
+      {/* Recharts composite chart */}
       <ResponsiveContainer width="100%" height={200}>
-        <ComposedChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <ComposedChart data={formatted} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#e2ab41" stopOpacity={0.35} />
@@ -123,25 +122,20 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
             tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
             axisLine={false} tickLine={false}
             interval="preserveStartEnd"
-            label={{ value: 'Date', position: 'insideBottom', offset: -4, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
           />
           <YAxis
             tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
             axisLine={false} tickLine={false} allowDecimals={false}
-            width={42}
-            label={{ value: 'Tasks', angle: -90, position: 'insideLeft', offset: 14, style: { fill: 'var(--muted)', fontSize: 10, fontWeight: 700 } }}
+            width={28}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
             iconType="circle" iconSize={8}
             formatter={(v) => <span style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 700 }}>{v}</span>}
           />
-          {/* Filled areas */}
           <Area type="monotone" dataKey="created"   name="Created"   fill="url(#gradCreated)"   stroke="#e2ab41" strokeWidth={2} dot={false} />
           <Area type="monotone" dataKey="completed" name="Completed" fill="url(#gradCompleted)" stroke="#22c55e" strokeWidth={2} dot={false} />
-          {/* Overdue as a line */}
-          <Line  type="monotone" dataKey="overdue"   name="Overdue"   stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
-          {/* Zero reference */}
+          <Line  type="monotone" dataKey="overdue"  name="Overdue"   stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
         </ComposedChart>
       </ResponsiveContainer>
@@ -149,59 +143,60 @@ function TaskActivityChart({ data }: { data: ActivityPoint[] }) {
   )
 }
 
-function VelocityBars({ data }: { data: Array<{ week: string; created: number; completed: number }> }) {
+// ── Weekly Velocity Bar Chart (Recharts) ────────────────────────────────────
+function VelocityBars({ data }: { data: Array<{ week: string; label?: string; created: number; completed: number }> }) {
   if (!data.length) return null
-  const maxVal = Math.max(...data.flatMap(d => [d.created, d.completed]), 1)
-  const VW = 600, VH = 180
-  const padT = 14, padB = 36, padL = 32, padR = 12
-  const chartW = VW - padL - padR
-  const chartH = VH - padT - padB
-  const n = data.length
-  const slotW = chartW / n
-  const barW = Math.min(slotW * 0.35, 28)
-  const gap = barW * 0.3
+
+  const formatted = data.map(d => ({
+    ...d,
+    // Use label if set, otherwise use the week string directly (already "Mon DD" format from backend)
+    name: d.label || d.week || '',
+  }))
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div style={{
+        background: 'rgba(15,23,42,0.97)', border: '1px solid rgba(226,171,65,0.25)',
+        borderRadius: 10, padding: '9px 13px', fontSize: 12, minWidth: 130,
+      }}>
+        <div style={{ fontWeight: 900, color: 'var(--text)', marginBottom: 6 }}>{label}</div>
+        {payload.map((p: any) => (
+          <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, marginBottom: 3 }}>
+            <span style={{ color: p.color, fontWeight: 700 }}>{p.name}</span>
+            <span style={{ color: '#fff', fontWeight: 900 }}>{p.value}</span>
+          </div>
+        ))}
+        <div style={{ marginTop: 5, paddingTop: 5, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 11, color: '#94a3b8' }}>
+          Net: <strong style={{ color: (payload[1]?.value ?? 0) - (payload[0]?.value ?? 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+            {(payload[1]?.value ?? 0) - (payload[0]?.value ?? 0) >= 0 ? '+' : ''}{(payload[1]?.value ?? 0) - (payload[0]?.value ?? 0)}
+          </strong>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
-      style={{ width: '100%', height: VH, display: 'block' }}>
-      {/* Gridlines */}
-      {[0, 0.25, 0.5, 0.75, 1].map(p => {
-        const y = padT + chartH * (1 - p)
-        return (
-          <g key={p}>
-            <line x1={padL} y1={y} x2={VW - padR} y2={y}
-              stroke="rgba(255,255,255,0.07)" strokeWidth={1} strokeDasharray={p === 0 ? "0" : "5 5"} />
-            {p > 0 && (
-              <text x={padL - 5} y={y + 4} textAnchor="end"
-                fill="var(--muted)" fontSize={11} fontWeight="600">
-                {Math.round(maxVal * p)}
-              </text>
-            )}
-          </g>
-        )
-      })}
-      {/* Bars spread evenly */}
-      {data.map((d, i) => {
-        const cx = padL + i * slotW + slotW / 2
-        const bh1 = Math.max(3, (d.created / maxVal) * chartH)
-        const bh2 = Math.max(3, (d.completed / maxVal) * chartH)
-        const x1 = cx - gap / 2 - barW
-        const x2 = cx + gap / 2
-        const label = String(d.week || '').slice(5, 10)
-        return (
-          <g key={i}>
-            <rect x={x1} y={padT + chartH - bh1} width={barW} height={bh1}
-              fill="#e2ab41" rx={3} opacity={0.92} />
-            <rect x={x2} y={padT + chartH - bh2} width={barW} height={bh2}
-              fill="#22c55e" rx={3} opacity={0.92} />
-            <text x={cx} y={VH - padB + 18} textAnchor="middle"
-              fill="var(--muted)" fontSize={11} fontWeight="600">
-              {label}
-            </text>
-          </g>
-        )
-      })}
-    </svg>
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={formatted} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%" barGap={3}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+        <XAxis
+          dataKey="name"
+          tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
+          axisLine={false} tickLine={false}
+          interval={0}
+        />
+        <YAxis
+          tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 700 }}
+          axisLine={false} tickLine={false}
+          allowDecimals={false}
+          width={24}
+        />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+        <Bar dataKey="created"   name="Created"   fill="#e2ab41" radius={[4, 4, 0, 0]} opacity={0.9} />
+        <Bar dataKey="completed" name="Completed" fill="#22c55e" radius={[4, 4, 0, 0]} opacity={0.9} />
+      </BarChart>
+    </ResponsiveContainer>
   )
 }
 
@@ -249,12 +244,16 @@ function DonutRing({ segments, size = 120, strokeW = 12 }: {
   )
   const r = (size - strokeW) / 2
   const circ = 2 * Math.PI * r
+  const gapDeg = 2 // gap in degrees between segments
+  const gapArc = (gapDeg / 360) * circ
   const cx = size / 2, cy = size / 2
   let offset = 0
-  const segs = segments.filter(s => s.value > 0).map(s => {
-    const dash = (s.value / total) * circ
+  const filtered = segments.filter(s => s.value > 0)
+  const segs = filtered.map(s => {
+    const rawDash = (s.value / total) * circ
+    const dash = Math.max(0, rawDash - gapArc)
     const seg = { ...s, dash, offset, pct: Math.round((s.value / total) * 100) }
-    offset += dash + 1
+    offset += rawDash
     return seg
   })
 
@@ -264,9 +263,9 @@ function DonutRing({ segments, size = 120, strokeW = 12 }: {
       {segs.map((s, i) => (
         <circle key={i} cx={cx} cy={cy} r={r} fill="none"
           stroke={s.color} strokeWidth={strokeW - 1}
-          strokeDasharray={`${s.dash} ${circ}`}
+          strokeDasharray={`${s.dash} ${circ - s.dash}`}
           strokeDashoffset={-s.offset}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           style={{ transition: 'stroke-dasharray 0.6s ease' }}
         />
       ))}
@@ -294,9 +293,6 @@ function ProgressRow({ label, value, max, color, sub }: {
     </div>
   )
 }
-
-// ─── Mini bar chart ───────────────────────────────────────────────
-// BarChart replaced by Recharts in Weekly Velocity section
 
 // ─── Card wrapper ─────────────────────────────────────────────────
 function Card({ title, sub, children, action }: {
@@ -338,8 +334,8 @@ export function DashboardHomePage() {
   const tasks       = data?.tasks
   const projects    = useMemo(() => data?.projects    || [], [data])
   const leaderboard = useMemo(() => data?.leaderboard || [], [data])
-  const trendData    = useMemo(() => (data?.trend || []).slice(-14), [data])
-  const velocity = useMemo(() => {
+  const trendData   = useMemo(() => (data?.trend || []).slice(-14), [data])
+  const velocity    = useMemo(() => {
     const raw = (data?.velocity || []).slice(-8)
     if (raw.length > 0) return raw.map(v => ({ ...v, label: v.week }))
     // Baseline: last 8 weeks with zeros so chart always renders
@@ -402,9 +398,8 @@ export function DashboardHomePage() {
         ]}
       />
 
-
-      {/* ── Row 1: Activity (wide) + Status Donut + Priority side-by-side ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 14 }}>
+      {/* ── Row 1: Activity (wide) + Status Donut + Priority ── */}
+      <div className="dashRow1Grid">
         <Card
           title="Task Activity — Last 14 Days"
           sub="Created · Completed · Overdue by day"
@@ -486,7 +481,7 @@ export function DashboardHomePage() {
           <div
             role="button"
             tabIndex={canOpenChartDetails ? 0 : -1}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
             onClick={() => canOpenChartDetails ? setChartDetail('projects') : null}
             onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('projects') : null)}
           >
@@ -518,7 +513,7 @@ export function DashboardHomePage() {
         )}
       </Card>
 
-      {/* ── Row 3: Weekly velocity (full Recharts) ── */}
+      {/* ── Row 3: Weekly velocity + Throughput insights ── */}
       <div className="dashGrid21" style={{ alignItems: 'start' }}>
         <Card
           title="Weekly Velocity"
@@ -528,13 +523,13 @@ export function DashboardHomePage() {
           {isLoading ? <Skel h={180} /> : (
             <div>
               {/* Summary row */}
-              <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 20, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
                   { label: 'Created', color: C.brand, key: 'created' },
                   { label: 'Completed', color: C.green, key: 'completed' },
                 ].map(m => {
                   const total = velocity.reduce((s, v) => s + (v as any)[m.key], 0)
-                  const avg = Math.round(total / velocity.length)
+                  const avg = Math.round(total / Math.max(velocity.length, 1))
                   return (
                     <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 3, background: m.color }} />
@@ -554,10 +549,8 @@ export function DashboardHomePage() {
                   )
                 })()}
               </div>
-              {/* Custom SVG bar chart */}
-              <div style={{ marginTop: 4, minHeight: 140 }}>
-                <VelocityBars data={velocity} />
-              </div>
+              {/* Recharts bar chart */}
+              <VelocityBars data={velocity} />
               {/* Legend */}
               <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                 {[{ color: '#e2ab41', label: 'Created' }, { color: '#22c55e', label: 'Completed' }].map(m => (
@@ -571,7 +564,7 @@ export function DashboardHomePage() {
           )}
         </Card>
 
-        {/* Velocity insight panel */}
+        {/* Throughput insights */}
         <Card title="Throughput Insights" sub="Based on recent velocity trend">
           {isLoading ? <Skel h={180} /> : (
             <div style={{ display: 'grid', gap: 14 }}>
@@ -579,8 +572,8 @@ export function DashboardHomePage() {
                 if (!velocity.length) return <div style={{ color: C.muted, fontSize: 13 }}>No velocity data yet</div>
                 const totalCreated = velocity.reduce((s, v) => s + v.created, 0)
                 const totalDone = velocity.reduce((s, v) => s + v.completed, 0)
-                const avgCreated = Math.round(totalCreated / velocity.length)
-                const avgDone = Math.round(totalDone / velocity.length)
+                const avgCreated = Math.round(totalCreated / Math.max(velocity.length, 1))
+                const avgDone = Math.round(totalDone / Math.max(velocity.length, 1))
                 const backlogGrowth = totalCreated - totalDone
                 const throughputRatio = totalCreated ? Math.round((totalDone / totalCreated) * 100) : 0
                 const recentW = velocity.slice(-3)
@@ -609,7 +602,7 @@ export function DashboardHomePage() {
         </Card>
       </div>
 
-      {/* ── Row 4: Team Performance + At-Risk side-by-side ── */}
+      {/* ── Row 4: Team Performance + At-Risk ── */}
       <div className="dashGrid2">
         <Card title="Team Performance" sub="Completion rate — tasks finished / assigned"
           action={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -658,55 +651,55 @@ export function DashboardHomePage() {
         </Card>
       </div>
 
-      {/* ── Row 5: Team Workload (full-width stacked bars) ── */}
+      {/* ── Row 5: Team Workload ── */}
       <Card
         title="Team Workload"
         sub="Active · Overdue · Done per person"
         action={canOpenChartDetails ? <button type="button" className="btn btnGhost btnCompact" onClick={() => setChartDetail('workload')}>Details</button> : undefined}
       >
-          {leaderboard.length === 0 ? (
-            <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
-          ) : (
-            <div
-              role="button"
-              tabIndex={canOpenChartDetails ? 0 : -1}
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
-              onClick={() => canOpenChartDetails ? setChartDetail('workload') : null}
-              onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('workload') : null)}
-            >
-              {leaderboard.slice(0, 8).map((u, i) => {
-                const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
-                if (u.total === 0) return null
-                return (
-                  <div key={u.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
-                      <span style={{ fontSize: 11, color: C.muted }}>{u.total} tasks</span>
-                    </div>
-                    <div style={{ height: 9, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
-                      {u.completed > 0 && <div style={{ flex: u.completed, background: C.green, transition: 'flex 0.6s ease' }} />}
-                      {active > 0 && <div style={{ flex: active, background: [C.brand, C.purple, C.blue, C.teal][i%4], opacity: 0.8, transition: 'flex 0.6s ease' }} />}
-                      {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red, transition: 'flex 0.6s ease' }} />}
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, marginTop: 3 }}>
-                      <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{u.completed} done</span>
-                      {active > 0 && <span style={{ fontSize: 10, color: C.brand, fontWeight: 700 }}>{active} active</span>}
-                      {(u.overdue||0) > 0 && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>{u.overdue} overdue</span>}
-                    </div>
+        {leaderboard.length === 0 ? (
+          <div style={{ height: 80, display: 'grid', placeItems: 'center', color: C.muted, fontSize: 13 }}>No data</div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={canOpenChartDetails ? 0 : -1}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px 24px', cursor: canOpenChartDetails ? 'pointer' : 'default' }}
+            onClick={() => canOpenChartDetails ? setChartDetail('workload') : null}
+            onKeyDown={(e) => (canOpenChartDetails && e.key === 'Enter' ? setChartDetail('workload') : null)}
+          >
+            {leaderboard.slice(0, 8).map((u, i) => {
+              const active = Math.max(0, u.total - u.completed - (u.overdue || 0))
+              if (u.total === 0) return null
+              return (
+                <div key={u.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{u.name.split(' ')[0]}</span>
+                    <span style={{ fontSize: 11, color: C.muted }}>{u.total} tasks</span>
                   </div>
-                )
-              }).filter(Boolean)}
-              <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
-                {[['Done', C.green], ['Active', C.brand], ['Overdue', C.red]].map(([l, c]) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c as string }} />
-                    <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+                  <div style={{ height: 9, borderRadius: 999, background: 'var(--bg2)', display: 'flex', overflow: 'hidden', gap: 1 }}>
+                    {u.completed > 0 && <div style={{ flex: u.completed, background: C.green, transition: 'flex 0.6s ease' }} />}
+                    {active > 0 && <div style={{ flex: active, background: [C.brand, C.purple, C.blue, C.teal][i%4], opacity: 0.8, transition: 'flex 0.6s ease' }} />}
+                    {(u.overdue||0) > 0 && <div style={{ flex: u.overdue, background: C.red, transition: 'flex 0.6s ease' }} />}
                   </div>
-                ))}
-              </div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 3 }}>
+                    <span style={{ fontSize: 10, color: C.green, fontWeight: 700 }}>{u.completed} done</span>
+                    {active > 0 && <span style={{ fontSize: 10, color: C.brand, fontWeight: 700 }}>{active} active</span>}
+                    {(u.overdue||0) > 0 && <span style={{ fontSize: 10, color: C.red, fontWeight: 700 }}>{u.overdue} overdue</span>}
+                  </div>
+                </div>
+              )
+            }).filter(Boolean)}
+            <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
+              {[['Done', C.green], ['Active', C.brand], ['Overdue', C.red]].map(([l, c]) => (
+                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c as string }} />
+                  <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{l}</span>
+                </div>
+              ))}
             </div>
-          )}
-        </Card>
+          </div>
+        )}
+      </Card>
 
       <Modal
         title={
