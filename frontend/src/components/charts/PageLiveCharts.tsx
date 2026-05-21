@@ -2,9 +2,10 @@ import { useMemo } from 'react'
 import { useLiveAppMetrics, pct } from '../../lib/hooks/useLiveAppMetrics'
 import { ChartCard } from './ChartCard'
 import {
-  KpiMetricGrid, WeeklyDayBars, DualTrendAreaChart, StatusDonutChart,
+  KpiMetricGrid, WeeklyDayBars, DualTrendAreaChart,
   QuickInsightsPanel, buildLiveInsights, trendPct, trendDir,
 } from './AdvancedVisuals'
+import { StatusDonutChart } from './PerformanceCharts'
 import { CHART } from './chartTheme'
 
 /** Compact live chart strip for Tasks, Board, Projects, Team, etc. */

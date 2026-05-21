@@ -54,7 +54,7 @@ export type TrendPoint = { day: string; created?: number; completed?: number; ov
 export type StatusPoint = { status: string; count: number }
 export type PriorityPoint = { priority: string; count: number }
 
-function n(v: unknown) {
+export function n(v: unknown) {
   const x = Number(v || 0)
   return Number.isFinite(x) ? x : 0
 }
