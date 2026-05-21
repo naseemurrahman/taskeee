@@ -4,11 +4,13 @@ import { Activity, AlertTriangle, BarChart3, CheckCircle2, Clock3, FolderOpen, G
 import { apiFetch } from '../../lib/api'
 import { liveAnalyticsQueryOptions } from '../../lib/analyticsQueryOptions'
 import { KpiStrip } from '../ui/KpiCard'
-import { ChartCard } from '../charts/ChartCard'
 import { AssignmentsChart } from '../charts/WorkCharts'
 import { DeadlinesTrendChart, PriorityPieChart, StatusDonutChart, WorkloadBalanceChart } from '../charts/PerformanceCharts'
 import { DashboardProjectProgressChart } from '../charts/DashboardCharts'
-import { AnalyticsErrorNotice, AnalyticsRiskQueue, numberValue as n, percent as pct } from '../analytics/AnalyticsPrimitives'
+import {
+  AnalyticsCard, AnalyticsErrorNotice, AnalyticsLoadingBlock, AnalyticsRiskQueue,
+  EmptyAnalyticsState, numberValue as n, percent as pct,
+} from '../analytics/AnalyticsPrimitives'
 
 type AnalyticsSummary = {
   total_tasks: number
@@ -182,42 +184,60 @@ export function DashboardAnalyticsPanel({ days = 30 }: { days?: number }) {
       />
 
       <div className="analyticsHeroRow">
-        <ChartCard title="Live Activity Flow" subtitle={`Created · completed · overdue — last ${days} days`} loading={trendQ.isLoading} fillHeight>
-          <DeadlinesTrendChart
-            fillHeight
-            loading={trendQ.isLoading}
-            points={(trendQ.data || []).map((p) => ({
-              day: String(p.day).slice(5, 10),
-              due: n(p.created),
-              completed: n(p.completed),
-              overdue: n(p.overdue),
-            }))}
-          />
-        </ChartCard>
-        <ChartCard title="Status Distribution" subtitle="Live lifecycle mix" loading={statusQ.isLoading}>
-          <StatusDonutChart byStatus={byStatus} loading={statusQ.isLoading} />
-        </ChartCard>
+        <AnalyticsCard title="Live Activity Flow" subtitle={`Created · completed · overdue — last ${days} days`}>
+          {trendQ.isLoading ? (
+            <AnalyticsLoadingBlock height={230} />
+          ) : !(trendQ.data || []).length ? (
+            <EmptyAnalyticsState title="No activity trend" detail="No task movement in the selected period." />
+          ) : (
+            <DeadlinesTrendChart
+              fillHeight
+              loading={false}
+              points={(trendQ.data || []).map((p) => ({
+                day: String(p.day).slice(5, 10),
+                due: n(p.created),
+                completed: n(p.completed),
+                overdue: n(p.overdue),
+              }))}
+            />
+          )}
+        </AnalyticsCard>
+        <AnalyticsCard title="Status Distribution" subtitle="Live lifecycle mix">
+          {statusQ.isLoading ? <AnalyticsLoadingBlock height={200} /> : <StatusDonutChart byStatus={byStatus} loading={false} />}
+        </AnalyticsCard>
       </div>
 
       <div className="analyticsChartGrid">
-        <ChartCard title="Priority Pressure" subtitle="Radar view of urgency mix" loading={priorityQ.isLoading}>
-          <PriorityPieChart byPriority={byPriority} loading={priorityQ.isLoading} />
-        </ChartCard>
-        <ChartCard title="Workload Balance" subtitle="Overloaded vs underutilized" loading={workloadQ.isLoading}>
-          <WorkloadBalanceChart userCount={workload.length} workload={workloadBalance} loading={workloadQ.isLoading} />
-        </ChartCard>
-        <ChartCard title="SLA Risk Queue" subtitle="Highest-risk operational tasks" loading={slaQ.isLoading}>
-          <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No dashboard SLA risk queue" limit={5} />
-        </ChartCard>
+        <AnalyticsCard title="Priority Pressure" subtitle="Radar view of urgency mix">
+          {priorityQ.isLoading ? <AnalyticsLoadingBlock height={200} /> : <PriorityPieChart byPriority={byPriority} loading={false} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="Workload Balance" subtitle="Overloaded vs underutilized">
+          {workloadQ.isLoading ? <AnalyticsLoadingBlock height={200} /> : <WorkloadBalanceChart userCount={workload.length} workload={workloadBalance} loading={false} />}
+        </AnalyticsCard>
+        <AnalyticsCard title="SLA Risk Queue" subtitle="Highest-risk operational tasks">
+          {slaQ.isLoading ? <AnalyticsLoadingBlock height={200} /> : <AnalyticsRiskQueue tasks={slaQ.data?.tasks} emptyTitle="No dashboard SLA risk queue" limit={5} />}
+        </AnalyticsCard>
       </div>
 
       <div className="analyticsChartGrid">
-        <ChartCard title="Project Workload" subtitle="Completion split by project" loading={projectQ.isLoading}>
-          <DashboardProjectProgressChart projects={projectRows} />
-        </ChartCard>
-        <ChartCard title="Team Load" subtitle="Stacked assignment volume" loading={workloadQ.isLoading} fillHeight>
-          <AssignmentsChart rows={assignmentRows} loading={workloadQ.isLoading} />
-        </ChartCard>
+        <AnalyticsCard title="Project Workload" subtitle="Completion split by project">
+          {projectQ.isLoading ? (
+            <AnalyticsLoadingBlock height={200} />
+          ) : !projectRows.length ? (
+            <EmptyAnalyticsState title="No project workload" detail="No projects with tasks in this period." />
+          ) : (
+            <DashboardProjectProgressChart projects={projectRows} />
+          )}
+        </AnalyticsCard>
+        <AnalyticsCard title="Team Load" subtitle="Stacked assignment volume">
+          {workloadQ.isLoading ? (
+            <AnalyticsLoadingBlock height={230} />
+          ) : !assignmentRows.length ? (
+            <EmptyAnalyticsState title="No team load" detail="No assignees with tasks in this period." />
+          ) : (
+            <AssignmentsChart rows={assignmentRows} loading={false} />
+          )}
+        </AnalyticsCard>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
