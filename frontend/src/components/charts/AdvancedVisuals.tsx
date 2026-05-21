@@ -174,7 +174,7 @@ export function WeeklyDayBars(props: {
   highlightIndex?: number
 }) {
   const max = Math.max(1, ...props.days.map((d) => d.value), ...(props.days.map((d) => d.max || 0)))
-  if (props.loading) return <div className="weeklyBarsSkeleton" />
+  if (props.loading || !props.days.length) return <div className="weeklyBarsSkeleton" />
   const accent = props.accent || CHART.brand
   return (
     <div className="weeklyDayBars">
@@ -182,7 +182,7 @@ export function WeeklyDayBars(props: {
         const h = Math.max(6, (d.value / max) * 100)
         const isHi = props.highlightIndex === i
         return (
-          <div key={d.label} className="weeklyDayCol">
+          <div key={`${d.label}-${i}`} className="weeklyDayCol">
             {isHi && d.value > 0 && <span className="weeklyDayBadge">+{Math.round((d.value / max) * 100)}%</span>}
             <div className="weeklyDayTrack">
               <div className="weeklyDayFill" style={{ height: `${h}%`, background: accent, opacity: isHi ? 1 : 0.85 }} />
@@ -203,6 +203,9 @@ export function MultiRingProgress(props: {
   loading?: boolean
 }) {
   if (props.loading) return <div className="multiRingSkeleton" />
+  if (!props.rings.length) {
+    return <div className="chartEmptyState">No status breakdown yet</div>
+  }
   const size = 140
   const cx = size / 2
   const cy = size / 2
@@ -424,16 +427,17 @@ export function QuickInsightsPanel(props: {
       </div>
     )
   }
-  const Icon = ({ type }: { type: string }) => {
-    if (type === 'warn' || type === 'alert') return <AlertTriangle size={16} color={CHART.orange} />
-    if (type === 'trend') return <LineChartIcon size={16} color={CHART.blue} />
-    return <Trophy size={16} color={CHART.green} />
-  }
   return (
     <div className="quickInsights">
       {props.insights.map((ins) => (
         <div key={ins.title} className="quickInsightRow">
-          <Icon type={ins.icon} />
+          {ins.icon === 'warn' || ins.icon === 'alert' ? (
+            <AlertTriangle size={16} color={CHART.orange} />
+          ) : ins.icon === 'trend' ? (
+            <LineChartIcon size={16} color={CHART.blue} />
+          ) : (
+            <Trophy size={16} color={CHART.green} />
+          )}
           <div>
             <div className="quickInsightTitle">{ins.title}</div>
             <div className="quickInsightDetail">{ins.detail}</div>

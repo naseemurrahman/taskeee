@@ -30,7 +30,8 @@ export type DashStats = {
     progress: number
   }>
   leaderboard?: Array<{
-    id: string
+    id?: string
+    employee_id?: string
     name: string
     total: number
     completed: number
@@ -38,16 +39,17 @@ export type DashStats = {
     completion_rate: number
   }>
   priority?: Record<string, number>
-  velocity?: Array<{ week: string; created?: number; completed?: number }>
+  velocity?: Array<{ week?: string; created?: number; completed?: number }>
 }
 
-export type AnalyticsSummary = {
+type AnalyticsSummary = {
   total_tasks: number
   completed_tasks: number
   pending_tasks: number
   overdue_tasks: number
   active_employees: number
   avg_completion_hours?: string | number
+  avg_ai_confidence?: string | number
 }
 
 export type TrendPoint = { day: string; created?: number; completed?: number; overdue?: number }
@@ -71,19 +73,43 @@ export function priorityMap(points: PriorityPoint[] = []) {
   return Object.fromEntries(points.map((p) => [String(p.priority || 'unspecified').toLowerCase(), n(p.count)]))
 }
 
-export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean }) {
+export type LiveMetrics = {
+  days: number
+  loading: boolean
+  dashQ: ReturnType<typeof useQuery<DashStats>>
+  summaryQ: ReturnType<typeof useQuery<AnalyticsSummary>>
+  trendQ: ReturnType<typeof useQuery<{ points: TrendPoint[] }>>
+  statusQ: ReturnType<typeof useQuery<{ statuses: StatusPoint[] }>>
+  priorityQ: ReturnType<typeof useQuery<{ priorities: PriorityPoint[] }>>
+  dash: DashStats | undefined
+  tasks: DashStats['tasks']
+  total: number
+  completed: number
+  overdue: number
+  pending: number
+  completionRate: number
+  byStatus: Record<string, number>
+  byPriority: Record<string, number>
+  trendSeries: Array<{ day: string; label: string; created: number; completed: number; overdue: number }>
+  velocity: Array<{ week: string; created: number; completed: number }>
+  dayOfWeek: Array<{ label: string; rate: number; completed: number; created: number }>
+  projects: NonNullable<DashStats['projects']>
+  leaderboard: Array<{ id?: string; employee_id?: string; name: string; total: number; completed: number; overdue: number; completion_rate: number }>
+}
+
+export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean; skipRealtime?: boolean }) {
   const enableDash = opts?.enableDash !== false
+  if (!opts?.skipRealtime) {
+    useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
+  }
 
-  useRealtimeInvalidation({ tasks: true, employees: true, dashboard: true })
-
-  const dashQ = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => apiFetch<DashStats>('/api/v1/stats/dashboard'),
-    staleTime: 0,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    enabled: enableDash,
-  })
+  const dashQ = useQuery(
+    liveAnalyticsQueryOptions<DashStats>({
+      queryKey: ['dashboard'],
+      queryFn: () => apiFetch<DashStats>('/api/v1/stats/dashboard'),
+      enabled: enableDash,
+    }),
+  )
 
   const summaryQ = useQuery(
     liveAnalyticsQueryOptions<AnalyticsSummary>({
@@ -114,6 +140,7 @@ export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean }) {
   )
 
   const trend = trendQ.data?.points || dashQ.data?.trend || []
+
   const byStatus = useMemo(() => {
     const fromApi = statusMap(statusQ.data?.statuses)
     if (Object.keys(fromApi).length) return fromApi
@@ -145,20 +172,24 @@ export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean }) {
 
   const trendSeries = useMemo(
     () =>
-      trend.slice(-14).map((p) => ({
-        day: String(p.day).slice(5, 10) || String(p.day),
-        label: String(p.day).slice(5, 10),
-        created: n(p.created),
-        completed: n(p.completed),
-        overdue: n(p.overdue),
-      })),
+      trend.slice(-14).map((p) => {
+        const rawDay = String(p.day ?? '')
+        const short = rawDay.length >= 10 ? rawDay.slice(5, 10) : rawDay
+        return {
+          day: short || rawDay,
+          label: short || rawDay,
+          created: n(p.created),
+          completed: n(p.completed),
+          overdue: n(p.overdue),
+        }
+      }),
     [trend],
   )
 
   const velocity = useMemo(() => {
     const raw = dashQ.data?.velocity?.slice(-8) || []
     return raw.map((v) => ({
-      week: String(v.week || '').slice(0, 10),
+      week: String(v.week ?? ''),
       created: n(v.created),
       completed: n(v.completed),
     }))
@@ -168,7 +199,7 @@ export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean }) {
     const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     const buckets = labels.map((label) => ({ label, completed: 0, created: 0 }))
     for (const p of trend) {
-      const d = new Date(p.day)
+      const d = new Date(String(p.day ?? ''))
       if (Number.isNaN(d.getTime())) continue
       const idx = d.getDay()
       buckets[idx].completed += n(p.completed)
@@ -186,27 +217,34 @@ export function useLiveAppMetrics(days = 30, opts?: { enableDash?: boolean }) {
     statusQ.isLoading ||
     (enableDash && dashQ.isLoading)
 
-  return {
-    days,
-    loading,
-    dashQ,
-    summaryQ,
-    trendQ,
-    statusQ,
-    priorityQ,
-    dash: dashQ.data,
-    tasks,
-    total,
-    completed,
-    overdue,
-    pending,
-    completionRate,
-    byStatus,
-    byPriority,
-    trendSeries,
-    velocity,
-    dayOfWeek,
-    projects: dashQ.data?.projects || [],
-    leaderboard: dashQ.data?.leaderboard || [],
-  }
+  return useMemo(
+    (): LiveMetrics => ({
+      days,
+      loading,
+      dashQ,
+      summaryQ,
+      trendQ,
+      statusQ,
+      priorityQ,
+      dash: dashQ.data,
+      tasks,
+      total,
+      completed,
+      overdue,
+      pending,
+      completionRate,
+      byStatus,
+      byPriority,
+      trendSeries,
+      velocity,
+      dayOfWeek,
+      projects: dashQ.data?.projects || [],
+      leaderboard: dashQ.data?.leaderboard || [],
+    }),
+    [
+      days, loading, dashQ, summaryQ, trendQ, statusQ, priorityQ,
+      dashQ.data, tasks, total, completed, overdue, pending, completionRate,
+      byStatus, byPriority, trendSeries, velocity, dayOfWeek,
+    ],
+  )
 }

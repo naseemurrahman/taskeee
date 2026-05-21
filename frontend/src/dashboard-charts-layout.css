@@ -889,3 +889,60 @@
     height: 90px;
   }
 }
+
+/* Dashboard v3 — focused layout, fewer charts, cleaner spacing */
+.dashChartsV3 {
+  gap: clamp(16px, 2.5vw, 22px);
+}
+
+.dashChartsV3 .chartCardV2 {
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, var(--card) 0%, color-mix(in srgb, var(--card) 92%, var(--bg)) 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dashChartsV3 .chartCardV2Title {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.dashChartsV3 .kpiMetricCard {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: box-shadow 0.2s ease;
+}
+
+.dashChartsV3 .kpiMetricCard:hover {
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.08);
+}
+
+.dashChartsV3 .analyticsChartGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
+@media (max-width: 900px) {
+  .dashChartsV3 .dashChartsPriority,
+  .dashChartsV3 .dashChartsRow2,
+  .dashChartsV3 .analyticsChartGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pageLiveChartsLite {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.pageLiveChartsHint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.pageLiveChartsHint strong {
+  color: var(--text);
+  font-weight: 800;
+}

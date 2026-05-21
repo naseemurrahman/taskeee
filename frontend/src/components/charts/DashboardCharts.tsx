@@ -200,7 +200,10 @@ export function DashboardActivityChart({ data }: { data: ActivityPoint[] }) {
     )
   }
 
-  const formatted = data.map(d => ({ ...d, label: d.label || d.day.slice(5) }))
+  const formatted = data.map(d => ({
+    ...d,
+    label: d.label || (d.day ? String(d.day).slice(5) : ''),
+  }))
   const totalCreated = data.reduce((s, d) => s + d.created, 0)
   const totalCompleted = data.reduce((s, d) => s + d.completed, 0)
   const totalOverdue = data.reduce((s, d) => s + d.overdue, 0)
@@ -397,7 +400,7 @@ export function DashboardTeamPerformanceChart(props: {
         const rateColor = rate >= 75 ? CHART.green : rate >= 40 ? CHART.brand : CHART.red
         const color = colors[i % colors.length]
         return (
-          <div key={u.id} className="dashTeamRow">
+          <div key={u.id || u.name || i} className="dashTeamRow">
             <div className="dashTeamRank" style={{ color, borderColor: `${color}35`, background: `${color}18` }}>{i + 1}</div>
             <div className="dashTeamBody">
               <div className="dashTeamHead">
